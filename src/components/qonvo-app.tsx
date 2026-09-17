@@ -262,7 +262,7 @@ export function QonvoApp() {
           <button
             type="button"
             className="shrink-0"
-            aria-label="Staff door"
+            aria-label="Kilode home"
             onClick={() => {
               const now = Date.now();
               if (now - logoTaps.current.t > 2500) logoTaps.current.n = 0;
@@ -271,13 +271,12 @@ export function QonvoApp() {
               if (logoTaps.current.n >= 5) {
                 logoTaps.current.n = 0;
                 window.location.href = session.user ? "/ops" : "/login?next=/ops";
+                return;
               }
+              goHome();
             }}
           >
-            <img src="/kilode-logo-green.png" alt="Kilode" className="h-7 w-auto max-w-[148px] object-contain object-left sm:h-8 sm:max-w-[168px]" />
-          </button>
-          <button type="button" className="min-w-0 text-left" onClick={() => goHome()} aria-label="Kilode home">
-            <span className="mt-0.5 block text-[8px] uppercase tracking-[0.18em] text-muted">kilode.ng</span>
+            <img src="/kilode-logo-green.png" alt="Kilode" className="h-9 w-auto max-w-[200px] object-contain object-left sm:h-10 sm:max-w-[220px]" />
           </button>
           <nav className="mx-auto hidden min-w-0 items-center justify-center gap-1 md:flex">
             <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
@@ -1282,7 +1281,7 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
 
 function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
   const [cat, setCat] = useState("All");
-  const [shown, setShown] = useState(25);
+  const [shown, setShown] = useState(16);
   const open = store.posts.find((p) => p.id === store.openPost);
   const live = store.posts.filter((p) => p.status !== "draft" && (cat === "All" || p.category === cat));
   if (open) {
@@ -1290,23 +1289,23 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
   }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 flex-wrap gap-1 border-b border-line px-2 py-1">
+      <div className="flex shrink-0 flex-nowrap gap-1.5 overflow-x-auto overscroll-x-contain border-b border-line px-2 py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {["All", ...POST_CATS].map((c) => (
           <button
             key={c}
             type="button"
             onClick={() => {
               setCat(c);
-              setShown(25);
+              setShown(16);
             }}
-            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide ${cat === c ? "btn-3d text-lime-2" : "text-muted"}`}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold tracking-wide ${cat === c ? "btn-3d text-lime-2" : "border border-line bg-panel-2 text-fg/80"}`}
           >
             {c}
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-4">
-        <div className="grid grid-cols-4 gap-1">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-6">
+        <div className="grid grid-cols-4 gap-1.5">
           {live.slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
               {p.image ? <img src={p.image} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square bg-panel-3" />}
@@ -1321,9 +1320,15 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
           ))}
         </div>
         {shown < live.length ? (
-          <button type="button" className="btn-3d mx-auto mt-2 block rounded-md px-3 py-1 text-[10px] font-semibold" onClick={() => setShown((n) => n + 10)}>
-            Load more
+          <button
+            type="button"
+            className="btn-join mt-3 mb-2 w-full rounded-lg py-2.5 text-[12px] font-bold"
+            onClick={() => setShown((n) => n + 16)}
+          >
+            Load more · {live.length - shown} left
           </button>
+        ) : live.length > 0 ? (
+          <p className="mt-3 mb-1 text-center text-[10px] text-muted">End of feeds · {live.length} posts</p>
         ) : null}
       </div>
     </div>
