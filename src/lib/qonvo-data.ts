@@ -50,10 +50,15 @@ export const ROOMS: Room[] = [
 export const REGIONS = ["All", ...Array.from(new Set(ROOMS.map((r) => r.region)))];
 
 export const ACCOUNT_KINDS = [
-  { id: "member", label: "Member", hint: "Chat, feeds, comments" },
-  { id: "artist", label: "Artist", hint: "List music URLs, stage name" },
+  { id: "member", label: "Normal user", hint: "Chat, feeds, vote, apply to jobs" },
+  { id: "artist", label: "Artist", hint: "Pay to list music URLs only" },
   { id: "writer", label: "Writer", hint: "News, blogs, reviews" },
-  { id: "advertiser", label: "Advertiser", hint: "Place ads after you pay" },
+  { id: "advertiser", label: "Ads Poster", hint: "Pay to place business ads" },
+  { id: "cinema", label: "Advertiser (Cinema)", hint: "Pay to submit movie YouTube URLs" },
+  { id: "job_poster", label: "Job Poster", hint: "Post jobs and manage applicants" },
+  { id: "job_seeker", label: "Job Seeker", hint: "Resume + apply to jobs" },
+  { id: "vendor", label: "Marketplace seller", hint: "Showcase products. No in-app checkout" },
+  { id: "renter", label: "Rent / space lister", hint: "List properties with contact links" },
   { id: "brand", label: "Brand / business", hint: "Company page and ads" },
 ] as const;
 
@@ -323,16 +328,25 @@ export function handleColor(name: string) {
 
 export const TERMS = `Kilode Terms of Use
 
-By creating an account or using post, music, video, or advertising tools you agree:
+By creating an account or using post, music, video, cinema, ads, jobs, marketplace, or rent tools you agree:
 
-1. You are responsible for what you publish. Do not post illegal content, scams, hate, or anyone’s private data.
-2. Music and video links must be yours to share. Playback stays on YouTube, Spotify, and other platforms. We do not host audio or video files.
-3. Ads you submit may be refused. Payment hashes are a record only until a live payment check exists.
-4. Handles and public posts can be seen by others on this device network. Do not treat this preview as a bank or a lawyer.
-5. We may hide, reject, or remove content and accounts that break these rules.
-6. The service is provided as-is. Community chat is not professional advice.
+1. You pick one account type at register. You cannot switch it yourself. Super admin may override.
+2. You are responsible for what you publish. Do not post illegal content, scams, hate, or anyone’s private data.
+3. Music is link-only (YouTube, Audiomack, SoundCloud, Spotify, Boomplay, Apple). We do not host audio files.
+4. Movies are YouTube URLs submitted by Cinema Advertisers, then approved. We do not host video files.
+5. Ads, jobs, marketplace, and rent listings may be refused. Crypto tx hashes are a record until staff checks them.
+6. Send crypto only to addresses shown in Kilode after you tap Copy. Verify the first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet.
+7. Handles and public posts can be seen by others. This is not a bank or a lawyer.
+8. We may hide, reject, or remove content and accounts that break these rules.
+9. The service is provided as-is. Community chat is not professional advice.
 
-Last updated September 2026.`;
+Last updated September 2026.
+
+Privacy
+We do not ask for a public email. Login uses a private username. Do not put real addresses or ID numbers in chat. Cookies keep you signed in. We do not sell your handle list.
+
+Developer
+Kilode is built with @Builtbystacks · Squadglobaldynasty. Telegram: https://t.me/Builtbystacks`;
 
 export function timeLabel(ts: number) {
   const diff = Date.now() - ts;

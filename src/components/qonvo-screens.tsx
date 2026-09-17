@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AD_COINS, AD_KINDS, AD_PLACEMENTS, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, POST_CATS, REGIONS, ROOMS, TERMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
-import { claimOps, clearModUser, getModSettings, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, setModHitStatus, setModUser, setStaffRole, staffMe } from "@/lib/staff-server";
+import { claimOps, clearModUser, getModSettings, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setModHitStatus, setModUser, setStaffRole, staffMe } from "@/lib/staff-server";
 import {
   approveNewsDraft,
   fetchNewsLatest,
@@ -479,8 +479,11 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
       </Card>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Public username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       <div>
-        <div className="mb-1 text-[11px] font-medium text-muted">Account type</div>
-        <AccountKindPicker value={kind} onChange={setKind} />
+        <div className="mb-1 text-[11px] font-medium text-muted">Account type (locked)</div>
+        <p className="rounded-lg border border-line bg-panel px-3 py-2 text-sm">
+          {kindLabel}
+          <span className="mt-0.5 block text-[10px] text-muted">Chosen at register. Super admin can override on /ops.</span>
+        </p>
       </div>
       {kind === "artist" ? (
         <>
@@ -711,6 +714,7 @@ function Ads({ store }: { store: Store }) {
   const [amount, setAmount] = useState("");
   const [agree, setAgree] = useState(false);
   const [err, setErr] = useState("");
+  const [copied, setCopied] = useState(false);
   const [wallets, setWallets] = useState<{ coin: string; address: string }[]>([]);
   useEffect(() => {
     void listWallets()
@@ -773,8 +777,25 @@ function Ads({ store }: { store: Store }) {
         ))}
       </div>
       <div className="raised rounded-xl p-3 text-xs">
-        <div className="text-muted">Send {AD_COINS.find((c) => c.id === coin)?.label} to</div>
+        <div className="text-muted">Send {AD_COINS.find((c) => c.id === coin)?.label} to this Kilode wallet only</div>
         <div className="mt-1 break-all font-mono text-[11px]">{payTo || "Wallet not set yet — staff must paste addresses on /ops."}</div>
+        {payTo ? (
+          <button
+            type="button"
+            className="mt-2 rounded border border-line px-2 py-1 text-[11px] font-semibold"
+            onClick={() => {
+              void navigator.clipboard?.writeText(payTo).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1400);
+              });
+            }}
+          >
+            {copied ? "Copied" : "Copy address"}
+          </button>
+        ) : null}
+        <p className="mt-2 text-[10px] leading-snug text-danger">
+          Verify the first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet. Staff match your tx hash by hand. NOWPayments is not on — do not send to a third-party invoice.
+        </p>
       </div>
       <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount sent (about $${AD_PLACEMENTS.find((p) => p.id === place)?.usd} USD in crypto)`} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash / payment ID after you pay" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
@@ -839,6 +860,8 @@ function Admin({ store }: { store: Store }) {
   const [wallets, setWallets] = useState<Record<string, string>>({});
   const [members, setMembers] = useState<{ id: string; handle: string; kind?: string }[]>([]);
   const [walletMsg, setWalletMsg] = useState("");
+  const [extraCoin, setExtraCoin] = useState("");
+  const [extraAddr, setExtraAddr] = useState("");
 
   useEffect(() => {
     void staffMe()
@@ -1010,31 +1033,73 @@ function Admin({ store }: { store: Store }) {
       {role === "super" || role === "admin" ? (
         <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
           <div className="text-[11px] font-medium text-muted">Pay-to wallets</div>
-          <p className="text-xs text-muted">Users send BTC / SOL / USDC / ETH here. Paste your real addresses.</p>
+          <p className="text-xs text-muted">Shown when users pay ads or donate. They copy from the app only. Add more coins below.</p>
           {walletMsg ? <p className="text-[11px] text-lime-2">{walletMsg}</p> : null}
-          {AD_COINS.map((c) => (
-            <div key={c.id} className="flex gap-2">
-              <span className="w-14 shrink-0 pt-2 text-[10px] font-bold text-muted">{c.ticker}</span>
-              <input
-                value={wallets[c.id] ?? ""}
-                onChange={(e) => setWallets((w) => ({ ...w, [c.id]: e.target.value }))}
-                placeholder={`${c.label} address`}
-                className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 font-mono text-xs"
-              />
-              <button
-                type="button"
-                className="rounded border border-line px-2 text-xs"
-                onClick={() => {
-                  void saveWallet({ data: { coin: c.id, address: wallets[c.id] ?? "" } }).then(() => {
-                    setWalletMsg(`${c.ticker} saved`);
-                    setTimeout(() => setWalletMsg(""), 1500);
-                  });
-                }}
-              >
-                Save
-              </button>
-            </div>
-          ))}
+          {Array.from(new Set([...AD_COINS.map((c) => c.id), ...Object.keys(wallets)])).map((id) => {
+            const c = AD_COINS.find((x) => x.id === id);
+            const ticker = c?.ticker ?? id.toUpperCase();
+            return (
+              <div key={id} className="flex gap-2">
+                <span className="w-14 shrink-0 pt-2 text-[10px] font-bold text-muted">{ticker}</span>
+                <input
+                  value={wallets[id] ?? ""}
+                  onChange={(e) => setWallets((w) => ({ ...w, [id]: e.target.value }))}
+                  placeholder={`${c?.label ?? id} address`}
+                  className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 font-mono text-xs"
+                />
+                <button
+                  type="button"
+                  className="rounded border border-line px-2 text-xs"
+                  onClick={() => {
+                    void saveWallet({ data: { coin: id, address: wallets[id] ?? "" } }).then(() => {
+                      setWalletMsg(`${ticker} saved`);
+                      setTimeout(() => setWalletMsg(""), 1500);
+                    });
+                  }}
+                >
+                  Save
+                </button>
+                {!AD_COINS.some((x) => x.id === id) ? (
+                  <button
+                    type="button"
+                    className="rounded border border-danger/40 px-2 text-xs text-danger"
+                    onClick={() => {
+                      void deleteWallet({ data: { coin: id } }).then(() => {
+                        setWallets((w) => {
+                          const n = { ...w };
+                          delete n[id];
+                          return n;
+                        });
+                        setWalletMsg(`${ticker} removed`);
+                      });
+                    }}
+                  >
+                    Del
+                  </button>
+                ) : null}
+              </div>
+            );
+          })}
+          <div className="flex gap-2 pt-1">
+            <input value={extraCoin} onChange={(e) => setExtraCoin(e.target.value)} placeholder="coin id (e.g. doge)" className="w-28 rounded-lg border border-line bg-panel px-2 py-2 font-mono text-xs" />
+            <input value={extraAddr} onChange={(e) => setExtraAddr(e.target.value)} placeholder="address" className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 font-mono text-xs" />
+            <button
+              type="button"
+              className="rounded border border-line px-2 text-xs"
+              onClick={() => {
+                const coin = extraCoin.trim().toLowerCase();
+                if (!coin || !extraAddr.trim()) return;
+                void saveWallet({ data: { coin, address: extraAddr.trim() } }).then(() => {
+                  setWallets((w) => ({ ...w, [coin]: extraAddr.trim() }));
+                  setExtraCoin("");
+                  setExtraAddr("");
+                  setWalletMsg(`${coin.toUpperCase()} added`);
+                });
+              }}
+            >
+              Add
+            </button>
+          </div>
         </div>
       ) : null}
       {role === "super" ? (
@@ -1658,14 +1723,22 @@ function Settings({ store }: { store: Store }) {
 function Help() {
   return (
     <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Help & Terms</h2>
-      <Card title="Accounts" body="Username + password. Tick Terms. Choose Member, Artist, Writer, Advertiser, or Brand. No public email." />
+      <h2 className="text-xl font-bold">Help, terms & about</h2>
+      <Card title="Accounts" body="Username + password. Tick Terms. One account type at register — you cannot switch it. Super admin can override. No public email." />
+      <Card title="What each type can do" body="Normal user: chat, feeds, vote, apply to jobs. Artist: music URLs only. Writer: feeds. Ads Poster: business ads. Cinema Advertiser: movie YouTube URLs. Job Poster / Seeker, Marketplace seller, Rent lister: their module only." />
       <Card title="Chat" body="Signed-in messages save on the server. Super admin sets how long they live (1 hour to 30 days, or never). Use ‹ › to page older/newer chat. Tap Translate under a line for Yoruba, Igbo, Hausa, French, Spanish." />
-      <Card title="Profiles & messages" body="Every handle has a public page at /u/username. DMs are under Messages. Notifications fire on comments and replies." />
-      <Card title="Feeds & music" body="Create post or Add track after you sign in. Music is a URL to Spotify / Apple / SoundCloud — we do not host files." />
-      <Card title="Ads" body="Advert grid $40. Chat stream (scrolls with chat) $250. Pinned at top of Chat $800. Pay crypto, paste tx, staff approve. Super can pin / revoke." />
-      <Card title="Staff" body="Tap the logo 5 times or open /ops. First signed-in owner claims super. Nobody else can be made super. Grant and revoke sub-admins only." />
+      <Card title="Feeds & music" body="Create post after you sign in. Only Artist lists music. Music is a URL to Spotify / Apple / SoundCloud / Audiomack / Boomplay — we do not host files." />
+      <Card title="Ads" body="Advert grid $40. Chat stream $250. Pinned chat $800. Copy the wallet from this app, pay, paste tx. Staff approve. Super can pin / revoke." />
+      <Card title="Staff" body="Tap the logo 5 times or open /ops. Not in the public menu. First signed-in owner claims super. Nobody else can be made super." />
+      <Card title="Privacy" body="No public email. Login uses a private username. Do not put real addresses or ID numbers in chat. Cookies keep you signed in. We do not sell your handle list." />
       <div className="raised whitespace-pre-wrap rounded-xl p-3 text-xs text-muted">{TERMS}</div>
+      <p className="px-1 text-[10px] text-muted">
+        Developer{" "}
+        <a href="https://t.me/Builtbystacks" target="_blank" rel="noreferrer" className="text-lime-2">
+          @Builtbystacks
+        </a>{" "}
+        · Squadglobaldynasty
+      </p>
     </div>
   );
 }

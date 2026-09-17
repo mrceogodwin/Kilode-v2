@@ -215,6 +215,19 @@ export const saveWallet = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const deleteWallet = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { coin: string }) => d)
+  .handler(async ({ context, data }) => {
+    const me = await staffOf(context.userId);
+    if (me?.role !== "super" && me?.role !== "admin") throw new Error("Forbidden");
+    const coin = data.coin.trim().toLowerCase();
+    if (!coin) return null;
+    const sql = await getSql();
+    await sql`delete from nf_wallets where coin = ${coin}`;
+    return { ok: true };
+  });
+
 export const getModSettings = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {

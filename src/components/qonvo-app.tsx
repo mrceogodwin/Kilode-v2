@@ -897,22 +897,22 @@ export function QonvoApp() {
                   <Radio className="size-4 shrink-0 text-lime-2" />
                   Music
                 </button>
-                {session.user ? (
-                  <a
-                    href="/ops"
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-panel-2"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <Shield className="size-4 shrink-0 text-lime-2" />
-                    Staff
-                  </a>
-                ) : null}
               </div>
             </div>
             <div className="border-t border-white/5 px-4 py-4">
               <button type="button" className="btn-join w-full rounded-xl py-2.5 text-[12px] font-bold" onClick={() => { setDonateOpen(true); setMenuOpen(false); }}>
                 Donate · keep Kilode up
               </button>
+              <p className="mt-3 text-center text-[9px] leading-snug text-muted">
+                <button type="button" className="underline" onClick={() => { setScreen("help"); setMenuOpen(false); }}>
+                  Terms · Privacy
+                </button>
+                {" · "}
+                <a href="https://t.me/Builtbystacks" target="_blank" rel="noreferrer" className="text-lime-2">
+                  @Builtbystacks
+                </a>
+                <span className="block mt-0.5">Developer · Squadglobaldynasty</span>
+              </p>
             </div>
           </aside>
           <button type="button" className="flex-1 bg-black/60" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
@@ -1800,13 +1800,15 @@ function DonateSheet({ onClose }: { onClose: () => void }) {
             <X className="size-4" />
           </button>
         </div>
-        <p className="mb-3 text-[11px] text-muted">Send crypto to a wallet below. No account. No processor.</p>
+        <p className="mb-3 text-[11px] text-muted">Send crypto to a wallet below. Copy from this screen only. Verify first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet.</p>
         <div className="space-y-2">
-          {AD_COINS.map((c) => {
-            const addr = wallets.find((w) => w.coin === c.id)?.address;
+          {Array.from(new Set([...AD_COINS.map((c) => c.id), ...wallets.map((w) => w.coin)])).map((id) => {
+            const c = AD_COINS.find((x) => x.id === id);
+            const addr = wallets.find((w) => w.coin === id)?.address;
+            const ticker = c?.ticker ?? id.toUpperCase();
             return (
-              <div key={c.id} className="rounded-lg border border-white/5 px-2 py-1.5">
-                <div className="text-[10px] font-medium tracking-normal text-lime-2">{c.ticker}</div>
+              <div key={id} className="rounded-lg border border-white/5 px-2 py-1.5">
+                <div className="text-[10px] font-medium tracking-normal text-lime-2">{ticker}</div>
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-muted">{addr || "Not set yet — add on /ops"}</span>
                   {addr ? (
@@ -1815,12 +1817,12 @@ function DonateSheet({ onClose }: { onClose: () => void }) {
                       className="shrink-0 text-[10px] text-lime-2"
                       onClick={() => {
                         void navigator.clipboard?.writeText(addr).then(() => {
-                          setCopied(c.id);
+                          setCopied(id);
                           setTimeout(() => setCopied(""), 1200);
                         });
                       }}
                     >
-                      {copied === c.id ? "Copied" : "Copy"}
+                      {copied === id ? "Copied" : "Copy"}
                     </button>
                   ) : null}
                 </div>

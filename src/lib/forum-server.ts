@@ -2,8 +2,25 @@ import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { asAccountKind, type AccountKind } from "@/lib/qonvo-data";
+import { canKind, kindActionHint, type KindAction } from "@/lib/permissions";
 import { gateText } from "@/lib/mod-cache";
 import { pushNote, userIdByHandle } from "@/lib/social-server";
+
+async function kindOf(userId: string): Promise<AccountKind> {
+  try {
+    const sql = await getSql();
+    const rows = await sql<{ kind: string | null }>`select kind from nf_profiles where user_id = ${userId} limit 1`;
+    return asAccountKind(rows[0]?.kind);
+  } catch {
+    return "member";
+  }
+}
+
+async function requireKind(userId: string, action: KindAction) {
+  const kind = await kindOf(userId);
+  if (!canKind(kind, action)) return kindActionHint(action);
+  return null;
+}
 
 function nid() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -190,6 +207,8 @@ export const saveTrack = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const sql = await getSql();
     if ((await restrictionOf(context.userId)) === "ban") return { ok: false as const, reason: "This account is banned." };
+    const blocked = await requireKind(context.userId, "music.submit");
+    if (blocked) return { ok: false as const, reason: blocked };
     const author = await publicHandle(context.userId);
     const gate = await gateText("music", `${data.title} ${data.artist} ${data.note ?? ""}`, { userId: context.userId, author });
     if (!gate.ok) return { ok: false as const, reason: gate.reason };
@@ -247,6 +266,8 @@ export const saveAdRow = createServerFn({ method: "POST" })
     if (!name) return null;
     const sql = await getSql();
     if ((await restrictionOf(context.userId)) === "ban") return { ok: false as const, reason: "This account is banned." };
+    const blocked = await requireKind(context.userId, "ads.submit");
+    if (blocked) return { ok: false as const, reason: blocked };
     const author = await publicHandle(context.userId);
     const gate = await gateText("ads", `${name} ${data.note}`, { userId: context.userId, author });
     if (!gate.ok) return { ok: false as const, reason: gate.reason };
@@ -525,7 +546,6 @@ export const saveProfile = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const handle = data.handle.trim().slice(0, 24);
     if (!handle) return null;
-    const kind = asAccountKind(data.kind);
     const bio = data.bio ?? "";
     const city = data.city ?? "";
     const stage = (data.stage ?? "").trim().slice(0, 80);
@@ -533,7 +553,8 @@ export const saveProfile = createServerFn({ method: "POST" })
     const website = (data.website ?? "").trim().slice(0, 200);
     const brand = (data.brand ?? "").trim().slice(0, 80);
     const sql = await getSql();
-    const existing = await sql<{ user_id: string }>`select user_id from nf_profiles where user_id = ${context.userId} limit 1`;
+    const existing = await sql<{ user_id: string; kind: string | null }>`select user_id, kind from nf_profiles where user_id = ${context.userId} limit 1`;
+    const kind = existing[0]?.kind ? asAccountKind(existing[0].kind) : asAccountKind(data.kind);
     try {
       if (existing[0]) {
         await sql`update nf_profiles set handle = ${handle}, bio = ${bio}, city = ${city}, kind = ${kind}, stage = ${stage}, genre = ${genre}, website = ${website}, brand = ${brand}, ts = ${Date.now()} where user_id = ${context.userId}`;
