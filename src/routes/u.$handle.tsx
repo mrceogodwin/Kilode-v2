@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { getPublicProfile } from "@/lib/social-server";
 import { seoHead } from "@/lib/seo";
 import { ACCOUNT_KINDS, fmtCount, handleColor, timeLabel } from "@/lib/qonvo-data";
-import { KilodeWord, QonvoMark } from "@/components/qonvo-mark";
 
 export const Route = createFileRoute("/u/$handle")({
   loader: async ({ params }) => {
@@ -30,10 +29,12 @@ function PublicProfile() {
   if (!profile) {
     return (
       <main className="grid min-h-svh place-items-center bg-bg p-6 text-fg">
-        <div>
-          <p className="text-sm text-muted">No public profile for {handle}.</p>
-          <Link to="/" className="mt-3 inline-block text-sm text-lime-2">
-            Back to Kilode
+        <div className="max-w-sm text-center">
+          <img src="/kilode-logo-green.png" alt="Kilode" className="mx-auto mb-4 h-10 w-auto max-w-[180px] object-contain" />
+          <p className="text-base font-semibold">No profile for {handle}</p>
+          <p className="mt-1 text-sm text-muted">That handle is not public yet.</p>
+          <Link to="/" className="btn-join mt-4 inline-block rounded-lg px-4 py-2 text-sm font-bold">
+            Browse feeds
           </Link>
         </div>
       </main>
@@ -43,9 +44,8 @@ function PublicProfile() {
   return (
     <main className="min-h-svh bg-bg text-fg">
       <header className="flex items-center gap-2 border-b border-line px-4 py-3">
-        <QonvoMark className="size-8" />
-        <Link to="/">
-          <KilodeWord className="text-lg" />
+        <Link to="/" className="inline-flex">
+          <img src="/kilode-logo-green.png" alt="Kilode" className="h-8 w-auto max-w-[160px] object-contain" />
         </Link>
       </header>
       <div className="mx-auto max-w-2xl space-y-4 px-4 py-6">
@@ -66,7 +66,7 @@ function PublicProfile() {
           ) : null}
         </div>
         <section>
-          <h2 className="text-[10px] font-bold tracking-wide text-muted uppercase">Posts</h2>
+          <h2 className="text-[11px] font-medium text-muted">Posts</h2>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {profile.posts.length === 0 ? <p className="col-span-2 text-sm text-muted">No public posts yet.</p> : null}
             {profile.posts.map((p) => (
@@ -82,7 +82,7 @@ function PublicProfile() {
         </section>
         {profile.tracks.length ? (
           <section>
-            <h2 className="text-[10px] font-bold tracking-wide text-muted uppercase">Music</h2>
+            <h2 className="text-[11px] font-medium text-muted">Music</h2>
             <div className="mt-2 space-y-1">
               {profile.tracks.map((t) => (
                 <div key={t.id} className="rounded-lg border border-line px-3 py-2 text-sm">

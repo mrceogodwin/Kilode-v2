@@ -4,7 +4,6 @@ import { authClient, authEnabled } from "@/lib/auth/client";
 import { accountEmail, accountEmails, publicUsername } from "@/lib/account-email";
 import { AccountKindPicker } from "@/components/account-kind";
 import { type AccountKind } from "@/lib/qonvo-data";
-import { KilodeWord, QonvoMark } from "@/components/qonvo-mark";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>): { next?: string } => {
@@ -77,12 +76,9 @@ function Login() {
   return (
     <main className="grid min-h-svh place-items-center bg-bg p-6 text-fg">
       <div className="raised w-full max-w-sm space-y-3 rounded-2xl p-5">
-        <div className="flex items-center gap-2">
-          <QonvoMark className="size-10" />
-          <div>
-            <KilodeWord className="text-xl" />
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted">{staff ? "Staff console" : "kilode.ng"}</p>
-          </div>
+        <div className="flex flex-col items-center gap-1 text-center">
+          <img src="/kilode-logo-green.png" alt="Kilode" className="h-12 w-auto max-w-[200px] object-contain" />
+          <p className="text-[11px] font-medium text-muted">{staff ? "Staff console" : "kilode.ng"}</p>
         </div>
         <p className="text-sm text-muted">
           {staff
@@ -98,7 +94,7 @@ function Login() {
             {mode === "up" && !staff ? (
               <>
                 <div>
-                  <div className="mb-1 text-[10px] font-bold tracking-wide text-muted uppercase">I am joining as</div>
+                  <div className="mb-1 text-[11px] font-medium text-muted">I am joining as</div>
                   <AccountKindPicker value={kind} onChange={setKind} />
                 </div>
                 <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">

@@ -83,7 +83,7 @@ export const COMMUNITIES = [
 
 export const MENU = [
   ["home", "Home"],
-  ["forum", "Forum & Topics"],
+  ["forum", "Feeds & topics"],
   ["community", "Communities"],
   ["search", "Search"],
   ["create", "Create post"],

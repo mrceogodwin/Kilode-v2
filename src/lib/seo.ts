@@ -1,7 +1,7 @@
 export const SITE = {
   name: "Kilode",
   url: "https://kilode.ng",
-  description: "Kilode is Nigeria’s live forum — feeds, chat rooms, music, videos, and ads. Talk Nigeria. Live.",
+  description: "Kilode is Nigeria’s live feeds — chat rooms, music, videos, and ads. Talk Nigeria. Live.",
   locale: "en_NG",
 };
 
@@ -15,7 +15,7 @@ export function seoHead(opts?: { title?: string; description?: string; path?: st
       { title },
       { name: "description", content: description },
       { name: "robots", content: "index,follow" },
-      { name: "theme-color", content: "#0a0908" },
+      { name: "theme-color", content: "#0a0a0a" },
       { property: "og:site_name", content: SITE.name },
       { property: "og:type", content: opts?.type ?? "website" },
       { property: "og:title", content: title },

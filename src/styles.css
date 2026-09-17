@@ -11,7 +11,7 @@
   --color-lime-2: #6b9e78;
   --color-line: #252525;
   --color-danger: #c05050;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --radius: 0.75rem;
 }
 

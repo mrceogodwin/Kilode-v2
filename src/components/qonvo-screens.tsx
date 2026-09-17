@@ -57,17 +57,17 @@ function Forum({ store, onHome }: { store: Store; onHome: (roomId?: string) => v
   const live = store.posts.filter((p) => p.status !== "draft");
   return (
     <div className="mx-auto max-w-5xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Forum</h2>
-      {live.length === 0 ? <p className="text-sm text-muted">No posts yet. Create one from Menu.</p> : null}
+      <h2 className="text-xl font-bold">Feeds</h2>
+      {live.length === 0 ? <p className="text-sm text-muted">No posts yet. Create one from Create.</p> : null}
       <div className="grid grid-cols-4 gap-1">
         {live.map((p) => (
           <button key={p.id} type="button" onClick={() => { store.setOpenPost(p.id); onHome(); }} className="raised overflow-hidden rounded-md text-left">
             {p.image ? <img src={p.image} alt="" className="h-16 w-full object-cover" /> : <div className="h-16 bg-panel-3" />}
             <div className="px-1.5 py-1">
-              <div className="text-[8px] font-bold tracking-wide text-lime-2 uppercase">{p.category || "General"}</div>
-              <div className="mt-px line-clamp-2 text-[10px] font-semibold leading-tight">{p.title}</div>
-              <p className="mt-px line-clamp-1 text-[8px] text-muted">{p.excerpt || p.body}</p>
-              <div className="mt-px text-[8px]">
+              <div className="text-[11px] font-medium text-lime-2">{p.category || "General"}</div>
+              <div className="mt-px line-clamp-2 text-[13px] font-semibold leading-snug">{p.title}</div>
+              <p className="mt-px line-clamp-1 text-[11px] text-muted">{p.excerpt || p.body}</p>
+              <div className="mt-px text-[11px]">
                 <span style={{ color: handleColor(p.author) }}>{p.author}</span>
                 <span className="text-muted"> · {timeLabel(p.ts)} · {fmtCount(p.views ?? 0)}</span>
               </div>
@@ -85,7 +85,7 @@ function PostDetail({ post, store }: { post: Post; store: Store }) {
   return (
     <div className="mx-auto max-w-2xl space-y-3 p-5">
       <button type="button" className="text-xs text-muted" onClick={() => store.setOpenPost(null)}>
-        Back to forum
+        Back to feeds
       </button>
       <Card title={post.title} body={post.body} />
       {post.image ? <img src={post.image} alt="" className="max-h-40 w-40 rounded-xl object-cover" /> : null}
@@ -119,7 +119,7 @@ function PostDetail({ post, store }: { post: Post; store: Store }) {
         Comment
       </button>
       <div className="raised space-y-2 rounded-xl p-3">
-        <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Report</div>
+        <div className="text-[11px] font-medium text-muted">Report</div>
         <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why this post should be reviewed" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
         <button
           type="button"
@@ -248,10 +248,10 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     <div className="mx-auto max-w-2xl space-y-3 p-5">
       <h2 className="text-xl font-bold">Create</h2>
       <div className="flex gap-2">
-        <button type="button" className={`rounded-md px-3 py-1.5 text-[11px] font-bold uppercase ${kind === "post" ? "btn-3d" : "border border-line text-muted"}`} onClick={() => setKind("post")}>
+        <button type="button" className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${kind === "post" ? "btn-3d" : "border border-line text-muted"}`} onClick={() => setKind("post")}>
           Post
         </button>
-        <button type="button" className={`rounded-md px-3 py-1.5 text-[11px] font-bold uppercase ${kind === "music" ? "btn-3d" : "border border-line text-muted"}`} onClick={() => setKind("music")}>
+        <button type="button" className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${kind === "music" ? "btn-3d" : "border border-line text-muted"}`} onClick={() => setKind("music")}>
           Music
         </button>
       </div>
@@ -267,7 +267,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Notes / credits" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
           <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
           <div className="raised rounded-xl p-3">
-            <div className="mb-2 text-[10px] font-bold tracking-wide text-muted uppercase">Cover image only (optional)</div>
+            <div className="mb-2 text-[11px] font-medium text-muted">Cover image only (optional)</div>
             <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
           </div>
           {err ? <p className="text-sm text-danger">{err}</p> : null}
@@ -276,7 +276,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
             <span>I agree to the Terms. This URL is mine to share. Audio is not hosted here.</span>
           </label>
           <button type="button" className="btn-3d rounded-lg px-3 py-2 text-sm font-semibold" onClick={submitMusic}>
-            List on MUSIC
+            List on Music
           </button>
         </>
       ) : (
@@ -299,7 +299,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
         className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm"
       />
       <div className="raised rounded-xl p-3">
-        <div className="mb-2 text-[10px] font-bold tracking-wide text-muted uppercase">Featured image</div>
+        <div className="mb-2 text-[11px] font-medium text-muted">Featured image</div>
         <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
         {image ? <img src={image} alt="" className="mt-2 max-h-40 rounded-lg object-cover" /> : null}
       </div>
@@ -396,16 +396,16 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
       />
       {s ? (
         <>
-          <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Feeds</div>
-          {posts.length === 0 ? <p className="text-sm text-muted">No posts match.</p> : null}
+          <div className="text-[11px] font-medium text-muted">Feeds</div>
+          {posts.length === 0 ? <p className="rounded-xl border border-line bg-panel p-6 text-center text-sm text-muted">No posts match. Try another word.</p> : null}
           {posts.map((p) => (
             <button key={p.id} type="button" className="block w-full rounded-xl border border-line bg-panel p-3 text-left" onClick={() => { store.setOpenPost(p.id); onHome(); }}>
               <div className="font-semibold">{p.title}</div>
               <div className="text-xs text-muted">{p.author} · {p.category}</div>
             </button>
           ))}
-          <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Music</div>
-          {tracks.length === 0 ? <p className="text-sm text-muted">No tracks match.</p> : null}
+          <div className="text-[11px] font-medium text-muted">Music</div>
+          {tracks.length === 0 ? <p className="rounded-xl border border-line bg-panel p-6 text-center text-sm text-muted">No tracks match.</p> : null}
           {tracks.filter((t) => !!t?.id).map((t) => (
             <div key={t.id} className="rounded-xl border border-line bg-panel p-3 text-sm">
               {t.title} <span className="text-muted">· {t.artist}</span>
@@ -413,7 +413,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           ))}
         </>
       ) : null}
-      <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Rooms</div>
+      <div className="text-[11px] font-medium text-muted">Rooms</div>
       {rooms.map((r) => (
         <button
           key={r.id}
@@ -463,7 +463,7 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
       </Card>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Public username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       <div>
-        <div className="mb-1 text-[10px] font-bold tracking-wide text-muted uppercase">Account type</div>
+        <div className="mb-1 text-[11px] font-medium text-muted">Account type</div>
         <AccountKindPicker value={kind} onChange={setKind} />
       </div>
       {kind === "artist" ? (
@@ -517,7 +517,7 @@ function Bookmarks({ store, onHome }: { store: Store; onHome: (id?: string) => v
   return (
     <div className="mx-auto max-w-2xl space-y-3 p-5">
       <h2 className="text-xl font-bold">Bookmarks</h2>
-      <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Saved posts</div>
+      <div className="text-[11px] font-medium text-muted">Saved posts</div>
       {saved.length === 0 ? <p className="text-sm text-muted">Save a feed post from the article view.</p> : null}
       {saved.map((p) => (
         <button key={p.id} type="button" className="raised flex w-full gap-3 overflow-hidden rounded-xl text-left" onClick={() => { store.setOpenPost(p.id); onHome(); }}>
@@ -528,8 +528,17 @@ function Bookmarks({ store, onHome }: { store: Store; onHome: (id?: string) => v
           </div>
         </button>
       ))}
-      <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Rooms</div>
-      {store.pins.length === 0 ? <p className="text-sm text-muted">Bookmark a room from Home.</p> : null}
+      <div className="text-[11px] font-medium text-muted">Rooms</div>
+      {store.pins.length === 0 ? (
+        <div className="rounded-2xl border border-line bg-panel px-5 py-8 text-center">
+          <img src="/kilode-logo-green.png" alt="" className="mx-auto mb-3 h-8 w-auto max-w-[140px] object-contain" />
+          <p className="text-base font-semibold">No bookmarks yet</p>
+          <p className="mt-1 text-sm text-muted">Pin a room from Chat to find it fast.</p>
+          <button type="button" className="btn-join mt-4 rounded-lg px-4 py-2 text-sm font-bold" onClick={() => onHome()}>
+            Open chat
+          </button>
+        </div>
+      ) : null}
       {store.pins.map((id) => (
         <div key={id} className="flex items-center justify-between rounded-xl border border-line bg-panel p-3">
           <button type="button" className="text-left text-sm font-semibold" onClick={() => onHome(id)}>
@@ -699,7 +708,7 @@ function Ads({ store }: { store: Store }) {
       <p className="text-sm text-muted">
         Sign in. Pick where it shows. Pay the fee in crypto. Paste the tx. Super admin approves.
       </p>
-      <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Where it shows</div>
+      <div className="text-[11px] font-medium text-muted">Where it shows</div>
       <div className="grid gap-1.5">
         {AD_PLACEMENTS.map((p) => (
           <button
@@ -734,7 +743,7 @@ function Ads({ store }: { store: Store }) {
       {kind !== "image" && kind !== "video" ? (
         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Short copy" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       ) : null}
-      <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Pay with</div>
+      <div className="text-[11px] font-medium text-muted">Pay with</div>
       <div className="flex flex-wrap gap-1">
         {AD_COINS.map((c) => (
           <button
@@ -937,7 +946,7 @@ function Admin({ store }: { store: Store }) {
         ))}
       </div>
       <div className="md:col-span-2 space-y-2">
-        <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Inbox</div>
+        <div className="text-[11px] font-medium text-muted">Inbox</div>
         {mail.length === 0 ? <p className="text-sm text-muted">No contact mail.</p> : null}
         {mail.map((m) => (
           <div key={m.id} className="rounded-xl border border-line bg-panel p-3">
@@ -947,7 +956,7 @@ function Admin({ store }: { store: Store }) {
         ))}
       </div>
       <div className="md:col-span-2 space-y-2">
-        <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Reports</div>
+        <div className="text-[11px] font-medium text-muted">Reports</div>
         {reports.length === 0 ? <p className="text-sm text-muted">No flags.</p> : null}
         {reports.map((r) => (
           <div key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-line bg-panel p-3">
@@ -963,7 +972,7 @@ function Admin({ store }: { store: Store }) {
         ))}
       </div>
       <div className="md:col-span-2 space-y-2">
-        <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Feeds moderation</div>
+        <div className="text-[11px] font-medium text-muted">Feeds moderation</div>
         {store.posts.map((p) => (
           <div key={p.id} className="flex items-center justify-between gap-2 rounded-xl border border-line bg-panel p-3">
             <div className="min-w-0">
@@ -983,7 +992,7 @@ function Admin({ store }: { store: Store }) {
       {role === "super" || role === "admin" ? <AdminResetPassword members={members} /> : null}
       {role === "super" || role === "admin" ? (
         <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
-          <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Pay-to wallets</div>
+          <div className="text-[11px] font-medium text-muted">Pay-to wallets</div>
           <p className="text-xs text-muted">Users send BTC / SOL / USDC / ETH here. Paste your real addresses.</p>
           {walletMsg ? <p className="text-[11px] text-lime-2">{walletMsg}</p> : null}
           {AD_COINS.map((c) => (
@@ -1013,7 +1022,7 @@ function Admin({ store }: { store: Store }) {
       ) : null}
       {role === "super" ? (
         <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
-          <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Staff access</div>
+          <div className="text-[11px] font-medium text-muted">Staff access</div>
           <p className="text-xs text-muted">Only you are super. You grant sub-admin or admin. You can revoke. Nobody can take your seat.</p>
           <input value={grantId} onChange={(e) => setGrantId(e.target.value)} placeholder="Their username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
           <select value={grantRole} onChange={(e) => setGrantRole(e.target.value as typeof grantRole)} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm">
@@ -1053,7 +1062,7 @@ function Admin({ store }: { store: Store }) {
               ) : null}
             </div>
           ))}
-          {members.length ? <div className="pt-2 text-[10px] font-bold tracking-wide text-muted uppercase">Registered users</div> : null}
+          {members.length ? <div className="pt-2 text-[11px] font-medium text-muted">Registered users</div> : null}
           {members.map((m) => (
             <button
               key={m.id}
@@ -1077,7 +1086,7 @@ function AdminResetPassword({ members }: { members: { id: string; handle: string
   const [err, setErr] = useState("");
   return (
     <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
-      <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Reset a user’s password</div>
+      <div className="text-[11px] font-medium text-muted">Reset a user’s password</div>
       <p className="text-xs text-muted">No email. If they forget, you set a new one and tell them in chat. Cannot reset the owner.</p>
       <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New password (8+)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
@@ -1117,7 +1126,7 @@ function AdminPassword() {
   const [err, setErr] = useState("");
   return (
     <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
-      <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Your password</div>
+      <div className="text-[11px] font-medium text-muted">Your password</div>
       <p className="text-xs text-muted">Change it here. No email reset — we never stored a real mailbox.</p>
       <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Current password" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="New password (8+)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
@@ -1175,7 +1184,7 @@ function BanMutePanel({ members }: { members: { id: string; handle: string; kind
   };
   return (
     <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
-      <div className="text-[10px] font-bold tracking-wide text-lime-2 uppercase">Mute & ban</div>
+      <div className="text-[10px] font-bold tracking-normal text-lime-2">Mute & ban</div>
       <p className="text-xs text-muted">Mute stops chat. Ban stops chat, feeds, ads, and music. Owner cannot be restricted.</p>
       <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (optional)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
@@ -1218,7 +1227,7 @@ function ChatTtlPanel() {
   }, []);
   return (
     <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
-      <div className="text-[10px] font-bold tracking-wide text-lime-2 uppercase">Chat lifetime</div>
+      <div className="text-[10px] font-bold tracking-normal text-lime-2">Chat lifetime</div>
       <p className="text-xs text-muted">How long user messages stay in Chat before they disappear. Only you set this. Feeds and ads are not touched.</p>
       <div className="flex flex-wrap gap-1">
         {CHAT_TTLS.map((t) => (
@@ -1280,14 +1289,14 @@ function ModPanel() {
     <div className="md:col-span-2 raised space-y-3 rounded-xl p-3">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <div className="text-[10px] font-bold tracking-wide text-lime-2 uppercase">AI moderator</div>
+          <div className="text-[10px] font-bold tracking-normal text-lime-2">AI moderator</div>
           <p className="text-[11px] text-muted">Runs on the write path in milliseconds. No extra API. Safe with heavy traffic.</p>
         </div>
         <button type="button" className={`rounded-full px-3 py-1 text-[11px] font-bold ${cfg.enabled ? "btn-3d" : "border border-line text-muted"}`} onClick={() => patch({ enabled: !cfg.enabled })}>
           {cfg.enabled ? "On" : "Off"}
         </button>
       </div>
-      <div className="text-[10px] font-bold tracking-wide text-muted uppercase">When it hits</div>
+      <div className="text-[11px] font-medium text-muted">When it hits</div>
       <div className="flex flex-wrap gap-1">
         {(["mask", "block", "hold"] as const).map((a) => (
           <button key={a} type="button" className={`rounded-full px-2 py-1 text-[11px] ${cfg.action === a ? "btn-3d font-semibold" : "border border-line text-muted"}`} onClick={() => patch({ action: a })}>
@@ -1302,7 +1311,7 @@ function ModPanel() {
         <Toggle on={cfg.ads} label="Ads" set={(v) => patch({ ads: v })} />
         <Toggle on={cfg.music} label="Music notes" set={(v) => patch({ music: v })} />
       </div>
-      <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Filters</div>
+      <div className="text-[11px] font-medium text-muted">Filters</div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <Toggle on={cfg.sexual} label="Sexual / porn" set={(v) => patch({ sexual: v })} />
         <Toggle on={cfg.insults} label="Abuse / slurs" set={(v) => patch({ insults: v })} />
@@ -1330,7 +1339,7 @@ function ModPanel() {
         Save moderator
       </button>
       {saved ? <span className="ml-2 text-[11px] text-lime-2">{saved}</span> : null}
-      <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Hit log</div>
+      <div className="text-[11px] font-medium text-muted">Hit log</div>
       {hits.length === 0 ? <p className="text-xs text-muted">Nothing caught yet.</p> : null}
       {hits.map((h) => (
         <div key={h.id} className="rounded-lg border border-white/5 p-2 text-[11px]">

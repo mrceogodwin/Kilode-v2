@@ -10,10 +10,7 @@ function Boot({ title, body, action }: { title: string; body: string; action?: R
   return (
     <div className="grid min-h-svh place-items-center bg-[#0a0a0a] p-6 text-[#f4f4f5]">
       <div className="max-w-sm text-center">
-        <div className="mx-auto mb-3 grid size-10 place-items-center rounded-xl border border-white/10 bg-[#141414] text-xl font-black text-[#8fbc8f]">
-          !
-        </div>
-        <div className="text-xl font-extrabold tracking-tight">Kilode</div>
+        <img src="/kilode-logo-green.png" alt="Kilode" className="mx-auto mb-3 h-10 w-auto max-w-[180px] object-contain" />
         <p className="mt-1 text-sm font-semibold">{title}</p>
         <p className="mt-2 text-sm text-white/50">{body}</p>
         {action}
@@ -31,13 +28,19 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" as const },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap",
+      },
       { rel: "stylesheet", href: appCss },
       ...base.links,
     ],
     scripts: base.scripts,
     styles: [
       {
-        children: "html,body{background:#0a0908;color:#f3efe6;margin:0;min-height:100%;min-height:-webkit-fill-available}",
+        children: "html,body{background:#0a0a0a;color:#eeeeec;margin:0;min-height:100%;min-height:-webkit-fill-available}",
       },
     ],
   }),
@@ -63,7 +66,7 @@ export const Route = createRootRoute({
       <head>
         <HeadContent />
       </head>
-      <body className="bg-bg font-sans text-fg antialiased" style={{ background: "#0a0908", color: "#f3efe6", minHeight: "100dvh" }}>
+      <body className="bg-bg font-sans text-fg antialiased" style={{ background: "#0a0a0a", color: "#eeeeec", minHeight: "100dvh" }}>
         <PreviewHostBridge />
         <AuthProvider>
           <Outlet />

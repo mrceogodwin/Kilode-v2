@@ -869,7 +869,7 @@ export function useQonvo() {
   const badges = [
     { id: "msg", label: "First message", on: allRoomMessages().some((m) => m.n === handle) },
     { id: "pin", label: "Bookmarker", on: pins.length > 0 },
-    { id: "post", label: "Forum starter", on: posts.some((p) => p.author === handle) },
+    { id: "post", label: "Feeds starter", on: posts.some((p) => p.author === handle) },
     { id: "team", label: "Teammate", on: teams.some((t) => t.members.includes(handle)) },
     { id: "travel", label: "World traveler", on: pins.length >= 5 },
   ];

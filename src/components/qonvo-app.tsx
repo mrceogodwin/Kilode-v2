@@ -35,7 +35,6 @@ import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, chatTtlLabel,
 import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
-import { QonvoMark, KilodeWord } from "@/components/qonvo-mark";
 import { Link } from "@tanstack/react-router";
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -200,6 +199,17 @@ export function QonvoApp() {
     [query, region],
   );
 
+
+  useEffect(() => {
+    const go = () => {
+      if (store.authed || session.user) setScreen("create");
+      else window.location.href = "/login";
+    };
+    window.addEventListener("kilode:create", go);
+    return () => window.removeEventListener("kilode:create", go);
+  }, [store.authed, session.user]);
+
+
   useEffect(() => {
     stickBottom.current = true;
     lastMsgCount.current = store.msgs.length;
@@ -309,11 +319,7 @@ export function QonvoApp() {
 
           </div>
         </div>
-        <div className="flex flex-nowrap gap-1 overflow-x-auto overscroll-x-contain border-t border-line/60 px-2 py-1 [-ms-overflow-style:none] [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden">
-          <button type="button" className="nav-pill" onClick={() => setRoomsOpen(true)}>Rooms</button>
-          <button type="button" className="nav-pill" onClick={() => setLiveOpen(true)}>Live</button>
-          <button type="button" className="nav-pill" onClick={() => { setScreen("home"); setHomeTab("videos"); }}>Videos</button>
-        </div>
+        {/* Rooms/Live/Videos folded into Chat & Me — keep tab bar clear on mobile */}
         <div className="h-6 overflow-hidden border-t border-line/60 bg-panel-2">
           <div className="ticker-track px-4 text-[10px] leading-6 text-muted">
             {[...ROOMS.slice(0, 12), ...ROOMS.slice(0, 12)].map((r, i) => (
@@ -337,7 +343,7 @@ export function QonvoApp() {
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {homeTab === "feeds" ? (
             <div className="hidden shrink-0 border-b border-white/[0.05] px-4 py-3 md:block">
-              <p className="text-[11px] font-medium tracking-wide text-lime-2">A global forum for every conversation</p>
+              <p className="text-[11px] font-medium tracking-wide text-lime-2">Feeds for every conversation</p>
               <h1 className="text-xl font-extrabold tracking-tight">
                 Talk Nigeria. <span className="text-lime-2">Live.</span>
               </h1>
@@ -451,10 +457,11 @@ export function QonvoApp() {
                 {store.msgs.length === 0 ? (
                   <div className="mx-auto flex max-w-md flex-col items-stretch gap-3 py-6">
                     <div className="raised rounded-2xl p-4 text-center">
-                      <div className="text-[10px] font-bold tracking-wide text-lime-2 uppercase">Chat room</div>
+                      <img src="/kilode-logo-green.png" alt="" className="mx-auto mb-2 h-8 w-auto max-w-[140px] object-contain" />
+                      <div className="text-[11px] font-medium text-lime-2">Chat room</div>
                       <div className="mt-1 text-lg font-extrabold">{room.name}</div>
                       <p className="mt-2 text-[12px] leading-relaxed text-muted">
-                        No messages yet in this room. Sign in and send the first line — or open another room with Browse rooms.
+                        Room is quiet. Sign in and send the first line — or browse another room.
                       </p>
                       <div className="mt-3 flex flex-wrap justify-center gap-2">
                         {["Hello 👋", "Who is online?", "Good vibes only"].map((msg) => (
@@ -608,13 +615,13 @@ export function QonvoApp() {
             <aside className="hidden min-h-0 overflow-y-auto border-l border-white/5 bg-panel md:block">
               {store.campaigns.filter((c) => c.status === "approved" && c.placement === "sidebar").map((c) => (
                 <div key={c.id} className="raised m-2 rounded-xl p-3">
-                  <div className="text-[10px] uppercase tracking-wide text-muted">Ad</div>
+                  <div className="text-[10px] tracking-normal text-muted">Ad</div>
                   <div className="text-sm font-semibold">{c.name}</div>
                 </div>
               ))}
               {homeTab === "chat" ? (
               <div className="raised m-2 rounded-xl p-3">
-                <div className="text-[10px] uppercase tracking-wide text-muted">Chat lifetime</div>
+                <div className="text-[10px] tracking-normal text-muted">Chat lifetime</div>
                 <div className="text-base font-extrabold text-danger">{purge === "kept" ? "Kept" : purge}</div>
                 <p className="mt-1 text-[10px] text-muted">
                   {store.chatHours === 0
@@ -624,7 +631,7 @@ export function QonvoApp() {
               </div>
               ) : null}
               <div className="raised m-2 rounded-xl p-3">
-                <div className="mb-2 text-[10px] font-bold tracking-wide text-muted uppercase">Who just joined</div>
+                <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Who just joined</div>
                 {store.joins.length === 0 ? <p className="text-[11px] text-muted">Waiting for joins</p> : null}
                 {store.joins.slice(0, 6).map((j) => (
                   <div key={j.name + j.ts} className="flex items-center justify-between py-1 text-xs">
@@ -634,7 +641,7 @@ export function QonvoApp() {
                 ))}
               </div>
               <div className="raised m-2 rounded-xl p-3">
-                <div className="mb-2 text-[10px] font-bold tracking-wide text-muted uppercase">Activity</div>
+                <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Activity</div>
                 {store.notes.length === 0 ? <p className="text-[11px] text-muted">Quiet right now</p> : null}
                 {store.notes.slice(0, 8).map((n) => (
                   <div key={n.id} className="border-t border-white/5 py-1.5 text-[11px] text-muted">
@@ -705,7 +712,7 @@ export function QonvoApp() {
               </button>
             </div>
             <div className="raised m-2 rounded-xl p-3">
-              <div className="mb-2 text-[10px] font-bold tracking-wide text-muted uppercase">Who just joined</div>
+              <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Who just joined</div>
               {store.joins.length === 0 ? <p className="text-[11px] text-muted">Waiting for joins</p> : null}
               {store.joins.slice(0, 8).map((j) => (
                 <div key={j.name + j.ts} className="flex items-center justify-between py-1 text-xs">
@@ -715,7 +722,7 @@ export function QonvoApp() {
               ))}
             </div>
             <div className="raised m-2 rounded-xl p-3">
-              <div className="mb-2 text-[10px] font-bold tracking-wide text-muted uppercase">Activity</div>
+              <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Activity</div>
               {store.notes.length === 0 ? <p className="text-[11px] text-muted">Quiet right now</p> : null}
               {store.notes.slice(0, 10).map((n) => (
                 <div key={n.id} className="border-t border-white/5 py-1.5 text-[11px] text-muted">
@@ -725,7 +732,7 @@ export function QonvoApp() {
             </div>
             {homeTab === "chat" ? (
               <div className="raised m-2 rounded-xl p-3">
-                <div className="text-[10px] uppercase tracking-wide text-muted">Chat lifetime</div>
+                <div className="text-[10px] tracking-normal text-muted">Chat lifetime</div>
                 <div className="text-base font-extrabold text-danger">{purge === "kept" ? "Kept" : purge}</div>
               </div>
             ) : null}
@@ -737,10 +744,10 @@ export function QonvoApp() {
         <div className="fixed inset-0 z-30 flex">
           <aside className="flex h-full w-[min(320px,90vw)] flex-col border-r border-line bg-panel">
             <div className="flex items-center gap-3 border-b border-line p-4">
-              <QonvoMark className="size-10" />
+              <img src="/kilode-logo-green.png" alt="" className="h-10 w-auto max-w-[120px] object-contain" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-bold">{store.handle || "Guest"}</div>
-                <div className="text-[10px] uppercase tracking-wide text-muted">
+                <div className="text-[10px] tracking-normal text-muted">
                   {session.user ? ACCOUNT_KINDS.find((k) => k.id === store.kind)?.label ?? "Member" : "Me · Kilode"}
                 </div>
               </div>
@@ -763,7 +770,7 @@ export function QonvoApp() {
               </div>
 
               <div className="mb-4 px-0.5">
-                <div className="mb-2 text-[10px] font-semibold tracking-widest text-muted uppercase">Quick</div>
+                <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Quick</div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { id: "create" as MenuId, label: "Create", tab: null as null | "feeds" | "music" | "chat" | "videos" },
@@ -796,7 +803,7 @@ export function QonvoApp() {
 
               {store.campaigns.filter((c) => c.status === "approved").slice(0, 2).length ? (
                 <div className="mb-4 px-0.5">
-                  <div className="mb-2 text-[10px] font-semibold tracking-widest text-muted uppercase">Sponsored</div>
+                  <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Sponsored</div>
                   <div className="space-y-2">
                     {store.campaigns
                       .filter((c) => c.status === "approved")
@@ -813,7 +820,7 @@ export function QonvoApp() {
                           }}
                           className="raised flex items-center gap-2.5 overflow-hidden rounded-xl p-2"
                         >
-                          {c.image ? <img src={c.image} alt="" className="h-10 w-12 shrink-0 rounded-md object-cover" /> : <div className="grid h-10 w-12 place-items-center rounded-md bg-panel-3 text-[8px] text-lime-2">AD</div>}
+                          {c.image ? <img src={c.image} alt="" className="h-10 w-12 shrink-0 rounded-md object-cover" /> : <div className="grid h-10 w-12 place-items-center rounded-md bg-panel-3 text-[11px] text-lime-2">AD</div>}
                           <div className="min-w-0 flex-1">
                             <div className="truncate text-[11px] font-semibold">{c.name}</div>
                             <div className="truncate text-[9px] text-muted">{c.note || "Sponsored"}</div>
@@ -825,7 +832,7 @@ export function QonvoApp() {
               ) : null}
 
               <div className="mb-4 px-0.5">
-                <div className="mb-2 text-[10px] font-semibold tracking-widest text-muted uppercase">Hot rooms</div>
+                <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Hot rooms</div>
                 <div className="flex flex-wrap gap-2">
                   {ROOMS.slice(0, 8).map((r) => (
                     <button
@@ -845,7 +852,7 @@ export function QonvoApp() {
 
               {MENU_GROUPS.map((group) => (
                 <div key={group.label} className="mb-4">
-                  <div className="px-1 py-1.5 text-[10px] font-semibold tracking-widest text-muted uppercase">{group.label}</div>
+                  <div className="px-1 py-1.5 text-[10px] font-medium tracking-normal text-muted">{group.label}</div>
                   <div className="space-y-0.5">
                     {group.ids.map((id) => {
                       const Icon = ICONS[id];
@@ -872,7 +879,7 @@ export function QonvoApp() {
                 </div>
               ))}
 
-              <div className="px-2 py-1 text-[10px] font-semibold tracking-widest text-muted uppercase">Also</div>
+              <div className="px-2 py-1 text-[10px] font-medium tracking-normal text-muted">Also</div>
               <div className="space-y-0.5">
                 <button
                   type="button"
@@ -939,7 +946,7 @@ export function QonvoApp() {
             {joinErr ? <p className="mb-2 text-sm text-danger">{joinErr}</p> : null}
             {store.authErr ? <p className="mb-2 text-sm text-danger">{store.authErr}</p> : null}
             <div className="mb-2">
-              <div className="mb-1 text-[10px] font-bold tracking-wide text-muted uppercase">Joining as (new users)</div>
+              <div className="mb-1 text-[10px] font-medium tracking-normal text-muted">Joining as (new users)</div>
               <AccountKindPicker value={joinKind} onChange={setJoinKind} />
             </div>
             <label className="mb-2 flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">
@@ -1134,8 +1141,8 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
             </span>
           )}
           <div className="min-w-0 flex-1">
-            <div className="truncate text-[10px] font-semibold leading-tight">{t.title}</div>
-            <div className="truncate text-[8px] text-muted">
+            <div className="truncate text-[12px] font-semibold leading-tight">{t.title}</div>
+            <div className="truncate text-[11px] text-muted">
               {t.artist}
               {!compact ? ` · ${t.platform}` : ""}
             </div>
@@ -1170,8 +1177,8 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
               <div className="raised aspect-square overflow-hidden rounded-lg">
                 {t.cover ? <img src={t.cover} alt="" className="size-full object-cover" /> : <div className="grid size-full place-items-center bg-panel-3"><Play className="size-4 text-lime-2" /></div>}
               </div>
-              <div className="mt-1 truncate text-[10px] font-semibold leading-tight">{t.title}</div>
-              <div className="truncate text-[8px] text-muted">{t.artist}</div>
+              <div className="mt-1 truncate text-[12px] font-semibold leading-tight">{t.title}</div>
+              <div className="truncate text-[11px] text-muted">{t.artist}</div>
             </button>
           ))}
         </div>
@@ -1232,9 +1239,9 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
         <div className="mb-1.5 text-[11px] font-bold">Library split</div>
         <div className="grid grid-cols-2 gap-2">
           <section className="min-w-0">
-            <h3 className="mb-1.5 text-[9px] font-bold tracking-wide text-lime-2 uppercase">On Kilode</h3>
+            <h3 className="mb-1.5 text-[9px] font-medium tracking-normal text-lime-2">On Kilode</h3>
             <div className="space-y-1">
-              {mine.length === 0 ? <p className="text-[10px] text-muted">No match — Add a track.</p> : null}
+              {mine.length === 0 ? <EmptyHero title="No tracks match" body="Try another search or add a track from Create." cta="Add a track" onClick={onAdd} /> : null}
               {mine.map((t) => (
                 <Tile key={t.id} t={t} compact />
               ))}
@@ -1246,7 +1253,7 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
             ) : null}
           </section>
           <section className="min-w-0">
-            <h3 className="mb-1.5 text-[9px] font-bold tracking-wide text-muted uppercase">Digital</h3>
+            <h3 className="mb-1.5 text-[9px] font-medium tracking-normal text-muted">Digital</h3>
             <div className="space-y-1">
               {digital.map((t) => (
                 <Tile key={t.id} t={t} compact />
@@ -1394,7 +1401,7 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
           <div className="flex flex-col gap-4 p-4 sm:flex-row">
             {post.image ? <img src={post.image} alt="" className="h-44 w-full shrink-0 rounded-xl object-cover sm:h-48 sm:w-60" /> : null}
             <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2 uppercase">{post.category || "General"}</div>
+              <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{post.category || "General"}</div>
               <h1 className="mt-1 text-2xl font-extrabold leading-tight">{post.title}</h1>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
                 <HandleLink handle={post.author} className="text-[11px] font-semibold" />
@@ -1417,7 +1424,7 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
               <div key={s.label} className="flex flex-col items-center gap-0.5 bg-panel py-2.5">
                 <s.icon className="size-3.5 text-lime-2" />
                 <span className="text-[11px] font-bold">{fmtCount(s.n)}</span>
-                <span className="text-[9px] tracking-wide text-muted uppercase">{s.label}</span>
+                <span className="text-[9px] tracking-normal text-muted">{s.label}</span>
               </div>
             ))}
           </div>
@@ -1461,7 +1468,7 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
         ) : null}
         <div className="mt-8 border-t border-line pt-4">
           <div className="flex items-center justify-between">
-            <div className="text-[10px] font-bold tracking-wide text-muted uppercase">{post.comments.length} comments</div>
+            <div className="text-[10px] font-medium tracking-normal text-muted">{post.comments.length} comments</div>
             <span className="text-[10px] text-muted">Reply to keep the convo going</span>
           </div>
           {roots.map((c) => (
@@ -1528,6 +1535,23 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
   );
 }
 
+
+function EmptyHero({ title, body, cta, onClick }: { title: string; body: string; cta: string; onClick?: () => void }) {
+  return (
+    <div className="mx-auto flex max-w-sm flex-col items-center px-6 py-10 text-center">
+      <img src="/kilode-logo-green.png" alt="" className="mb-4 h-9 w-auto max-w-[160px] object-contain opacity-90" />
+      <h3 className="text-base font-semibold">{title}</h3>
+      <p className="mt-1 text-sm text-muted">{body}</p>
+      {onClick ? (
+        <button type="button" className="btn-join mt-4 rounded-lg px-4 py-2 text-sm font-bold" onClick={onClick}>
+          {cta}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+
 function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(16);
@@ -1554,14 +1578,14 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
         ))}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-6">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
               {p.image ? <img src={p.image} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square bg-panel-3" />}
               <div className="px-1 py-1">
-                <div className="text-[7px] font-bold tracking-wide text-lime-2 uppercase">{p.category || "General"}</div>
-                <div className="mt-0.5 line-clamp-2 text-[10px] font-semibold leading-tight">{p.title}</div>
-                <div className="mt-0.5 truncate text-[8px] text-muted">
+                <div className="text-[11px] font-medium tracking-normal text-lime-2">{p.category || "General"}</div>
+                <div className="mt-0.5 line-clamp-2 text-[13px] font-semibold leading-snug">{p.title}</div>
+                <div className="mt-0.5 truncate text-[11px] text-muted">
                   <span style={{ color: handleColor(p.author) }}>{p.author}</span>
                 </div>
               </div>
@@ -1577,8 +1601,10 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
             Load more · {live.length - shown} left
           </button>
         ) : live.length > 0 ? (
-          <p className="mt-3 mb-1 text-center text-[10px] text-muted">End of feeds · {live.length} posts</p>
-        ) : null}
+          <p className="mt-3 mb-1 text-center text-[11px] text-muted">End of feeds · {live.length} posts</p>
+        ) : (
+          <EmptyHero title="No posts yet" body="Be first — share a take for Nigeria." cta="Create a post" onClick={() => { window.dispatchEvent(new CustomEvent("kilode:create")); }} />
+        )}
       </div>
     </div>
   );
@@ -1597,7 +1623,7 @@ function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreate: () =
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-3">
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           {live.slice(0, shown).map((a) => {
             const yt = a.video ? youtubeId(a.video) || a.video : undefined;
             const inner = (
@@ -1614,12 +1640,12 @@ function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreate: () =
                   <div className="grid aspect-square place-items-center bg-panel-3 px-1.5 text-center text-[10px] font-semibold">{a.name}</div>
                 )}
                 <div className="px-1.5 py-1">
-                  <div className="text-[8px] font-bold tracking-wide text-lime-2 uppercase">{a.kind || "image-text"}</div>
-                  <div className="mt-px line-clamp-2 text-[10px] font-semibold leading-tight">{a.name}</div>
+                  <div className="text-[11px] font-medium tracking-normal text-lime-2">{a.kind || "image-text"}</div>
+                  <div className="mt-px line-clamp-2 text-[13px] font-semibold leading-snug">{a.name}</div>
                   {a.kind === "image-text" || a.kind === "video-text" || a.kind === "text" ? (
-                    <p className="mt-px line-clamp-1 text-[8px] text-muted">{a.note}</p>
+                    <p className="mt-px line-clamp-1 text-[11px] text-muted">{a.note}</p>
                   ) : null}
-                  <div className="mt-px text-[8px] text-muted">{fmtCount(a.views ?? 0)}</div>
+                  <div className="mt-px text-[11px] text-muted">{fmtCount(a.views ?? 0)}</div>
                 </div>
               </div>
             );
@@ -1640,13 +1666,13 @@ function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreate: () =
             );
           })}
         </div>
-        {live.length === 0 ? <p className="p-2 text-xs text-muted">No live ads yet. Place one after crypto payment.</p> : null}
+        {live.length === 0 ? <EmptyHero title="No ads live" body="Place an ad after crypto payment — Nigeria is watching." cta="Place an ad" onClick={onCreate} /> : null}
         {shown < live.length ? (
           <button type="button" className="btn-3d mx-auto mt-3 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + 6)}>
             Load more
           </button>
         ) : null}
-        {mine.length ? <div className="mt-3 text-[10px] font-bold tracking-wide text-muted uppercase">Your queue</div> : null}
+        {mine.length ? <div className="mt-3 text-[10px] font-medium tracking-normal text-muted">Your queue</div> : null}
         {mine.map((a) => (
           <div key={a.id} className="mt-1 rounded-md border border-line px-2 py-1.5 text-[11px] text-muted">
             {a.name} · {a.status} · {a.kind} · {(a.coin || "").toUpperCase()} {a.amount || ""}
@@ -1664,17 +1690,17 @@ function ChatAdCard({ ad, pinned, onView }: { ad: Campaign; pinned?: boolean; on
       {ad.image ? <img src={ad.image} alt="" className="h-12 w-14 shrink-0 rounded-lg object-cover" /> : <div className="grid h-11 w-14 shrink-0 place-items-center rounded-md bg-panel-3 text-[9px] text-lime-2">AD</div>}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[8px] font-bold tracking-wide text-lime-2 uppercase">Pinned</span>
-          <span className="text-[8px] text-muted">{fmtCount(ad.views ?? 0)}</span>
+          <span className="text-[11px] font-medium tracking-normal text-lime-2">Pinned</span>
+          <span className="text-[11px] text-muted">{fmtCount(ad.views ?? 0)}</span>
         </div>
-        <div className="truncate text-[11px] font-semibold leading-tight">{ad.name}</div>
-        {ad.note ? <p className="truncate text-[9px] text-muted">{ad.note}</p> : null}
+        <div className="truncate text-[13px] font-semibold leading-tight">{ad.name}</div>
+        {ad.note ? <p className="truncate text-[11px] text-muted">{ad.note}</p> : null}
       </div>
     </div>
   ) : (
     <>
       <div className="flex items-center justify-between px-2 py-1">
-        <span className="text-[9px] font-bold tracking-wide text-lime-2 uppercase">Premium ad</span>
+        <span className="text-[9px] font-medium tracking-normal text-lime-2">Premium ad</span>
         <span className="text-[9px] text-muted">{fmtCount(ad.views ?? 0)} views</span>
       </div>
       {ad.image ? <img src={ad.image} alt="" className="h-16 w-full object-cover" /> : null}
@@ -1777,7 +1803,7 @@ function DonateSheet({ onClose }: { onClose: () => void }) {
             const addr = wallets.find((w) => w.coin === c.id)?.address;
             return (
               <div key={c.id} className="rounded-lg border border-white/5 px-2 py-1.5">
-                <div className="text-[10px] font-bold tracking-wide text-lime-2 uppercase">{c.ticker}</div>
+                <div className="text-[10px] font-medium tracking-normal text-lime-2">{c.ticker}</div>
                 <div className="flex items-center gap-2">
                   <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-muted">{addr || "Not set yet — add on /ops"}</span>
                   {addr ? (

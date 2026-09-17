@@ -126,7 +126,7 @@ export const DEMO_POSTS: Post[] = [
     image: poster("#3b2a16", "Small chops"),
     slug: "small-chops-budget",
     status: "publish",
-  },,
+  },
   {
     id: "demo-feed-9",
     title: 'Lagos traffic hacks that actually work',
