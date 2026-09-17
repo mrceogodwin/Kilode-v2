@@ -1121,6 +1121,7 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
   const fresh = [...DIGITAL_TRACKS].filter((t) => !!t?.id).reverse().slice(0, 10);
 
   function Tile({ t, compact }: { t: (typeof store.tracks)[number]; compact?: boolean }) {
+    if (!t?.id) return null;
     const on = play === t.id;
     return (
       <div className="raised overflow-hidden rounded-lg">
@@ -1556,7 +1557,7 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(16);
   const open = store.posts.find((p) => p.id === store.openPost);
-  const live = store.posts.filter((p) => p.status !== "draft" && (cat === "All" || p.category === cat));
+  const live = store.posts.filter((p) => !!p?.id && p.status !== "draft" && (cat === "All" || p.category === cat));
   if (open) {
     return <ArticleRead post={open} store={store} />;
   }

@@ -54,7 +54,7 @@ function Card({ title, body, children }: { title: string; body?: string; childre
 }
 
 function Forum({ store, onHome }: { store: Store; onHome: (roomId?: string) => void }) {
-  const live = store.posts.filter((p) => p.status !== "draft");
+  const live = store.posts.filter((p) => !!p?.id && p.status !== "draft");
   return (
     <div className="mx-auto max-w-5xl space-y-3 p-5">
       <h2 className="text-xl font-bold">Feeds</h2>
@@ -448,8 +448,8 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
     setWebsite(store.website);
     setBrand(store.brand);
   }, [store.bio, store.brand, store.city, store.genre, store.handle, store.kind, store.stage, store.website]);
-  const mine = store.posts.filter((p) => p.author === store.handle);
-  const songs = store.tracks.filter((t) => t.author === store.handle || t.artist === store.handle);
+  const mine = store.posts.filter((p) => !!p?.id && p.author === store.handle);
+  const songs = store.tracks.filter((t) => !!t?.id && (t.author === store.handle || t.artist === store.handle));
   const kindLabel = ACCOUNT_KINDS.find((k) => k.id === kind)?.label ?? "Member";
   return (
     <div className="mx-auto max-w-2xl space-y-3 p-5">
@@ -513,7 +513,7 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
 }
 
 function Bookmarks({ store, onHome }: { store: Store; onHome: (id?: string) => void }) {
-  const saved = store.posts.filter((p) => store.savedPosts.includes(p.id));
+  const saved = store.posts.filter((p) => !!p?.id && store.savedPosts.includes(p.id));
   return (
     <div className="mx-auto max-w-2xl space-y-3 p-5">
       <h2 className="text-xl font-bold">Bookmarks</h2>
@@ -1445,7 +1445,7 @@ function Dash({ store, onHome, onForum }: { store: Store; onHome: (id?: string) 
   return (
     <div className="mx-auto max-w-2xl space-y-3 p-5">
       <h2 className="text-xl font-bold">Dashboard</h2>
-      <Card title={store.handle || "Guest"} body={`${kindLabel} · ${store.posts.filter((p) => p.author === store.handle).length} of your posts · ${store.pins.length} rooms saved`} />
+      <Card title={store.handle || "Guest"} body={`${kindLabel} · ${store.posts.filter((p) => !!p?.id && p.author === store.handle).length} of your posts · ${store.pins.length} rooms saved`} />
       <Card title="Your rooms">
         <div className="mt-2 flex flex-wrap gap-2">
           {(store.pins.length ? store.pins : ["global"]).map((id) => (
@@ -1456,7 +1456,7 @@ function Dash({ store, onHome, onForum }: { store: Store; onHome: (id?: string) 
         </div>
       </Card>
       <Card title="Your posts">
-        {store.posts.filter((p) => !store.handle || p.author === store.handle).length === 0 ? (
+        {store.posts.filter((p) => !!p?.id && (!store.handle || p.author === store.handle)).length === 0 ? (
           <p className="mt-1 text-sm text-muted">None yet.</p>
         ) : (
           store.posts

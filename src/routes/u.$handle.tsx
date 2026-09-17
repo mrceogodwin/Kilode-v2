@@ -69,7 +69,7 @@ function PublicProfile() {
           <h2 className="text-[11px] font-medium text-muted">Posts</h2>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {profile.posts.length === 0 ? <p className="col-span-2 text-sm text-muted">No public posts yet.</p> : null}
-            {profile.posts.map((p) => (
+            {profile.posts.filter((p) => !!p?.id).map((p) => (
               <a key={p.id} href={`/p/${p.slug || p.id}`} className="raised overflow-hidden rounded-lg">
                 {p.image ? <img src={p.image} alt="" className="h-24 w-full object-cover" /> : <div className="h-16 bg-panel-3" />}
                 <div className="p-2">
@@ -84,7 +84,7 @@ function PublicProfile() {
           <section>
             <h2 className="text-[11px] font-medium text-muted">Music</h2>
             <div className="mt-2 space-y-1">
-              {profile.tracks.map((t) => (
+              {profile.tracks.filter((t) => !!t?.id).map((t) => (
                 <div key={t.id} className="rounded-lg border border-line px-3 py-2 text-sm">
                   {t.title} <span className="text-muted">· {t.artist}</span>
                 </div>

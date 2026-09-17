@@ -106,14 +106,14 @@ export function useQonvo() {
     const notes0 = loadJson<Note[]>("notes", []).filter((n): n is Note => !!n && typeof n.id === "string");
     const joins0 = loadJson<Join[]>("joins", []).filter((j): j is Join => !!j && typeof j.name === "string");
     const posts = [
-      ...DEMO_POSTS.filter((d) => !posts0.some((p) => p.id === d.id)),
+      ...DEMO_POSTS.filter((d) => !!d?.id && !posts0.some((p) => p.id === d.id)),
       ...posts0.map((p) => {
         const demo = DEMO_POSTS.find((d) => d.id === p.id);
         return demo ? { ...p, image: demo.image } : p;
       }),
     ];
     const ads = [
-      ...DEMO_ADS.filter((d) => !ads0.some((p) => p.id === d.id)),
+      ...DEMO_ADS.filter((d) => !!d?.id && !ads0.some((p) => p.id === d.id)),
       ...ads0,
     ];
     setPosts(posts);
@@ -139,7 +139,7 @@ export function useQonvo() {
     setTeams(loadJson<Team[]>("teams", []).filter((t): t is Team => !!t && typeof t.id === "string"));
     const tracks0 = loadJson<MusicTrack[]>("tracks", []).filter((t): t is MusicTrack => !!t && typeof t.id === "string" && typeof t.url === "string");
     const tracks = [
-      ...DEMO_TRACKS.filter((d) => !tracks0.some((t) => t.id === d.id)),
+      ...DEMO_TRACKS.filter((d) => !!d?.id && !tracks0.some((t) => t.id === d.id)),
       ...tracks0.map((t) => {
         const demo = DEMO_TRACKS.find((d) => d.id === t.id);
         return demo ?? t;
@@ -151,20 +151,22 @@ export function useQonvo() {
     void Promise.all([listPosts(), listTracks(), listAds()])
       .then(([dbPosts, dbTracks, dbAds]) => {
         if (dbPosts.length) {
-          const mapped = dbPosts.map((p) => ({
-            ...p,
-            excerpt: p.excerpt ?? undefined,
-            category: p.category ?? undefined,
-            tags: p.tags ?? undefined,
-            link: p.link ?? undefined,
-            image: p.image ?? undefined,
-            slug: p.slug ?? undefined,
-            status: p.status as Post["status"],
-            comments: p.comments ?? [],
-            views: Number(p.views ?? 0),
-          }));
+          const mapped = dbPosts
+            .filter((p): p is NonNullable<typeof p> => !!p && typeof (p as { id?: string }).id === "string")
+            .map((p) => ({
+              ...p,
+              excerpt: p.excerpt ?? undefined,
+              category: p.category ?? undefined,
+              tags: p.tags ?? undefined,
+              link: p.link ?? undefined,
+              image: p.image ?? undefined,
+              slug: p.slug ?? undefined,
+              status: p.status as Post["status"],
+              comments: p.comments ?? [],
+              views: Number(p.views ?? 0),
+            }));
           setPosts([
-            ...DEMO_POSTS.filter((d) => !mapped.some((p) => p.id === d.id)),
+            ...DEMO_POSTS.filter((d) => !!d?.id && !mapped.some((p) => p.id === d.id)),
             ...mapped,
           ]);
         }
@@ -181,11 +183,11 @@ export function useQonvo() {
               tags: t.tags ?? undefined,
             }));
           setTracks([
-            ...DEMO_TRACKS.filter((d) => !mapped.some((t) => t.id === d.id)),
+            ...DEMO_TRACKS.filter((d) => !!d?.id && !mapped.some((t) => t.id === d.id)),
             ...mapped,
           ].filter((t) => !!t && !!parseMusicUrl(t.url)));
         }
-        if (dbAds.length) setCampaigns(dbAds);
+        if (dbAds.length) setCampaigns(dbAds.filter((a) => !!a && typeof a.id === "string") as Campaign[]);
       })
       .catch(() => undefined);
     void listScores()
@@ -279,7 +281,7 @@ export function useQonvo() {
         .then(setPins)
         .catch(() => undefined);
       void listTeams()
-        .then(setTeams)
+        .then((rows) => setTeams((Array.isArray(rows) ? rows : []).filter((t) => !!t && typeof t.id === "string") as Team[]))
         .catch(() => undefined);
       void listNotes()
         .then((rows) => {
@@ -452,7 +454,7 @@ export function useQonvo() {
   );
 
   const hidePost = useCallback((id: string) => {
-    setPosts((prev) => prev.filter((p) => p.id !== id));
+    setPosts((prev) => prev.filter((p) => p?.id !== id));
     if (openPost === id) setOpenPost(null);
     void hidePostRow({ data: id }).catch(() => undefined);
     note("Post hidden");
@@ -645,7 +647,7 @@ export function useQonvo() {
         },
       }).then((r) => {
         if (r && "ok" in r && r.ok === false) {
-          setPosts((prev) => prev.filter((p) => p.id !== item.id));
+          setPosts((prev) => prev.filter((p) => p?.id !== item.id));
           note(r.reason);
         }
       }).catch(() => undefined);
@@ -869,8 +871,8 @@ export function useQonvo() {
   const badges = [
     { id: "msg", label: "First message", on: allRoomMessages().some((m) => m.n === handle) },
     { id: "pin", label: "Bookmarker", on: pins.length > 0 },
-    { id: "post", label: "Feeds starter", on: posts.some((p) => p.author === handle) },
-    { id: "team", label: "Teammate", on: teams.some((t) => t.members.includes(handle)) },
+    { id: "post", label: "Feeds starter", on: posts.some((p) => !!p?.id && p.author === handle) },
+    { id: "team", label: "Teammate", on: teams.some((t) => !!t?.id && (t.members ?? []).includes(handle)) },
     { id: "travel", label: "World traveler", on: pins.length >= 5 },
   ];
 

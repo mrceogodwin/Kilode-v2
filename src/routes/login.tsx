@@ -77,7 +77,7 @@ function Login() {
     <main className="grid min-h-svh place-items-center bg-bg p-6 text-fg">
       <div className="raised w-full max-w-sm space-y-3 rounded-2xl p-5">
         <div className="flex flex-col items-center gap-1 text-center">
-          <img src="/kilode-logo-green.png" alt="Kilode" className="h-12 w-auto max-w-[200px] object-contain" />
+          <img src="/kilode-lockup-lg.png" alt="Kilode" className="h-14 w-auto max-w-[240px] object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/kilode-logo-green.png"; }} />
           <p className="text-[11px] font-medium text-muted">{staff ? "Staff console" : "kilode.ng"}</p>
         </div>
         <p className="text-sm text-muted">

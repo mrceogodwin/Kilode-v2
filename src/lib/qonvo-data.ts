@@ -254,8 +254,32 @@ export function loadJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
     const raw = localStorage.getItem(PREFIX + key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as T;
+    // One-time salvage: drop null holes / objects missing string id (corrupt prior writes).
+    if (Array.isArray(parsed) && Array.isArray(fallback)) {
+      const idKeys = new Set(["posts", "tracks", "teams", "ads", "pins", "notes", "joins"]);
+      const cleaned = (parsed as unknown[]).filter((x) => {
+        if (x == null) return false;
+        if (!idKeys.has(key)) return true;
+        return typeof (x as { id?: unknown }).id === "string" || typeof (x as { name?: unknown }).name === "string";
+      });
+      if (cleaned.length !== (parsed as unknown[]).length) {
+        try {
+          localStorage.setItem(PREFIX + key, JSON.stringify(cleaned));
+        } catch {
+          /* quota */
+        }
+        return cleaned as T;
+      }
+    }
+    return parsed;
   } catch {
+    try {
+      localStorage.removeItem(PREFIX + key);
+    } catch {
+      /* ignore */
+    }
     return fallback;
   }
 }
