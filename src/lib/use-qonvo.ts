@@ -151,20 +151,22 @@ export function useQonvo() {
     void Promise.all([listPosts(), listTracks(), listAds()])
       .then(([dbPosts, dbTracks, dbAds]) => {
         if (dbPosts.length) {
-          setPosts(
-            dbPosts.map((p) => ({
-              ...p,
-              excerpt: p.excerpt ?? undefined,
-              category: p.category ?? undefined,
-              tags: p.tags ?? undefined,
-              link: p.link ?? undefined,
-              image: p.image ?? undefined,
-              slug: p.slug ?? undefined,
-              status: p.status as Post["status"],
-              comments: p.comments ?? [],
-              views: Number(p.views ?? 0),
-            })),
-          );
+          const mapped = dbPosts.map((p) => ({
+            ...p,
+            excerpt: p.excerpt ?? undefined,
+            category: p.category ?? undefined,
+            tags: p.tags ?? undefined,
+            link: p.link ?? undefined,
+            image: p.image ?? undefined,
+            slug: p.slug ?? undefined,
+            status: p.status as Post["status"],
+            comments: p.comments ?? [],
+            views: Number(p.views ?? 0),
+          }));
+          setPosts([
+            ...DEMO_POSTS.filter((d) => !mapped.some((p) => p.id === d.id)),
+            ...mapped,
+          ]);
         }
         if (dbTracks.length) {
           setTracks(

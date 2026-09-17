@@ -71,8 +71,10 @@ const ICONS: Record<MenuId, typeof Home> = {
 };
 
 const MENU_GROUPS: { label: string; ids: MenuId[] }[] = [
-  { label: "Me", ids: ["profile", "bookmarks", "inbox", "teams"] },
-  { label: "More", ids: ["ads", "settings", "help"] },
+  { label: "Me", ids: ["profile", "dashboard", "bookmarks", "inbox", "notifications", "teams"] },
+  { label: "Discover", ids: ["forum", "trending", "community", "search", "leaderboard", "badges"] },
+  { label: "Create", ids: ["create", "ads"] },
+  { label: "Account", ids: ["settings", "contact", "help"] },
 ];
 
 function fmt(n: number) {
@@ -446,7 +448,57 @@ export function QonvoApp() {
                   if (atBottom) setNewCount(0);
                 }}
               >
-                {store.msgs.length === 0 ? <p className="text-sm text-muted">No messages yet. Be first.</p> : null}
+                {store.msgs.length === 0 ? (
+                  <div className="space-y-3">
+                    <div className="raised rounded-xl p-3">
+                      <div className="text-[10px] font-bold tracking-wide text-lime-2 uppercase">Live room</div>
+                      <div className="mt-1 text-sm font-bold">{room.name}</div>
+                      <p className="mt-1 text-[11px] text-muted">Be first — say hi, drop a take, or jump rooms.</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {["Wave 👋", "Who is here?", "Hot take", "Good morning"].map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            className="rounded-full border border-line px-2.5 py-1 text-[10px] font-semibold"
+                            onClick={() => {
+                              if (!(store.authed || session.user)) {
+                                window.location.href = "/login";
+                                return;
+                              }
+                              store.send(t);
+                            }}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-1.5 text-[10px] font-bold tracking-wide text-muted uppercase">Jump rooms</div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {ROOMS.slice(0, 6).map((r) => (
+                          <button key={r.id} type="button" className="raised rounded-lg px-2 py-2 text-left" onClick={() => goHome(r.id)}>
+                            <div className="truncate text-[11px] font-semibold">{r.name}</div>
+                            <div className="text-[9px] text-muted">{fmt(r.online)} online</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-1.5 text-[10px] font-bold tracking-wide text-muted uppercase">Tonight on Kilode</div>
+                      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        {["Afrobeats night", "Tech AMA", "Football watch", "Startup pitch", "Comedy hour"].map((x, i) => (
+                          <div key={x} className="w-[120px] shrink-0 overflow-hidden rounded-xl" style={{ background: `linear-gradient(145deg, ${["#14351f","#1a2744","#3b2a16","#2a2438","#2d1f3d"][i]}, #0a0a0a)` }}>
+                            <div className="p-2.5">
+                              <div className="text-[11px] font-bold leading-tight">{x}</div>
+                              <div className="mt-1 text-[9px] text-muted">Tonight</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
                 {mixChatAds(
                   chatRows(store.msgs),
                   store.campaigns.filter((c) => c.status === "approved" && c.placement === "chat"),
@@ -712,54 +764,161 @@ export function QonvoApp() {
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-2 pb-4">
-              {MENU_GROUPS.map((group) => (
-                <div key={group.label} className="mb-3">
-                  <div className="px-2 py-1 text-[10px] font-semibold tracking-widest text-muted uppercase">{group.label}</div>
-                  {group.ids.map((id) => {
-                    const Icon = ICONS[id];
-                    const label = MENU.find((m) => m[0] === id)?.[1] ?? id;
+              <div className="mb-3 grid grid-cols-3 gap-1.5 px-1">
+                {[
+                  { n: store.posts.length, l: "Posts" },
+                  { n: store.pins.length, l: "Rooms" },
+                  { n: store.campaigns.filter((c) => c.status === "approved").length, l: "Ads" },
+                ].map((s) => (
+                  <div key={s.l} className="raised rounded-lg px-2 py-2 text-center">
+                    <div className="text-sm font-bold text-lime-2">{s.n}</div>
+                    <div className="text-[9px] text-muted">{s.l}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mb-3 px-1">
+                <div className="mb-1.5 text-[10px] font-semibold tracking-widest text-muted uppercase">Quick</div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { id: "create" as MenuId, label: "Create", tab: null as null | "feeds" | "music" | "chat" | "videos" },
+                    { id: "ads" as MenuId, label: "Place ad", tab: null },
+                    { id: "inbox" as MenuId, label: "Messages", tab: null },
+                    { id: "home" as MenuId, label: "Chat rooms", tab: "chat" as const },
+                  ].map((q) => {
+                    const Icon = ICONS[q.id === "home" ? "forum" : q.id] ?? MessageSquare;
                     return (
                       <button
-                        key={id}
+                        key={q.label}
                         type="button"
+                        className="raised flex items-center gap-2 rounded-xl px-2.5 py-2.5 text-left"
                         onClick={() => {
-                          if (id === "home") goHome();
-                          else setScreen(id);
+                          if (q.tab) {
+                            setScreen("home");
+                            setHomeTab(q.tab);
+                          } else if (q.id === "home") goHome();
+                          else setScreen(q.id);
                           setMenuOpen(false);
                         }}
-                        className={`flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left text-sm ${
-                          screen === id ? "bg-panel-2" : "hover:bg-panel-2"
-                        }`}
                       >
                         <Icon className="size-4 shrink-0 text-lime-2" />
-                        {label}
+                        <span className="text-[11px] font-semibold">{q.label}</span>
                       </button>
                     );
                   })}
                 </div>
-              ))}
-              <div className="px-2 py-1 text-[10px] font-semibold tracking-widest text-muted uppercase">Also</div>
-              <button
-                type="button"
-                onClick={() => { setScreen("home"); setHomeTab("videos"); setMenuOpen(false); }}
-                className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left text-sm hover:bg-panel-2"
-              >
-                <Play className="size-4 shrink-0 text-lime-2" />
-                Videos
-              </button>
-              {session.user ? (
-                <a
-                  href="/ops"
-                  className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left text-sm hover:bg-panel-2"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <Shield className="size-4 shrink-0 text-lime-2" />
-                  Staff
-                </a>
+              </div>
+
+              {store.campaigns.filter((c) => c.status === "approved").slice(0, 2).length ? (
+                <div className="mb-3 px-1">
+                  <div className="mb-1.5 text-[10px] font-semibold tracking-widest text-muted uppercase">Sponsored</div>
+                  <div className="space-y-1.5">
+                    {store.campaigns
+                      .filter((c) => c.status === "approved")
+                      .slice(0, 2)
+                      .map((c) => (
+                        <a
+                          key={c.id}
+                          href={c.link || "#"}
+                          target={c.link ? "_blank" : undefined}
+                          rel="noreferrer"
+                          onClick={() => {
+                            store.see("ads", c.id);
+                            setMenuOpen(false);
+                          }}
+                          className="raised flex items-center gap-2 overflow-hidden rounded-xl p-1.5"
+                        >
+                          {c.image ? <img src={c.image} alt="" className="h-10 w-12 shrink-0 rounded-md object-cover" /> : <div className="grid h-10 w-12 place-items-center rounded-md bg-panel-3 text-[8px] text-lime-2">AD</div>}
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-[11px] font-semibold">{c.name}</div>
+                            <div className="truncate text-[9px] text-muted">{c.note || "Sponsored"}</div>
+                          </div>
+                        </a>
+                      ))}
+                  </div>
+                </div>
               ) : null}
+
+              <div className="mb-3 px-1">
+                <div className="mb-1.5 text-[10px] font-semibold tracking-widest text-muted uppercase">Hot rooms</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {ROOMS.slice(0, 8).map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      className="rounded-full border border-line px-2.5 py-1 text-[10px] font-semibold"
+                      onClick={() => {
+                        goHome(r.id);
+                        setMenuOpen(false);
+                      }}
+                    >
+                      {r.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {MENU_GROUPS.map((group) => (
+                <div key={group.label} className="mb-3">
+                  <div className="px-2 py-1 text-[10px] font-semibold tracking-widest text-muted uppercase">{group.label}</div>
+                  <div className="grid grid-cols-2 gap-1">
+                    {group.ids.map((id) => {
+                      const Icon = ICONS[id];
+                      const label = MENU.find((m) => m[0] === id)?.[1] ?? id;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onClick={() => {
+                            if (id === "home") goHome();
+                            else setScreen(id);
+                            setMenuOpen(false);
+                          }}
+                          className={`flex items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] font-medium ${
+                            screen === id ? "bg-panel-2 text-lime-2" : "hover:bg-panel-2"
+                          }`}
+                        >
+                          <Icon className="size-3.5 shrink-0 text-lime-2" />
+                          <span className="truncate">{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              <div className="px-2 py-1 text-[10px] font-semibold tracking-widest text-muted uppercase">Also</div>
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  type="button"
+                  onClick={() => { setScreen("home"); setHomeTab("videos"); setMenuOpen(false); }}
+                  className="flex items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] font-medium hover:bg-panel-2"
+                >
+                  <Play className="size-3.5 shrink-0 text-lime-2" />
+                  Videos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }}
+                  className="flex items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] font-medium hover:bg-panel-2"
+                >
+                  <Radio className="size-3.5 shrink-0 text-lime-2" />
+                  Music
+                </button>
+                {session.user ? (
+                  <a
+                    href="/ops"
+                    className="flex items-center gap-2 rounded-lg px-2 py-2 text-left text-[11px] font-medium hover:bg-panel-2"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <Shield className="size-3.5 shrink-0 text-lime-2" />
+                    Staff
+                  </a>
+                ) : null}
+              </div>
             </div>
             <div className="border-t border-white/5 px-3 py-3">
-              <button type="button" className="text-[11px] font-semibold tracking-wide text-lime-2" onClick={() => { setDonateOpen(true); setMenuOpen(false); }}>
+              <button type="button" className="btn-join w-full rounded-lg py-2 text-[11px] font-bold" onClick={() => { setDonateOpen(true); setMenuOpen(false); }}>
                 Donate · keep Kilode up
               </button>
             </div>
@@ -1513,25 +1672,37 @@ function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreate: () =
 
 function ChatAdCard({ ad, pinned, onView }: { ad: Campaign; pinned?: boolean; onView: () => void }) {
   const href = ad.link || undefined;
-  const inner = (
+  const inner = pinned ? (
+    <div className="flex items-center gap-2 px-2 py-1.5">
+      {ad.image ? <img src={ad.image} alt="" className="h-11 w-14 shrink-0 rounded-md object-cover" /> : <div className="grid h-11 w-14 shrink-0 place-items-center rounded-md bg-panel-3 text-[9px] text-lime-2">AD</div>}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[8px] font-bold tracking-wide text-lime-2 uppercase">Pinned</span>
+          <span className="text-[8px] text-muted">{fmtCount(ad.views ?? 0)}</span>
+        </div>
+        <div className="truncate text-[11px] font-semibold leading-tight">{ad.name}</div>
+        {ad.note ? <p className="truncate text-[9px] text-muted">{ad.note}</p> : null}
+      </div>
+    </div>
+  ) : (
     <>
       <div className="flex items-center justify-between px-2 py-1">
-        <span className="text-[9px] font-bold tracking-wide text-lime-2 uppercase">{pinned ? "Pinned ad" : "Premium ad"}</span>
+        <span className="text-[9px] font-bold tracking-wide text-lime-2 uppercase">Premium ad</span>
         <span className="text-[9px] text-muted">{fmtCount(ad.views ?? 0)} views</span>
       </div>
-      {ad.image ? <img src={ad.image} alt="" className="h-24 w-full object-cover" /> : null}
+      {ad.image ? <img src={ad.image} alt="" className="h-16 w-full object-cover" /> : null}
       {ad.video ? (
         <div className="aspect-video bg-black">
           <iframe title={ad.name} src={`https://www.youtube.com/embed/${ad.video}`} className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
         </div>
       ) : null}
-      <div className="px-3 pb-2">
-        <div className="text-sm font-semibold">{ad.name}</div>
-        {ad.note ? <p className="text-[11px] text-muted">{ad.note}</p> : null}
+      <div className="px-2.5 pb-1.5">
+        <div className="text-xs font-semibold">{ad.name}</div>
+        {ad.note ? <p className="text-[10px] text-muted">{ad.note}</p> : null}
       </div>
     </>
   );
-  const cls = pinned ? "mx-3 mt-2 overflow-hidden rounded-xl border border-lime-2/40 bg-panel" : "overflow-hidden rounded-xl border border-line bg-panel";
+  const cls = pinned ? "mx-2 mt-1.5 overflow-hidden rounded-lg border border-lime-2/35 bg-panel" : "overflow-hidden rounded-xl border border-line bg-panel";
   if (href) {
     return (
       <a href={href} target="_blank" rel="noreferrer" className={`block ${cls}`} onClick={onView}>

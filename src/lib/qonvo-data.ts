@@ -136,7 +136,7 @@ export type Post = {
   views?: number;
 };
 
-export const POST_CATS = ["General", "News", "Naija", "Tech", "Sports", "Business", "Culture", "Opinion"];
+export const POST_CATS = ["General", "News", "Naija", "Tech", "Sports", "Business", "Culture", "Opinion", "Music", "Comedy", "Politics", "Lifestyle", "Education", "Health", "Travel", "Fashion", "Food", "Jobs"];
 
 export function safeHttpUrl(raw: string): string | undefined {
   const v = raw.trim();
