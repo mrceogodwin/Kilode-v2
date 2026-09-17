@@ -58,6 +58,7 @@ function Forum({ store, onHome }: { store: Store; onHome: (roomId?: string) => v
   return (
     <div className="mx-auto max-w-5xl space-y-3 p-5">
       <h2 className="text-xl font-bold">Feeds</h2>
+      <p className="text-sm text-muted">Topics from Nigeria — tap a tile to read.</p>
       {live.length === 0 ? <p className="text-sm text-muted">No posts yet. Create one from Create.</p> : null}
       <div className="grid grid-cols-4 gap-1">
         {live.map((p) => (
@@ -245,28 +246,31 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Create</h2>
-      <div className="flex gap-2">
-        <button type="button" className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${kind === "post" ? "btn-3d" : "border border-line text-muted"}`} onClick={() => setKind("post")}>
+    <div className="mx-auto max-w-2xl space-y-4 p-5 pb-8">
+      <div>
+        <h2 className="text-xl font-bold tracking-tight">Create</h2>
+        <p className="mt-1 text-sm text-muted">Share a post to Feeds or list a track on Music.</p>
+      </div>
+      <div className="raised flex gap-1.5 rounded-xl p-1.5">
+        <button type="button" className={`flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold ${kind === "post" ? "btn-join text-white" : "text-muted hover:bg-panel-2"}`} onClick={() => setKind("post")}>
           Post
         </button>
-        <button type="button" className={`rounded-md px-3 py-1.5 text-[11px] font-bold ${kind === "music" ? "btn-3d" : "border border-line text-muted"}`} onClick={() => setKind("music")}>
+        <button type="button" className={`flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold ${kind === "music" ? "btn-join text-white" : "text-muted hover:bg-panel-2"}`} onClick={() => setKind("music")}>
           Music
         </button>
       </div>
       {kind === "music" ? (
-        <>
-          <p className="text-sm text-muted">Audio platforms only: Spotify, Apple Music, SoundCloud, Audiomack, Deezer. YouTube clips belong in VIDEOS.</p>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Track title" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-          <input value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="Artist name" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-          <input value={album} onChange={(e) => setAlbum(e.target.value)} placeholder="Album / EP (optional)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-          <input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Genre" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-          <input value={link} onChange={(e) => onUrl(e.target.value)} placeholder="https://open.spotify.com/track/…" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+        <div className="raised space-y-3 rounded-2xl p-4">
+          <p className="text-sm text-muted">Audio platforms only: Spotify, Apple Music, SoundCloud, Audiomack, Deezer. YouTube clips belong in Videos.</p>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Track title" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          <input value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="Artist name" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          <input value={album} onChange={(e) => setAlbum(e.target.value)} placeholder="Album / EP (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          <input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Genre" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          <input value={link} onChange={(e) => onUrl(e.target.value)} placeholder="https://open.spotify.com/track/…" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
           {preview ? <p className="text-xs text-lime-2">{preview}</p> : null}
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Notes / credits" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-          <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-          <div className="raised rounded-xl p-3">
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Notes / credits" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          <div className="inset-well rounded-xl p-3">
             <div className="mb-2 text-[11px] font-medium text-muted">Cover image only (optional)</div>
             <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
           </div>
@@ -275,49 +279,49 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
             <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             <span>I agree to the Terms. This URL is mine to share. Audio is not hosted here.</span>
           </label>
-          <button type="button" className="btn-3d rounded-lg px-3 py-2 text-sm font-semibold" onClick={submitMusic}>
+          <button type="button" className="btn-join w-full rounded-xl px-3 py-3 text-sm font-bold" onClick={submitMusic}>
             List on Music
           </button>
-        </>
+        </div>
       ) : (
-        <>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={7} placeholder="Post content" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} placeholder="Excerpt / summary" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      <div className="grid gap-2 sm:grid-cols-2">
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-lg border border-line bg-panel px-3 py-2 text-sm">
-          {POST_CATS.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
-        <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags (comma)" className="rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      </div>
-      <input
-        value={link}
-        onChange={(e) => setLink(e.target.value)}
-        placeholder="Safe URL — https://…"
-        className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm"
-      />
-      <div className="raised rounded-xl p-3">
-        <div className="mb-2 text-[11px] font-medium text-muted">Featured image</div>
-        <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
-        {image ? <img src={image} alt="" className="mt-2 max-h-40 rounded-lg object-cover" /> : null}
-      </div>
-      <p className="text-[11px] text-muted">Slug: {title ? slugify(title) : "—"} · Author set on publish</p>
-      {err ? <p className="text-sm text-danger">{err}</p> : null}
-      <label className="flex items-start gap-2 text-[11px] text-muted">
-        <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-        <span>I agree to the Terms & Conditions and I am responsible for this post.</span>
-      </label>
-      <div className="flex gap-2">
-        <button type="button" className="btn-3d rounded-lg px-3 py-2 text-sm font-semibold" onClick={() => submit("publish")}>
-          Publish to feeds
-        </button>
-        <button type="button" className="rounded-lg border border-line px-3 py-2 text-sm" onClick={() => submit("draft")}>
-          Save draft
-        </button>
-      </div>
-        </>
+        <div className="raised space-y-3 rounded-2xl p-4">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={7} placeholder="Post content" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} placeholder="Excerpt / summary" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-xl border border-line bg-panel px-3 py-2.5 text-sm">
+              {POST_CATS.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+            <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags (comma)" className="rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          </div>
+          <input
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            placeholder="Safe URL — https://…"
+            className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm"
+          />
+          <div className="inset-well rounded-xl p-3">
+            <div className="mb-2 text-[11px] font-medium text-muted">Featured image</div>
+            <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
+            {image ? <img src={image} alt="" className="mt-2 max-h-40 rounded-lg object-cover" /> : null}
+          </div>
+          <p className="text-[11px] text-muted">Slug: {title ? slugify(title) : "—"} · Author set on publish</p>
+          {err ? <p className="text-sm text-danger">{err}</p> : null}
+          <label className="flex items-start gap-2 text-[11px] text-muted">
+            <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+            <span>I agree to the Terms & Conditions and I am responsible for this post.</span>
+          </label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button type="button" className="btn-join flex-1 rounded-xl px-3 py-3 text-sm font-bold" onClick={() => submit("publish")}>
+              Publish to Feeds
+            </button>
+            <button type="button" className="btn-3d rounded-xl px-3 py-3 text-sm font-semibold sm:flex-none" onClick={() => submit("draft")}>
+              Save draft
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -391,7 +395,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Rooms, posts, artists"
+        placeholder="Feeds, rooms, artists"
         className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm"
       />
       {s ? (

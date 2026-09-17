@@ -1579,7 +1579,7 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
         ))}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-6">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
               {p.image ? <img src={p.image} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square bg-panel-3" />}
@@ -1624,7 +1624,7 @@ function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreate: () =
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-3">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {live.slice(0, shown).map((a) => {
             const yt = a.video ? youtubeId(a.video) || a.video : undefined;
             const inner = (
