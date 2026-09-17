@@ -32,7 +32,7 @@ import {
   X,
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
-import { DIGITAL_TRACKS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
+import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
 import { QonvoMark, KilodeWord } from "@/components/qonvo-mark";
@@ -939,40 +939,97 @@ function RoomList({
 
 function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd: () => void }) {
   const [q, setQ] = useState("");
+  const [genre, setGenre] = useState<(typeof MUSIC_GENRES)[number]>("All");
   const [play, setPlay] = useState<string | null>(null);
-  const mine = store.tracks.filter((t) => {
-    const s = q.trim().toLowerCase();
-    if (!s) return true;
-    return `${t.artist} ${t.title} ${t.author}`.toLowerCase().includes(s);
-  });
-  const digital = DIGITAL_TRACKS.filter((t) => {
-    const s = q.trim().toLowerCase();
-    if (!s) return true;
-    return `${t.artist} ${t.title}`.toLowerCase().includes(s);
-  });
+  const [mineShown, setMineShown] = useState(8);
+  const [digShown, setDigShown] = useState(8);
 
-  function Row({ t }: { t: (typeof store.tracks)[number] }) {
+  const mineAll = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    return store.tracks.filter((t) => {
+      if (genre !== "All" && (t.genre || "Afrobeats") !== genre) return false;
+      if (!s) return true;
+      return `${t.artist} ${t.title} ${t.author} ${t.genre ?? ""}`.toLowerCase().includes(s);
+    });
+  }, [store.tracks, q, genre]);
+
+  const digAll = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    return DIGITAL_TRACKS.filter((t) => {
+      if (genre !== "All" && (t.genre || "Afrobeats") !== genre) return false;
+      if (!s) return true;
+      return `${t.artist} ${t.title} ${t.genre ?? ""}`.toLowerCase().includes(s);
+    });
+  }, [q, genre]);
+
+  const mine = mineAll.slice(0, mineShown);
+  const digital = digAll.slice(0, digShown);
+  const chart = [...DIGITAL_TRACKS].slice(0, 10);
+  const fresh = [...DIGITAL_TRACKS].slice().reverse().slice(0, 10);
+
+  function Tile({ t, compact }: { t: (typeof store.tracks)[number]; compact?: boolean }) {
     const on = play === t.id;
     return (
       <div className="raised overflow-hidden rounded-lg">
-        <button type="button" data-play="1" className="flex w-full items-center gap-2 px-2 py-1.5 text-left" onClick={() => {
-          setPlay(on ? null : t.id);
-          if (!on) store.see("tracks", t.id);
-        }}>
-          <span className="btn-3d grid size-7 shrink-0 place-items-center rounded-full">
-            <Play className="size-3 fill-lime-2 text-lime-2" />
-          </span>
+        <button
+          type="button"
+          data-play="1"
+          className={`flex w-full items-center gap-1.5 text-left ${compact ? "px-1 py-1" : "px-1.5 py-1.5"}`}
+          onClick={() => {
+            setPlay(on ? null : t.id);
+            if (!on) store.see("tracks", t.id);
+          }}
+        >
+          {t.cover ? (
+            <img src={t.cover} alt="" className={`${compact ? "size-8" : "size-9"} shrink-0 rounded object-cover`} />
+          ) : (
+            <span className="btn-3d grid size-8 shrink-0 place-items-center rounded-full">
+              <Play className="size-3 fill-lime-2 text-lime-2" />
+            </span>
+          )}
           <div className="min-w-0 flex-1">
-            <div className="truncate text-xs font-semibold">{t.title}</div>
-            <div className="truncate text-[10px] text-muted">
-              {t.artist} · {t.platform} · {fmtCount(t.views ?? 0)} views
+            <div className="truncate text-[10px] font-semibold leading-tight">{t.title}</div>
+            <div className="truncate text-[8px] text-muted">
+              {t.artist}
+              {!compact ? ` · ${t.platform}` : ""}
             </div>
           </div>
+          <Play className="size-3 shrink-0 text-lime-2" />
         </button>
         {on && t.embed ? (
-          <iframe title={t.title} src={`${t.embed}${t.embed.includes("?") ? "&" : "?"}theme=0`} className="h-[80px] w-full border-0" allow="encrypted-media; autoplay" />
+          <iframe title={t.title} src={`${t.embed}${t.embed.includes("?") ? "&" : "?"}theme=0`} className="h-[72px] w-full border-0" allow="encrypted-media; autoplay" />
         ) : null}
       </div>
+    );
+  }
+
+  function Rail({ title, items }: { title: string; items: (typeof DIGITAL_TRACKS)[number][] }) {
+    return (
+      <section className="mb-3">
+        <div className="mb-1.5 flex items-center justify-between px-0.5">
+          <h3 className="text-[11px] font-bold tracking-wide text-fg">{title}</h3>
+          <span className="text-[9px] text-muted">{items.length}</span>
+        </div>
+        <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {items.map((t) => (
+            <button
+              key={`${title}-${t.id}`}
+              type="button"
+              className="w-[88px] shrink-0 text-left"
+              onClick={() => {
+                setPlay(t.id);
+                store.see("tracks", t.id);
+              }}
+            >
+              <div className="raised aspect-square overflow-hidden rounded-lg">
+                {t.cover ? <img src={t.cover} alt="" className="size-full object-cover" /> : <div className="grid size-full place-items-center bg-panel-3"><Play className="size-4 text-lime-2" /></div>}
+              </div>
+              <div className="mt-1 truncate text-[10px] font-semibold leading-tight">{t.title}</div>
+              <div className="truncate text-[8px] text-muted">{t.artist}</div>
+            </button>
+          ))}
+        </div>
+      </section>
     );
   }
 
@@ -982,32 +1039,78 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search artists on this platform"
+          placeholder="Search songs, artists, genres"
           className="min-h-9 flex-1 rounded-lg border border-line bg-panel px-3 text-xs outline-none"
         />
         <button type="button" className="btn-3d shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold" onClick={onAdd}>
           Add
         </button>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-3">
-        <div className="grid gap-3 md:grid-cols-2">
-          <section>
-            <h3 className="mb-1.5 text-[10px] font-bold tracking-wide text-lime-2 uppercase">Artists on this platform</h3>
+
+      <div className="flex shrink-0 flex-nowrap gap-1.5 overflow-x-auto overscroll-x-contain border-b border-line px-2 py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {MUSIC_GENRES.map((g) => (
+          <button
+            key={g}
+            type="button"
+            onClick={() => {
+              setGenre(g);
+              setMineShown(8);
+              setDigShown(8);
+            }}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold tracking-wide ${genre === g ? "btn-3d text-lime-2" : "border border-line bg-panel-2 text-fg/80"}`}
+          >
+            {g}
+          </button>
+        ))}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-6">
+        <section className="mb-3">
+          <div className="mb-1.5 text-[11px] font-bold">Browse</div>
+          <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {MUSIC_RAILS.map((r) => (
+              <button key={r.id} type="button" className="w-[132px] shrink-0 overflow-hidden rounded-xl text-left" style={{ background: `linear-gradient(145deg, ${r.color}, #0a0a0a)` }} onClick={onAdd}>
+                <div className="p-2.5">
+                  <div className="text-[11px] font-bold leading-tight text-fg">{r.title}</div>
+                  <div className="mt-1 text-[9px] text-muted">{r.subtitle}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <Rail title="Naija charts" items={chart} />
+        <Rail title="New & trending" items={fresh} />
+        <Rail title="Made for Kilode" items={[...DIGITAL_TRACKS].sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, 10)} />
+
+        <div className="mb-1.5 text-[11px] font-bold">Library split</div>
+        <div className="grid grid-cols-2 gap-2">
+          <section className="min-w-0">
+            <h3 className="mb-1.5 text-[9px] font-bold tracking-wide text-lime-2 uppercase">On Kilode</h3>
             <div className="space-y-1">
-              {mine.length === 0 ? <p className="text-[11px] text-muted">No artist match.</p> : null}
+              {mine.length === 0 ? <p className="text-[10px] text-muted">No match — Add a track.</p> : null}
               {mine.map((t) => (
-                <Row key={t.id} t={t} />
+                <Tile key={t.id} t={t} compact />
               ))}
             </div>
+            {mineShown < mineAll.length ? (
+              <button type="button" className="btn-join mt-2 w-full rounded-lg py-1.5 text-[10px] font-bold" onClick={() => setMineShown((n) => n + 8)}>
+                Load more · {mineAll.length - mineShown}
+              </button>
+            ) : null}
           </section>
-          <section>
-            <h3 className="mb-1.5 text-[10px] font-bold tracking-wide text-muted uppercase">Digital platforms</h3>
-            <p className="mb-1.5 text-[10px] text-muted">Fetched from Spotify and similar. Not hosted here.</p>
+          <section className="min-w-0">
+            <h3 className="mb-1.5 text-[9px] font-bold tracking-wide text-muted uppercase">Digital</h3>
             <div className="space-y-1">
               {digital.map((t) => (
-                <Row key={t.id} t={t} />
+                <Tile key={t.id} t={t} compact />
               ))}
             </div>
+            {digShown < digAll.length ? (
+              <button type="button" className="btn-join mt-2 w-full rounded-lg py-1.5 text-[10px] font-bold" onClick={() => setDigShown((n) => n + 8)}>
+                Load more · {digAll.length - digShown}
+              </button>
+            ) : null}
           </section>
         </div>
       </div>
