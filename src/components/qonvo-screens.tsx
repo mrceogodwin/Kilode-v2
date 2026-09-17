@@ -59,7 +59,7 @@ function Forum({ store, onHome }: { store: Store; onHome: (roomId?: string) => v
     <div className="mx-auto max-w-5xl space-y-3 p-5">
       <h2 className="text-xl font-bold">Forum</h2>
       {live.length === 0 ? <p className="text-sm text-muted">No posts yet. Create one from Menu.</p> : null}
-      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+      <div className="grid grid-cols-4 gap-1">
         {live.map((p) => (
           <button key={p.id} type="button" onClick={() => { store.setOpenPost(p.id); onHome(); }} className="raised overflow-hidden rounded-md text-left">
             {p.image ? <img src={p.image} alt="" className="h-16 w-full object-cover" /> : <div className="h-16 bg-panel-3" />}

@@ -274,11 +274,10 @@ export function QonvoApp() {
               }
             }}
           >
-            <img src="/kilode-logo-green.png" alt="" className="size-7 rounded-lg object-cover sm:size-8" />
+            <img src="/kilode-logo-green.png" alt="Kilode" className="h-7 w-auto max-w-[148px] object-contain object-left sm:h-8 sm:max-w-[168px]" />
           </button>
           <button type="button" className="min-w-0 text-left" onClick={() => goHome()} aria-label="Kilode home">
-            <KilodeWord className="block truncate text-[15px] sm:text-[17px]" />
-            <span className="mt-0.5 hidden text-[8px] uppercase tracking-[0.18em] text-muted sm:block">kilode.ng</span>
+            <span className="mt-0.5 block text-[8px] uppercase tracking-[0.18em] text-muted">kilode.ng</span>
           </button>
           <nav className="mx-auto hidden min-w-0 items-center justify-center gap-1 md:flex">
             <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
@@ -1307,16 +1306,15 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
         ))}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-4">
-        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        <div className="grid grid-cols-4 gap-1">
           {live.slice(0, shown).map((p) => (
-            <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-lg text-left" onClick={() => store.setOpenPost(p.id)}>
-              {p.image ? <img src={p.image} alt="" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
-              <div className="px-1.5 py-1.5">
-                <div className="text-[8px] font-bold tracking-[0.06em] text-lime-2 uppercase">{p.category || "General"}</div>
-                <div className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-tight sm:text-[12px]">{p.title}</div>
-                <div className="mt-1 truncate text-[9px] text-muted">
+            <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
+              {p.image ? <img src={p.image} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square bg-panel-3" />}
+              <div className="px-1 py-1">
+                <div className="text-[7px] font-bold tracking-wide text-lime-2 uppercase">{p.category || "General"}</div>
+                <div className="mt-0.5 line-clamp-2 text-[10px] font-semibold leading-tight">{p.title}</div>
+                <div className="mt-0.5 truncate text-[8px] text-muted">
                   <span style={{ color: handleColor(p.author) }}>{p.author}</span>
-                  <span> · {timeLabel(p.ts)}</span>
                 </div>
               </div>
             </button>
@@ -1345,21 +1343,21 @@ function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreate: () =
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-3">
-        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        <div className="grid grid-cols-4 gap-1">
           {live.slice(0, shown).map((a) => {
             const yt = a.video ? youtubeId(a.video) || a.video : undefined;
             const inner = (
               <div className="raised overflow-hidden rounded-md text-left">
                 {a.kind === "video" || a.kind === "video-text" ? (
                   yt ? (
-                    <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" className="aspect-[4/3] w-full object-cover" />
+                    <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" className="aspect-square w-full object-cover" />
                   ) : (
-                    <div className="grid aspect-[4/3] place-items-center bg-panel-3 text-[9px] text-muted">Video</div>
+                    <div className="grid aspect-square place-items-center bg-panel-3 text-[9px] text-muted">Video</div>
                   )
                 ) : a.image ? (
-                  <img src={a.image} alt="" className="aspect-[4/3] w-full object-cover" />
+                  <img src={a.image} alt="" className="aspect-square w-full object-cover" />
                 ) : (
-                  <div className="grid aspect-[4/3] place-items-center bg-panel-3 px-1.5 text-center text-[10px] font-semibold">{a.name}</div>
+                  <div className="grid aspect-square place-items-center bg-panel-3 px-1.5 text-center text-[10px] font-semibold">{a.name}</div>
                 )}
                 <div className="px-1.5 py-1">
                   <div className="text-[8px] font-bold tracking-wide text-lime-2 uppercase">{a.kind || "image-text"}</div>
