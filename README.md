@@ -19,6 +19,13 @@ Not in the public menu. Tap the **square bang mark** (left of the Kilode word) *
 
 Do not grant another user the same super role. Sub-admins are `mod` or `admin` only.
 
+## News Engine (super admin)
+
+Honest news ingest for Feeds — **Google News RSS** + publisher RSS (Punch, Premium Times, TechCabal, …).  
+We do **not** scrape Google Search HTML / SERP pages.
+
+Open **Admin** (tap bang mark 5× → `/ops`), claim super if needed, then use the **News Engine** panel: fetch → edit drafts → approve into Feeds. Optional LLM: set `OPENAI_API_KEY` or `NEWS_AI_KEY` (+ optional `NEWS_AI_URL` / `NEWS_AI_MODEL`). Without a key, a deterministic Kilode-voice rewriter still runs.
+
 ## Auth
 
 Users register with **username + password**. No public email. Login ids are private (`user@users.kilode.ng`).

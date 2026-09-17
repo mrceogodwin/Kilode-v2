@@ -109,7 +109,20 @@ export function useQonvo() {
       ...DEMO_POSTS.filter((d) => !!d?.id && !posts0.some((p) => p.id === d.id)),
       ...posts0.map((p) => {
         const demo = DEMO_POSTS.find((d) => d.id === p.id);
-        return demo ? { ...p, image: demo.image } : p;
+        // Prefer refreshed demo cover/copy so Feeds never keep stale solid-color cards.
+        return demo
+          ? {
+              ...p,
+              title: demo.title,
+              body: demo.body,
+              excerpt: demo.excerpt ?? p.excerpt,
+              category: demo.category ?? p.category,
+              tags: demo.tags ?? p.tags,
+              image: demo.image || p.image,
+              link: demo.link ?? p.link,
+              comments: p.comments?.length ? p.comments : demo.comments,
+            }
+          : p;
       }),
     ];
     const ads = [
@@ -452,6 +465,11 @@ export function useQonvo() {
     },
     [needAccount, note],
   );
+
+  const pushPost = useCallback((item: Post) => {
+    if (!item?.id) return;
+    setPosts((prev) => [item, ...prev.filter((p) => p?.id !== item.id)]);
+  }, []);
 
   const hidePost = useCallback((id: string) => {
     setPosts((prev) => prev.filter((p) => p?.id !== id));
@@ -924,6 +942,7 @@ export function useQonvo() {
     saveAd,
     patchAd,
     hidePost,
+    pushPost,
     flagPost,
     sendContact,
     reset,

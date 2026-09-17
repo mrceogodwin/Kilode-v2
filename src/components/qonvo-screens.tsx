@@ -2,6 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { AD_COINS, AD_KINDS, AD_PLACEMENTS, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, POST_CATS, REGIONS, ROOMS, TERMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 import { claimOps, clearModUser, getModSettings, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, setModHitStatus, setModUser, setStaffRole, staffMe } from "@/lib/staff-server";
+import {
+  approveNewsDraft,
+  fetchNewsLatest,
+  listNewsDrafts,
+  listNewsSources,
+  newsEngineInfo,
+  rejectNewsDraft,
+  setNewsSourceEnabled,
+  updateNewsDraft,
+  type NewsDraft,
+  type NewsSource,
+} from "@/lib/news-engine-server";
 import { listWallets, getChatTtl } from "@/lib/forum-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { authClient } from "@/lib/auth/client";
@@ -990,6 +1002,7 @@ function Admin({ store }: { store: Store }) {
         ))}
       </div>
       {role === "super" ? <ChatTtlPanel /> : null}
+      {role === "super" ? <NewsEnginePanel store={store} /> : null}
       {role ? <BanMutePanel members={members} /> : null}
       {role === "super" || role === "admin" ? <ModPanel /> : null}
       {role === "super" || role === "admin" ? <AdminPassword /> : null}
@@ -1217,6 +1230,219 @@ function BanMutePanel({ members }: { members: { id: string; handle: string; kind
           {m.handle}
         </button>
       ))}
+    </div>
+  );
+}
+
+
+function NewsEnginePanel({ store }: { store: Store }) {
+  const [sources, setSources] = useState<NewsSource[]>([]);
+  const [drafts, setDrafts] = useState<NewsDraft[]>([]);
+  const [include, setInclude] = useState("");
+  const [exclude, setExclude] = useState("");
+  const [maxAgeHours, setMaxAgeHours] = useState(72);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [llm, setLlm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [edit, setEdit] = useState({ title: "", body: "", meta_description: "", tags: "", category: "", image: "" });
+
+  const reload = () => {
+    void listNewsSources()
+      .then(setSources)
+      .catch(() => setSources([]));
+    void listNewsDrafts()
+      .then(setDrafts)
+      .catch(() => setDrafts([]));
+    void newsEngineInfo()
+      .then((i) => setLlm(!!i.llm))
+      .catch(() => undefined);
+  };
+
+  useEffect(() => {
+    reload();
+  }, []);
+
+  const startEdit = (d: NewsDraft) => {
+    setEditId(d.id);
+    setEdit({
+      title: d.title,
+      body: d.body,
+      meta_description: d.meta_description,
+      tags: d.tags,
+      category: d.category,
+      image: d.image,
+    });
+  };
+
+  return (
+    <div className="md:col-span-2 raised space-y-3 rounded-xl p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <div className="text-[11px] font-medium text-muted">News Engine</div>
+          <h3 className="text-base font-bold">Fetch → rewrite → approve into Feeds</h3>
+          <p className="mt-1 text-xs text-muted">
+            Sources: Google News RSS + publishers (not Google SERP scrape). {llm ? "LLM rewrite keyed." : "Deterministic Kilode-voice rewriter (set OPENAI_API_KEY / NEWS_AI_KEY for LLM)."}
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={busy}
+          className="btn-3d rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
+          onClick={() => {
+            setBusy(true);
+            setMsg("");
+            void fetchNewsLatest({
+              data: {
+                include: include.trim() || undefined,
+                exclude: exclude.trim() || undefined,
+                maxAgeHours,
+                sourceIds: sources.filter((s) => s.enabled).map((s) => s.id),
+              },
+            })
+              .then((r) => {
+                setMsg(`Fetched ${r.fetched} · new drafts ${r.created}${r.errors.length ? ` · ${r.errors.slice(0, 2).join("; ")}` : ""} · store ${r.store}`);
+                reload();
+              })
+              .catch((e) => setMsg(e instanceof Error ? e.message : "Fetch failed"))
+              .finally(() => setBusy(false));
+          }}
+        >
+          {busy ? "Fetching…" : "Fetch latest"}
+        </button>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-3">
+        <label className="text-xs text-muted">
+          Include keywords
+          <input value={include} onChange={(e) => setInclude(e.target.value)} placeholder="lagos, fintech" className="mt-1 w-full rounded-lg border border-line bg-panel px-2 py-1.5 text-sm text-fg" />
+        </label>
+        <label className="text-xs text-muted">
+          Exclude keywords
+          <input value={exclude} onChange={(e) => setExclude(e.target.value)} placeholder="rumour, unverified" className="mt-1 w-full rounded-lg border border-line bg-panel px-2 py-1.5 text-sm text-fg" />
+        </label>
+        <label className="text-xs text-muted">
+          Max age (hours)
+          <input type="number" min={6} max={240} value={maxAgeHours} onChange={(e) => setMaxAgeHours(Number(e.target.value) || 72)} className="mt-1 w-full rounded-lg border border-line bg-panel px-2 py-1.5 text-sm text-fg" />
+        </label>
+      </div>
+
+      <div className="space-y-1">
+        <div className="text-[11px] font-medium text-muted">Sources</div>
+        <div className="flex flex-wrap gap-2">
+          {sources.map((s) => (
+            <label key={s.id} className="flex items-center gap-1.5 rounded-full border border-line bg-panel px-2.5 py-1 text-[11px]">
+              <input
+                type="checkbox"
+                checked={s.enabled}
+                onChange={(e) => {
+                  const on = e.target.checked;
+                  setSources((prev) => prev.map((x) => (x.id === s.id ? { ...x, enabled: on } : x)));
+                  void setNewsSourceEnabled({ data: { id: s.id, enabled: on } }).catch(() => undefined);
+                }}
+              />
+              <span>{s.name}</span>
+              <span className="text-muted">{s.kind === "google-news" ? "GN" : "RSS"}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
+
+      <div className="space-y-2">
+        <div className="text-[11px] font-medium text-muted">Draft queue · {drafts.length}</div>
+        {drafts.length === 0 ? <p className="text-sm text-muted">No drafts yet. Tap Fetch latest.</p> : null}
+        {drafts.map((d) => (
+          <div key={d.id} className="rounded-xl border border-line bg-panel p-3">
+            <div className="flex flex-wrap gap-3">
+              {d.image ? <img src={d.image} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" /> : <div className="h-16 w-16 shrink-0 rounded-lg bg-panel-3" />}
+              <div className="min-w-0 flex-1">
+                <div className="text-[10px] text-muted">{d.source_name} · {d.category}</div>
+                <div className="font-semibold leading-snug">{d.title}</div>
+                <p className="mt-1 line-clamp-2 text-xs text-muted">{d.meta_description || d.original_snippet}</p>
+                <div className="mt-1 truncate text-[10px] text-muted">{d.tags}</div>
+                <a href={d.original_link} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[10px] text-lime-2 underline">
+                  Original
+                </a>
+              </div>
+            </div>
+            {editId === d.id ? (
+              <div className="mt-3 space-y-2 border-t border-line pt-3">
+                <input value={edit.title} onChange={(e) => setEdit((x) => ({ ...x, title: e.target.value }))} className="w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm" placeholder="Title" />
+                <textarea value={edit.body} onChange={(e) => setEdit((x) => ({ ...x, body: e.target.value }))} rows={5} className="w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm" placeholder="Body" />
+                <input value={edit.meta_description} onChange={(e) => setEdit((x) => ({ ...x, meta_description: e.target.value }))} className="w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm" placeholder="Meta description" />
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <input value={edit.tags} onChange={(e) => setEdit((x) => ({ ...x, tags: e.target.value }))} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm" placeholder="Tags" />
+                  <input value={edit.category} onChange={(e) => setEdit((x) => ({ ...x, category: e.target.value }))} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm" placeholder="Category" />
+                  <input value={edit.image} onChange={(e) => setEdit((x) => ({ ...x, image: e.target.value }))} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm" placeholder="Image URL" />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="rounded border border-line px-2 py-1 text-xs"
+                    onClick={() => {
+                      void updateNewsDraft({ data: { id: d.id, ...edit } }).then(() => {
+                        setEditId(null);
+                        reload();
+                      });
+                    }}
+                  >
+                    Save edits
+                  </button>
+                  <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => setEditId(null)}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => startEdit(d)}>
+                Edit
+              </button>
+              <button
+                type="button"
+                className="rounded border border-line px-2 py-1 text-xs text-lime-2"
+                onClick={() => {
+                  void approveNewsDraft({ data: d.id }).then((r) => {
+                    if (r.ok && "post" in r && r.post) {
+                      store.pushPost({
+                        id: r.post.id,
+                        title: r.post.title,
+                        body: r.post.body,
+                        excerpt: r.post.excerpt,
+                        author: r.post.author,
+                        ts: r.post.ts,
+                        comments: [],
+                        category: r.post.category,
+                        tags: r.post.tags,
+                        link: r.post.link,
+                        image: r.post.image,
+                        slug: r.post.slug,
+                        status: "publish",
+                        views: 0,
+                      });
+                      setMsg(`Approved → Feeds: ${r.post.title}`);
+                    } else if (!r.ok) setMsg(r.reason);
+                    reload();
+                  });
+                }}
+              >
+                Approve → Feeds
+              </button>
+              <button
+                type="button"
+                className="rounded border border-line px-2 py-1 text-xs text-danger"
+                onClick={() => {
+                  void rejectNewsDraft({ data: d.id }).then(() => reload());
+                }}
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
