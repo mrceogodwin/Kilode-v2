@@ -17,19 +17,13 @@
       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <!-- transparent bg — no rect -->
-  <!-- Icon tile -->
   <g filter="url(#glow)">
     <rect x="48" y="60" width="200" height="200" rx="44" fill="url(#tile)" stroke="#6b9e78" stroke-width="3" opacity="0.95"/>
-    <!-- bang stem -->
     <rect x="128" y="95" width="40" height="98" rx="14" transform="rotate(-12 148 144)" fill="url(#bang)"/>
-    <!-- bang dot -->
     <circle cx="162" cy="220" r="18" fill="#6b9e78"/>
   </g>
-  <!-- Wordmark -->
-  <text x="290" y="195" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="128" font-weight="800" letter-spacing="-4">
+  <text x="290" y="185" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="128" font-weight="800" letter-spacing="-4">
     <tspan fill="url(#word)">K</tspan><tspan fill="#6b9e78">i</tspan><tspan fill="url(#word)">lode</tspan>
   </text>
-  <!-- Subtitle -->
-  <text x="298" y="250" font-family="ui-sans-serif, system-ui, sans-serif" font-size="22" font-weight="600" letter-spacing="10" fill="#6b9e78">KILODE.NG</text>
+  <text x="298" y="245" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20" font-weight="600" letter-spacing="3.5" fill="#6b9e78">KILODE APPROVES · UNDER 30 MINS</text>
 </svg>
