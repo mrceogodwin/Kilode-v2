@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS nf_profiles (
+  user_id TEXT PRIMARY KEY,
+  handle TEXT NOT NULL,
+  bio TEXT,
+  city TEXT,
+  ts BIGINT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS nf_mail (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  author TEXT NOT NULL,
+  body TEXT NOT NULL,
+  ts BIGINT NOT NULL
+);

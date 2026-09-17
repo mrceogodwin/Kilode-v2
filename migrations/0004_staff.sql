@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS nf_staff (
+  user_id TEXT PRIMARY KEY,
+  role TEXT NOT NULL,
+  handle TEXT,
+  ts BIGINT NOT NULL
+);

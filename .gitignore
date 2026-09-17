@@ -1,0 +1,13 @@
+node_modules/
+.project_id
+.github_repo
+.env
+.env.*
+.vercel/
+.tanstack/
+attachments/
+artifacts/
+.grok/status
+*.log
+dist/
+.output/
