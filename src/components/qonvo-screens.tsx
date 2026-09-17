@@ -1,1 +1,1 @@
-@file:///tmp/batch-07-content.txt
+PLACEHOLDER_DO_NOT_USE
