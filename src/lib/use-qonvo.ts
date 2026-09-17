@@ -101,10 +101,10 @@ export function useQonvo() {
   useEffect(() => {
     setHandle(loadJson("me", ""));
     setRoomId(loadJson("room", "global"));
-    const posts0 = loadJson<Post[]>("posts", []);
-    const ads0 = loadJson<Campaign[]>("ads", []);
-    const notes0 = loadJson<Note[]>("notes", []);
-    const joins0 = loadJson<Join[]>("joins", []);
+    const posts0 = loadJson<Post[]>("posts", []).filter((p): p is Post => !!p && typeof p.id === "string");
+    const ads0 = loadJson<Campaign[]>("ads", []).filter((p): p is Campaign => !!p && typeof p.id === "string");
+    const notes0 = loadJson<Note[]>("notes", []).filter((n): n is Note => !!n && typeof n.id === "string");
+    const joins0 = loadJson<Join[]>("joins", []).filter((j): j is Join => !!j && typeof j.name === "string");
     const posts = [
       ...DEMO_POSTS.filter((d) => !posts0.some((p) => p.id === d.id)),
       ...posts0.map((p) => {
@@ -136,15 +136,15 @@ export function useQonvo() {
     setSavedPosts(loadJson("savedPosts", []));
     setLikes(loadJson("postLikes", {}));
     setShares(loadJson("postShares", {}));
-    setTeams(loadJson("teams", []));
-    const tracks0 = loadJson<MusicTrack[]>("tracks", []);
+    setTeams(loadJson<Team[]>("teams", []).filter((t): t is Team => !!t && typeof t.id === "string"));
+    const tracks0 = loadJson<MusicTrack[]>("tracks", []).filter((t): t is MusicTrack => !!t && typeof t.id === "string" && typeof t.url === "string");
     const tracks = [
       ...DEMO_TRACKS.filter((d) => !tracks0.some((t) => t.id === d.id)),
       ...tracks0.map((t) => {
         const demo = DEMO_TRACKS.find((d) => d.id === t.id);
         return demo ?? t;
       }),
-    ].filter((t) => !!parseMusicUrl(t.url));
+    ].filter((t) => !!t && !!parseMusicUrl(t.url));
     setTracks(tracks);
     saveJson("tracks", tracks);
     setReady(true);
@@ -169,8 +169,9 @@ export function useQonvo() {
           ]);
         }
         if (dbTracks.length) {
-          setTracks(
-            dbTracks.map((t) => ({
+          const mapped = dbTracks
+            .filter((t): t is NonNullable<typeof t> => !!t && typeof (t as { id?: string }).id === "string")
+            .map((t) => ({
               ...t,
               embed: t.embed ?? undefined,
               cover: t.cover ?? undefined,
@@ -178,8 +179,12 @@ export function useQonvo() {
               album: t.album ?? undefined,
               note: t.note ?? undefined,
               tags: t.tags ?? undefined,
-            })),
-          );
+            }));
+          setTracks([
+            ...DEMO_TRACKS.filter((d) => !mapped.some((t) => t.id === d.id)),
+            ...mapped,
+          ].filter((t) => !!t && !!parseMusicUrl(t.url)));
+        }
         }
         if (dbAds.length) setCampaigns(dbAds);
       })

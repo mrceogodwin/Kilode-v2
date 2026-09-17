@@ -1106,10 +1106,10 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
     });
   }, [q, genre]);
 
-  const mine = mineAll.slice(0, mineShown);
-  const digital = digAll.slice(0, digShown);
-  const chart = [...DIGITAL_TRACKS].slice(0, 10);
-  const fresh = [...DIGITAL_TRACKS].slice().reverse().slice(0, 10);
+  const mine = mineAll.filter((t) => !!t?.id).slice(0, mineShown);
+  const digital = digAll.filter((t) => !!t?.id).slice(0, digShown);
+  const chart = DIGITAL_TRACKS.filter((t) => !!t?.id).slice(0, 10);
+  const fresh = [...DIGITAL_TRACKS].filter((t) => !!t?.id).reverse().slice(0, 10);
 
   function Tile({ t, compact }: { t: (typeof store.tracks)[number]; compact?: boolean }) {
     const on = play === t.id;
@@ -1155,7 +1155,7 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
           <span className="text-[9px] text-muted">{items.length}</span>
         </div>
         <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {items.map((t) => (
+          {items.filter((t) => !!t?.id).map((t) => (
             <button
               key={`${title}-${t.id}`}
               type="button"
@@ -1225,7 +1225,7 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
 
         <Rail title="Naija charts" items={chart} />
         <Rail title="New & trending" items={fresh} />
-        <Rail title="Made for Kilode" items={[...DIGITAL_TRACKS].sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, 10)} />
+        <Rail title="Made for Kilode" items={[...DIGITAL_TRACKS].filter((t) => !!t?.id).sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, 10)} />
 
         <div className="mb-1.5 text-[11px] font-bold">Library split</div>
         <div className="grid grid-cols-2 gap-2">
@@ -1553,7 +1553,7 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-6">
         <div className="grid grid-cols-4 gap-2">
-          {live.slice(0, shown).map((p) => (
+          {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
               {p.image ? <img src={p.image} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square bg-panel-3" />}
               <div className="px-1 py-1">
