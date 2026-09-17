@@ -449,15 +449,17 @@ export function QonvoApp() {
                 }}
               >
                 {store.msgs.length === 0 ? (
-                  <div className="space-y-3">
-                    <div className="raised rounded-xl p-3">
-                      <div className="text-[10px] font-bold tracking-wide text-lime-2 uppercase">Live room</div>
-                      <div className="mt-1 text-sm font-bold">{room.name}</div>
-                      <p className="mt-1 text-[11px] text-muted">Be first — say hi, drop a take, or jump rooms.</p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {["Wave 👋", "Who is here?", "Hot take", "Good morning"].map((t) => (
+                  <div className="mx-auto flex max-w-md flex-col items-stretch gap-3 py-6">
+                    <div className="raised rounded-2xl p-4 text-center">
+                      <div className="text-[10px] font-bold tracking-wide text-lime-2 uppercase">Chat room</div>
+                      <div className="mt-1 text-lg font-extrabold">{room.name}</div>
+                      <p className="mt-2 text-[12px] leading-relaxed text-muted">
+                        No messages yet in this room. Sign in and send the first line — or open another room with Browse rooms.
+                      </p>
+                      <div className="mt-3 flex flex-wrap justify-center gap-2">
+                        {["Hello 👋", "Who is online?", "Good vibes only"].map((msg) => (
                           <button
-                            key={t}
+                            key={msg}
                             type="button"
                             className="rounded-full border border-line px-3 py-1.5 text-[11px] font-semibold"
                             onClick={() => {
@@ -465,37 +467,20 @@ export function QonvoApp() {
                                 window.location.href = "/login";
                                 return;
                               }
-                              store.send(t);
+                              store.send(msg);
                             }}
                           >
-                            {t}
+                            {msg}
                           </button>
                         ))}
                       </div>
-                    </div>
-                    <div>
-                      <div className="mb-1.5 text-[10px] font-bold tracking-wide text-muted uppercase">Jump rooms</div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {ROOMS.slice(0, 6).map((r) => (
-                          <button key={r.id} type="button" className="raised rounded-lg px-2 py-2 text-left" onClick={() => goHome(r.id)}>
-                            <div className="truncate text-[11px] font-semibold">{r.name}</div>
-                            <div className="text-[9px] text-muted">{fmt(r.online)} online</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="mb-1.5 text-[10px] font-bold tracking-wide text-muted uppercase">Tonight on Kilode</div>
-                      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        {["Afrobeats night", "Tech AMA", "Football watch", "Startup pitch", "Comedy hour"].map((x, i) => (
-                          <div key={x} className="w-[120px] shrink-0 overflow-hidden rounded-xl" style={{ background: `linear-gradient(145deg, ${["#14351f","#1a2744","#3b2a16","#2a2438","#2d1f3d"][i]}, #0a0a0a)` }}>
-                            <div className="p-2.5">
-                              <div className="text-[11px] font-bold leading-tight">{x}</div>
-                              <div className="mt-1 text-[9px] text-muted">Tonight</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      <button
+                        type="button"
+                        className="btn-3d mt-3 rounded-full px-4 py-2 text-[11px] font-bold"
+                        onClick={() => setRoomsOpen(true)}
+                      >
+                        Browse rooms
+                      </button>
                     </div>
                   </div>
                 ) : null}
