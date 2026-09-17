@@ -1091,6 +1091,7 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
   const mineAll = useMemo(() => {
     const s = q.trim().toLowerCase();
     return store.tracks.filter((t) => {
+      if (!t?.id) return false;
       if (genre !== "All" && (t.genre || "Afrobeats") !== genre) return false;
       if (!s) return true;
       return `${t.artist} ${t.title} ${t.author} ${t.genre ?? ""}`.toLowerCase().includes(s);
@@ -1100,6 +1101,7 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
   const digAll = useMemo(() => {
     const s = q.trim().toLowerCase();
     return DIGITAL_TRACKS.filter((t) => {
+      if (!t?.id) return false;
       if (genre !== "All" && (t.genre || "Afrobeats") !== genre) return false;
       if (!s) return true;
       return `${t.artist} ${t.title} ${t.genre ?? ""}`.toLowerCase().includes(s);

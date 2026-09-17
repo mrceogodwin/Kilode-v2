@@ -383,8 +383,8 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
       ),
     [s],
   );
-  const posts = s ? store.posts.filter((p) => `${p.title} ${p.body} ${p.author} ${p.category}`.toLowerCase().includes(s)) : [];
-  const tracks = s ? store.tracks.filter((t) => `${t.title} ${t.artist}`.toLowerCase().includes(s)) : [];
+  const posts = s ? store.posts.filter((p) => !!p?.id && `${p.title} ${p.body} ${p.author} ${p.category}`.toLowerCase().includes(s)) : [];
+  const tracks = s ? store.tracks.filter((t) => !!t?.id && `${t.title} ${t.artist}`.toLowerCase().includes(s)) : [];
   return (
     <div className="mx-auto max-w-2xl space-y-3 p-5">
       <h2 className="text-xl font-bold">Search</h2>
@@ -406,7 +406,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           ))}
           <div className="text-[10px] font-bold tracking-wide text-muted uppercase">Music</div>
           {tracks.length === 0 ? <p className="text-sm text-muted">No tracks match.</p> : null}
-          {tracks.map((t) => (
+          {tracks.filter((t) => !!t?.id).map((t) => (
             <div key={t.id} className="rounded-xl border border-line bg-panel p-3 text-sm">
               {t.title} <span className="text-muted">· {t.artist}</span>
             </div>
@@ -638,8 +638,8 @@ function Teams({ store }: { store: Store }) {
           Create
         </button>
       </div>
-      {store.teams.map((t) => (
-        <Card key={t.id} title={t.name} body={`${t.members.length} members · ${t.members.join(", ")}`}>
+      {store.teams.filter((t) => !!t?.id).map((t) => (
+        <Card key={t.id} title={t.name} body={`${(t.members ?? []).length} members · ${(t.members ?? []).join(", ")}`}>
           <button type="button" className="mt-2 text-xs text-fg" onClick={() => store.joinTeam(t.id)}>
             Join
           </button>

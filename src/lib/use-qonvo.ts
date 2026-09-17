@@ -185,7 +185,6 @@ export function useQonvo() {
             ...mapped,
           ].filter((t) => !!t && !!parseMusicUrl(t.url)));
         }
-        }
         if (dbAds.length) setCampaigns(dbAds);
       })
       .catch(() => undefined);
@@ -685,9 +684,9 @@ export function useQonvo() {
   );
 
   const see = useCallback((table: "posts" | "ads" | "tracks", id: string) => {
-    if (table === "posts") setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, views: (p.views ?? 0) + 1 } : p)));
-    if (table === "ads") setCampaigns((prev) => prev.map((a) => (a.id === id ? { ...a, views: (a.views ?? 0) + 1 } : a)));
-    if (table === "tracks") setTracks((prev) => prev.map((t) => (t.id === id ? { ...t, views: (t.views ?? 0) + 1 } : t)));
+    if (table === "posts") setPosts((prev) => prev.map((p) => (p?.id === id ? { ...p, views: (p.views ?? 0) + 1 } : p)));
+    if (table === "ads") setCampaigns((prev) => prev.map((a) => (a?.id === id ? { ...a, views: (a.views ?? 0) + 1 } : a)));
+    if (table === "tracks") setTracks((prev) => prev.map((t) => (t?.id === id ? { ...t, views: (t.views ?? 0) + 1 } : t)));
     void bumpView({ data: { table, id } }).catch(() => undefined);
   }, []);
 
@@ -734,7 +733,7 @@ export function useQonvo() {
       if (!needAccount()) return;
       const who = session.user?.displayName || ensureHandle();
       setTeams((prev) =>
-        prev.map((t) => (t.id === id && !t.members.includes(who) ? { ...t, members: [...t.members, who] } : t)),
+        prev.map((t) => (t?.id === id && !(t.members ?? []).includes(who) ? { ...t, members: [...(t.members ?? []), who] } : t)),
       );
       void joinTeamRow({ data: id }).catch(() => undefined);
     },
@@ -784,7 +783,7 @@ export function useQonvo() {
   );
 
   const patchAd = useCallback((id: string, patch: Partial<Campaign>) => {
-    setCampaigns((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    setCampaigns((prev) => prev.map((c) => (c?.id === id ? { ...c, ...patch } : c)));
     if (patch.status) {
       void setAdStatus({ data: { id, status: patch.status } }).catch(() => undefined);
     }
