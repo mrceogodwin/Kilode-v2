@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" fill="none">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1c1c1c"/>
+      <stop offset="100%" stop-color="#121212"/>
+    </linearGradient>
+    <linearGradient id="bang" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7aaf87"/>
+      <stop offset="100%" stop-color="#3d6a48"/>
+    </linearGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f2f2f0"/>
+      <stop offset="100%" stop-color="#c8c8c2"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- transparent bg — no rect -->
+  <!-- Icon tile -->
+  <g filter="url(#glow)">
+    <rect x="48" y="60" width="200" height="200" rx="44" fill="url(#tile)" stroke="#6b9e78" stroke-width="3" opacity="0.95"/>
+    <!-- bang stem -->
+    <rect x="128" y="95" width="40" height="98" rx="14" transform="rotate(-12 148 144)" fill="url(#bang)"/>
+    <!-- bang dot -->
+    <circle cx="162" cy="220" r="18" fill="#6b9e78"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="290" y="195" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="128" font-weight="800" letter-spacing="-4">
+    <tspan fill="url(#word)">K</tspan><tspan fill="#6b9e78">i</tspan><tspan fill="url(#word)">lode</tspan>
+  </text>
+  <!-- Subtitle -->
+  <text x="298" y="250" font-family="ui-sans-serif, system-ui, sans-serif" font-size="22" font-weight="600" letter-spacing="10" fill="#6b9e78">KILODE.NG</text>
+</svg>
