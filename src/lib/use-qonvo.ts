@@ -101,7 +101,10 @@ export function useQonvo() {
   useEffect(() => {
     setHandle(loadJson("me", ""));
     setRoomId(loadJson("room", "global"));
-    const posts0 = loadJson<Post[]>("posts", []).filter((p): p is Post => !!p && typeof p.id === "string");
+    const posts0 = loadJson<Post[]>("posts", [])
+      .filter((p): p is Post => !!p && typeof p.id === "string")
+      // Drop stale picsum / old demo-feed cards so week news images win.
+      .filter((p) => !String(p.id).startsWith("demo-feed-") && !String(p.image || "").includes("picsum.photos"));
     const ads0 = loadJson<Campaign[]>("ads", []).filter((p): p is Campaign => !!p && typeof p.id === "string");
     const notes0 = loadJson<Note[]>("notes", []).filter((n): n is Note => !!n && typeof n.id === "string");
     const joins0 = loadJson<Join[]>("joins", []).filter((j): j is Join => !!j && typeof j.name === "string");
@@ -120,7 +123,9 @@ export function useQonvo() {
               tags: demo.tags ?? p.tags,
               image: demo.image || p.image,
               link: demo.link ?? p.link,
-              comments: p.comments?.length ? p.comments : demo.comments,
+              comments: demo.comments?.length ? demo.comments : p.comments,
+              author: demo.author || p.author,
+              views: demo.views ?? p.views,
             }
           : p;
       }),

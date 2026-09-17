@@ -1584,10 +1584,12 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
               {p.image ? <img src={p.image} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square bg-panel-3" />}
               <div className="px-1 py-1">
-                <div className="text-[11px] font-medium tracking-normal text-lime-2">{p.category || "General"}</div>
-                <div className="mt-0.5 line-clamp-2 text-[13px] font-semibold leading-snug">{p.title}</div>
-                <div className="mt-0.5 truncate text-[11px] text-muted">
-                  <span style={{ color: handleColor(p.author) }}>{p.author}</span>
+                <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
+                <div className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-snug text-fg/75">{p.title}</div>
+                <div className="mt-0.5 flex items-center gap-1 truncate text-[9px] text-muted">
+                  <span className="min-w-0 truncate font-medium" style={{ color: handleColor(p.author) }}>{p.author}</span>
+                  <span className="shrink-0 text-muted/90">·</span>
+                  <span className="shrink-0 tabular-nums text-muted">💬 {p.comments?.length ?? 0}</span>
                 </div>
               </div>
             </button>
