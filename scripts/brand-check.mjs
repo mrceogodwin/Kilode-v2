@@ -158,7 +158,7 @@ function brandWarningsOnDisk({
       warnings.push(
         `BRAND WARNING: ${bannerPath} is over 600 KB — link scrapers (X card previews `
           + "included) time out or skip images this heavy, so the feed card silently fails "
-          + `to unfurl. Re-encode as JPEG (public/og.jpg, ffmpeg -q:v 4) per ${skillPath}.`,
+          + `to unfurl. Re-encode as JPEG (ffmpeg -q:v 4) per ${skillPath}.`,
       );
     }
   }
