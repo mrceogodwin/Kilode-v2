@@ -10,7 +10,7 @@ function fail(reason: string) {
 }
 
 export const registerAccount = createServerFn({ method: "POST" })
-  .validator((d: { name: string; password: string; kind: string; agree: boolean }) => d)
+  .validator((d: { name: string; password: string; kind: string; agree: boolean; face?: string }) => d)
   .handler(async ({ data }) => {
     if (!data.agree) return fail("Tick the box to accept the Terms.");
     const handle = publicUsername(data.name);
@@ -32,7 +32,7 @@ export const registerAccount = createServerFn({ method: "POST" })
 
     const made = await insertCredentialUser(handle, email, data.password);
     if (!made.ok) return made;
-    await saveKind(handle, email, kind).catch(() => undefined);
+    await saveKind(handle, email, kind, data.face).catch(() => undefined);
     return { ok: true as const, handle };
   });
 
@@ -66,17 +66,22 @@ async function insertCredentialUser(handle: string, email: string, password: str
   return { ok: true as const };
 }
 
-async function saveKind(handle: string, email: string, kind: AccountKind) {
+async function saveKind(handle: string, email: string, kind: AccountKind, face?: string) {
   const sql = await getSql();
   const u = await sql<{ id: string }>`select id from "user" where email = ${email} limit 1`;
   const userId = u[0]?.id;
   if (!userId) return;
   const existing = await sql<{ user_id: string }>`select user_id from nf_profiles where user_id = ${userId} limit 1`;
+  const f = (face ?? "").slice(0, 8);
   if (existing[0]) {
-    await sql`update nf_profiles set handle = ${handle}, kind = ${kind}, ts = ${Date.now()} where user_id = ${userId}`;
+    try {
+      await sql`update nf_profiles set handle = ${handle}, kind = ${kind}, face = ${f}, ts = ${Date.now()} where user_id = ${userId}`;
+    } catch {
+      await sql`update nf_profiles set handle = ${handle}, kind = ${kind}, ts = ${Date.now()} where user_id = ${userId}`;
+    }
   } else {
     try {
-      await sql`insert into nf_profiles (user_id, handle, bio, city, kind, ts) values (${userId}, ${handle}, ${""}, ${""}, ${kind}, ${Date.now()})`;
+      await sql`insert into nf_profiles (user_id, handle, bio, city, kind, face, ts) values (${userId}, ${handle}, ${""}, ${""}, ${kind}, ${f}, ${Date.now()})`;
     } catch {
       await sql`insert into nf_profiles (user_id, handle, bio, city, ts) values (${userId}, ${handle}, ${""}, ${""}, ${Date.now()})`;
     }

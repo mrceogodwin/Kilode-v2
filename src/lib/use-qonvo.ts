@@ -3,6 +3,7 @@ import {
   ROOMS,
   allRoomMessages,
   asAccountKind,
+  KIND_FACE,
   clearAll,
   loadJson,
   saveJson,
@@ -79,6 +80,7 @@ export function useQonvo() {
   const [genre, setGenre] = useState("");
   const [website, setWebsite] = useState("");
   const [brand, setBrand] = useState("");
+  const [face, setFace] = useState(KIND_FACE.member);
   const [board, setBoard] = useState<{ name: string; n: number }[]>([]);
   const [online, setOnline] = useState<PresenceUser[]>([]);
   const [typing, setTyping] = useState<string[]>([]);
@@ -320,17 +322,20 @@ export function useQonvo() {
           setGenre(p.genre ?? "");
           setWebsite(p.website ?? "");
           setBrand(p.brand ?? "");
+          setFace(p.face || KIND_FACE[asAccountKind(p.kind)]);
           try {
             const pending = sessionStorage.getItem("nf_account");
             if (pending) {
               sessionStorage.removeItem("nf_account");
-              const extra = JSON.parse(pending) as { kind?: string; stage?: string; genre?: string; website?: string; brand?: string };
+              const extra = JSON.parse(pending) as { kind?: string; stage?: string; genre?: string; website?: string; brand?: string; face?: string };
               const nextKind = asAccountKind(extra.kind);
               setKind(nextKind);
               if (extra.stage) setStage(extra.stage);
               if (extra.genre) setGenre(extra.genre);
               if (extra.website) setWebsite(extra.website);
               if (extra.brand) setBrand(extra.brand);
+              const nextFace = extra.face || KIND_FACE[nextKind];
+              setFace(nextFace);
               void saveProfile({
                 data: {
                   handle: p.handle || name,
@@ -341,6 +346,7 @@ export function useQonvo() {
                   genre: extra.genre ?? p.genre,
                   website: extra.website ?? p.website,
                   brand: extra.brand ?? p.brand,
+                  face: nextFace,
                 },
               }).catch(() => undefined);
             }
@@ -432,7 +438,7 @@ export function useQonvo() {
     return false;
   }, [authed, handle, note, session.user]);
 
-  const rename = useCallback((name: string, extra?: { bio?: string; city?: string; kind?: AccountKind; stage?: string; genre?: string; website?: string; brand?: string }) => {
+  const rename = useCallback((name: string, extra?: { bio?: string; city?: string; kind?: AccountKind; stage?: string; genre?: string; website?: string; brand?: string; face?: string }) => {
     const next = name.trim().slice(0, 24);
     if (!next) return;
     setHandle(next);
@@ -444,6 +450,7 @@ export function useQonvo() {
     if (extra?.genre !== undefined) setGenre(extra.genre);
     if (extra?.website !== undefined) setWebsite(extra.website);
     if (extra?.brand !== undefined) setBrand(extra.brand);
+    if (extra?.face !== undefined) setFace(extra.face);
     void saveProfile({
       data: {
         handle: next,
@@ -454,11 +461,12 @@ export function useQonvo() {
         genre: extra?.genre ?? genre,
         website: extra?.website ?? website,
         brand: extra?.brand ?? brand,
+        face: extra?.face ?? face,
       },
     }).catch(() => undefined);
     recordJoin(next, roomId);
     note(`Handle set to ${next}`);
-  }, [bio, brand, city, genre, kind, note, recordJoin, roomId, stage, website]);
+  }, [bio, brand, city, face, genre, kind, note, recordJoin, roomId, stage, website]);
 
   const sendContact = useCallback(
     (text: string) => {
@@ -960,6 +968,8 @@ export function useQonvo() {
     bio,
     city,
     kind,
+    face,
+    setFace,
     stage,
     genre,
     website,

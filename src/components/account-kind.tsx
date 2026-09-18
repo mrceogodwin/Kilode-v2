@@ -1,4 +1,4 @@
-import { ACCOUNT_KINDS, type AccountKind } from "@/lib/qonvo-data";
+import { ACCOUNT_KINDS, FACE_EMOJIS, KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
 
 export function AccountKindPicker({
   value,
@@ -18,7 +18,7 @@ export function AccountKindPicker({
       >
         {ACCOUNT_KINDS.map((k) => (
           <option key={k.id} value={k.id}>
-            {k.label} — {k.hint}
+            {KIND_FACE[k.id]} {k.label} — {k.hint}
           </option>
         ))}
       </select>
@@ -33,8 +33,34 @@ export function AccountKindPicker({
           onClick={() => onChange(k.id)}
           className={`rounded-lg border px-2 py-2 text-left ${value === k.id ? "border-lime-2 bg-lime-2/10" : "border-line bg-black/20"}`}
         >
-          <div className="text-[12px] font-semibold">{k.label}</div>
+          <div className="text-[12px] font-semibold">
+            {KIND_FACE[k.id]} {k.label}
+          </div>
           <div className="text-[10px] text-muted">{k.hint}</div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function FacePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1">
+      {FACE_EMOJIS.map((f) => (
+        <button
+          key={f}
+          type="button"
+          onClick={() => onChange(f)}
+          className={`grid size-9 place-items-center rounded-lg text-lg ${value === f ? "btn-3d" : "border border-line bg-panel"}`}
+          aria-label={`Face ${f}`}
+        >
+          {f}
         </button>
       ))}
     </div>

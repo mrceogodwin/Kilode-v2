@@ -35,7 +35,7 @@ import {
   Shield,
   X,
 } from "lucide-react";
-import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
+import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, faceFor, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
@@ -45,7 +45,7 @@ import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { listWallets } from "@/lib/forum-server";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
-import { AccountKindPicker } from "@/components/account-kind";
+import { AccountKindPicker, FacePicker } from "@/components/account-kind";
 import { TranslateBtn } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
 
@@ -182,6 +182,7 @@ export function QonvoApp() {
   const [joinPass, setJoinPass] = useState("");
   const [joinAgree, setJoinAgree] = useState(false);
   const [joinKind, setJoinKind] = useState<AccountKind>("member");
+  const [joinFace, setJoinFace] = useState(KIND_FACE.member);
   const [joinErr, setJoinErr] = useState("");
   const logoTaps = useRef({ n: 0, t: 0 });
   const [liveOpen, setLiveOpen] = useState(false);
@@ -752,12 +753,14 @@ export function QonvoApp() {
       {menuOpen ? (
         <div className="fixed inset-0 z-30 flex">
           <aside className="flex h-full w-[min(320px,90vw)] flex-col border-r border-line bg-panel">
-            <div className="flex items-center gap-3 border-b border-line p-4">
-              <img src="/kilode-logo-green.png" alt="" className="h-10 w-auto max-w-[120px] object-contain" />
+            <div className="flex items-center gap-3 border-b border-line bg-gradient-to-b from-lime-2/10 to-transparent p-4">
+              <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-panel-3 text-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+                {session.user ? store.face || KIND_FACE[store.kind] : "💭"}
+              </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-bold">{store.handle || "Guest"}</div>
-                <div className="text-[10px] tracking-normal text-muted">
-                  {session.user ? ACCOUNT_KINDS.find((k) => k.id === store.kind)?.label ?? "Member" : "Me · Kilode"}
+                <div className="truncate text-sm font-extrabold tracking-tight">{store.handle || "Guest"}</div>
+                <div className="text-[10px] tracking-normal text-lime-2">
+                  {session.user ? ACCOUNT_KINDS.find((k) => k.id === store.kind)?.label ?? "Member" : "Browse free · join to post"}
                 </div>
               </div>
               <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close">
@@ -767,7 +770,7 @@ export function QonvoApp() {
             <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-5">
               <div className="mb-4 grid grid-cols-3 gap-2 px-0.5">
                 {[
-                  { n: store.posts.length, l: "Posts" },
+                  { n: store.posts.filter((p) => !!p?.id && p.author === store.handle).length, l: "Yours" },
                   { n: store.pins.length, l: "Rooms" },
                   { n: store.campaigns.filter((c) => c.status === "approved").length, l: "Ads" },
                 ].map((s) => (
@@ -879,8 +882,11 @@ export function QonvoApp() {
                             screen === id ? "bg-panel-2 text-lime-2" : "hover:bg-panel-2"
                           }`}
                         >
-                          <Icon className="size-4 shrink-0 text-lime-2" />
-                          <span className="truncate">{label}</span>
+                          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-lime-2/10">
+                            <Icon className="size-4 text-lime-2" />
+                          </span>
+                          <span className="min-w-0 flex-1 truncate font-semibold">{label}</span>
+                          <ChevronRight className="size-3.5 shrink-0 text-muted" />
                         </button>
                       );
                     })}
@@ -916,9 +922,9 @@ export function QonvoApp() {
                 </button>
               </div>
             </div>
-            <div className="border-t border-white/5 px-4 py-4">
-              <button type="button" className="btn-join w-full rounded-xl py-2.5 text-[12px] font-bold" onClick={() => { setDonateOpen(true); setMenuOpen(false); }}>
-                Donate · keep Kilode up
+            <div className="border-t border-white/5 px-4 py-3">
+              <button type="button" className="w-full text-center text-[10px] font-semibold text-lime-2/80" onClick={() => { setDonateOpen(true); setMenuOpen(false); }}>
+                Donate
               </button>
               <p className="mt-3 text-center text-[9px] leading-snug text-muted">
                 <button type="button" className="underline" onClick={() => { setScreen("help"); setMenuOpen(false); }}>
@@ -964,7 +970,18 @@ export function QonvoApp() {
             {store.authErr ? <p className="mb-2 text-sm text-danger">{store.authErr}</p> : null}
             <div className="mb-2">
               <div className="mb-1 text-[10px] font-medium tracking-normal text-muted">Joining as (new users)</div>
-              <AccountKindPicker compact value={joinKind} onChange={setJoinKind} />
+              <AccountKindPicker
+                compact
+                value={joinKind}
+                onChange={(k) => {
+                  setJoinKind(k);
+                  setJoinFace(KIND_FACE[k]);
+                }}
+              />
+            </div>
+            <div className="mb-2">
+              <div className="mb-1 text-[10px] font-medium tracking-normal text-muted">Your face</div>
+              <FacePicker value={joinFace} onChange={setJoinFace} />
             </div>
             <label className="mb-2 flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">
               <input type="checkbox" className="mt-0.5" checked={joinAgree} onChange={(e) => setJoinAgree(e.target.checked)} />
@@ -988,7 +1005,7 @@ export function QonvoApp() {
                       setJoinErr("Tick the box to accept the Terms.");
                       return;
                     }
-                    const r = await kilodeSignUp(joinName, joinPass, joinKind);
+                    const r = await kilodeSignUp(joinName, joinPass, joinKind, joinFace);
                     if (!r.ok) setJoinErr(r.reason);
                     else window.location.reload();
                   })();
@@ -1400,7 +1417,10 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
               <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{post.category || "General"}</div>
               <h1 className="mt-1 text-2xl font-extrabold leading-tight">{post.title}</h1>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
-                <HandleLink handle={post.author} className="text-[11px] font-semibold" />
+                <span className="text-lg leading-none">{faceFor(post.author)}</span>
+                <span>
+                  Posted by <HandleLink handle={post.author} className="text-[11px] font-semibold" />
+                </span>
                 <span>· {timeLabel(post.ts)}</span>
                 <span>· {mins} min read</span>
                 {post.tags ? <span>· {post.tags}</span> : null}
@@ -1581,11 +1601,7 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
               <div className="px-1 py-1">
                 <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
                 <div className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-snug text-fg/75">{p.title}</div>
-                <div className="mt-0.5 flex items-center gap-1 truncate text-[9px] text-muted">
-                  <span className="min-w-0 truncate font-medium" style={{ color: handleColor(p.author) }}>{p.author}</span>
-                  <span className="shrink-0 text-muted/90">·</span>
-                  <span className="shrink-0 tabular-nums text-muted">💬 {p.comments?.length ?? 0}</span>
-                </div>
+                <div className="mt-0.5 text-[9px] tabular-nums text-muted">💬 {p.comments?.length ?? 0}</div>
               </div>
             </button>
           ))}

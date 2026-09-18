@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AD_COINS, AD_KINDS, AD_PLACEMENTS, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, POST_CATS, REGIONS, ROOMS, TERMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
+import { AD_COINS, AD_KINDS, AD_PLACEMENTS, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, POST_CATS, REGIONS, ROOMS, TERMS, chatTtlLabel, faceFor, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 import { claimOps, clearModUser, getModSettings, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setModHitStatus, setModUser, setStaffRole, staffMe } from "@/lib/staff-server";
 import {
@@ -18,7 +18,8 @@ import { listWallets, getChatTtl } from "@/lib/forum-server";
 import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { authClient } from "@/lib/auth/client";
-import { AccountKindPicker } from "@/components/account-kind";
+import { AccountKindPicker, FacePicker } from "@/components/account-kind";
+import { canKind } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
 import { listListings, type Listing } from "@/lib/listings-server";
@@ -72,6 +73,19 @@ function Card({ title, body, children }: { title: string; body?: string; childre
   );
 }
 
+function Screen({ kicker, title, sub, children }: { kicker: string; title: string; sub?: string; children: React.ReactNode }) {
+  return (
+    <div className="mx-auto max-w-2xl p-4 pb-20">
+      <div className="mb-4">
+        <div className="text-[10px] font-bold tracking-[0.2em] text-lime-2">{kicker}</div>
+        <h2 className="text-2xl font-extrabold tracking-tight">{title}</h2>
+        {sub ? <p className="mt-1 text-sm text-muted">{sub}</p> : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function Forum({ store, onHome }: { store: Store; onHome: (roomId?: string) => void }) {
   const live = store.posts.filter((p) => !!p?.id && p.status !== "draft");
   return (
@@ -87,10 +101,7 @@ function Forum({ store, onHome }: { store: Store; onHome: (roomId?: string) => v
               <div className="text-[11px] font-medium text-lime-2">{p.category || "General"}</div>
               <div className="mt-px line-clamp-2 text-[13px] font-semibold leading-snug">{p.title}</div>
               <p className="mt-px line-clamp-1 text-[11px] text-muted">{p.excerpt || p.body}</p>
-              <div className="mt-px text-[11px]">
-                <span style={{ color: handleColor(p.author) }}>{p.author}</span>
-                <span className="text-muted"> · {timeLabel(p.ts)} · {fmtCount(p.views ?? 0)}</span>
-              </div>
+              <div className="mt-px text-[11px] text-muted">💬 {p.comments?.length ?? 0} · {fmtCount(p.views ?? 0)}</div>
             </div>
           </button>
         ))}
@@ -198,6 +209,10 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     setErr("");
     if (!agree) {
       setErr("Accept the Terms to publish.");
+      return;
+    }
+    if (!canKind(store.kind, "feeds.post")) {
+      setErr("Join as Member or Writer to start a topic — like Nairaland. Artists post music, advertisers post ads.");
       return;
     }
     if (!title.trim() || !body.trim()) {
@@ -440,7 +455,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           {posts.map((p) => (
             <button key={p.id} type="button" className="block w-full rounded-xl border border-line bg-panel p-3 text-left" onClick={() => { store.setOpenPost(p.id); onHome(); }}>
               <div className="font-semibold">{p.title}</div>
-              <div className="text-xs text-muted">{p.author} · {p.category}</div>
+              <div className="text-xs text-muted">{p.category}</div>
             </button>
           ))}
           <div className="text-[11px] font-medium text-muted">Music</div>
@@ -485,6 +500,7 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
   const [genre, setGenre] = useState(store.genre);
   const [website, setWebsite] = useState(store.website);
   const [brand, setBrand] = useState(store.brand);
+  const [face, setFace] = useState(store.face || KIND_FACE[store.kind]);
   useEffect(() => {
     setName(store.handle);
     setBio(store.bio);
@@ -494,20 +510,24 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
     setGenre(store.genre);
     setWebsite(store.website);
     setBrand(store.brand);
-  }, [store.bio, store.brand, store.city, store.genre, store.handle, store.kind, store.stage, store.website]);
+    setFace(store.face || KIND_FACE[store.kind]);
+  }, [store.bio, store.brand, store.city, store.face, store.genre, store.handle, store.kind, store.stage, store.website]);
   const mine = store.posts.filter((p) => !!p?.id && p.author === store.handle);
   const songs = store.tracks.filter((t) => !!t?.id && (t.author === store.handle || t.artist === store.handle));
   const kindLabel = ACCOUNT_KINDS.find((k) => k.id === kind)?.label ?? "Member";
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Profile</h2>
-      <Card title={store.handle || "Sign in"} body={`${kindLabel} · ${mine.length} posts · ${store.pins.length} bookmarks · ${songs.length} tracks`}>
-        {store.handle ? (
-          <a href={`/u/${encodeURIComponent(store.handle)}`} className="mt-2 inline-block text-xs text-lime-2">
-            Open public profile
-          </a>
-        ) : null}
-      </Card>
+    <Screen kicker="YOU" title="Profile" sub="Face + handle. Type is locked from join.">
+      <div className="raised mb-3 flex items-center gap-3 rounded-2xl p-4">
+        <div className="grid size-14 place-items-center rounded-2xl bg-panel-3 text-3xl">{face}</div>
+        <div>
+          <div className="text-lg font-extrabold">{store.handle || "Sign in"}</div>
+          <div className="text-[11px] text-lime-2">{kindLabel} · {mine.length} topics</div>
+        </div>
+      </div>
+      <div className="mb-3">
+        <div className="mb-1 text-[11px] font-medium text-muted">Your face</div>
+        <FacePicker value={face} onChange={setFace} />
+      </div>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Public username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       <div>
         <div className="mb-1 text-[11px] font-medium text-muted">Account type (locked)</div>
@@ -542,7 +562,7 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
       <button
         type="button"
         className="btn-3d rounded-lg px-3 py-2 text-sm"
-        onClick={() => store.rename(name, { bio, city, kind, stage, genre, website, brand })}
+        onClick={() => store.rename(name, { bio, city, kind, stage, genre, website, brand, face })}
       >
         Save profile
       </button>
@@ -556,20 +576,22 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
         <p className="text-[11px] text-muted">Submit movie YouTube URLs from Cinema. Staff approve before votes.</p>
       ) : null}
       {mine.map((p) => (
-        <button key={p.id} type="button" className="block w-full rounded-xl border border-line bg-panel p-3 text-left" onClick={() => { store.setOpenPost(p.id); onHome?.(); }}>
-          <div className="font-semibold">{p.title}</div>
-          <div className="text-xs text-muted">{p.category}</div>
+        <button key={p.id} type="button" className="mt-2 flex w-full gap-2 overflow-hidden rounded-xl border border-line bg-panel text-left" onClick={() => { store.setOpenPost(p.id); onHome?.(); }}>
+          {p.image ? <img src={p.image} alt="" className="h-14 w-14 shrink-0 object-cover" /> : <div className="h-14 w-14 shrink-0 bg-panel-3" />}
+          <div className="min-w-0 py-2 pr-2">
+            <div className="truncate text-sm font-semibold">{p.title}</div>
+            <div className="text-[10px] text-muted">{p.category}</div>
+          </div>
         </button>
       ))}
-    </div>
+    </Screen>
   );
 }
 
 function Bookmarks({ store, onHome }: { store: Store; onHome: (id?: string) => void }) {
   const saved = store.posts.filter((p) => !!p?.id && store.savedPosts.includes(p.id));
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Bookmarks</h2>
+    <Screen kicker="YOU" title="Bookmarks" sub="Rooms and posts you pin.">
       <div className="text-[11px] font-medium text-muted">Saved posts</div>
       {saved.length === 0 ? <p className="text-sm text-muted">Save a feed post from the article view.</p> : null}
       {saved.map((p) => (
@@ -577,7 +599,7 @@ function Bookmarks({ store, onHome }: { store: Store; onHome: (id?: string) => v
           {p.image ? <img src={p.image} alt="" className="h-16 w-20 object-cover" /> : <div className="h-16 w-20 bg-panel-3" />}
           <div className="min-w-0 py-2 pr-2">
             <div className="truncate text-sm font-semibold">{p.title}</div>
-            <div className="text-[10px] text-muted">{p.author} · {fmtCount(p.views ?? 0)} views</div>
+            <div className="text-[10px] text-muted">{p.category} · {fmtCount(p.views ?? 0)}</div>
           </div>
         </button>
       ))}
@@ -602,7 +624,7 @@ function Bookmarks({ store, onHome }: { store: Store; onHome: (id?: string) => v
           </button>
         </div>
       ))}
-    </div>
+    </Screen>
   );
 }
 
@@ -615,9 +637,7 @@ function Notes({ store }: { store: Store }) {
   }, [store.notes]);
   const list = rows.length ? rows : store.notes;
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Notifications</h2>
-      <p className="text-xs text-muted">Replies, comments, and DMs land here when you are signed in.</p>
+    <Screen kicker="YOU" title="Notifications" sub="Replies, comments, and DMs when you are signed in.">
       {list.length === 0 ? <p className="text-sm text-muted">Nothing yet.</p> : null}
       {list.map((n) => (
         <a key={n.id} href={n.href || "#"} className="block rounded-xl border border-line bg-panel p-3">
@@ -625,7 +645,7 @@ function Notes({ store }: { store: Store }) {
           <div className="text-xs text-muted">{new Date(n.ts).toLocaleString()}</div>
         </a>
       ))}
-    </div>
+    </Screen>
   );
 }
 
@@ -643,9 +663,7 @@ function Inbox() {
     reload();
   }, []);
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Messages</h2>
-      <p className="text-xs text-muted">Private DMs. Username only. Staff cannot read these.</p>
+    <Screen kicker="YOU" title="Messages" sub="Private DMs. Username only. Staff cannot read these.">
       <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Their username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Message" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       {msg ? <p className="text-sm text-muted">{msg}</p> : null}
@@ -673,15 +691,14 @@ function Inbox() {
           <div className="text-[10px] text-muted">{new Date(r.ts).toLocaleString()}</div>
         </div>
       ))}
-    </div>
+    </Screen>
   );
 }
 
 function Teams({ store }: { store: Store }) {
   const [name, setName] = useState("");
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Teams</h2>
+    <Screen kicker="CREW" title="Teams" sub="Small groups. Join with your handle.">
       <div className="flex gap-2">
         <input
           value={name}
@@ -707,31 +724,41 @@ function Teams({ store }: { store: Store }) {
           </button>
         </Card>
       ))}
-    </div>
+    </Screen>
   );
 }
 
 function Badges({ store }: { store: Store }) {
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Badges</h2>
+    <Screen kicker="YOU" title="Badges" sub="Earn them by using Kilode. No pay-to-win.">
+      <div className="grid grid-cols-2 gap-2">
       {store.badges.map((b) => (
-        <Card key={b.id} title={b.label} body={b.on ? "Unlocked" : "Locked — do the action to earn it"} />
+        <div key={b.id} className={`raised rounded-2xl p-4 ${b.on ? "" : "opacity-50"}`}>
+          <div className="text-2xl">{b.on ? "🏅" : "🔒"}</div>
+          <div className="mt-1 text-sm font-bold">{b.label}</div>
+          <div className="text-[10px] text-muted">{b.on ? "Unlocked" : "Locked"}</div>
+        </div>
       ))}
-    </div>
+      </div>
+    </Screen>
   );
 }
 
 function Board({ store }: { store: Store }) {
   const rows = Object.entries(store.scores).sort((a, b) => b[1] - a[1]);
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Leaderboard</h2>
+    <Screen kicker="LIVE" title="Leaderboard" sub="Most chat messages this window.">
       {rows.length === 0 ? <p className="text-sm text-muted">Chat on the server to appear here.</p> : null}
       {rows.map(([name, n], i) => (
-        <Card key={name} title={`${i + 1}. ${name}`} body={`${n} messages`} />
+        <div key={name} className="raised mb-2 flex items-center gap-3 rounded-2xl p-3">
+          <span className="text-lg leading-none">{faceFor(name)}</span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-bold">{i + 1}. @{name}</div>
+            <div className="text-[10px] text-muted">{n} messages</div>
+          </div>
+        </div>
       ))}
-    </div>
+    </Screen>
   );
 }
 
@@ -1806,64 +1833,93 @@ function Help() {
 
 function Dash({ store, onHome, onForum }: { store: Store; onHome: (id?: string) => void; onForum?: () => void }) {
   const kindLabel = ACCOUNT_KINDS.find((k) => k.id === store.kind)?.label ?? "Member";
+  const mine = store.handle ? store.posts.filter((p) => !!p?.id && p.author === store.handle) : [];
+  const signed = Boolean(store.handle);
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Dashboard</h2>
-      <Card title={store.handle || "Guest"} body={`${kindLabel} · ${store.posts.filter((p) => !!p?.id && p.author === store.handle).length} of your posts · ${store.pins.length} rooms saved`} />
-      <Card title="Your rooms">
-        <div className="mt-2 flex flex-wrap gap-2">
-          {(store.pins.length ? store.pins : ["global"]).map((id) => (
-            <button key={id} type="button" className="rounded-full border border-line px-3 py-1 text-xs" onClick={() => onHome(id)}>
-              {roomName(id)}
-            </button>
-          ))}
+    <Screen kicker="YOU" title="Dashboard" sub={signed ? `${kindLabel} on Kilode.` : "Join to own a dashboard. Guests can browse feeds."}>
+      <div className="raised mb-4 flex items-center gap-3 rounded-2xl p-4">
+        <div className="grid size-14 place-items-center rounded-2xl bg-panel-3 text-3xl">{signed ? store.face || KIND_FACE[store.kind] : "💭"}</div>
+        <div className="min-w-0">
+          <div className="truncate text-lg font-extrabold">{store.handle || "Guest"}</div>
+          <div className="text-[11px] text-lime-2">{signed ? kindLabel : "Not signed in"}</div>
         </div>
-      </Card>
-      <Card title="Your posts">
-        {store.posts.filter((p) => !!p?.id && (!store.handle || p.author === store.handle)).length === 0 ? (
-          <p className="mt-1 text-sm text-muted">None yet.</p>
-        ) : (
-          store.posts
-            .filter((p) => !store.handle || p.author === store.handle)
-            .map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className="mt-2 block w-full text-left text-sm"
-                onClick={() => {
-                  store.setOpenPost(p.id);
-                  onForum?.();
-                }}
-              >
-                {p.title}
-              </button>
-            ))
-        )}
-      </Card>
-    </div>
+      </div>
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        {[
+          { n: mine.length, l: "Topics" },
+          { n: store.pins.length, l: "Rooms" },
+          { n: store.savedPosts.length, l: "Saved" },
+        ].map((s) => (
+          <div key={s.l} className="raised rounded-2xl px-2 py-3 text-center">
+            <div className="text-lg font-extrabold text-lime-2">{s.n}</div>
+            <div className="text-[10px] text-muted">{s.l}</div>
+          </div>
+        ))}
+      </div>
+      {!signed ? (
+        <a href="/login?mode=up" className="btn-join mb-4 block rounded-xl py-3 text-center text-sm font-bold">
+          Join to post like Nairaland
+        </a>
+      ) : null}
+      <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">YOUR TOPICS</div>
+      {mine.length === 0 ? (
+        <p className="text-sm text-muted">{signed ? "No topics yet. Create from Writer / Member." : "Your posts appear here after you join."}</p>
+      ) : (
+        mine.slice(0, 8).map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            className="mb-2 flex w-full gap-2 overflow-hidden rounded-xl border border-line bg-panel text-left"
+            onClick={() => {
+              store.setOpenPost(p.id);
+              onForum?.();
+            }}
+          >
+            {p.image ? <img src={p.image} alt="" className="h-14 w-14 shrink-0 object-cover" /> : <div className="h-14 w-14 bg-panel-3" />}
+            <div className="min-w-0 py-2 pr-2">
+              <div className="truncate text-sm font-semibold">{p.title}</div>
+              <div className="text-[10px] text-muted">{p.category} · 💬 {p.comments?.length ?? 0}</div>
+            </div>
+          </button>
+        ))
+      )}
+      <div className="mt-4 mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">ROOMS</div>
+      <div className="flex flex-wrap gap-2">
+        {(store.pins.length ? store.pins : ["global"]).map((id) => (
+          <button key={id} type="button" className="rounded-full border border-line px-3 py-1 text-xs" onClick={() => onHome(id)}>
+            {roomName(id)}
+          </button>
+        ))}
+      </div>
+    </Screen>
   );
 }
 
 function Trending({ onHome }: { onHome: (id?: string) => void }) {
   const top = [...ROOMS].sort((a, b) => b.online - a.online).slice(0, 12);
+  const max = top[0]?.online || 1;
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Trending</h2>
-      {top.map((r) => (
+    <Screen kicker="LIVE" title="Trending" sub="Hottest rooms right now.">
+      {top.map((r, i) => (
         <button
           key={r.id}
           type="button"
           onClick={() => onHome(r.id)}
-          className="flex w-full items-center justify-between rounded-xl border border-line bg-panel p-3 text-left"
+          className="raised mb-2 w-full overflow-hidden rounded-2xl p-3 text-left"
         >
-          <span>
-            <span className="block font-semibold">{r.name}</span>
-            <span className="text-xs text-muted">{r.region}</span>
-          </span>
-          <span className="text-xs text-muted">{r.online.toLocaleString()}</span>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold">
+              <span className="mr-2 text-lime-2">{String(i + 1).padStart(2, "0")}</span>
+              {r.name}
+            </span>
+            <span className="text-[11px] text-muted">{r.online.toLocaleString()}</span>
+          </div>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/5">
+            <div className="h-full rounded-full bg-lime-2" style={{ width: `${Math.max(8, (r.online / max) * 100)}%` }} />
+          </div>
         </button>
       ))}
-    </div>
+    </Screen>
   );
 }
 

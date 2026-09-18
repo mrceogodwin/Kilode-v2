@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { authEnabled } from "@/lib/auth/client";
-import { AccountKindPicker } from "@/components/account-kind";
-import { type AccountKind } from "@/lib/qonvo-data";
+import { AccountKindPicker, FacePicker } from "@/components/account-kind";
+import { KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 
 export const Route = createFileRoute("/login")({
@@ -22,6 +22,7 @@ function Login() {
   const [err, setErr] = useState("");
   const [agree, setAgree] = useState(false);
   const [kind, setKind] = useState<AccountKind>("member");
+  const [face, setFace] = useState(KIND_FACE.member);
   const [mode, setMode] = useState<"in" | "up">(staff ? "in" : search.mode === "up" ? "up" : "in");
   const [busy, setBusy] = useState(false);
 
@@ -37,7 +38,7 @@ function Login() {
       return;
     }
     setBusy(true);
-    const r = await kilodeSignUp(name, password, staff ? "member" : kind);
+    const r = await kilodeSignUp(name, password, staff ? "member" : kind, staff ? "👑" : face);
     setBusy(false);
     if (!r.ok) setErr(r.reason);
     else go();
@@ -73,7 +74,18 @@ function Login() {
               <>
                 <div>
                   <div className="mb-1 text-[11px] font-medium text-muted">I am joining as</div>
-                  <AccountKindPicker compact value={kind} onChange={setKind} />
+                  <AccountKindPicker
+                    compact
+                    value={kind}
+                    onChange={(k) => {
+                      setKind(k);
+                      setFace(KIND_FACE[k]);
+                    }}
+                  />
+                </div>
+                <div>
+                  <div className="mb-1 text-[11px] font-medium text-muted">Your face</div>
+                  <FacePicker value={face} onChange={setFace} />
                 </div>
                 <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">
                   <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />

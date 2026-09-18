@@ -511,7 +511,7 @@ export const getProfile = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
-    const empty = { handle: "", bio: "", city: "", kind: "member" as AccountKind, stage: "", genre: "", website: "", brand: "" };
+    const empty = { handle: "", bio: "", city: "", kind: "member" as AccountKind, stage: "", genre: "", website: "", brand: "", face: "" };
     try {
       const rows = await sql<{
         handle: string;
@@ -522,7 +522,8 @@ export const getProfile = createServerFn({ method: "GET" })
         genre: string | null;
         website: string | null;
         brand: string | null;
-      }>`select handle, bio, city, kind, stage, genre, website, brand from nf_profiles where user_id = ${context.userId} limit 1`;
+        face: string | null;
+      }>`select handle, bio, city, kind, stage, genre, website, brand, face from nf_profiles where user_id = ${context.userId} limit 1`;
       if (!rows[0]) return empty;
       return {
         handle: rows[0].handle,
@@ -533,6 +534,7 @@ export const getProfile = createServerFn({ method: "GET" })
         genre: rows[0].genre ?? "",
         website: rows[0].website ?? "",
         brand: rows[0].brand ?? "",
+        face: rows[0].face ?? "",
       };
     } catch {
       const rows = await sql<{ handle: string; bio: string | null; city: string | null }>`select handle, bio, city from nf_profiles where user_id = ${context.userId} limit 1`;
@@ -542,7 +544,7 @@ export const getProfile = createServerFn({ method: "GET" })
 
 export const saveProfile = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { handle: string; bio?: string; city?: string; kind?: string; stage?: string; genre?: string; website?: string; brand?: string }) => d)
+  .validator((d: { handle: string; bio?: string; city?: string; kind?: string; stage?: string; genre?: string; website?: string; brand?: string; face?: string }) => d)
   .handler(async ({ context, data }) => {
     const handle = data.handle.trim().slice(0, 24);
     if (!handle) return null;
@@ -552,14 +554,15 @@ export const saveProfile = createServerFn({ method: "POST" })
     const genre = (data.genre ?? "").trim().slice(0, 80);
     const website = (data.website ?? "").trim().slice(0, 200);
     const brand = (data.brand ?? "").trim().slice(0, 80);
+    const face = (data.face ?? "").trim().slice(0, 8);
     const sql = await getSql();
     const existing = await sql<{ user_id: string; kind: string | null }>`select user_id, kind from nf_profiles where user_id = ${context.userId} limit 1`;
     const kind = existing[0]?.kind ? asAccountKind(existing[0].kind) : asAccountKind(data.kind);
     try {
       if (existing[0]) {
-        await sql`update nf_profiles set handle = ${handle}, bio = ${bio}, city = ${city}, kind = ${kind}, stage = ${stage}, genre = ${genre}, website = ${website}, brand = ${brand}, ts = ${Date.now()} where user_id = ${context.userId}`;
+        await sql`update nf_profiles set handle = ${handle}, bio = ${bio}, city = ${city}, kind = ${kind}, stage = ${stage}, genre = ${genre}, website = ${website}, brand = ${brand}, face = ${face}, ts = ${Date.now()} where user_id = ${context.userId}`;
       } else {
-        await sql`insert into nf_profiles (user_id, handle, bio, city, kind, stage, genre, website, brand, ts) values (${context.userId}, ${handle}, ${bio}, ${city}, ${kind}, ${stage}, ${genre}, ${website}, ${brand}, ${Date.now()})`;
+        await sql`insert into nf_profiles (user_id, handle, bio, city, kind, stage, genre, website, brand, face, ts) values (${context.userId}, ${handle}, ${bio}, ${city}, ${kind}, ${stage}, ${genre}, ${website}, ${brand}, ${face}, ${Date.now()})`;
       }
     } catch {
       if (existing[0]) {
@@ -568,7 +571,7 @@ export const saveProfile = createServerFn({ method: "POST" })
         await sql`insert into nf_profiles (user_id, handle, bio, city, ts) values (${context.userId}, ${handle}, ${bio}, ${city}, ${Date.now()})`;
       }
     }
-    return { handle, kind };
+    return { handle, kind, face };
   });
 
 export const sendMail = createServerFn({ method: "POST" })

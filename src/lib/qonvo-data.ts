@@ -70,7 +70,30 @@ export type ProfileExtra = {
   genre: string;
   website: string;
   brand: string;
+  face: string;
 };
+
+export const FACE_EMOJIS = ["😎", "🙂", "😁", "🤓", "👑", "🎵", "✍️", "💼", "🎬", "🏡", "🛍️", "🇳🇬", "🔥", "💭", "🦁", "🌟"] as const;
+
+export const KIND_FACE: Record<AccountKind, string> = {
+  member: "🙂",
+  writer: "✍️",
+  artist: "🎵",
+  advertiser: "🔥",
+  cinema: "🎬",
+  job_poster: "💼",
+  job_seeker: "🤓",
+  vendor: "🛍️",
+  renter: "🏡",
+  brand: "👑",
+};
+
+export function faceFor(handle: string, face?: string | null) {
+  if (face && FACE_EMOJIS.includes(face as (typeof FACE_EMOJIS)[number])) return face;
+  let n = 0;
+  for (let i = 0; i < handle.length; i++) n = (n + handle.charCodeAt(i) * (i + 1)) % FACE_EMOJIS.length;
+  return FACE_EMOJIS[n] ?? "🙂";
+}
 
 export function asAccountKind(v: string | null | undefined): AccountKind {
   return ACCOUNT_KINDS.some((k) => k.id === v) ? (v as AccountKind) : "member";

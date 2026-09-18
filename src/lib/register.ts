@@ -18,12 +18,12 @@ function niceAuthError(raw: string) {
   return raw || "Could not complete that.";
 }
 
-export async function kilodeSignUp(name: string, password: string, kind: AccountKind) {
+export async function kilodeSignUp(name: string, password: string, kind: AccountKind, face?: string) {
   const handle = publicUsername(name);
   if (handle.length < 3) return { ok: false as const, reason: "Username needs 3+ letters or numbers." };
   if (password.length < 8) return { ok: false as const, reason: "Password needs 8+ characters." };
   const created = await registerAccount({
-    data: { name: handle, password, kind: asAccountKind(kind), agree: true },
+    data: { name: handle, password, kind: asAccountKind(kind), agree: true, face: face ?? "" },
   }).catch((e: unknown) => ({ ok: false as const, reason: e instanceof Error ? e.message : "Sign up failed" }));
   if (!created || !("ok" in created) || !created.ok) {
     return { ok: false as const, reason: niceAuthError(("reason" in created && created.reason) || "Sign up failed") };
@@ -31,11 +31,11 @@ export async function kilodeSignUp(name: string, password: string, kind: Account
   const inn = await kilodeSignIn(handle, password);
   if (!inn.ok) return { ok: false as const, reason: `Account created. Sign in now. (${inn.reason})` };
   try {
-    sessionStorage.setItem("nf_account", JSON.stringify({ kind: asAccountKind(kind) }));
+    sessionStorage.setItem("nf_account", JSON.stringify({ kind: asAccountKind(kind), face: face ?? "" }));
   } catch {
     /* ignore */
   }
-  await saveProfile({ data: { handle, kind: asAccountKind(kind) } }).catch(() => undefined);
+  await saveProfile({ data: { handle, kind: asAccountKind(kind), face: face ?? "" } }).catch(() => undefined);
   return { ok: true as const, handle };
 }
 
