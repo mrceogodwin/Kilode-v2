@@ -4,6 +4,7 @@ import {
   Bookmark,
   Copy,
   Eye,
+  Film,
   Hash,
   Heart,
   HelpCircle,
@@ -35,6 +36,7 @@ import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, chatTtlLabel,
 import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
+import { CinemaPane } from "@/components/cinema-pane";
 import { Link } from "@tanstack/react-router";
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -171,7 +173,7 @@ export function QonvoApp() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [screen, setScreen] = useState<MenuId>("home");
   const [roomsOpen, setRoomsOpen] = useState(false);
-  const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos">("feeds");
+  const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema">("feeds");
   const [joinPass, setJoinPass] = useState("");
   const [joinAgree, setJoinAgree] = useState(false);
   const [joinKind, setJoinKind] = useState<AccountKind>("member");
@@ -292,9 +294,9 @@ export function QonvoApp() {
           </button>
           <nav className="mx-auto hidden min-w-0 items-center justify-center gap-1 md:flex">
             <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
-            <HomeTab label="Chat" on={homeTab === "chat" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("chat"); setScreen("home"); setMenuOpen(false); }} />
-            <HomeTab label="Create" on={screen === "create"} onClick={() => { store.authed || session.user ? setScreen("create") : (window.location.href = "/login"); }} />
             <HomeTab label="Music" on={homeTab === "music" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("music"); setScreen("home"); setMenuOpen(false); }} />
+            <HomeTab label="Cinema" on={homeTab === "cinema" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("cinema"); setScreen("home"); setMenuOpen(false); }} />
+            <HomeTab label="Chat" on={homeTab === "chat" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("chat"); setScreen("home"); setMenuOpen(false); }} />
             <HomeTab label="Me" on={screen === "profile" || menuOpen} onClick={() => { setScreen("profile"); setMenuOpen(true); }} />
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
@@ -373,6 +375,8 @@ export function QonvoApp() {
                 <FeedPane store={store} />
               ) : homeTab === "music" ? (
                 <MusicPane store={store} onAdd={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))} />
+              ) : homeTab === "cinema" ? (
+                <CinemaPane />
               ) : homeTab === "videos" ? (
                 <VideoPane />
               ) : homeTab === "advert" ? (
@@ -668,9 +672,9 @@ export function QonvoApp() {
 
       <nav className="z-20 grid shrink-0 grid-cols-5 border-t border-line bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         <Tab icon={<Home className="size-4" />} label="Feeds" on={screen === "home" && homeTab === "feeds"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); store.setOpenPost(null); }} />
-        <Tab icon={<MessageSquare className="size-4" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
-        <Tab icon={<PlusSquare className="size-5" />} label="Create" on={screen === "create"} onClick={() => { setMenuOpen(false); store.authed || session.user ? setScreen("create") : (window.location.href = "/login"); }} />
         <Tab icon={<Radio className="size-4" />} label="Music" on={screen === "home" && homeTab === "music"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("music"); }} />
+        <Tab icon={<Film className="size-4" />} label="Cinema" on={screen === "home" && homeTab === "cinema"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("cinema"); }} />
+        <Tab icon={<MessageSquare className="size-4" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
         <Tab icon={<User className="size-4" />} label="Me" on={screen === "profile" || menuOpen} onClick={() => { setScreen("profile"); setMenuOpen(true); }} />
       </nav>
 
@@ -896,6 +900,14 @@ export function QonvoApp() {
                 >
                   <Radio className="size-4 shrink-0 text-lime-2" />
                   Music
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setScreen("home"); setHomeTab("cinema"); setMenuOpen(false); }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-panel-2"
+                >
+                  <Film className="size-4 shrink-0 text-lime-2" />
+                  Cinema
                 </button>
               </div>
             </div>

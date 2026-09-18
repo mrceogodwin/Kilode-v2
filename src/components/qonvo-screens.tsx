@@ -18,6 +18,7 @@ import { listWallets, getChatTtl } from "@/lib/forum-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { authClient } from "@/lib/auth/client";
 import { AccountKindPicker } from "@/components/account-kind";
+import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 
 type Store = ReturnType<typeof useQonvo>;
@@ -520,6 +521,9 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
       ) : null}
       {kind === "advertiser" || kind === "brand" ? (
         <p className="text-[11px] text-muted">Place ads from Advertise. Staff approve after your crypto payment.</p>
+      ) : null}
+      {kind === "cinema" ? (
+        <p className="text-[11px] text-muted">Submit movie YouTube URLs from Cinema. Staff approve before votes.</p>
       ) : null}
       {mine.map((p) => (
         <button key={p.id} type="button" className="block w-full rounded-xl border border-line bg-panel p-3 text-left" onClick={() => { store.setOpenPost(p.id); onHome?.(); }}>
@@ -1026,6 +1030,7 @@ function Admin({ store }: { store: Store }) {
       </div>
       {role === "super" ? <ChatTtlPanel /> : null}
       {role === "super" ? <NewsEnginePanel store={store} /> : null}
+      {role === "super" || role === "admin" ? <CinemaAdminPanel /> : null}
       {role ? <BanMutePanel members={members} /> : null}
       {role === "super" || role === "admin" ? <ModPanel /> : null}
       {role === "super" || role === "admin" ? <AdminPassword /> : null}
@@ -1729,6 +1734,7 @@ function Help() {
       <Card title="Chat" body="Signed-in messages save on the server. Super admin sets how long they live (1 hour to 30 days, or never). Use ‹ › to page older/newer chat. Tap Translate under a line for Yoruba, Igbo, Hausa, French, Spanish." />
       <Card title="Feeds & music" body="Create post after you sign in. Only Artist lists music. Music is a URL to Spotify / Apple / SoundCloud / Audiomack / Boomplay — we do not host files." />
       <Card title="Ads" body="Advert grid $40. Chat stream $250. Pinned chat $800. Copy the wallet from this app, pay, paste tx. Staff approve. Super can pin / revoke." />
+      <Card title="Cinema" body="Watching Now is a YouTube embed of the voted film. Chat under the player uses the same chat engine as rooms. Cinema Advertisers submit YouTube URLs. Staff approve. One vote per title per day. We never host movie files or call YouTube search on each view." />
       <Card title="Staff" body="Tap the logo 5 times or open /ops. Not in the public menu. First signed-in owner claims super. Nobody else can be made super." />
       <Card title="Privacy" body="No public email. Login uses a private username. Do not put real addresses or ID numbers in chat. Cookies keep you signed in. We do not sell your handle list." />
       <div className="raised whitespace-pre-wrap rounded-xl p-3 text-xs text-muted">{TERMS}</div>
