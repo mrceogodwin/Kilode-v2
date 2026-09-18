@@ -15,11 +15,13 @@ import {
   type NewsSource,
 } from "@/lib/news-engine-server";
 import { listWallets, getChatTtl } from "@/lib/forum-server";
+import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { authClient } from "@/lib/auth/client";
 import { AccountKindPicker } from "@/components/account-kind";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
+import { listListings, type Listing } from "@/lib/listings-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 
 type Store = ReturnType<typeof useQonvo>;
@@ -396,6 +398,7 @@ function Communities({ onHome }: { onHome: (roomId?: string) => void }) {
 
 function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => void }) {
   const [q, setQ] = useState("");
+  const [jobs, setJobs] = useState<Listing[]>([]);
   const s = q.trim().toLowerCase();
   const rooms = useMemo(
     () =>
@@ -406,13 +409,28 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
   );
   const posts = s ? store.posts.filter((p) => !!p?.id && `${p.title} ${p.body} ${p.author} ${p.category}`.toLowerCase().includes(s)) : [];
   const tracks = s ? store.tracks.filter((t) => !!t?.id && `${t.title} ${t.artist}`.toLowerCase().includes(s)) : [];
+  useEffect(() => {
+    if (!s) {
+      setJobs([]);
+      return;
+    }
+    void Promise.all([
+      listListings({ data: { kind: "job" } }),
+      listListings({ data: { kind: "market" } }),
+      listListings({ data: { kind: "rent" } }),
+    ])
+      .then((packs) => {
+        setJobs(packs.flat().filter((r) => `${r.title} ${r.body} ${r.city} ${r.company}`.toLowerCase().includes(s)));
+      })
+      .catch(() => setJobs([]));
+  }, [s]);
   return (
     <div className="mx-auto max-w-2xl space-y-3 p-5">
       <h2 className="text-xl font-bold">Search</h2>
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Feeds, rooms, artists"
+        placeholder="Feeds, rooms, artists, jobs"
         className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm"
       />
       {s ? (
@@ -430,6 +448,14 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           {tracks.filter((t) => !!t?.id).map((t) => (
             <div key={t.id} className="rounded-xl border border-line bg-panel p-3 text-sm">
               {t.title} <span className="text-muted">· {t.artist}</span>
+            </div>
+          ))}
+          <div className="text-[11px] font-medium text-muted">Jobs · Market · Rent</div>
+          {jobs.length === 0 ? <p className="text-sm text-muted">No listings match.</p> : null}
+          {jobs.map((j) => (
+            <div key={j.id} className="rounded-xl border border-line bg-panel p-3 text-sm">
+              <div className="font-semibold">{j.title}</div>
+              <div className="text-xs text-muted">{j.kind} · {j.city} · {j.company}</div>
             </div>
           ))}
         </>
@@ -1036,6 +1062,7 @@ function Admin({ store }: { store: Store }) {
       {role === "super" ? <NewsEnginePanel store={store} /> : null}
       {role === "super" || role === "admin" ? <CinemaAdminPanel /> : null}
       {role === "super" || role === "admin" ? <ListingsAdminPanel /> : null}
+      {role === "super" ? <DbPanel /> : null}
       {role ? <BanMutePanel members={members} /> : null}
       {role === "super" || role === "admin" ? <ModPanel /> : null}
       {role === "super" || role === "admin" ? <AdminPassword /> : null}
@@ -1207,6 +1234,28 @@ function AdminResetPassword({ members }: { members: { id: string; handle: string
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function DbPanel() {
+  const [info, setInfo] = useState<{ ok: boolean; source: string; vercel: boolean; users?: number; reason?: string } | null>(null);
+  useEffect(() => {
+    void dbStatus()
+      .then(setInfo)
+      .catch(() => setInfo({ ok: false, source: "unknown", vercel: false, reason: "Could not read DB" }));
+  }, []);
+  return (
+    <div className="md:col-span-2 raised space-y-1 rounded-xl p-3">
+      <div className="text-[11px] font-medium text-muted">Database</div>
+      {!info ? <p className="text-xs text-muted">Checking…</p> : null}
+      {info?.ok ? (
+        <p className="text-xs text-lime-2">
+          Connected ({info.source}). {info.users ?? 0} accounts. {info.vercel ? "Vercel" : "Local"}.
+        </p>
+      ) : info ? (
+        <p className="text-xs text-danger">{info.reason || "Postgres is not connected. Add DATABASE_URL on Vercel."}</p>
+      ) : null}
     </div>
   );
 }
