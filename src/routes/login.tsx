@@ -1,80 +1,58 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { authClient, authEnabled } from "@/lib/auth/client";
-import { accountEmail, accountEmails, publicUsername } from "@/lib/account-email";
+import { authEnabled } from "@/lib/auth/client";
 import { AccountKindPicker } from "@/components/account-kind";
 import { type AccountKind } from "@/lib/qonvo-data";
+import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (s: Record<string, unknown>): { next?: string } => {
+  validateSearch: (s: Record<string, unknown>): { next?: string; mode?: "in" | "up" } => {
     const next = typeof s.next === "string" && s.next.startsWith("/") ? s.next : undefined;
-    return next ? { next } : {};
+    const mode = s.mode === "up" || s.mode === "in" ? s.mode : undefined;
+    return { ...(next ? { next } : {}), ...(mode ? { mode } : {}) };
   },
   component: Login,
 });
 
 function Login() {
-  const { next } = Route.useSearch();
-  const staff = next === "/ops" || (next ?? "").startsWith("/ops");
+  const search = Route.useSearch();
+  const staff = search.next === "/ops" || (search.next ?? "").startsWith("/ops");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [agree, setAgree] = useState(false);
   const [kind, setKind] = useState<AccountKind>("member");
-  const [mode, setMode] = useState<"in" | "up">("in");
+  const [mode, setMode] = useState<"in" | "up">(staff ? "in" : search.mode === "up" ? "up" : "in");
   const [busy, setBusy] = useState(false);
+
+  function go() {
+    const next = search.next && search.next.startsWith("/") ? search.next : "/";
+    window.location.href = next;
+  }
 
   async function up() {
     setErr("");
-    const handle = publicUsername(name);
-    if (handle.length < 3) {
-      setErr("Username needs 3+ characters.");
-      return;
-    }
-    if (password.length < 8) {
-      setErr("Password needs 8+ characters.");
-      return;
-    }
     if (!agree) {
-      setErr(staff ? "Confirm you are creating the owner account." : "Accept the Terms to create an account.");
+      setErr(staff ? "Confirm you are creating the owner account." : "Tick the box to accept the Terms.");
       return;
-    }
-    if (!staff) {
-      try {
-        sessionStorage.setItem("nf_account", JSON.stringify({ kind }));
-      } catch {
-        /* ignore */
-      }
     }
     setBusy(true);
-    const r = await authClient.signUp.email({ email: accountEmail(handle), password, name: handle });
+    const r = await kilodeSignUp(name, password, staff ? "member" : kind);
     setBusy(false);
-    if (r.error) setErr(r.error.message ?? "Sign up failed");
-    else window.location.href = next && next.startsWith("/") ? next : "/";
+    if (!r.ok) setErr(r.reason);
+    else go();
   }
   async function inn() {
     setErr("");
-    const handle = publicUsername(name);
-    if (handle.length < 3 || !password) {
-      setErr("Enter username and password.");
-      return;
-    }
     setBusy(true);
-    let last = "Sign in failed";
-    for (const email of accountEmails(handle)) {
-      const r = await authClient.signIn.email({ email, password });
-      if (!r.error) {
-        window.location.href = next && next.startsWith("/") ? next : "/";
-        return;
-      }
-      last = r.error.message ?? last;
-    }
+    const r = await kilodeSignIn(name, password);
     setBusy(false);
-    setErr(last);
+    if (!r.ok) setErr(r.reason + (mode === "in" ? " New here? Create an account." : ""));
+    else go();
   }
 
   return (
-    <main className="grid min-h-svh place-items-center bg-bg p-6 text-fg">
+    <main className="grid min-h-dvh place-items-center overflow-y-auto bg-bg p-6 text-fg">
       <div className="raised w-full max-w-sm space-y-3 rounded-2xl p-5">
         <div className="flex flex-col items-center gap-1 text-center">
           <img src="/kilode-lockup-lg.png" alt="Kilode" className="h-14 w-auto max-w-[240px] object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/kilode-logo-green.png"; }} />
@@ -82,24 +60,24 @@ function Login() {
         </div>
         <p className="text-sm text-muted">
           {staff
-            ? "Owner login. Username + password only. No account type. After sign-in, claim super admin once."
+            ? "Owner login. Username + password only. No account type."
             : mode === "in"
               ? "Sign in with username + password."
-              : "Create a member account. Staff uses a different door."}
+              : "Pick a username, password, and account type. No email."}
         </p>
         {authEnabled ? (
           <>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Username" autoComplete="username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" autoComplete={mode === "in" ? "current-password" : "new-password"} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (8+ characters)" autoComplete={mode === "in" ? "current-password" : "new-password"} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
             {mode === "up" && !staff ? (
               <>
                 <div>
                   <div className="mb-1 text-[11px] font-medium text-muted">I am joining as</div>
-                  <AccountKindPicker value={kind} onChange={setKind} />
+                  <AccountKindPicker compact value={kind} onChange={setKind} />
                 </div>
                 <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">
                   <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-                  <span>I agree to the Terms. I am responsible for posts, music URLs, and ads I submit.</span>
+                  <span>I agree to the Terms. I am responsible for what I submit.</span>
                 </label>
               </>
             ) : null}
@@ -121,7 +99,7 @@ function Login() {
             )}
             <button
               type="button"
-              className="w-full text-center text-[12px] text-muted underline"
+              className="w-full text-center text-[12px] font-semibold text-lime-2 underline"
               onClick={() => {
                 setErr("");
                 setMode(mode === "in" ? "up" : "in");

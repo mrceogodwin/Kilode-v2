@@ -19,6 +19,7 @@ import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { authClient } from "@/lib/auth/client";
 import { AccountKindPicker } from "@/components/account-kind";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
+import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 
 type Store = ReturnType<typeof useQonvo>;
@@ -47,6 +48,9 @@ export function QonvoScreen({
   else if (id === "badges") view = <Badges store={store} />;
   else if (id === "leaderboard") view = <Board store={store} />;
   else if (id === "ads") view = <Ads store={store} />;
+  else if (id === "jobs") view = <ListingsPane kind="job" />;
+  else if (id === "market") view = <ListingsPane kind="market" />;
+  else if (id === "rent") view = <ListingsPane kind="rent" />;
   else if (id === "settings") view = <Settings store={store} />;
   else if (id === "help") view = <Help />;
   else if (id === "dashboard") view = <Dash store={store} onHome={onHome} onForum={onForum} />;
@@ -1031,6 +1035,7 @@ function Admin({ store }: { store: Store }) {
       {role === "super" ? <ChatTtlPanel /> : null}
       {role === "super" ? <NewsEnginePanel store={store} /> : null}
       {role === "super" || role === "admin" ? <CinemaAdminPanel /> : null}
+      {role === "super" || role === "admin" ? <ListingsAdminPanel /> : null}
       {role ? <BanMutePanel members={members} /> : null}
       {role === "super" || role === "admin" ? <ModPanel /> : null}
       {role === "super" || role === "admin" ? <AdminPassword /> : null}
@@ -1735,6 +1740,7 @@ function Help() {
       <Card title="Feeds & music" body="Create post after you sign in. Only Artist lists music. Music is a URL to Spotify / Apple / SoundCloud / Audiomack / Boomplay — we do not host files." />
       <Card title="Ads" body="Advert grid $40. Chat stream $250. Pinned chat $800. Copy the wallet from this app, pay, paste tx. Staff approve. Super can pin / revoke." />
       <Card title="Cinema" body="Watching Now is a YouTube embed of the voted film. Chat under the player uses the same chat engine as rooms. Cinema Advertisers submit YouTube URLs. Staff approve. One vote per title per day. We never host movie files or call YouTube search on each view." />
+      <Card title="Jobs, Marketplace, Rent" body="Job Poster lists jobs. Job Seekers apply. Marketplace and Rent are showcase + contact only — no selling or renting inside the app. Staff approve first." />
       <Card title="Staff" body="Tap the logo 5 times or open /ops. Not in the public menu. First signed-in owner claims super. Nobody else can be made super." />
       <Card title="Privacy" body="No public email. Login uses a private username. Do not put real addresses or ID numbers in chat. Cookies keep you signed in. We do not sell your handle list." />
       <div className="raised whitespace-pre-wrap rounded-xl p-3 text-xs text-muted">{TERMS}</div>

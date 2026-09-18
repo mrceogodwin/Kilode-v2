@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Award,
   Bookmark,
+  Briefcase,
+  Building2,
   Copy,
   Eye,
   Film,
@@ -22,6 +24,7 @@ import {
   Send,
   Share2,
   Smile,
+  Store,
   ChevronLeft,
   ChevronRight,
   Settings,
@@ -40,9 +43,8 @@ import { CinemaPane } from "@/components/cinema-pane";
 import { Link } from "@tanstack/react-router";
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { accountEmail, accountEmails, publicUsername } from "@/lib/account-email";
-import { authClient } from "@/lib/auth/client";
 import { listWallets } from "@/lib/forum-server";
+import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 import { AccountKindPicker } from "@/components/account-kind";
 import { TranslateBtn } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
@@ -65,6 +67,9 @@ const ICONS: Record<MenuId, typeof Home> = {
   leaderboard: Trophy,
   trending: Hash,
   ads: Megaphone,
+  jobs: Briefcase,
+  market: Store,
+  rent: Building2,
   contact: Mail,
   admin: Shield,
   settings: Settings,
@@ -74,7 +79,7 @@ const ICONS: Record<MenuId, typeof Home> = {
 const MENU_GROUPS: { label: string; ids: MenuId[] }[] = [
   { label: "Me", ids: ["profile", "dashboard", "bookmarks", "inbox", "notifications", "teams"] },
   { label: "Discover", ids: ["forum", "trending", "community", "search", "leaderboard", "badges"] },
-  { label: "Create", ids: ["create", "ads"] },
+  { label: "Create", ids: ["create", "ads", "jobs", "market", "rent"] },
   { label: "Account", ids: ["settings", "contact", "help"] },
 ];
 
@@ -312,7 +317,7 @@ export function QonvoApp() {
                   <UserButton />
                 </SignedIn>
                 <SignedOut>
-                  <Link to="/login" search={{}} className="btn-join rounded-lg px-2.5 py-1.5 text-[11px] font-bold sm:px-3 sm:text-xs">
+                  <Link to="/login" search={{ mode: "up" }} className="btn-join rounded-lg px-2.5 py-1.5 text-[11px] font-bold sm:px-3 sm:text-xs">
                     Join
                   </Link>
                 </SignedOut>
@@ -934,8 +939,8 @@ export function QonvoApp() {
       {donateOpen ? <DonateSheet onClose={() => setDonateOpen(false)} /> : null}
 
       {joinOpen ? (
-        <div className="fixed inset-0 z-40 grid place-items-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-line bg-panel p-4">
+        <div className="fixed inset-0 z-40 grid place-items-end bg-black/70 p-3 sm:place-items-center">
+          <div className="max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-line bg-panel p-4">
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-lg font-bold">Username + password</h2>
               <button type="button" onClick={() => setJoinOpen(false)} aria-label="Close">
@@ -952,53 +957,39 @@ export function QonvoApp() {
               type="password"
               value={joinPass}
               onChange={(e) => setJoinPass(e.target.value)}
-              placeholder="Password"
+              placeholder="Password (8+ characters)"
               className="mb-3 w-full rounded-lg border border-line bg-black/40 px-3 py-2 text-sm outline-none"
             />
             {joinErr ? <p className="mb-2 text-sm text-danger">{joinErr}</p> : null}
             {store.authErr ? <p className="mb-2 text-sm text-danger">{store.authErr}</p> : null}
             <div className="mb-2">
               <div className="mb-1 text-[10px] font-medium tracking-normal text-muted">Joining as (new users)</div>
-              <AccountKindPicker value={joinKind} onChange={setJoinKind} />
+              <AccountKindPicker compact value={joinKind} onChange={setJoinKind} />
             </div>
             <label className="mb-2 flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">
               <input type="checkbox" className="mt-0.5" checked={joinAgree} onChange={(e) => setJoinAgree(e.target.checked)} />
               <span>
                 I agree to the{" "}
                 <button type="button" className="text-lime-2 underline" onClick={() => { setJoinOpen(false); setScreen("help"); }}>
-                  Terms & Conditions
-                </button>{" "}
-                and that I am responsible for posts, music URLs, and ads I submit.
+                  Terms
+                </button>
+                .
               </span>
             </label>
-            <p className="mb-2 text-[11px] text-muted">No email. Needed to post, list music, or place ads. Browse stays open.</p>
+            <p className="mb-2 text-[11px] text-muted">No email. Needed to post, list music, or place ads.</p>
             <div className="flex gap-2">
               <button
                 type="button"
-                className="flex-1 rounded-lg border border-line bg-panel-3 py-2 text-sm font-bold"
+                className="btn-join flex-1 rounded-lg py-2 text-sm font-bold"
                 onClick={() => {
                   void (async () => {
                     setJoinErr("");
-                    const handle = publicUsername(joinName);
-                    if (handle.length < 3) {
-                      setJoinErr("Username needs 3+ characters.");
-                      return;
-                    }
-                    if (joinPass.length < 8) {
-                      setJoinErr("Password needs 8+ characters.");
-                      return;
-                    }
                     if (!joinAgree) {
-                      setJoinErr("Accept the Terms to register.");
+                      setJoinErr("Tick the box to accept the Terms.");
                       return;
                     }
-                    try {
-                      sessionStorage.setItem("nf_account", JSON.stringify({ kind: joinKind }));
-                    } catch {
-                      /* ignore */
-                    }
-                    const r = await authClient.signUp.email({ email: accountEmail(handle), password: joinPass, name: handle });
-                    if (r.error) setJoinErr(r.error.message ?? "Sign up failed");
+                    const r = await kilodeSignUp(joinName, joinPass, joinKind);
+                    if (!r.ok) setJoinErr(r.reason);
                     else window.location.reload();
                   })();
                 }}
@@ -1011,17 +1002,9 @@ export function QonvoApp() {
                 onClick={() => {
                   void (async () => {
                     setJoinErr("");
-                    const handle = publicUsername(joinName);
-                    let last = "Sign in failed";
-                    for (const email of accountEmails(handle)) {
-                      const r = await authClient.signIn.email({ email, password: joinPass });
-                      if (!r.error) {
-                        window.location.reload();
-                        return;
-                      }
-                      last = r.error.message ?? last;
-                    }
-                    setJoinErr(last);
+                    const r = await kilodeSignIn(joinName, joinPass);
+                    if (!r.ok) setJoinErr(r.reason);
+                    else window.location.reload();
                   })();
                 }}
               >
