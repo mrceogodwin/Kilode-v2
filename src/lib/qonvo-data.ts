@@ -425,7 +425,7 @@ Privacy
 We do not ask for a public email. Login uses a private username. Do not put real addresses or ID numbers in chat. Cookies keep you signed in. We do not sell your handle list.
 
 Developer
-Kilode is built with @Builtbystacks · Squadglobaldynasty. Telegram: https://t.me/Builtbystacks`;
+Kilode is built with @Builtbystacks. Telegram: https://t.me/Builtbystacks`;
 
 export function timeLabel(ts: number) {
   const diff = Date.now() - ts;

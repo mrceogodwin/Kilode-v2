@@ -23,7 +23,8 @@ import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account
 import { canKind } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
-import { OpsKeysPanel, OpsSeoPanel } from "@/components/ops-tools";
+import { JoinCta, TelegramLink } from "@/components/get-app";
+import { AdSlotsPanel, OpsKeysPanel, OpsSeoPanel } from "@/components/ops-tools";
 import { listListings, type Listing } from "@/lib/listings-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 
@@ -68,9 +69,7 @@ export function QonvoScreen({
 function JoinWall() {
   return (
     <Screen kicker="KILODE" title="Join to continue" sub="Guests can browse Feeds, Chat, Music, Cinema and Ads. Sign in to post, message, save, or open Me.">
-      <a href="/login?mode=up" className="btn-join block rounded-xl py-3 text-center text-sm font-bold">
-        JOIN KILODE NOW
-      </a>
+      <JoinCta />
     </Screen>
   );
 }
@@ -114,10 +113,10 @@ function Forum({ store, onHome }: { store: Store; onHome: (roomId?: string) => v
             }}
             className="raised overflow-hidden rounded-md text-left"
           >
-            {p.image ? <img src={p.image} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square bg-panel-3" />}
-            <div className="px-1 py-1">
+            {p.image ? <img src={p.image} alt="" className="aspect-[5/4] w-full object-cover" /> : <div className="aspect-[5/4] bg-panel-3" />}
+            <div className="px-1 py-1.5">
               <div className="text-[9px] font-medium text-lime-2/80">{p.category || "General"}</div>
-              <div className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-snug text-fg/75">{p.title}</div>
+              <div className="mt-0.5 line-clamp-3 text-[11px] font-semibold leading-snug sm:line-clamp-4 sm:text-[12px]">{p.title}</div>
               <div className="mt-0.5 flex items-center gap-1.5 text-[8px] tabular-nums text-muted">
                 <span className="inline-flex items-center gap-0.5">
                   <Eye className="size-2.5" />
@@ -612,9 +611,7 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
   if (!store.handle) {
     return (
       <Screen kicker="YOU" title="Me" sub="Join to own a profile. Guests can browse Feeds, Chat, Music, Cinema and Ads.">
-        <a href="/login?mode=up" className="btn-join block rounded-xl py-3 text-center text-sm font-bold">
-          JOIN KILODE NOW
-        </a>
+        <JoinCta />
       </Screen>
     );
   }
@@ -821,9 +818,7 @@ function Teams({ store, onHome }: { store: Store; onHome: (id?: string) => void 
   return (
     <Screen kicker="CREW" title="Teams" sub="Small named groups on Kilode. Not WhatsApp. Chat still lives on our servers.">
       {!store.handle ? (
-        <a href="/login?mode=up" className="btn-join block rounded-xl py-3 text-center text-sm font-bold">
-          JOIN KILODE NOW
-        </a>
+        <JoinCta />
       ) : (
         <>
           <div className="raised mb-3 rounded-2xl p-4 text-[13px] leading-6 text-muted">
@@ -953,9 +948,7 @@ function Ads({ store }: { store: Store }) {
   if (!store.handle) {
     return (
       <Screen kicker="ADS" title="Place an ad" sub="Ads Poster and Brand accounts pay crypto. Staff approve. Guests can browse live ads on the Ads tab.">
-        <a href="/login?mode=up" className="btn-join block rounded-xl py-3 text-center text-sm font-bold">
-          JOIN KILODE NOW
-        </a>
+        <JoinCta />
       </Screen>
     );
   }
@@ -1360,6 +1353,7 @@ function Admin({ store }: { store: Store }) {
       <OpsKeysPanel />
       <OpsSeoPanel />
       <AdsQueuePanel store={store} />
+      {role === "super" ? <AdSlotsPanel /> : null}
       <div className="md:col-span-2 space-y-2">
         <div className="text-[11px] font-medium text-muted">Inbox</div>
         {mail.length === 0 ? <p className="text-sm text-muted">No contact mail.</p> : null}
@@ -2236,11 +2230,7 @@ function Help() {
         </a>
       </p>
       <p className="px-1 text-[10px] text-muted">
-        Developer{" "}
-        <a href="https://t.me/Builtbystacks" target="_blank" rel="noreferrer" className="text-lime-2">
-          @Builtbystacks
-        </a>{" "}
-        · Squadglobaldynasty
+        Developer <TelegramLink className="text-[10px]" />
       </p>
     </Screen>
   );
@@ -2268,8 +2258,8 @@ function Dash({ store, onHome, onForum }: { store: Store; onHome: (id?: string) 
             <li>Cinema Advertiser — submit a YouTube URL to Watching Now.</li>
           </ul>
         </div>
-        <a href="/login?mode=up" className="btn-join mb-4 block rounded-xl py-3 text-center text-sm font-bold tracking-wide">
-          JOIN KILODE NOW
+        <a href="/login?mode=up" className="btn-join mb-4 block rounded-lg py-2 text-center text-[12px] font-bold">
+          Join Kilode
         </a>
         <div className="grid grid-cols-2 gap-2">
           {[

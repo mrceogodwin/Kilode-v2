@@ -17,14 +17,22 @@
 
 @layer base {
   html,
-  body,
-  #app {
-    height: 100%;
-    overflow: hidden;
+  body {
+    min-height: 100%;
+    height: auto;
+    overflow: auto;
     background: var(--color-bg);
     color: var(--color-fg);
     scrollbar-width: thin;
     scrollbar-color: #2a2a2a var(--color-bg);
+  }
+  #app {
+    min-height: 100%;
+  }
+  .kilode-shell {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
   }
   body {
     background-image:
@@ -305,9 +313,15 @@ html[data-skin="ivory"] *::-webkit-scrollbar-thumb {
   html,
   body,
   #app {
+    height: auto;
+    min-height: 100svh;
+    max-height: none;
+    width: 100%;
+    overflow: auto;
+  }
+  .kilode-shell {
     height: 100svh;
     max-height: 100svh;
-    width: 100%;
     overflow: hidden;
   }
   body {
@@ -317,4 +331,212 @@ html[data-skin="ivory"] *::-webkit-scrollbar-thumb {
     animation-duration: 40s;
   }
 }
+
+.rail-track {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.rail-track::-webkit-scrollbar {
+  display: none;
+}
+.rail-card {
+  flex: 0 0 68%;
+  scroll-snap-align: start;
+}
+@media (min-width: 640px) {
+  .rail-card {
+    flex-basis: 36%;
+  }
+}
+
+.how-cursor {
+  position: absolute;
+  width: 14px;
+  height: 18px;
+  left: 18%;
+  top: 22%;
+  background: #fff;
+  clip-path: polygon(0 0, 100% 70%, 55% 72%, 72% 100%, 50% 100%, 32% 72%, 0 88%);
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+  animation: cursor-walk 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes cursor-walk {
+  0% {
+    left: 16%;
+    top: 24%;
+  }
+  35% {
+    left: 58%;
+    top: 40%;
+  }
+  70% {
+    left: 40%;
+    top: 70%;
+  }
+  100% {
+    left: 16%;
+    top: 24%;
+  }
+}
+
+.store-3d {
+  background: linear-gradient(180deg, #2a2a2a 0%, #141414 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 3px 0 #050505,
+    0 8px 12px rgba(0, 0, 0, 0.35);
+  color: var(--color-fg);
+}
+html[data-skin="ivory"] .store-3d {
+  background: linear-gradient(180deg, #fff 0%, #f3f0e8 100%);
+  color: #121212;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 2px 0 #d9d4c8;
+}
+
+.shot-phone {
+  width: 72px;
+  height: 112px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #1c1c1c 0%, #0e0e0e 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 16px rgba(0, 0, 0, 0.35);
+}
+.shot-bar {
+  height: 8px;
+  margin: 4px auto 2px;
+  width: 28px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.install-phone {
+  position: absolute;
+  inset: 12% 22% 10%;
+  border-radius: 22px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: #111;
+  overflow: hidden;
+}
+.install-status {
+  height: 10px;
+  background: #1a1a1a;
+}
+.install-share {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  border-radius: 8px;
+  background: #6b9e78;
+  animation: share-pulse 2.8s ease-in-out infinite;
+}
+.install-menu {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 44px;
+  border-radius: 10px;
+  background: #222;
+  color: #eee;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px 6px;
+  opacity: 0;
+  animation: menu-pop 2.8s ease-in-out infinite;
+}
+.install-icon {
+  position: absolute;
+  left: 18px;
+  bottom: 52px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #3d6a48;
+  opacity: 0;
+  animation: icon-land 2.8s ease-in-out infinite;
+}
+.install-cursor {
+  animation: install-walk 2.8s ease-in-out infinite;
+}
+@keyframes share-pulse {
+  0%,
+  20% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes menu-pop {
+  0%,
+  28% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  40%,
+  70% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes icon-land {
+  0%,
+  62% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  75%,
+  92% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes install-walk {
+  0% {
+    left: 48%;
+    top: 82%;
+  }
+  35% {
+    left: 48%;
+    top: 62%;
+  }
+  70% {
+    left: 28%;
+    top: 58%;
+  }
+  100% {
+    left: 48%;
+    top: 82%;
+  }
+}
+
+.ad-box {
+  min-height: 72px;
+}
+
 

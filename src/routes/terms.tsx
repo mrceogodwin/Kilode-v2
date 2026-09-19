@@ -1,5 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ADS_LONG, CONTACT_LONG, CONTENT_LONG, COOKIES_LONG, HOWTO, LEGAL_NAV, LEGAL_UPDATED, PRIVACY_LONG, RULES_LONG, TERMS_LONG } from "@/lib/legal";
+import { ADS_LONG, CONTACT_LONG, CONTENT_LONG, COOKIES_LONG, LEGAL_NAV, LEGAL_UPDATED, PRIVACY_LONG, RULES_LONG, TERMS_LONG } from "@/lib/legal";
+import { HowToGuide } from "@/components/legal-shots";
+import { TelegramLink } from "@/components/get-app";
 
 export const Route = createFileRoute("/terms")({ component: TermsPage });
 
@@ -40,15 +42,8 @@ function TermsPage() {
 
         <section id="howto" className="mt-10 scroll-mt-20">
           <h2 className="text-xl font-extrabold">How to use Kilode</h2>
-          <p className="mt-1 text-sm text-muted">Pick the type that matches what you came to do. You cannot switch it later.</p>
-          <div className="mt-4 space-y-3">
-            {HOWTO.map((h) => (
-              <article key={h.id} className="raised rounded-2xl p-4">
-                <h3 className="text-sm font-extrabold">{h.title}</h3>
-                <p className="mt-1 text-[13px] leading-6 text-muted">{h.body}</p>
-              </article>
-            ))}
-          </div>
+          <p className="mt-1 text-sm text-muted">Pick the type that matches what you came to do. You cannot switch it later. Staff tools are not a public type.</p>
+          <HowToGuide />
         </section>
 
         {BLOCKS.map((b) => (
@@ -63,9 +58,7 @@ function TermsPage() {
             Back to Kilode
           </Link>
           {" · "}
-          <a href="https://t.me/Builtbystacks" className="text-lime-2" target="_blank" rel="noreferrer">
-            @Builtbystacks
-          </a>
+          <TelegramLink />
         </p>
       </div>
     </main>

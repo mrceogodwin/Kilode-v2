@@ -230,4 +230,4 @@ Use Contact in the signed-in menu, or Telegram @Builtbystacks for the developer 
 
 Operator: Kilode
 Site: kilode.ng
-Developer credit: @Builtbystacks · Squadglobaldynasty`;
+Developer credit: @Builtbystacks`;

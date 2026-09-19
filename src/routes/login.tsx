@@ -2,9 +2,8 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { authEnabled } from "@/lib/auth/client";
 import { AccountKindPicker, AvatarPicker } from "@/components/account-kind";
-import { KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
+import { ACCOUNT_KINDS, KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
-import { HOWTO } from "@/lib/legal";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>): { next?: string; mode?: "in" | "up" } => {
@@ -55,10 +54,10 @@ function Login() {
   }
 
   return (
-    <main className="grid min-h-dvh place-items-center overflow-y-auto bg-bg p-6 text-fg">
-      <div className="raised w-full max-w-sm space-y-3 rounded-2xl p-5">
+    <main className="min-h-dvh overflow-y-auto bg-bg px-4 py-6 text-fg">
+      <div className="raised mx-auto w-full max-w-sm space-y-3 rounded-2xl p-4">
         <div className="flex flex-col items-center text-center">
-          <img src="/kilode-lockup-lg.png" alt="Kilode" className="mx-auto h-16 w-auto max-w-[220px] object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/kilode-logo-green.png"; }} />
+          <img src="/kilode-lockup-lg.png" alt="Kilode" className="mx-auto h-12 w-auto max-w-[180px] object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/kilode-logo-green.png"; }} />
           {staff ? <p className="mt-2 text-[11px] font-medium text-muted">Staff console</p> : null}
         </div>
         <p className="text-sm text-muted">
@@ -84,7 +83,7 @@ function Login() {
                       setFace(KIND_FACE[k]);
                     }}
                   />
-                  <p className="mt-1.5 text-[11px] leading-snug text-muted">{HOWTO.find((h) => h.id === kind)?.body}</p>
+                  <p className="mt-1 text-[11px] leading-snug text-muted">{ACCOUNT_KINDS.find((k) => k.id === kind)?.hint} · locked after you register.</p>
                 </div>
                 <div>
                   <div className="mb-1 text-[11px] font-medium text-muted">Your avatar</div>

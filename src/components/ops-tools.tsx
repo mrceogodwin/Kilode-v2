@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { AI_KEY_SLOTS, listAiKeys, saveAiKey } from "@/lib/keys-server";
 import { boostSeo, listSeoWeak, type SeoWeak } from "@/lib/seo-server";
+import { AD_SLOT_DEFS, type AdSlotKind, type AdSlotRow } from "@/lib/ad-slots";
+import { listAdSlots, listDigestCount, saveAdSlot } from "@/lib/ad-slots-server";
 
 export function OpsKeysPanel() {
   const [rows, setRows] = useState<(typeof AI_KEY_SLOTS[number] & { value: string; set: boolean })[]>([]);
@@ -111,6 +113,133 @@ export function OpsSeoPanel() {
           </a>
         </div>
       ))}
+    </div>
+  );
+}
+
+export function AdSlotsPanel() {
+  const [rows, setRows] = useState<AdSlotRow[]>([]);
+  const [draft, setDraft] = useState<Record<string, Partial<AdSlotRow>>>({});
+  const [msg, setMsg] = useState("");
+  const [digest, setDigest] = useState(0);
+  function load() {
+    void listAdSlots()
+      .then(setRows)
+      .catch(() => setRows([]));
+    void listDigestCount()
+      .then((r) => setDigest(r.n))
+      .catch(() => setDigest(0));
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  return (
+    <div className="md:col-span-2 raised space-y-3 rounded-2xl p-4">
+      <div>
+        <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">AD SLOTS · GOOGLE · BANNERS · VIDEO</div>
+        <h3 className="text-lg font-extrabold">Where ads appear</h3>
+        <p className="text-[11px] text-muted">
+          Four kinds: Google (ca-pub + unit), image banner, YouTube video, HTML iframe. Empty slots show a dashed placeholder on the site — they do not load Google until you paste a real unit. Digest emails stored: {digest}. Sending mail waits for a mail API key.
+        </p>
+      </div>
+      <div className="space-y-2">
+        {AD_SLOT_DEFS.map((d) => {
+          const row = rows.find((r) => r.id === d.id);
+          const cur = { ...row, ...draft[d.id] };
+          return (
+            <div key={d.id} className="rounded-xl border border-line bg-panel p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-[13px] font-bold">{d.label}</div>
+                  <div className="text-[10px] text-muted">{d.hint}</div>
+                </div>
+                <label className="flex items-center gap-1 text-[11px]">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(cur.enabled)}
+                    onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, enabled: e.target.checked } }))}
+                  />
+                  On
+                </label>
+              </div>
+              <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+                <select
+                  value={cur.kind ?? d.kind}
+                  onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, kind: e.target.value as AdSlotKind } }))}
+                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]"
+                >
+                  <option value="image">Image</option>
+                  <option value="video">YouTube</option>
+                  <option value="google">Google Ads</option>
+                  <option value="html">HTML / iframe</option>
+                </select>
+                <input
+                  value={cur.link ?? ""}
+                  onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, link: e.target.value } }))}
+                  placeholder="Click URL https://…"
+                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]"
+                />
+                <input
+                  value={cur.image ?? ""}
+                  onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, image: e.target.value } }))}
+                  placeholder="Image URL"
+                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]"
+                />
+                <input
+                  value={cur.video ?? ""}
+                  onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, video: e.target.value } }))}
+                  placeholder="YouTube URL"
+                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]"
+                />
+                <input
+                  value={cur.pubId ?? ""}
+                  onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, pubId: e.target.value } }))}
+                  placeholder="ca-pub-xxxxxxxx"
+                  className="rounded-lg border border-line bg-bg px-2 py-1.5 font-mono text-[11px]"
+                />
+                <input
+                  value={cur.adUnit ?? ""}
+                  onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, adUnit: e.target.value } }))}
+                  placeholder="Ad unit id"
+                  className="rounded-lg border border-line bg-bg px-2 py-1.5 font-mono text-[11px]"
+                />
+              </div>
+              <textarea
+                value={cur.html ?? ""}
+                onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, html: e.target.value } }))}
+                rows={2}
+                placeholder="Optional HTML for iframe (no Kilode scripts). Prefer Google fields above."
+                className="mt-1.5 w-full rounded-lg border border-line bg-bg px-2 py-1.5 font-mono text-[11px]"
+              />
+              <button
+                type="button"
+                className="btn-3d mt-2 rounded-lg px-3 py-1.5 text-[11px] font-semibold"
+                onClick={() => {
+                  void saveAdSlot({
+                    data: {
+                      id: d.id,
+                      kind: (cur.kind as AdSlotKind) ?? d.kind,
+                      enabled: Boolean(cur.enabled),
+                      image: cur.image ?? "",
+                      video: cur.video ?? "",
+                      link: cur.link ?? "",
+                      html: cur.html ?? "",
+                      pubId: cur.pubId ?? "",
+                      adUnit: cur.adUnit ?? "",
+                    },
+                  }).then((r) => {
+                    setMsg(r.ok ? `Saved ${d.label}` : r.reason);
+                    load();
+                  });
+                }}
+              >
+                Save slot
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
     </div>
   );
 }

@@ -51,6 +51,11 @@ import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { TranslateBtn } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
+import { NotifyBell } from "@/components/notify-bell";
+import { HowKilode } from "@/components/how-kilode";
+import { GetAppRow, JoinCta, MenuLegal } from "@/components/get-app";
+import { AdSlotOrEmpty } from "@/components/ad-slot";
+import { RelatedGrid, TopTen, TrendingRail, isDupExcerpt } from "@/components/engage-rail";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -319,6 +324,19 @@ export function QonvoApp() {
             ) : null}
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            <NotifyBell
+              signedIn={signedIn}
+              posts={store.posts}
+              onOpenNotes={() => {
+                setScreen("notifications");
+                setMenuOpen(false);
+              }}
+              onOpenPost={(id) => {
+                store.setOpenPost(id);
+                setHomeTab("feeds");
+                setScreen("home");
+              }}
+            />
             <SkinToggle />
             <button
               type="button"
@@ -797,9 +815,11 @@ export function QonvoApp() {
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-5">
               {!(signedIn) ? (
-                <a href="/login?mode=up" className="btn-join mb-4 block rounded-xl py-3 text-center text-sm font-bold">
-                  JOIN KILODE NOW
-                </a>
+                <div className="mb-3 space-y-2">
+                  <HowKilode />
+                  <JoinCta />
+                  <GetAppRow />
+                </div>
               ) : (
               <div className="mb-4 grid grid-cols-3 gap-2 px-0.5">
                 {[
@@ -980,22 +1000,11 @@ export function QonvoApp() {
                   Cinema
                 </button>
               </div>
+              <div className="mt-3">
+                <GetAppRow />
+              </div>
             </div>
-            <div className="border-t border-white/5 px-4 py-3">
-              <button type="button" className="w-full text-center text-[10px] font-semibold text-lime-2/80" onClick={() => { setDonateOpen(true); setMenuOpen(false); }}>
-                Donate
-              </button>
-              <p className="mt-3 text-center text-[9px] leading-snug text-muted">
-                <a href="/terms" className="underline">
-                  Terms · Privacy · Rules
-                </a>
-                {" · "}
-                <a href="https://t.me/Builtbystacks" target="_blank" rel="noreferrer" className="text-lime-2">
-                  @Builtbystacks
-                </a>
-                <span className="block mt-0.5">Developer · Squadglobaldynasty</span>
-              </p>
-            </div>
+            <MenuLegal onDonate={() => { setDonateOpen(true); setMenuOpen(false); }} />
           </aside>
           <button type="button" className="flex-1 bg-black/60" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
         </div>
@@ -1037,6 +1046,7 @@ export function QonvoApp() {
                   setJoinFace(KIND_FACE[k]);
                 }}
               />
+              <p className="mt-1 text-[10px] text-muted">{ACCOUNT_KINDS.find((k) => k.id === joinKind)?.hint}</p>
             </div>
             <div className="mb-2">
               <div className="mb-1 text-[10px] font-medium tracking-normal text-muted">Your avatar</div>
@@ -1577,7 +1587,7 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
                 <span>· {mins} min read</span>
                 {post.tags ? <span>· {post.tags}</span> : null}
               </div>
-              {post.excerpt && post.excerpt.trim() !== post.title.trim() ? <p className="mt-3 text-sm italic text-muted">{post.excerpt}</p> : null}
+              {post.excerpt && !isDupExcerpt(post.title, post.excerpt) ? <p className="mt-2 text-[13px] leading-5 text-muted">{post.excerpt}</p> : null}
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-white/5 px-3 py-2 text-[11px]">
@@ -1623,6 +1633,7 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
             <Share2 className="size-3.5 text-lime-2" />
           </ShareIco>
         </div>
+        <TrendingRail posts={store.posts} ads={store.campaigns} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
         <div className="mt-5 space-y-3 text-[15px] leading-7 text-fg/90">
           {post.body.split(/\n+/).map((para, i) => (
             <p key={i}>{para}</p>
@@ -1634,25 +1645,35 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
             <Link2 className="size-3" /> Source
           </a>
         ) : null}
+        <div className="mt-6">
+          <AdSlotOrEmpty id="article_mid" label="Image · Google · video — Super Admin pastes this in /ops" />
+        </div>
         <div className="mt-8 border-t border-line pt-4">
-          <div className="flex items-center justify-between">
-            <div className="text-[10px] font-medium tracking-normal text-muted">{post.comments.length} comments</div>
-            <span className="text-[10px] text-muted">{post.commentsOn === false ? "Comments are off" : "Reply to keep the convo going"}</span>
+          <div className="flex items-end justify-between gap-2">
+            <div>
+              <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">COMMENTS</div>
+              <div className="text-lg font-extrabold">{post.comments.length} on this story</div>
+            </div>
+            <span className="text-[10px] text-muted">{post.commentsOn === false ? "Comments are off" : "Keep it civil. You own what you type."}</span>
           </div>
           {roots.map((c) => (
-            <div key={c.ts} className="mt-3 rounded-xl border border-white/5 bg-panel-3/60 p-3 text-sm">
-              <div className="text-[11px]">
-                <HandleLink handle={c.author} className="text-[11px] font-semibold" /> <span className="font-normal text-muted">{timeLabel(c.ts)}</span>
+            <div key={c.ts} className="raised mt-3 rounded-2xl p-3 text-sm">
+              <div className="flex items-center gap-2 text-[11px]">
+                <AvatarImg handle={c.author} size={22} />
+                <HandleLink handle={c.author} className="text-[11px] font-semibold" />
+                <span className="font-normal text-muted">{timeLabel(c.ts)}</span>
               </div>
-              <p className="mt-1 leading-6">{c.body}</p>
+              <p className="mt-1.5 leading-6">{c.body}</p>
               <TranslateBtn text={c.body} />
-              <button type="button" className="mt-1 text-[10px] text-lime-2" onClick={() => setReplyTo(c.ts)}>
+              <button type="button" className="mt-1 text-[10px] font-semibold text-lime-2" onClick={() => setReplyTo(c.ts)}>
                 Reply
               </button>
               {kids(c.ts).map((r) => (
-                <div key={r.ts} className="mt-2 ml-4 border-l border-lime-2/40 pl-3">
-                  <div className="text-[11px] font-semibold" style={{ color: handleColor(r.author) }}>
-                    {r.author} <span className="font-normal text-muted">{timeLabel(r.ts)}</span>
+                <div key={r.ts} className="mt-2 ml-3 border-l-2 border-lime-2/40 pl-3">
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <AvatarImg handle={r.author} size={18} />
+                    <HandleLink handle={r.author} className="text-[11px] font-semibold" />
+                    <span className="text-muted">{timeLabel(r.ts)}</span>
                   </div>
                   <p className="mt-1 leading-6">{r.body}</p>
                 </div>
@@ -1663,7 +1684,7 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
             <p className="mt-3 text-[12px] text-muted">The author turned comments off for this post.</p>
           ) : (
           <form
-            className="mt-3 flex gap-2"
+            className="raised mt-3 flex gap-2 rounded-2xl p-2"
             onSubmit={(e) => {
               e.preventDefault();
               store.commentPost(post.id, note, replyTo ?? undefined);
@@ -1677,7 +1698,7 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
               placeholder={session.user ? (replyTo ? "Reply to comment…" : "Write a comment") : "Sign in to comment"}
               className="min-h-10 flex-1 rounded-lg border border-line bg-panel px-3 text-sm"
             />
-            <button type="submit" className="btn-3d rounded-lg px-3 text-xs font-semibold">
+            <button type="submit" className="btn-join rounded-lg px-3 text-xs font-bold">
               {replyTo ? "Reply" : "Comment"}
             </button>
           </form>
@@ -1702,6 +1723,14 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
             </button>
           </form>
         </div>
+        <div className="mt-6 grid gap-2 sm:grid-cols-2">
+          <AdSlotOrEmpty id="article_leader" label="Long banner · 728×90" className="sm:col-span-2" />
+          <AdSlotOrEmpty id="article_box" label="Google / box · 300×250" />
+          <AdSlotOrEmpty id="article_video" label="Video ad · YouTube" />
+          <AdSlotOrEmpty id="article_native" label="Native tile · image + link" className="sm:col-span-2" />
+        </div>
+        <RelatedGrid posts={store.posts} exclude={post.id} category={post.category} onOpen={(id) => store.setOpenPost(id)} />
+        <TopTen posts={store.posts} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
       </div>
     </article>
   );
@@ -1753,10 +1782,10 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
-              {p.image ? <img src={p.image} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square bg-panel-3" />}
-              <div className="px-1 py-1">
+              {p.image ? <img src={p.image} alt="" className="aspect-[5/4] w-full object-cover sm:aspect-[4/3]" /> : <div className="aspect-[5/4] bg-panel-3 sm:aspect-[4/3]" />}
+              <div className="px-1 py-1.5 sm:px-1.5">
                 <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
-                <div className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-snug text-fg/75">{p.title}</div>
+                <div className="mt-0.5 line-clamp-3 text-[11px] font-semibold leading-snug text-fg sm:line-clamp-4 sm:text-[12px] md:text-[13px]">{p.title}</div>
                 <div className="mt-0.5 flex items-center gap-1.5 text-[8px] tabular-nums text-muted">
                   <span className="inline-flex items-center gap-0.5">
                     <Eye className="size-2.5" />
@@ -1815,6 +1844,11 @@ function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreate: () =
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-3">
+        <AdSlotOrEmpty id="ads_leader" label="Leaderboard banner · paste in /ops" className="mb-2" />
+        <div className="mb-2 grid grid-cols-2 gap-2">
+          <AdSlotOrEmpty id="ads_split_a" label="Google / left split" />
+          <AdSlotOrEmpty id="ads_split_b" label="Image / right split" />
+        </div>
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {live.slice(0, shown).map((a) => {
             const yt = a.video ? youtubeId(a.video) || a.video : undefined;
@@ -1864,6 +1898,7 @@ function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreate: () =
             Load more
           </button>
         ) : null}
+        <AdSlotOrEmpty id="ads_footer" label="Footer long banner · /ops" className="mt-3" />
         {mine.length ? <div className="mt-3 text-[10px] font-medium tracking-normal text-muted">Your queue</div> : null}
         {mine.map((a) => (
           <div key={a.id} className="mt-1 rounded-md border border-line px-2 py-1.5 text-[11px] text-muted">
