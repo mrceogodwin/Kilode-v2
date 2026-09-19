@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { AD_COINS, AD_KINDS, AD_PLACEMENTS, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, POST_CATS, REGIONS, ROOMS, TERMS, chatTtlLabel, faceFor, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
+import { Mail } from "lucide-react";
+import { AD_COINS, AD_KINDS, AD_PLACEMENTS, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, POST_CATS, REGIONS, ROOMS, TERMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 import { claimOps, clearModUser, getModSettings, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setModHitStatus, setModUser, setStaffRole, staffMe } from "@/lib/staff-server";
 import {
@@ -18,7 +19,7 @@ import { listWallets, getChatTtl } from "@/lib/forum-server";
 import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { authClient } from "@/lib/auth/client";
-import { AccountKindPicker, FacePicker } from "@/components/account-kind";
+import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { canKind } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
@@ -386,12 +387,13 @@ function compressImage(file: File): Promise<string> {
 
 function Communities({ onHome }: { onHome: (roomId?: string) => void }) {
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Communities</h2>
+    <Screen kicker="DISCOVER" title="Communities" sub="Hubs by region. Tap a room to chat.">
       {COMMUNITIES.map((c) => {
         const rooms = ROOMS.filter((r) => r.region === c.region);
         return (
-          <Card key={c.id} title={c.name} body={`${rooms.length} rooms`}>
+          <div key={c.id} className="raised mb-3 rounded-2xl p-4">
+            <div className="text-sm font-extrabold">{c.name}</div>
+            <div className="text-[10px] text-muted">{rooms.length} rooms</div>
             <div className="mt-2 flex flex-wrap gap-2">
               {rooms.map((r) => (
                 <button
@@ -404,10 +406,10 @@ function Communities({ onHome }: { onHome: (roomId?: string) => void }) {
                 </button>
               ))}
             </div>
-          </Card>
+          </div>
         );
       })}
-    </div>
+    </Screen>
   );
 }
 
@@ -440,8 +442,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
       .catch(() => setJobs([]));
   }, [s]);
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Search</h2>
+    <Screen kicker="DISCOVER" title="Search" sub="Feeds, rooms, artists, jobs.">
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -487,7 +488,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           <span className="block text-xs text-muted">{r.region}</span>
         </button>
       ))}
-    </div>
+    </Screen>
   );
 }
 
@@ -518,15 +519,15 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
   return (
     <Screen kicker="YOU" title="Profile" sub="Face + handle. Type is locked from join.">
       <div className="raised mb-3 flex items-center gap-3 rounded-2xl p-4">
-        <div className="grid size-14 place-items-center rounded-2xl bg-panel-3 text-3xl">{face}</div>
+        <AvatarImg handle={store.handle || "Guest"} face={face} size={56} />
         <div>
           <div className="text-lg font-extrabold">{store.handle || "Sign in"}</div>
           <div className="text-[11px] text-lime-2">{kindLabel} · {mine.length} topics</div>
         </div>
       </div>
       <div className="mb-3">
-        <div className="mb-1 text-[11px] font-medium text-muted">Your face</div>
-        <FacePicker value={face} onChange={setFace} />
+        <div className="mb-1 text-[11px] font-medium text-muted">Your avatar</div>
+        <AvatarPicker value={face} handle={name} onChange={setFace} />
       </div>
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Public username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       <div>
@@ -633,18 +634,31 @@ function Notes({ store }: { store: Store }) {
   useEffect(() => {
     void listNotes()
       .then(setRows)
-      .catch(() => setRows(store.notes));
+      .catch(() => setRows([]));
   }, [store.notes]);
-  const list = rows.length ? rows : store.notes;
+  const noise = /handle set to|register or sign in|tick the box|could not complete|sign in first|accept the terms/i;
+  const list = rows.filter((n) => n.text && !noise.test(n.text));
   return (
-    <Screen kicker="YOU" title="Notifications" sub="Replies, comments, and DMs when you are signed in.">
-      {list.length === 0 ? <p className="text-sm text-muted">Nothing yet.</p> : null}
-      {list.map((n) => (
-        <a key={n.id} href={n.href || "#"} className="block rounded-xl border border-line bg-panel p-3">
-          <div className="font-semibold">{n.text}</div>
-          <div className="text-xs text-muted">{new Date(n.ts).toLocaleString()}</div>
-        </a>
-      ))}
+    <Screen kicker="YOU" title="Notifications" sub="Replies, comments, and DMs. Sign in to receive them.">
+      {list.length === 0 ? (
+        <div className="raised rounded-2xl p-6 text-center">
+          <div className="text-sm font-bold">Inbox is quiet</div>
+          <p className="mt-1 text-[12px] text-muted">When someone replies to your topic or DMs you, it lands here.</p>
+        </div>
+      ) : null}
+      <div className="space-y-2">
+        {list.map((n) => (
+          <a key={n.id} href={n.href || "#"} className="raised flex items-start gap-3 rounded-2xl p-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-lime-2/15 text-lime-2">
+              <Mail className="size-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-semibold leading-snug">{n.text}</span>
+              <span className="text-[10px] text-muted">{timeAgo(n.ts)}</span>
+            </span>
+          </a>
+        ))}
+      </div>
     </Screen>
   );
 }
@@ -751,7 +765,7 @@ function Board({ store }: { store: Store }) {
       {rows.length === 0 ? <p className="text-sm text-muted">Chat on the server to appear here.</p> : null}
       {rows.map(([name, n], i) => (
         <div key={name} className="raised mb-2 flex items-center gap-3 rounded-2xl p-3">
-          <span className="text-lg leading-none">{faceFor(name)}</span>
+          <AvatarImg handle={name} size={28} />
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-bold">{i + 1}. @{name}</div>
             <div className="text-[10px] text-muted">{n} messages</div>
@@ -783,49 +797,45 @@ function Ads({ store }: { store: Store }) {
       .catch(() => setWallets([]));
   }, []);
   const payTo = wallets.find((w) => w.coin === coin)?.address;
+  const mine = store.campaigns.filter((c) => !!c?.id);
   return (
-    <div className="mx-auto max-w-2xl space-y-3 overflow-y-auto p-5">
-      <h2 className="text-xl font-bold">Place an ad</h2>
-      <p className="text-sm text-muted">
-        Sign in. Pick where it shows. Pay the fee in crypto. Paste the tx. Super admin approves.
-      </p>
-      <div className="text-[11px] font-medium text-muted">Where it shows</div>
-      <div className="grid gap-1.5">
+    <Screen kicker="ADS" title="Place an ad" sub="Pick a slot. Pay crypto. Staff approve. Live ads show on the Ads tab.">
+      <div className="mb-3 grid gap-1.5">
         {AD_PLACEMENTS.map((p) => (
           <button
             key={p.id}
             type="button"
             onClick={() => setPlace(p.id)}
-            className={`rounded-xl border px-3 py-2 text-left ${place === p.id ? "border-lime-2 bg-lime-2/10" : "border-line bg-panel"}`}
+            className={`raised rounded-2xl px-3 py-3 text-left ${place === p.id ? "ring-1 ring-lime-2" : ""}`}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold">{p.label}</span>
-              <span className="text-[11px] text-lime-2">${p.usd} USD</span>
+              <span className="text-sm font-bold">{p.label}</span>
+              <span className="text-[12px] font-extrabold text-lime-2">${p.usd}</span>
             </div>
             <div className="text-[11px] text-muted">{p.hint}</div>
           </button>
         ))}
       </div>
-      <div className="flex flex-wrap gap-1">
+      <div className="mb-3 flex flex-wrap gap-1">
         {AD_KINDS.map((k) => (
-          <button key={k.id} type="button" onClick={() => setKind(k.id)} className={`rounded-full px-2 py-1 text-[11px] ${kind === k.id ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
+          <button key={k.id} type="button" onClick={() => setKind(k.id)} className={`rounded-full px-2.5 py-1 text-[11px] ${kind === k.id ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
             {k.label}
           </button>
         ))}
       </div>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Brand / campaign name" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Destination URL (https://…)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Brand / campaign name" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Destination URL (https://…)" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       {kind === "image" || kind === "image-text" ? (
-        <input value={image} onChange={(e) => setImage(e.target.value)} placeholder="Image URL" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+        <input value={image} onChange={(e) => setImage(e.target.value)} placeholder="Image URL" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       ) : null}
       {kind === "video" || kind === "video-text" ? (
-        <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="YouTube URL or id (not hosted here)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+        <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="YouTube URL or id (not hosted here)" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       ) : null}
       {kind !== "image" && kind !== "video" ? (
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Short copy" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Short copy" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       ) : null}
-      <div className="text-[11px] font-medium text-muted">Pay with</div>
-      <div className="flex flex-wrap gap-1">
+      <div className="mb-1 text-[11px] font-medium text-muted">Pay with</div>
+      <div className="mb-2 flex flex-wrap gap-1">
         {AD_COINS.map((c) => (
           <button
             key={c.id}
@@ -837,7 +847,7 @@ function Ads({ store }: { store: Store }) {
           </button>
         ))}
       </div>
-      <div className="raised rounded-xl p-3 text-xs">
+      <div className="raised mb-3 rounded-2xl p-3 text-xs">
         <div className="text-muted">Send {AD_COINS.find((c) => c.id === coin)?.label} to this Kilode wallet only</div>
         <div className="mt-1 break-all font-mono text-[11px]">{payTo || "Wallet not set yet — staff must paste addresses on /ops."}</div>
         {payTo ? (
@@ -855,19 +865,19 @@ function Ads({ store }: { store: Store }) {
           </button>
         ) : null}
         <p className="mt-2 text-[10px] leading-snug text-danger">
-          Verify the first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet. Staff match your tx hash by hand. NOWPayments is not on — do not send to a third-party invoice.
+          Verify the first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet. Staff match your tx hash by hand.
         </p>
       </div>
-      <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount sent (about $${AD_PLACEMENTS.find((p) => p.id === place)?.usd} USD in crypto)`} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash / payment ID after you pay" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      {err ? <p className="text-sm text-danger">{err}</p> : null}
-      <label className="flex items-start gap-2 text-[11px] text-muted">
+      <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount sent (about $${AD_PLACEMENTS.find((p) => p.id === place)?.usd} USD in crypto)`} className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash / payment ID after you pay" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      {err ? <p className="mb-2 text-sm text-danger">{err}</p> : null}
+      <label className="mb-3 flex items-start gap-2 text-[11px] text-muted">
         <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
         <span>I agree to the Terms. I paid from my own wallet. Staff may reject a bad or missing hash.</span>
       </label>
       <button
         type="button"
-        className="btn-3d rounded-lg px-3 py-2 text-sm font-semibold"
+        className="btn-join mb-4 w-full rounded-xl py-3 text-sm font-bold"
         onClick={() => {
           if (!agree) {
             setErr("Accept the Terms.");
@@ -900,10 +910,19 @@ function Ads({ store }: { store: Store }) {
       >
         Submit for approval
       </button>
-      {store.campaigns.map((c) => (
-        <Card key={c.id} title={c.name} body={`${c.status} · ${(c.coin || "").toUpperCase()} ${c.amount || ""}${c.txHash ? `\ntx ${c.txHash}` : ""}`} />
+      <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">YOUR CAMPAIGNS</div>
+      {mine.length === 0 ? <p className="text-sm text-muted">None yet.</p> : null}
+      {mine.map((c) => (
+        <div key={c.id} className="raised mb-2 flex gap-2 overflow-hidden rounded-2xl">
+          {c.image ? <img src={c.image} alt="" className="h-16 w-20 object-cover" /> : <div className="grid h-16 w-20 place-items-center bg-panel-3 text-[10px] text-lime-2">AD</div>}
+          <div className="min-w-0 py-2 pr-2">
+            <div className="truncate text-sm font-bold">{c.name}</div>
+            <div className="text-[10px] text-lime-2">{c.status}</div>
+            <div className="truncate text-[10px] text-muted">{(c.coin || "").toUpperCase()} {c.amount || ""}</div>
+          </div>
+        </div>
       ))}
-    </div>
+    </Screen>
   );
 }
 
@@ -1778,8 +1797,7 @@ function Settings({ store }: { store: Store }) {
   const kindLabel = ACCOUNT_KINDS.find((k) => k.id === store.kind)?.label ?? "Member";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Settings</h2>
+    <Screen kicker="YOU" title="Settings" sub="Username + password. No email reset.">
       <Card title="Public username" body={`${store.handle || "Sign in to set one"} · ${kindLabel}`} />
       <Card title="Change password" body="Do this while signed in. There is no reset email — this app does not collect your real email, so nobody can mail you a new password.">
         <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Current password" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
@@ -1802,14 +1820,13 @@ function Settings({ store }: { store: Store }) {
           Clear local extras
         </button>
       </Card>
-    </div>
+    </Screen>
   );
 }
 
 function Help() {
   return (
-    <div className="mx-auto max-w-2xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Help, terms & about</h2>
+    <Screen kicker="KILODE" title="Help & terms" sub="How accounts, ads, cinema, and staff work.">
       <Card title="Accounts" body="Username + password. Tick Terms. One account type at register — you cannot switch it. Super admin can override. No public email." />
       <Card title="What each type can do" body="Normal user: chat, feeds, vote, apply to jobs. Artist: music URLs only. Writer: feeds. Ads Poster: business ads. Cinema Advertiser: movie YouTube URLs. Job Poster / Seeker, Marketplace seller, Rent lister: their module only." />
       <Card title="Chat" body="Signed-in messages save on the server. Super admin sets how long they live (1 hour to 30 days, or never). Use ‹ › to page older/newer chat. Tap Translate under a line for Yoruba, Igbo, Hausa, French, Spanish." />
@@ -1827,7 +1844,7 @@ function Help() {
         </a>{" "}
         · Squadglobaldynasty
       </p>
-    </div>
+    </Screen>
   );
 }
 
@@ -1838,7 +1855,7 @@ function Dash({ store, onHome, onForum }: { store: Store; onHome: (id?: string) 
   return (
     <Screen kicker="YOU" title="Dashboard" sub={signed ? `${kindLabel} on Kilode.` : "Join to own a dashboard. Guests can browse feeds."}>
       <div className="raised mb-4 flex items-center gap-3 rounded-2xl p-4">
-        <div className="grid size-14 place-items-center rounded-2xl bg-panel-3 text-3xl">{signed ? store.face || KIND_FACE[store.kind] : "💭"}</div>
+        <AvatarImg handle={store.handle || "Guest"} face={signed ? store.face : undefined} size={56} />
         <div className="min-w-0">
           <div className="truncate text-lg font-extrabold">{store.handle || "Guest"}</div>
           <div className="text-[11px] text-lime-2">{signed ? kindLabel : "Not signed in"}</div>

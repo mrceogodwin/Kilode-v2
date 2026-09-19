@@ -35,7 +35,7 @@ import {
   Shield,
   X,
 } from "lucide-react";
-import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, faceFor, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
+import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
@@ -45,7 +45,7 @@ import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { listWallets } from "@/lib/forum-server";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
-import { AccountKindPicker, FacePicker } from "@/components/account-kind";
+import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { TranslateBtn } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
 
@@ -300,12 +300,21 @@ export function QonvoApp() {
           </button>
           <nav className="mx-auto hidden min-w-0 items-center justify-center gap-1 md:flex">
             <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
+            <HomeTab label="Chat" on={homeTab === "chat" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("chat"); setScreen("home"); setMenuOpen(false); }} />
             <HomeTab label="Music" on={homeTab === "music" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("music"); setScreen("home"); setMenuOpen(false); }} />
             <HomeTab label="Cinema" on={homeTab === "cinema" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("cinema"); setScreen("home"); setMenuOpen(false); }} />
-            <HomeTab label="Chat" on={homeTab === "chat" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("chat"); setScreen("home"); setMenuOpen(false); }} />
-            <HomeTab label="Me" on={screen === "profile" || menuOpen} onClick={() => { setScreen("profile"); setMenuOpen(true); }} />
+            <HomeTab label="Ads" on={homeTab === "advert" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("advert"); setScreen("home"); setMenuOpen(false); }} />
+            <HomeTab label="Me" on={screen === "profile"} onClick={() => { setScreen("profile"); setMenuOpen(false); }} />
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            <button
+              type="button"
+              className="grid size-9 place-items-center rounded-lg border border-line bg-panel-2"
+              aria-label="Menu"
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <Menu className="size-4" />
+            </button>
             <span className="hidden items-center gap-1.5 text-[11px] font-medium text-lime-2 sm:flex">
               <span className="size-1.5 animate-pulse rounded-full bg-lime-2" />
               Live
@@ -357,15 +366,19 @@ export function QonvoApp() {
               </h1>
             </div>
           ) : null}
-          {homeTab === "feeds" || homeTab === "music" ? (
+          {homeTab === "feeds" || homeTab === "music" || homeTab === "advert" ? (
             <div className="flex shrink-0 justify-end gap-1 border-b border-line px-2 py-0.5">
               {homeTab === "feeds" ? (
                 <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))}>
                   New post
                 </button>
-              ) : (
+              ) : homeTab === "music" ? (
                 <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))}>
                   Add track
+                </button>
+              ) : (
+                <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => (store.authed || session.user ? setScreen("ads") : (window.location.href = "/login"))}>
+                  Place ad
                 </button>
               )}
             </div>
@@ -397,7 +410,9 @@ export function QonvoApp() {
                 <div>
                   <div className="text-sm font-bold">{room.name}</div>
                   <div className="text-[10px] text-muted">
-                    {fmt(room.online)} · {store.handle || "guest"}
+                    <span className="font-semibold text-lime-2">{store.online.length} online</span>
+                    {" · "}
+                    {store.handle || "guest"}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -430,22 +445,23 @@ export function QonvoApp() {
                   </button>
                 </div>
               </div>
-              {store.online.length ? (
-                <div className="flex items-center gap-1.5 overflow-x-auto border-b border-white/5 px-3 py-1.5">
-                  {store.online.slice(0, 10).map((u) => (
-                    <span key={u.handle} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-1.5 py-0.5" title={u.handle}>
-                      <span className="size-1.5 rounded-full" style={{ background: handleColor(u.handle) }} />
-                      <span className="max-w-[72px] truncate text-[10px]" style={{ color: handleColor(u.handle) }}>{u.handle}</span>
-                    </span>
-                  ))}
-                  {store.typing.filter((n) => n !== store.handle).length ? (
-                    <span className="ml-1 shrink-0 text-[10px] text-lime-2">
-                      {store.typing.filter((n) => n !== store.handle).slice(0, 2).join(", ")} typing
-                      <span className="typing-dots" />
-                    </span>
-                  ) : null}
-                </div>
-              ) : null}
+              <div className="flex items-center gap-2 overflow-x-auto border-b border-white/5 px-3 py-1.5">
+                <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-lime-2" />
+                <span className="shrink-0 text-[10px] font-bold text-lime-2">{store.online.length} online</span>
+                {store.online.slice(0, 12).map((u) => (
+                  <span key={u.handle} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line bg-panel-2 py-0.5 pr-1.5 pl-0.5" title={u.handle}>
+                    <AvatarImg handle={u.handle} size={16} />
+                    <span className="max-w-[72px] truncate text-[10px]" style={{ color: handleColor(u.handle) }}>{u.handle}</span>
+                  </span>
+                ))}
+                {store.online.length === 0 ? <span className="text-[10px] text-muted">Be first in this room</span> : null}
+                {store.typing.filter((n) => n !== store.handle).length ? (
+                  <span className="ml-1 shrink-0 text-[10px] text-lime-2">
+                    {store.typing.filter((n) => n !== store.handle).slice(0, 2).join(", ")} typing
+                    <span className="typing-dots" />
+                  </span>
+                ) : null}
+              </div>
               {store.campaigns
                 .filter((c) => c.status === "approved" && c.placement === "chat-pin")
                 .slice(0, 2)
@@ -676,12 +692,13 @@ export function QonvoApp() {
         </div>
       )}
 
-      <nav className="z-20 grid shrink-0 grid-cols-5 border-t border-line bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        <Tab icon={<Home className="size-4" />} label="Feeds" on={screen === "home" && homeTab === "feeds"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); store.setOpenPost(null); }} />
-        <Tab icon={<Radio className="size-4" />} label="Music" on={screen === "home" && homeTab === "music"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("music"); }} />
-        <Tab icon={<Film className="size-4" />} label="Cinema" on={screen === "home" && homeTab === "cinema"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("cinema"); }} />
-        <Tab icon={<MessageSquare className="size-4" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
-        <Tab icon={<User className="size-4" />} label="Me" on={screen === "profile" || menuOpen} onClick={() => { setScreen("profile"); setMenuOpen(true); }} />
+      <nav className="z-20 grid shrink-0 grid-cols-6 border-t border-line bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); store.setOpenPost(null); }} />
+        <Tab icon={<MessageSquare className="size-3.5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
+        <Tab icon={<Radio className="size-3.5" />} label="Music" on={screen === "home" && homeTab === "music"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("music"); }} />
+        <Tab icon={<Film className="size-3.5" />} label="Cinema" on={screen === "home" && homeTab === "cinema"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("cinema"); }} />
+        <Tab icon={<Megaphone className="size-3.5" />} label="Ads" on={screen === "home" && homeTab === "advert"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("advert"); }} />
+        <Tab icon={<User className="size-3.5" />} label="Me" on={screen === "profile"} onClick={() => { setMenuOpen(false); setScreen("profile"); }} />
       </nav>
 
       {roomsOpen ? (
@@ -754,9 +771,7 @@ export function QonvoApp() {
         <div className="fixed inset-0 z-30 flex">
           <aside className="flex h-full w-[min(320px,90vw)] flex-col border-r border-line bg-panel">
             <div className="flex items-center gap-3 border-b border-line bg-gradient-to-b from-lime-2/10 to-transparent p-4">
-              <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-panel-3 text-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
-                {session.user ? store.face || KIND_FACE[store.kind] : "💭"}
-              </div>
+              <AvatarImg handle={store.handle || "Guest"} face={store.face} size={48} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-extrabold tracking-tight">{store.handle || "Guest"}</div>
                 <div className="text-[10px] tracking-normal text-lime-2">
@@ -980,8 +995,8 @@ export function QonvoApp() {
               />
             </div>
             <div className="mb-2">
-              <div className="mb-1 text-[10px] font-medium tracking-normal text-muted">Your face</div>
-              <FacePicker value={joinFace} onChange={setJoinFace} />
+              <div className="mb-1 text-[10px] font-medium tracking-normal text-muted">Your avatar</div>
+              <AvatarPicker value={joinFace} handle={joinName} onChange={setJoinFace} />
             </div>
             <label className="mb-2 flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">
               <input type="checkbox" className="mt-0.5" checked={joinAgree} onChange={(e) => setJoinAgree(e.target.checked)} />
@@ -1047,7 +1062,7 @@ function Tab({
   onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} className={`app-tab flex min-h-12 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold ${on ? "on" : ""}`}>
+    <button type="button" onClick={onClick} className={`app-tab flex min-h-11 flex-col items-center justify-center gap-0.5 text-[9px] font-semibold ${on ? "on" : ""}`}>
       {icon}
       {label}
     </button>
@@ -1417,7 +1432,7 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
               <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{post.category || "General"}</div>
               <h1 className="mt-1 text-2xl font-extrabold leading-tight">{post.title}</h1>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
-                <span className="text-lg leading-none">{faceFor(post.author)}</span>
+                <AvatarImg handle={post.author} size={22} />
                 <span>
                   Posted by <HandleLink handle={post.author} className="text-[11px] font-semibold" />
                 </span>
@@ -1601,7 +1616,29 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
               <div className="px-1 py-1">
                 <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
                 <div className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-snug text-fg/75">{p.title}</div>
-                <div className="mt-0.5 text-[9px] tabular-nums text-muted">💬 {p.comments?.length ?? 0}</div>
+                <div className="mt-0.5 flex items-center gap-1.5 text-[8px] tabular-nums text-muted">
+                  <span className="inline-flex items-center gap-0.5">
+                    <Eye className="size-2.5" />
+                    {fmtCount(p.views ?? 0)}
+                  </span>
+                  <span className="inline-flex items-center gap-0.5">
+                    <MessageSquare className="size-2.5" />
+                    {p.comments?.length ?? 0}
+                  </span>
+                  <span
+                    role="button"
+                    className="ml-auto inline-flex items-center"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      store.sharePost(p.id);
+                      const url = `${window.location.origin}/p/${encodeURIComponent(p.slug || p.id)}`;
+                      if (navigator.share) void navigator.share({ title: p.title, url });
+                      else void navigator.clipboard?.writeText(url);
+                    }}
+                  >
+                    <Share2 className="size-2.5" />
+                  </span>
+                </div>
               </div>
             </button>
           ))}

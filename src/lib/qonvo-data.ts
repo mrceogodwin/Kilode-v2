@@ -75,24 +75,39 @@ export type ProfileExtra = {
 
 export const FACE_EMOJIS = ["😎", "🙂", "😁", "🤓", "👑", "🎵", "✍️", "💼", "🎬", "🏡", "🛍️", "🇳🇬", "🔥", "💭", "🦁", "🌟"] as const;
 
+export const AVATAR_SEEDS = ["Ada", "Tunde", "Amaka", "Chidi", "Zara", "Femi", "Ngozi", "Kemi", "Ife", "Sade", "Yemi", "Baba"] as const;
+
 export const KIND_FACE: Record<AccountKind, string> = {
-  member: "🙂",
-  writer: "✍️",
-  artist: "🎵",
-  advertiser: "🔥",
-  cinema: "🎬",
-  job_poster: "💼",
-  job_seeker: "🤓",
-  vendor: "🛍️",
-  renter: "🏡",
-  brand: "👑",
+  member: "av:Ada",
+  writer: "av:Chidi",
+  artist: "av:Zara",
+  advertiser: "av:Femi",
+  cinema: "av:Tunde",
+  job_poster: "av:Baba",
+  job_seeker: "av:Ife",
+  vendor: "av:Sade",
+  renter: "av:Kemi",
+  brand: "av:Yemi",
 };
+
+export function avatarUrl(handle: string, face?: string | null) {
+  if (face && /^https?:\/\//.test(face)) return face;
+  const seed = face && face.startsWith("av:") ? face.slice(3) : handle || "Kilode";
+  return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}&backgroundColor=111827,14532d,1f2937`;
+}
 
 export function faceFor(handle: string, face?: string | null) {
   if (face && FACE_EMOJIS.includes(face as (typeof FACE_EMOJIS)[number])) return face;
-  let n = 0;
-  for (let i = 0; i < handle.length; i++) n = (n + handle.charCodeAt(i) * (i + 1)) % FACE_EMOJIS.length;
-  return FACE_EMOJIS[n] ?? "🙂";
+  return "";
+}
+
+export function timeAgo(ts: number) {
+  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (s < 45) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  if (s < 604800) return `${Math.floor(s / 86400)}d`;
+  return new Date(ts).toLocaleDateString();
 }
 
 export function asAccountKind(v: string | null | undefined): AccountKind {

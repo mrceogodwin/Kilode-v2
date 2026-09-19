@@ -1,4 +1,6 @@
-import { ACCOUNT_KINDS, FACE_EMOJIS, KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { ACCOUNT_KINDS, AVATAR_SEEDS, KIND_FACE, avatarUrl, type AccountKind } from "@/lib/qonvo-data";
 
 export function AccountKindPicker({
   value,
@@ -9,19 +11,41 @@ export function AccountKindPicker({
   onChange: (v: AccountKind) => void;
   compact?: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const current = ACCOUNT_KINDS.find((k) => k.id === value);
   if (compact) {
     return (
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as AccountKind)}
-        className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm"
-      >
-        {ACCOUNT_KINDS.map((k) => (
-          <option key={k.id} value={k.id}>
-            {KIND_FACE[k.id]} {k.label} — {k.hint}
-          </option>
-        ))}
-      </select>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center justify-between rounded-xl border border-line bg-panel px-3 py-2.5 text-left"
+        >
+          <span>
+            <span className="block text-[13px] font-semibold">{current?.label ?? "Choose type"}</span>
+            <span className="block text-[10px] text-muted">{current?.hint}</span>
+          </span>
+          <ChevronDown className={`size-4 shrink-0 text-muted transition ${open ? "rotate-180" : ""}`} />
+        </button>
+        {open ? (
+          <div className="absolute z-40 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-line bg-panel-2 p-1 shadow-xl">
+            {ACCOUNT_KINDS.map((k) => (
+              <button
+                key={k.id}
+                type="button"
+                onClick={() => {
+                  onChange(k.id);
+                  setOpen(false);
+                }}
+                className={`flex w-full flex-col rounded-lg px-3 py-2 text-left ${value === k.id ? "bg-lime-2/15 text-lime-2" : "hover:bg-panel"}`}
+              >
+                <span className="text-[13px] font-semibold">{k.label}</span>
+                <span className="text-[10px] text-muted">{k.hint}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
     );
   }
   return (
@@ -33,9 +57,7 @@ export function AccountKindPicker({
           onClick={() => onChange(k.id)}
           className={`rounded-lg border px-2 py-2 text-left ${value === k.id ? "border-lime-2 bg-lime-2/10" : "border-line bg-black/20"}`}
         >
-          <div className="text-[12px] font-semibold">
-            {KIND_FACE[k.id]} {k.label}
-          </div>
+          <div className="text-[12px] font-semibold">{k.label}</div>
           <div className="text-[10px] text-muted">{k.hint}</div>
         </button>
       ))}
@@ -43,26 +65,58 @@ export function AccountKindPicker({
   );
 }
 
-export function FacePicker({
+export function AvatarImg({
+  handle,
+  face,
+  size = 32,
+  className = "",
+}: {
+  handle: string;
+  face?: string | null;
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <img
+      src={avatarUrl(handle, face)}
+      alt=""
+      width={size}
+      height={size}
+      className={`shrink-0 rounded-full bg-panel-3 object-cover ${className}`}
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
+export function AvatarPicker({
   value,
+  handle,
   onChange,
 }: {
   value: string;
+  handle?: string;
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-1">
-      {FACE_EMOJIS.map((f) => (
-        <button
-          key={f}
-          type="button"
-          onClick={() => onChange(f)}
-          className={`grid size-9 place-items-center rounded-lg text-lg ${value === f ? "btn-3d" : "border border-line bg-panel"}`}
-          aria-label={`Face ${f}`}
-        >
-          {f}
-        </button>
-      ))}
+    <div className="grid grid-cols-6 gap-1.5">
+      {AVATAR_SEEDS.map((seed) => {
+        const id = `av:${seed}`;
+        return (
+          <button
+            key={seed}
+            type="button"
+            onClick={() => onChange(id)}
+            className={`overflow-hidden rounded-full ring-offset-2 ring-offset-bg ${value === id ? "ring-2 ring-lime-2" : "ring-1 ring-line"}`}
+            aria-label={`Avatar ${seed}`}
+          >
+            <img src={avatarUrl(handle || seed, id)} alt="" className="aspect-square w-full object-cover" />
+          </button>
+        );
+      })}
     </div>
   );
+}
+
+export function FacePicker(props: { value: string; onChange: (v: string) => void; handle?: string }) {
+  return <AvatarPicker value={props.value || KIND_FACE.member} handle={props.handle} onChange={props.onChange} />;
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { authEnabled } from "@/lib/auth/client";
-import { AccountKindPicker, FacePicker } from "@/components/account-kind";
+import { AccountKindPicker, AvatarPicker } from "@/components/account-kind";
 import { KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 
@@ -84,8 +84,8 @@ function Login() {
                   />
                 </div>
                 <div>
-                  <div className="mb-1 text-[11px] font-medium text-muted">Your face</div>
-                  <FacePicker value={face} onChange={setFace} />
+                  <div className="mb-1 text-[11px] font-medium text-muted">Your avatar</div>
+                  <AvatarPicker value={face} handle={name} onChange={setFace} />
                 </div>
                 <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">
                   <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />

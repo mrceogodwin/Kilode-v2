@@ -35,9 +35,12 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   }, [kind]);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-3 p-4 pb-20">
-      <h2 className="text-xl font-bold">{copy.title}</h2>
-      <p className="text-sm text-muted">{copy.who}</p>
+    <div className="mx-auto max-w-3xl p-4 pb-20">
+      <div className="mb-4">
+        <div className="text-[10px] font-bold tracking-[0.2em] text-lime-2">MARKET</div>
+        <h2 className="text-2xl font-extrabold tracking-tight">{copy.title}</h2>
+        <p className="mt-1 text-sm text-muted">{copy.who}</p>
+      </div>
 
       <div className="raised space-y-2 rounded-xl p-3">
         <div className="text-[11px] font-medium text-muted">Post a listing (correct account type only)</div>
