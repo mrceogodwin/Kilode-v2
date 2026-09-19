@@ -1443,7 +1443,7 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
               {post.excerpt ? <p className="mt-3 text-sm italic text-muted">{post.excerpt}</p> : null}
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-px border-t border-white/5 bg-black/30 sm:grid-cols-6">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-white/5 px-3 py-2 text-[11px]">
             {[
               { icon: Eye, n: post.views ?? 0, label: "Views" },
               { icon: MessageSquare, n: post.comments.length, label: "Comments" },
@@ -1452,11 +1452,11 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
               { icon: Share2, n: shares, label: "Shares" },
               { icon: Hash, n: mins, label: "Min" },
             ].map((s) => (
-              <div key={s.label} className="flex flex-col items-center gap-0.5 bg-panel py-2.5">
+              <span key={s.label} className="inline-flex items-center gap-1 text-muted">
                 <s.icon className="size-3.5 text-lime-2" />
-                <span className="text-[11px] font-bold">{fmtCount(s.n)}</span>
-                <span className="text-[9px] tracking-normal text-muted">{s.label}</span>
-              </div>
+                <span className="font-bold text-fg">{fmtCount(s.n)}</span>
+                <span className="hidden text-[10px] sm:inline">{s.label}</span>
+              </span>
             ))}
           </div>
         </div>

@@ -6,9 +6,17 @@ export type DbSource = "neon" | "pglite";
 // An empty/whitespace DATABASE_URL (an easy misconfig in deploy UIs) must mean
 // "unset" — otherwise production would silently run on the PGLite fallback.
 const rawDatabaseUrl =
-  typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
-const databaseUrl =
-  rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
+  typeof process !== "undefined"
+    ? process.env.DATABASE_URL?.trim() ||
+      process.env.POSTGRES_URL?.trim() ||
+      process.env.POSTGRES_PRISMA_URL?.trim() ||
+      process.env.NEON_DATABASE_URL?.trim()
+    : undefined;
+const databaseUrl = rawDatabaseUrl || undefined;
+const onVercel = typeof process !== "undefined" && Boolean(process.env.VERCEL);
+
+export const MISSING_DB =
+  "Postgres is not connected on this deploy. Vercel → Settings → Environment Variables → add DATABASE_URL (Neon pooled URI), then Redeploy. Sign-in cannot use the preview database on Vercel.";
 
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
@@ -200,6 +208,8 @@ async function createPgliteSql(): Promise<Sql> {
 
 let sqlPromise: Promise<Sql> | null = null;
 
+export const neonConnectionString = databaseUrl;
+
 async function createSql(): Promise<Sql> {
   if (typeof window !== "undefined") {
     throw new Error(
@@ -207,7 +217,9 @@ async function createSql(): Promise<Sql> {
         "or a server route loader, never from client code.",
     );
   }
-  return dbSource === "neon" ? createNeonSql() : createPgliteSql();
+  if (databaseUrl) return createNeonSql();
+  if (onVercel) throw new Error(MISSING_DB);
+  return createPgliteSql();
 }
 
 /**

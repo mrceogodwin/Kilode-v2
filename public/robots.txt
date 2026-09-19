@@ -1,6 +1,8 @@
 User-agent: *
 Allow: /
 Disallow: /ops
-Disallow: /api/
+Disallow: /api/auth
+Disallow: /login
 
-Sitemap: https://kilode.ng/sitemap.xml
+Sitemap: https://kilode.ng/api/sitemap
+Sitemap: https://kilode.vercel.app/api/sitemap

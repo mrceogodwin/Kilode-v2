@@ -23,6 +23,7 @@ import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account
 import { canKind } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
+import { OpsKeysPanel, OpsSeoPanel } from "@/components/ops-tools";
 import { listListings, type Listing } from "@/lib/listings-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 
@@ -213,7 +214,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       return;
     }
     if (!canKind(store.kind, "feeds.post")) {
-      setErr("Join as Member or Writer to start a topic — like Nairaland. Artists post music, advertisers post ads.");
+      setErr("This account type cannot start a topic. Members and Writers post feeds. Artists list music. Advertisers place ads.");
       return;
     }
     if (!title.trim() || !body.trim()) {
@@ -346,7 +347,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           {err ? <p className="text-sm text-danger">{err}</p> : null}
           <label className="flex items-start gap-2 text-[11px] text-muted">
             <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-            <span>I agree to the Terms & Conditions and I am responsible for this post.</span>
+            <span>I agree to the Terms. I am responsible for this post. Kilode is not liable for what I publish.</span>
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button type="button" className="btn-join flex-1 rounded-xl px-3 py-3 text-sm font-bold" onClick={() => submit("publish")}>
@@ -1028,6 +1029,8 @@ function Admin({ store }: { store: Store }) {
       </div>
       <Card title="Queue" body={`${store.campaigns.filter((c) => c.status === "pending" || c.status === "paid").length} waiting`} />
       <Card title="Live ads" body={`${store.campaigns.filter((c) => c.status === "approved").length} approved`} />
+      <OpsKeysPanel />
+      <OpsSeoPanel />
       <div className="md:col-span-2 space-y-2">
         {store.campaigns.map((c) => (
           <div key={c.id} className="rounded-xl border border-line bg-panel p-3">
@@ -1875,7 +1878,7 @@ function Dash({ store, onHome, onForum }: { store: Store; onHome: (id?: string) 
       </div>
       {!signed ? (
         <a href="/login?mode=up" className="btn-join mb-4 block rounded-xl py-3 text-center text-sm font-bold">
-          Join to post like Nairaland
+          Join to post
         </a>
       ) : null}
       <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">YOUR TOPICS</div>

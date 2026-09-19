@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OpsRouteImport } from './routes/ops'
+import { Route as ApiSitemapRouteImport } from './routes/api/sitemap'
 import { Route as PIdRouteImport } from './routes/p.$id'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -29,6 +30,11 @@ const LoginRoute = LoginRouteImport.update({
 const OpsRoute = OpsRouteImport.update({
   id: '/ops',
   path: '/ops',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSitemapRoute = ApiSitemapRouteImport.update({
+  id: '/api/sitemap',
+  path: '/api/sitemap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PIdRoute = PIdRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/ops': typeof OpsRoute
+  '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/ops': typeof OpsRoute
+  '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -68,20 +76,36 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/ops': typeof OpsRoute
+  '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/ops' | '/p/$id' | '/u/$handle' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/ops'
+    | '/api/sitemap'
+    | '/p/$id'
+    | '/u/$handle'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/ops' | '/p/$id' | '/u/$handle' | '/api/auth/$'
+  to:
+    | '/'
+    | '/login'
+    | '/ops'
+    | '/api/sitemap'
+    | '/p/$id'
+    | '/u/$handle'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/login'
     | '/ops'
+    | '/api/sitemap'
     | '/p/$id'
     | '/u/$handle'
     | '/api/auth/$'
@@ -91,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   OpsRoute: typeof OpsRoute
+  ApiSitemapRoute: typeof ApiSitemapRoute
   PIdRoute: typeof PIdRoute
   UHandleRoute: typeof UHandleRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -117,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/ops'
       fullPath: '/ops'
       preLoaderRoute: typeof OpsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/sitemap': {
+      id: '/api/sitemap'
+      path: '/api/sitemap'
+      fullPath: '/api/sitemap'
+      preLoaderRoute: typeof ApiSitemapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$id': {
@@ -147,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   OpsRoute: OpsRoute,
+  ApiSitemapRoute: ApiSitemapRoute,
   PIdRoute: PIdRoute,
   UHandleRoute: UHandleRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

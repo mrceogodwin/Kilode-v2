@@ -20,6 +20,13 @@ async function staffOf(userId: string) {
   }
 }
 
+export async function assertStaff(userId: string, need?: "super") {
+  const me = await staffOf(userId);
+  if (!me) throw new Error("Forbidden");
+  if (need === "super" && me.role !== "super") throw new Error("Forbidden");
+  return me;
+}
+
 export const staffMe = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {

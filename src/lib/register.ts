@@ -14,7 +14,10 @@ function niceAuthError(raw: string) {
   }
   if (m.includes("password") && m.includes("invalid")) return "Wrong username or password.";
   if (m.includes("password")) return "Password needs 8+ characters.";
-  if (m.includes("database") || m.includes("postgres") || m.includes("neon")) return raw;
+  if (m.includes("enoent") || m.includes("pglite") || m.includes("/var/task") || m.includes("econnrefused") || m.includes("127.0.0.1:1")) {
+    return "Postgres is not connected on this deploy. Owner: Vercel → Settings → Environment Variables → DATABASE_URL (Neon), then Redeploy. Sign-in cannot work until that is set.";
+  }
+  if (m.includes("database") || m.includes("postgres") || m.includes("neon")) return "Database is not ready. Owner must set DATABASE_URL on Vercel and redeploy.";
   return raw || "Could not complete that.";
 }
 

@@ -21,6 +21,9 @@ export const Route = createFileRoute("/p/$id")({
       path: `/p/${post.slug || post.id}`,
       image: post.image ?? undefined,
       type: "article",
+      published: new Date(post.ts).toISOString(),
+      author: post.author,
+      keywords: [post.category, post.tags].filter(Boolean).join(", "),
     });
   },
   component: PublicPost,

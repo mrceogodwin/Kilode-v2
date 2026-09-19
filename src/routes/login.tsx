@@ -55,9 +55,9 @@ function Login() {
   return (
     <main className="grid min-h-dvh place-items-center overflow-y-auto bg-bg p-6 text-fg">
       <div className="raised w-full max-w-sm space-y-3 rounded-2xl p-5">
-        <div className="flex flex-col items-center gap-1 text-center">
-          <img src="/kilode-lockup-lg.png" alt="Kilode" className="h-14 w-auto max-w-[240px] object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/kilode-logo-green.png"; }} />
-          <p className="text-[11px] font-medium text-muted">{staff ? "Staff console" : "kilode.ng"}</p>
+        <div className="flex flex-col items-center text-center">
+          <img src="/kilode-lockup-lg.png" alt="Kilode" className="mx-auto h-16 w-auto max-w-[220px] object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/kilode-logo-green.png"; }} />
+          {staff ? <p className="mt-2 text-[11px] font-medium text-muted">Staff console</p> : null}
         </div>
         <p className="text-sm text-muted">
           {staff
