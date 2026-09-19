@@ -4,6 +4,7 @@ import { authEnabled } from "@/lib/auth/client";
 import { AccountKindPicker, AvatarPicker } from "@/components/account-kind";
 import { KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
+import { HOWTO } from "@/lib/legal";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>): { next?: string; mode?: "in" | "up" } => {
@@ -21,6 +22,7 @@ function Login() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [agree, setAgree] = useState(false);
+  const [agreeRules, setAgreeRules] = useState(false);
   const [kind, setKind] = useState<AccountKind>("member");
   const [face, setFace] = useState(KIND_FACE.member);
   const [mode, setMode] = useState<"in" | "up">(staff ? "in" : search.mode === "up" ? "up" : "in");
@@ -33,8 +35,8 @@ function Login() {
 
   async function up() {
     setErr("");
-    if (!agree) {
-      setErr(staff ? "Confirm you are creating the owner account." : "Tick the box to accept the Terms.");
+    if (!agree || !agreeRules) {
+      setErr(staff ? "Confirm you are creating the owner account." : "Tick both boxes. Read the Terms and the Rules first.");
       return;
     }
     setBusy(true);
@@ -82,15 +84,39 @@ function Login() {
                       setFace(KIND_FACE[k]);
                     }}
                   />
+                  <p className="mt-1.5 text-[11px] leading-snug text-muted">{HOWTO.find((h) => h.id === kind)?.body}</p>
                 </div>
                 <div>
                   <div className="mb-1 text-[11px] font-medium text-muted">Your avatar</div>
                   <AvatarPicker value={face} handle={name} onChange={setFace} />
                 </div>
-                <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">
+                <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] leading-snug text-muted">
                   <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-                  <span>I agree to the Terms. I am responsible for what I submit.</span>
+                  <span>
+                    I have read and agree to the{" "}
+                    <a href="/terms#terms" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                      Terms of Use
+                    </a>
+                    .
+                  </span>
                 </label>
+                <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] leading-snug text-muted">
+                  <input type="checkbox" className="mt-0.5" checked={agreeRules} onChange={(e) => setAgreeRules(e.target.checked)} />
+                  <span>
+                    I accept the{" "}
+                    <a href="/terms#rules" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                      Community Rules
+                    </a>{" "}
+                    and I am responsible for what I submit. Kilode is not liable.{" "}
+                    <a href="/terms#howto" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                      How to use
+                    </a>
+                    .
+                  </span>
+                </label>
+                <a href="/terms" className="block text-center text-[11px] font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                  Open the full Terms, Rules, Privacy and How to use →
+                </a>
               </>
             ) : null}
             {mode === "up" && staff ? (

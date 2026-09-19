@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OpsRouteImport } from './routes/ops'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiSitemapRouteImport } from './routes/api/sitemap'
 import { Route as PIdRouteImport } from './routes/p.$id'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
@@ -30,6 +31,11 @@ const LoginRoute = LoginRouteImport.update({
 const OpsRoute = OpsRouteImport.update({
   id: '/ops',
   path: '/ops',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSitemapRoute = ApiSitemapRouteImport.update({
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/ops': typeof OpsRoute
+  '/terms': typeof TermsRoute
   '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
   '/u/$handle': typeof UHandleRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/ops': typeof OpsRoute
+  '/terms': typeof TermsRoute
   '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
   '/u/$handle': typeof UHandleRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/ops': typeof OpsRoute
+  '/terms': typeof TermsRoute
   '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
   '/u/$handle': typeof UHandleRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/ops'
+    | '/terms'
     | '/api/sitemap'
     | '/p/$id'
     | '/u/$handle'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/ops'
+    | '/terms'
     | '/api/sitemap'
     | '/p/$id'
     | '/u/$handle'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/ops'
+    | '/terms'
     | '/api/sitemap'
     | '/p/$id'
     | '/u/$handle'
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   OpsRoute: typeof OpsRoute
+  TermsRoute: typeof TermsRoute
   ApiSitemapRoute: typeof ApiSitemapRoute
   PIdRoute: typeof PIdRoute
   UHandleRoute: typeof UHandleRoute
@@ -142,6 +155,13 @@ declare module '@tanstack/react-router' {
       path: '/ops'
       fullPath: '/ops'
       preLoaderRoute: typeof OpsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/sitemap': {
@@ -179,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   OpsRoute: OpsRoute,
+  TermsRoute: TermsRoute,
   ApiSitemapRoute: ApiSitemapRoute,
   PIdRoute: PIdRoute,
   UHandleRoute: UHandleRoute,

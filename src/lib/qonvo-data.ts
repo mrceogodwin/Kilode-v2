@@ -51,7 +51,7 @@ export const REGIONS = ["All", ...Array.from(new Set(ROOMS.map((r) => r.region))
 
 export const ACCOUNT_KINDS = [
   { id: "member", label: "Normal user", hint: "Chat, feeds, vote, apply to jobs" },
-  { id: "artist", label: "Artist", hint: "Pay to list music URLs only" },
+  { id: "artist", label: "Artist", hint: "List music URLs. We embed the player." },
   { id: "writer", label: "Writer", hint: "News, blogs, reviews" },
   { id: "advertiser", label: "Ads Poster", hint: "Pay to place business ads" },
   { id: "cinema", label: "Advertiser (Cinema)", hint: "Pay to submit movie YouTube URLs" },
@@ -204,6 +204,7 @@ export type Post = {
   slug?: string;
   status?: "draft" | "publish";
   views?: number;
+  commentsOn?: boolean;
 };
 
 export const POST_CATS = ["General", "News", "Naija", "Tech", "Sports", "Business", "Culture", "Opinion", "Music", "Comedy", "Politics", "Lifestyle", "Education", "Health", "Travel", "Fashion", "Food", "Jobs"];
@@ -280,12 +281,21 @@ export function chatTtlLabel(hours: number) {
 }
 
 export const AD_PLACEMENTS = [
-  { id: "board", label: "Ads grid", usd: 40, hint: "Shows in the Ads area" },
-  { id: "chat", label: "Chat stream · premium", usd: 250, hint: "Scrolls up with live chat" },
-  { id: "chat-pin", label: "Pinned in chat · top", usd: 800, hint: "Stays at the top of Chat" },
+  { id: "board", label: "Ads grid", usd: 40, hint: "Live on the Ads tab. Square or landscape tile." },
+  { id: "chat", label: "Chat stream · premium", usd: 250, hint: "Scrolls up with live chat every few messages." },
+  { id: "chat-pin", label: "Pinned in chat · top", usd: 800, hint: "Stays at the top of Chat until it expires." },
 ] as const;
 
 export type AdPlacement = (typeof AD_PLACEMENTS)[number]["id"];
+
+export const AD_DAYS = [7, 14, 30] as const;
+export type AdDays = (typeof AD_DAYS)[number];
+
+export const AD_SIZES: Record<AdPlacement, { label: string; hint: string }> = {
+  board: { label: "1080 × 1080", hint: "Square preferred. Landscape 1200 × 628 also works. JPG/PNG, max 2MB." },
+  chat: { label: "1200 × 400", hint: "Wide banner. JPG/PNG, max 2MB." },
+  "chat-pin": { label: "1200 × 240", hint: "Slim banner for the pin strip. JPG/PNG, max 2MB." },
+};
 
 export type Campaign = {
   id: string;
@@ -302,6 +312,8 @@ export type Campaign = {
   video?: string;
   kind?: AdKind;
   views?: number;
+  days?: number;
+  expiresAt?: number;
 };
 
 export const AD_COINS = [
@@ -382,6 +394,8 @@ export function allRoomMessages(): ChatMsg[] {
 }
 
 export function roomName(id: string) {
+  if (id.startsWith("tm-")) return "Team chat";
+  if (id.startsWith("cin-")) return "Cinema";
   return ROOMS.find((r) => r.id === id)?.name ?? id;
 }
 

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Mail } from "lucide-react";
-import { AD_COINS, AD_KINDS, AD_PLACEMENTS, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, TERMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
+import { Eye, Mail, MessageSquare, Share2 } from "lucide-react";
+import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
-import { claimOps, clearModUser, getModSettings, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, staffMe } from "@/lib/staff-server";
+import { claimOps, clearModUser, getModSettings, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, staffMe } from "@/lib/staff-server";
 import {
   approveNewsDraft,
   fetchNewsLatest,
@@ -42,27 +42,37 @@ export function QonvoScreen({
 }) {
   let view: React.ReactNode = null;
   if (id === "forum") view = <Forum store={store} onHome={onHome} />;
-  else if (id === "create") view = <Create store={store} onForum={onForum} />;
+  else if (id === "create") view = store.handle ? <Create store={store} onForum={onForum} /> : <JoinWall />;
   else if (id === "community") view = <Communities onHome={onHome} />;
   else if (id === "search") view = <Search store={store} onHome={onHome} />;
   else if (id === "profile") view = <Profile store={store} onHome={onHome} />;
-  else if (id === "bookmarks") view = <Bookmarks store={store} onHome={onHome} />;
-  else if (id === "notifications") view = <Notes store={store} />;
-  else if (id === "inbox") view = <Inbox />;
-  else if (id === "teams") view = <Teams store={store} />;
+  else if (id === "bookmarks") view = store.handle ? <Bookmarks store={store} onHome={onHome} /> : <JoinWall />;
+  else if (id === "notifications") view = store.handle ? <Notes store={store} /> : <JoinWall />;
+  else if (id === "inbox") view = store.handle ? <Inbox /> : <JoinWall />;
+  else if (id === "settings") view = store.handle ? <Settings store={store} /> : <JoinWall />;
+  else if (id === "teams") view = <Teams store={store} onHome={onHome} />;
   else if (id === "badges") view = <Badges store={store} />;
   else if (id === "leaderboard") view = <Board store={store} />;
   else if (id === "ads") view = <Ads store={store} />;
   else if (id === "jobs") view = <ListingsPane kind="job" />;
   else if (id === "market") view = <ListingsPane kind="market" />;
   else if (id === "rent") view = <ListingsPane kind="rent" />;
-  else if (id === "settings") view = <Settings store={store} />;
   else if (id === "help") view = <Help />;
   else if (id === "dashboard") view = <Dash store={store} onHome={onHome} onForum={onForum} />;
   else if (id === "trending") view = <Trending onHome={onHome} />;
   else if (id === "contact") view = <Contact store={store} />;
   else if (id === "admin") view = <Admin store={store} />;
   return <div className="h-full overflow-y-auto pb-20 md:pb-4">{view}</div>;
+}
+
+function JoinWall() {
+  return (
+    <Screen kicker="KILODE" title="Join to continue" sub="Guests can browse Feeds, Chat, Music, Cinema and Ads. Sign in to post, message, save, or open Me.">
+      <a href="/login?mode=up" className="btn-join block rounded-xl py-3 text-center text-sm font-bold">
+        JOIN KILODE NOW
+      </a>
+    </Screen>
+  );
 }
 
 function Card({ title, body, children }: { title: string; body?: string; children?: React.ReactNode }) {
@@ -89,25 +99,45 @@ function Screen({ kicker, title, sub, children }: { kicker: string; title: strin
 }
 
 function Forum({ store, onHome }: { store: Store; onHome: (roomId?: string) => void }) {
+  const [shown, setShown] = useState(16);
   const live = store.posts.filter((p) => !!p?.id && p.status !== "draft");
   return (
-    <div className="mx-auto max-w-5xl space-y-3 p-5">
-      <h2 className="text-xl font-bold">Feeds</h2>
-      <p className="text-sm text-muted">Topics from Nigeria — tap a tile to read.</p>
-      {live.length === 0 ? <p className="text-sm text-muted">No posts yet. Create one from Create.</p> : null}
-      <div className="grid grid-cols-4 gap-1">
-        {live.map((p) => (
-          <button key={p.id} type="button" onClick={() => { store.setOpenPost(p.id); onHome(); }} className="raised overflow-hidden rounded-md text-left">
-            {p.image ? <img src={p.image} alt="" className="h-16 w-full object-cover" /> : <div className="h-16 bg-panel-3" />}
-            <div className="px-1.5 py-1">
-              <div className="text-[11px] font-medium text-lime-2">{p.category || "General"}</div>
-              <div className="mt-px line-clamp-2 text-[13px] font-semibold leading-snug">{p.title}</div>
-              <p className="mt-px line-clamp-1 text-[11px] text-muted">{p.excerpt || p.body}</p>
-              <div className="mt-px text-[11px] text-muted">💬 {p.comments?.length ?? 0} · {fmtCount(p.views ?? 0)}</div>
+    <div className="mx-auto max-w-5xl p-3 pb-8">
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+        {live.slice(0, shown).map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => {
+              store.setOpenPost(p.id);
+              onHome();
+            }}
+            className="raised overflow-hidden rounded-md text-left"
+          >
+            {p.image ? <img src={p.image} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square bg-panel-3" />}
+            <div className="px-1 py-1">
+              <div className="text-[9px] font-medium text-lime-2/80">{p.category || "General"}</div>
+              <div className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-snug text-fg/75">{p.title}</div>
+              <div className="mt-0.5 flex items-center gap-1.5 text-[8px] tabular-nums text-muted">
+                <span className="inline-flex items-center gap-0.5">
+                  <Eye className="size-2.5" />
+                  {fmtCount(p.views ?? 0)}
+                </span>
+                <span className="inline-flex items-center gap-0.5">
+                  <MessageSquare className="size-2.5" />
+                  {p.comments?.length ?? 0}
+                </span>
+                <Share2 className="ml-auto size-2.5" />
+              </div>
             </div>
           </button>
         ))}
       </div>
+      {shown < live.length ? (
+        <button type="button" className="btn-join mx-auto mt-3 block rounded-lg px-4 py-2 text-[12px] font-bold" onClick={() => setShown((n) => n + 16)}>
+          Load more
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -185,6 +215,15 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   const [album, setAlbum] = useState("");
   const [genre, setGenre] = useState("Afrobeats");
   const [preview, setPreview] = useState("");
+  const [altText, setAltText] = useState("");
+  const [sourceName, setSourceName] = useState("");
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDesc, setSeoDesc] = useState("");
+  const [slug, setSlug] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [commentsOn, setCommentsOn] = useState(true);
+  const canPost = canKind(store.kind, "feeds.post");
+  const canMusic = canKind(store.kind, "music.submit");
 
   function onUrl(v: string) {
     setLink(v);
@@ -226,6 +265,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       setErr("Link must be http or https.");
       return;
     }
+    const feature = image || (safeHttpUrl(imageUrl) ?? "");
     store.publishPost({
       title,
       body,
@@ -233,9 +273,14 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       category,
       tags,
       link: url,
-      image,
-      slug: slugify(title),
+      image: feature,
+      slug: (slug.trim() || slugify(title)),
       status,
+      seoTitle,
+      seoDesc,
+      altText,
+      sourceName,
+      commentsOn,
     });
     setTitle("");
     setBody("");
@@ -243,6 +288,12 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     setTags("");
     setLink("");
     setImage("");
+    setImageUrl("");
+    setAltText("");
+    setSourceName("");
+    setSeoTitle("");
+    setSeoDesc("");
+    setSlug("");
     if (status === "publish") onForum?.();
   }
 
@@ -285,8 +336,11 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     <div className="mx-auto max-w-2xl space-y-4 p-5 pb-8">
       <div>
         <h2 className="text-xl font-bold tracking-tight">Create</h2>
-        <p className="mt-1 text-sm text-muted">Share a post to Feeds or list a track on Music.</p>
+        <p className="mt-1 text-sm text-muted">
+          {canMusic && !canPost ? "List a track URL. Kilode embeds the platform player." : canMusic ? "Publish to Feeds or list a track." : "Publish a topic to Feeds."}
+        </p>
       </div>
+      {canMusic && canPost ? (
       <div className="raised flex gap-1.5 rounded-xl p-1.5">
         <button type="button" className={`flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold ${kind === "post" ? "btn-join text-white" : "text-muted hover:bg-panel-2"}`} onClick={() => setKind("post")}>
           Post
@@ -295,7 +349,11 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           Music
         </button>
       </div>
-      {kind === "music" ? (
+      ) : null}
+      {!canPost && !canMusic ? (
+        <p className="rounded-xl border border-line p-3 text-sm text-muted">This account type cannot publish here. Place ads, list a job, or open Cinema from the menu that matches your type.</p>
+      ) : null}
+      {kind === "music" && canMusic ? (
         <div className="raised space-y-3 rounded-2xl p-4">
           <p className="text-sm text-muted">Audio platforms only: Spotify, Apple Music, SoundCloud, Audiomack, Deezer. YouTube clips belong in Videos.</p>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Track title" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
@@ -313,41 +371,78 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           {err ? <p className="text-sm text-danger">{err}</p> : null}
           <label className="flex items-start gap-2 text-[11px] text-muted">
             <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-            <span>I agree to the Terms. This URL is mine to share. Audio is not hosted here.</span>
+            <span>
+              I agree to the{" "}
+              <a href="/terms#content" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                Terms
+              </a>
+              . This URL is mine to share. Audio is not hosted here.
+            </span>
           </label>
           <button type="button" className="btn-join w-full rounded-xl px-3 py-3 text-sm font-bold" onClick={submitMusic}>
             List on Music
           </button>
         </div>
       ) : (
-        <div className="raised space-y-3 rounded-2xl p-4">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={7} placeholder="Post content" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-          <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} placeholder="Excerpt / summary" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-          <div className="grid gap-2 sm:grid-cols-2">
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-xl border border-line bg-panel px-3 py-2.5 text-sm">
-              {POST_CATS.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
-            <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags (comma)" className="rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-          </div>
-          <input
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-            placeholder="Safe URL — https://…"
-            className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm"
-          />
-          <div className="inset-well rounded-xl p-3">
-            <div className="mb-2 text-[11px] font-medium text-muted">Featured image</div>
-            <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
-            {image ? <img src={image} alt="" className="mt-2 max-h-40 rounded-lg object-cover" /> : null}
-          </div>
-          <p className="text-[11px] text-muted">Slug: {title ? slugify(title) : "—"} · Author set on publish</p>
+        <div className="raised space-y-4 rounded-2xl p-4">
+          <section>
+            <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">CONTENT</div>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Headline" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} placeholder="Write the full post…" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+            <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} placeholder="Excerpt — short summary for the tile (not the same as the title)" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          </section>
+          <section>
+            <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">FEATURED IMAGE</div>
+            <div className="inset-well rounded-xl p-3">
+              <p className="mb-2 text-[11px] text-muted">Recommended 1200 × 675 (16:9). JPG, PNG or WebP. Max 2MB. This is the Feeds thumbnail.</p>
+              <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
+              <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="Or paste image URL https://…" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+              <input value={altText} onChange={(e) => setAltText(e.target.value)} placeholder="Image alt text (accessibility + search)" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+              {image || imageUrl ? <img src={image || imageUrl} alt="" className="mt-2 max-h-40 rounded-lg object-cover" /> : null}
+            </div>
+          </section>
+          <section>
+            <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">CATEGORY · TAGS · SOURCE</div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-xl border border-line bg-panel px-3 py-2.5 text-sm">
+                {POST_CATS.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+              <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags (comma separated)" className="rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+            </div>
+            <input
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              placeholder="Source / canonical URL — https://…"
+              className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm"
+            />
+            <input value={sourceName} onChange={(e) => setSourceName(e.target.value)} placeholder="Source name (Premium Times, original…)" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          </section>
+          <section>
+            <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">SEO</div>
+            <input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="SEO title (search engines, max ~70)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+            <textarea value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} rows={2} placeholder="SEO description (max ~160 characters)" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+            <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder={`URL slug · ${title ? slugify(title) : "auto-from-title"}`} className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          </section>
+          <section>
+            <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">PUBLISH</div>
+            <label className="flex items-center gap-2 text-[11px] text-muted">
+              <input type="checkbox" checked={commentsOn} onChange={(e) => setCommentsOn(e.target.checked)} />
+              Allow comments
+            </label>
+            <p className="mt-1 text-[11px] text-muted">Author is your @handle. Draft stays in your dashboard until you publish.</p>
+          </section>
           {err ? <p className="text-sm text-danger">{err}</p> : null}
           <label className="flex items-start gap-2 text-[11px] text-muted">
             <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-            <span>I agree to the Terms. I am responsible for this post. Kilode is not liable for what I publish.</span>
+            <span>
+              I agree to the{" "}
+              <a href="/terms#content" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                Terms
+              </a>
+              . I am responsible for this post. Kilode is not liable for what I publish.
+            </span>
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button type="button" className="btn-join flex-1 rounded-xl px-3 py-3 text-sm font-bold" onClick={() => submit("publish")}>
@@ -514,6 +609,15 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
     setBrand(store.brand);
     setFace(store.face || KIND_FACE[store.kind]);
   }, [store.bio, store.brand, store.city, store.face, store.genre, store.handle, store.kind, store.stage, store.website]);
+  if (!store.handle) {
+    return (
+      <Screen kicker="YOU" title="Me" sub="Join to own a profile. Guests can browse Feeds, Chat, Music, Cinema and Ads.">
+        <a href="/login?mode=up" className="btn-join block rounded-xl py-3 text-center text-sm font-bold">
+          JOIN KILODE NOW
+        </a>
+      </Screen>
+    );
+  }
   const mine = store.posts.filter((p) => !!p?.id && p.author === store.handle);
   const songs = store.tracks.filter((t) => !!t?.id && (t.author === store.handle || t.artist === store.handle));
   const kindLabel = ACCOUNT_KINDS.find((k) => k.id === kind)?.label ?? "Member";
@@ -710,35 +814,64 @@ function Inbox() {
   );
 }
 
-function Teams({ store }: { store: Store }) {
+function Teams({ store, onHome }: { store: Store; onHome: (id?: string) => void }) {
   const [name, setName] = useState("");
+  const [err, setErr] = useState("");
+  const mine = store.teams.filter((t) => (t.members ?? [])[0] === store.handle).length;
   return (
-    <Screen kicker="CREW" title="Teams" sub="Small groups. Join with your handle.">
-      <div className="flex gap-2">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Team name"
-          className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 text-sm"
-        />
-        <button
-          type="button"
-          className="rounded-lg border border-line bg-panel-3 px-3 py-2 text-sm"
-          onClick={() => {
-            store.createTeam(name);
-            setName("");
-          }}
-        >
-          Create
-        </button>
-      </div>
-      {store.teams.filter((t) => !!t?.id).map((t) => (
-        <Card key={t.id} title={t.name} body={`${(t.members ?? []).length} members · ${(t.members ?? []).join(", ")}`}>
-          <button type="button" className="mt-2 text-xs text-fg" onClick={() => store.joinTeam(t.id)}>
-            Join
-          </button>
-        </Card>
-      ))}
+    <Screen kicker="CREW" title="Teams" sub="Small named groups on Kilode. Not WhatsApp. Chat still lives on our servers.">
+      {!store.handle ? (
+        <a href="/login?mode=up" className="btn-join block rounded-xl py-3 text-center text-sm font-bold">
+          JOIN KILODE NOW
+        </a>
+      ) : (
+        <>
+          <div className="raised mb-3 rounded-2xl p-4 text-[13px] leading-6 text-muted">
+            <p>Any signed-in member can create up to 3 teams. Anyone signed in can join until it hits 40 people. Open chat uses the same live room engine as Global Chat — room id <span className="font-mono text-fg">tm-…</span>.</p>
+            <p className="mt-2">Use a team for a crew, a campaign, or a music collab. Do not run scams. Staff can still hide abuse.</p>
+            <p className="mt-2 text-lime-2">You have created {mine}/3 teams.</p>
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Team name"
+              className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              className="btn-3d rounded-lg px-3 py-2 text-sm"
+              onClick={() => {
+                setErr("");
+                if (mine >= 3) {
+                  setErr("Max 3 teams you create.");
+                  return;
+                }
+                store.createTeam(name);
+                setName("");
+              }}
+            >
+              Create
+            </button>
+          </div>
+          {err ? <p className="text-sm text-danger">{err}</p> : null}
+          {store.teams.length === 0 ? <p className="mt-3 text-sm text-muted">No teams yet. Create the first.</p> : null}
+          {store.teams.filter((t) => !!t?.id).map((t) => (
+            <div key={t.id} className="raised mt-3 rounded-2xl p-4">
+              <div className="text-sm font-extrabold">{t.name}</div>
+              <div className="text-[11px] text-muted">{(t.members ?? []).length}/40 · {(t.members ?? []).slice(0, 8).join(", ")}</div>
+              <div className="mt-2 flex gap-3">
+                <button type="button" className="text-xs font-semibold text-lime-2" onClick={() => store.joinTeam(t.id)}>
+                  Join
+                </button>
+                <button type="button" className="text-xs font-semibold text-lime-2" onClick={() => onHome(`tm-${t.id}`)}>
+                  Open chat
+                </button>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
     </Screen>
   );
 }
@@ -785,12 +918,14 @@ function Ads({ store }: { store: Store }) {
   const [video, setVideo] = useState("");
   const [kind, setKind] = useState<AdKind>("image-text");
   const [place, setPlace] = useState<AdPlacement>("board");
+  const [days, setDays] = useState<number>(7);
   const [coin, setCoin] = useState("usdt");
   const [txHash, setTxHash] = useState("");
   const [amount, setAmount] = useState("");
   const [agree, setAgree] = useState(false);
   const [err, setErr] = useState("");
   const [copied, setCopied] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
   const [wallets, setWallets] = useState<{ coin: string; address: string }[]>([]);
   useEffect(() => {
     void listWallets()
@@ -798,9 +933,69 @@ function Ads({ store }: { store: Store }) {
       .catch(() => setWallets([]));
   }, []);
   const payTo = wallets.find((w) => w.coin === coin)?.address;
-  const mine = store.campaigns.filter((c) => !!c?.id);
+  const mine = store.campaigns.filter((c) => !!c?.id && (c.status !== "approved" || c.expiresAt));
+  const size = AD_SIZES[place];
+  const slot = AD_PLACEMENTS.find((p) => p.id === place);
+  async function onFile(file: File | undefined) {
+    setErr("");
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setErr("Images only.");
+      return;
+    }
+    if (file.size > 2_000_000) {
+      setErr("Keep the image under 2MB.");
+      return;
+    }
+    const data = await compressImage(file);
+    setImage(data);
+  }
+  if (!store.handle) {
+    return (
+      <Screen kicker="ADS" title="Place an ad" sub="Ads Poster and Brand accounts pay crypto. Staff approve. Guests can browse live ads on the Ads tab.">
+        <a href="/login?mode=up" className="btn-join block rounded-xl py-3 text-center text-sm font-bold">
+          JOIN KILODE NOW
+        </a>
+      </Screen>
+    );
+  }
+  if (!canKind(store.kind, "ads.submit")) {
+    return (
+      <Screen kicker="ADS" title="Ads Poster accounts only" sub="You registered as a different type. Super admin can switch it on /ops if you picked the wrong one.">
+        <p className="text-sm text-muted">Browse live ads on the Ads tab. To place one, you need an Ads Poster or Brand account.</p>
+      </Screen>
+    );
+  }
+  if (done) {
+    return (
+      <Screen kicker="ADS" title="Submitted" sub="Staff have your creative and the tx hash.">
+        <div className="raised rounded-2xl p-4">
+          <h3 className="text-lg font-extrabold">{done}</h3>
+          <ol className="mt-3 list-decimal space-y-2 pl-4 text-[13px] leading-6 text-muted">
+            <li>We match the transaction on the chain (first and last 6 of the address you copied).</li>
+            <li>Staff approve, reject, or ask for a correction. You will see status here — not by email.</li>
+            <li>If approved, the ad goes live on the slot you paid for until the {days}-day window ends.</li>
+            <li>If rejected before it runs, Contact us. Chain fees are never refunded.</li>
+          </ol>
+        </div>
+        <button type="button" className="btn-3d mt-3 rounded-xl px-3 py-2 text-sm" onClick={() => setDone(null)}>
+          Place another
+        </button>
+        <div className="mt-4 mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">YOUR CAMPAIGNS</div>
+        {mine.map((c) => (
+          <div key={c.id} className="raised mb-2 flex gap-2 overflow-hidden rounded-2xl">
+            {c.image ? <img src={c.image} alt="" className="h-16 w-20 object-cover" /> : <div className="grid h-16 w-20 place-items-center bg-panel-3 text-[10px] text-lime-2">AD</div>}
+            <div className="min-w-0 py-2 pr-2">
+              <div className="truncate text-sm font-bold">{c.name}</div>
+              <div className="text-[10px] text-lime-2">{c.status} · {c.days ?? 7} days · {c.placement}</div>
+            </div>
+          </div>
+        ))}
+      </Screen>
+    );
+  }
   return (
-    <Screen kicker="ADS" title="Place an ad" sub="Pick a slot. Pay crypto. Staff approve. Live ads show on the Ads tab.">
+    <Screen kicker="ADS" title="Place an ad" sub="Pick a slot, creative type, and duration. Pay crypto. Staff approve. Then it appears on that slot.">
       <div className="mb-3 grid gap-1.5">
         {AD_PLACEMENTS.map((p) => (
           <button
@@ -817,6 +1012,15 @@ function Ads({ store }: { store: Store }) {
           </button>
         ))}
       </div>
+      <div className="mb-1 text-[11px] font-medium text-muted">Duration</div>
+      <div className="mb-3 flex flex-wrap gap-1">
+        {AD_DAYS.map((d) => (
+          <button key={d} type="button" onClick={() => setDays(d)} className={`rounded-full px-2.5 py-1 text-[11px] ${days === d ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
+            {d} days
+          </button>
+        ))}
+      </div>
+      <div className="mb-1 text-[11px] font-medium text-muted">Creative type</div>
       <div className="mb-3 flex flex-wrap gap-1">
         {AD_KINDS.map((k) => (
           <button key={k.id} type="button" onClick={() => setKind(k.id)} className={`rounded-full px-2.5 py-1 text-[11px] ${kind === k.id ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
@@ -827,10 +1031,16 @@ function Ads({ store }: { store: Store }) {
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Brand / campaign name" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Destination URL (https://…)" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       {kind === "image" || kind === "image-text" ? (
-        <input value={image} onChange={(e) => setImage(e.target.value)} placeholder="Image URL" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+        <div className="inset-well mb-2 rounded-xl p-3">
+          <div className="text-[11px] font-medium text-muted">Image · {size.label}</div>
+          <p className="mb-2 text-[11px] text-muted">{size.hint}</p>
+          <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
+          <input value={image.startsWith("data:") ? "" : image} onChange={(e) => setImage(e.target.value)} placeholder="Or paste image URL https://…" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+          {image ? <img src={image} alt="" className="mt-2 max-h-36 rounded-lg object-cover" /> : null}
+        </div>
       ) : null}
       {kind === "video" || kind === "video-text" ? (
-        <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="YouTube URL or id (not hosted here)" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+        <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="YouTube URL (not hosted here)" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       ) : null}
       {kind !== "image" && kind !== "video" ? (
         <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Short copy" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
@@ -869,12 +1079,18 @@ function Ads({ store }: { store: Store }) {
           Verify the first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet. Staff match your tx hash by hand.
         </p>
       </div>
-      <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount sent (about $${AD_PLACEMENTS.find((p) => p.id === place)?.usd} USD in crypto)`} className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount sent (about $${slot?.usd ?? 40} USD in crypto)`} className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash / payment ID after you pay" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       {err ? <p className="mb-2 text-sm text-danger">{err}</p> : null}
       <label className="mb-3 flex items-start gap-2 text-[11px] text-muted">
         <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-        <span>I agree to the Terms. I paid from my own wallet. Staff may reject a bad or missing hash.</span>
+        <span>
+          I agree to the{" "}
+          <a href="/terms#ads" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+            Ads & crypto terms
+          </a>
+          . I paid from my own wallet. Staff may reject a bad or missing hash.
+        </span>
       </label>
       <button
         type="button"
@@ -888,17 +1104,20 @@ function Ads({ store }: { store: Store }) {
             setErr("Name and payment tx are required.");
             return;
           }
+          const img = kind.includes("image") ? (image.startsWith("data:") ? image : safeHttpUrl(image)) : undefined;
           store.saveAd(name, note, {
             placement: place,
             txHash,
             amount,
             coin,
             link: safeHttpUrl(link),
-            image: kind.includes("image") ? safeHttpUrl(image) : undefined,
+            image: img,
             video: kind.includes("video") ? youtubeId(video) || safeHttpUrl(video) : undefined,
             kind,
             status: "paid",
+            days,
           });
+          setDone(name.trim());
           setName("");
           setNote("");
           setLink("");
@@ -912,18 +1131,127 @@ function Ads({ store }: { store: Store }) {
         Submit for approval
       </button>
       <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">YOUR CAMPAIGNS</div>
-      {mine.length === 0 ? <p className="text-sm text-muted">None yet.</p> : null}
+      {mine.length === 0 ? <p className="text-sm text-muted">None yet. After you submit, status shows here: paid → approved or rejected.</p> : null}
       {mine.map((c) => (
         <div key={c.id} className="raised mb-2 flex gap-2 overflow-hidden rounded-2xl">
           {c.image ? <img src={c.image} alt="" className="h-16 w-20 object-cover" /> : <div className="grid h-16 w-20 place-items-center bg-panel-3 text-[10px] text-lime-2">AD</div>}
           <div className="min-w-0 py-2 pr-2">
             <div className="truncate text-sm font-bold">{c.name}</div>
-            <div className="text-[10px] text-lime-2">{c.status}</div>
-            <div className="truncate text-[10px] text-muted">{(c.coin || "").toUpperCase()} {c.amount || ""}</div>
+            <div className="text-[10px] text-lime-2">{c.status} · {c.days ?? 7} days · {c.placement}</div>
+            <div className="truncate text-[10px] text-muted">
+              {(c.coin || "").toUpperCase()} {c.amount || ""}
+              {c.expiresAt ? ` · ends ${new Date(c.expiresAt).toLocaleDateString()}` : ""}
+            </div>
           </div>
         </div>
       ))}
     </Screen>
+  );
+}
+
+function AdsQueuePanel({ store }: { store: Store }) {
+  const [status, setStatus] = useState("paid");
+  const [q, setQ] = useState("");
+  const [offset, setOffset] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [rows, setRows] = useState<{ id: string; name: string; note: string; placement: string; status: string; amount: string; txHash: string; coin: string; kind: string; image: string; days: number; expiresAt: number; ts: number }[]>([]);
+  function load(next = offset, st = status, query = q) {
+    void listAdsQueue({ data: { status: st === "all" ? "" : st, q: query, offset: next } })
+      .then((r) => {
+        setRows(r.rows);
+        setTotal(r.total);
+        setOffset(r.offset);
+      })
+      .catch(() => {
+        setRows([]);
+        setTotal(0);
+      });
+  }
+  useEffect(() => {
+    load(0, status, q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+  return (
+    <div className="md:col-span-2 space-y-2">
+      <div className="flex flex-wrap items-end gap-2">
+        <div>
+          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">ADS QUEUE</div>
+          <p className="text-[11px] text-muted">{total} in this filter. 40 per page. 5,000 at once would freeze the console — page them.</p>
+        </div>
+        <select
+          value={status}
+          onChange={(e) => {
+            setStatus(e.target.value);
+            setOffset(0);
+          }}
+          className="rounded-lg border border-line bg-panel px-2 py-1.5 text-xs"
+        >
+          <option value="paid">Paid (waiting)</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="all">All</option>
+        </select>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search name or tx"
+          className="min-w-[140px] flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-xs"
+        />
+        <button type="button" className="btn-3d rounded-lg px-2 py-1.5 text-xs" onClick={() => load(0, status, q)}>
+          Search
+        </button>
+      </div>
+      {rows.length === 0 ? <p className="text-sm text-muted">Nothing in this page.</p> : null}
+      {rows.map((c) => (
+        <div key={c.id} className="rounded-xl border border-line bg-panel p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="font-semibold">{c.name}</div>
+              <div className="text-xs text-muted">
+                {c.status} · {(c.coin || "").toUpperCase()} {c.amount || ""} · {c.placement} · {c.days} days
+                {c.kind ? ` · ${c.kind}` : ""}
+              </div>
+              {c.note ? <p className="mt-1 text-sm">{c.note}</p> : null}
+              {c.txHash ? <p className="mt-1 break-all text-[11px] text-muted">tx {c.txHash}</p> : null}
+              {c.expiresAt ? <p className="text-[10px] text-muted">ends {new Date(c.expiresAt).toLocaleDateString()}</p> : null}
+            </div>
+            {c.image ? <img src={c.image} alt="" className="h-14 w-16 rounded object-cover" /> : null}
+            <div className="flex flex-wrap gap-1">
+              <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => { store.patchAd(c.id, { status: "paid" }); load(offset, status, q); }}>
+                Mark paid
+              </button>
+              <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => { store.patchAd(c.id, { status: "approved" }); load(offset, status, q); }}>
+                Approve
+              </button>
+              <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => { store.patchAd(c.id, { placement: "chat" }); load(offset, status, q); }}>
+                Chat stream
+              </button>
+              <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => { store.patchAd(c.id, { placement: "chat-pin" }); load(offset, status, q); }}>
+                Pin in chat
+              </button>
+              <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => { store.patchAd(c.id, { placement: "board" }); load(offset, status, q); }}>
+                Advert grid
+              </button>
+              <button type="button" className="rounded border border-line px-2 py-1 text-xs text-danger" onClick={() => { store.patchAd(c.id, { status: "rejected" }); load(offset, status, q); }}>
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+      <div className="flex gap-2">
+        <button type="button" disabled={offset <= 0} className="rounded border border-line px-2 py-1 text-xs disabled:opacity-40" onClick={() => load(Math.max(0, offset - 40), status, q)}>
+          Prev
+        </button>
+        <button type="button" disabled={offset + 40 >= total} className="rounded border border-line px-2 py-1 text-xs disabled:opacity-40" onClick={() => load(offset + 40, status, q)}>
+          Next
+        </button>
+        <span className="pt-1 text-[10px] text-muted">
+          {total ? offset + 1 : 0}–{Math.min(offset + rows.length, total)} of {total}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -1027,46 +1355,11 @@ function Admin({ store }: { store: Store }) {
           Role {role} · id {userId}
         </p>
       </div>
-      <Card title="Queue" body={`${store.campaigns.filter((c) => c.status === "pending" || c.status === "paid").length} waiting`} />
-      <Card title="Live ads" body={`${store.campaigns.filter((c) => c.status === "approved").length} approved`} />
+      <Card title="Queue" body="Paid and pending ads wait here. Search + page — never load 5000 rows at once." />
+      <Card title="Live ads" body="Approved ads expire on the date you set when you hit Approve. Rejected stay in the log." />
       <OpsKeysPanel />
       <OpsSeoPanel />
-      <div className="md:col-span-2 space-y-2">
-        {store.campaigns.map((c) => (
-          <div key={c.id} className="rounded-xl border border-line bg-panel p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <div className="font-semibold">{c.name}</div>
-                <div className="text-xs text-muted">
-                  {c.status} · {(c.coin || "").toUpperCase()} {c.amount || ""} · {c.placement}
-                </div>
-                {c.note ? <p className="mt-1 text-sm">{c.note}</p> : null}
-                {c.txHash ? <p className="mt-1 break-all text-[11px] text-muted">tx {c.txHash}</p> : null}
-              </div>
-              <div className="flex flex-wrap gap-1">
-                <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => store.patchAd(c.id, { status: "paid" })}>
-                  Mark paid
-                </button>
-                <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => store.patchAd(c.id, { status: "approved" })}>
-                  Approve
-                </button>
-                <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => store.patchAd(c.id, { placement: "chat" })}>
-                  Chat stream
-                </button>
-                <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => store.patchAd(c.id, { placement: "chat-pin" })}>
-                  Pin in chat
-                </button>
-                <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => store.patchAd(c.id, { placement: "board" })}>
-                  Advert grid
-                </button>
-                <button type="button" className="rounded border border-line px-2 py-1 text-xs text-danger" onClick={() => store.patchAd(c.id, { status: "rejected" })}>
-                  Reject
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <AdsQueuePanel store={store} />
       <div className="md:col-span-2 space-y-2">
         <div className="text-[11px] font-medium text-muted">Inbox</div>
         {mail.length === 0 ? <p className="text-sm text-muted">No contact mail.</p> : null}
@@ -1926,17 +2219,22 @@ function Settings({ store }: { store: Store }) {
 function Help() {
   return (
     <Screen kicker="KILODE" title="Help & terms" sub="How accounts, ads, cinema, and staff work.">
-      <Card title="Accounts" body="Username + password. Tick Terms. One account type at register — you cannot switch it. Super admin can override. No public email." />
+      <Card title="Accounts" body="Username + password. Tick Terms and Rules. One account type at register — you cannot switch it. Super admin can override. No public email. Full legal: /terms" />
       <Card title="What each type can do" body="Normal user: chat, feeds, vote, apply to jobs. Artist: music URLs only. Writer: feeds. Ads Poster: business ads. Cinema Advertiser: movie YouTube URLs. Job Poster / Seeker, Marketplace seller, Rent lister: their module only." />
       <Card title="Chat" body="Signed-in messages save on the server. Super admin sets how long they live (1 hour to 30 days, or never). Use ‹ › to page older/newer chat. Tap Translate under a line for Yoruba, Igbo, Hausa, French, Spanish." />
       <Card title="Feeds & music" body="Create post after you sign in. Only Artist lists music. Paste a Spotify / SoundCloud / Audiomack / Apple / Boomplay / Deezer URL. We embed their player — nothing streams from Kilode. Spotify iframe is a 30-second preview unless the visitor is logged into Spotify. SoundCloud and Audiomack play the full track if the artist allowed streaming. Artwork is fetched once via oEmbed when you submit." />
-      <Card title="Ads" body="Advert grid $40. Chat stream $250. Pinned chat $800. Copy the wallet from this app, pay, paste tx. Staff approve. Super can pin / revoke." />
+      <Card title="Teams" body="Signed-in members create up to 3 teams. Anyone signed in can join (max 40). Open chat is a Kilode room, same engine as Global Chat. Not a second WhatsApp. Staff can still hide abuse." />
+      <Card title="Ads" body="Advert grid $40. Chat stream $250. Pinned chat $800. Pick 7 / 14 / 30 days. Image sizes: grid 1080×1080, stream 1200×400, pin 1200×240. Copy the wallet from this app, pay, paste tx. Staff approve. Super can pin / revoke. 5,000 ads? Staff pages 40 at a time — do not dump them all on one screen." />
       <Card title="Cinema" body="Anyone can watch Watching Now — it is a YouTube embed, not a file on Kilode. Signed-in users vote once per title per day. Advertiser (Cinema) submits a YouTube URL. Staff approve and can pin. Chat under the player uses the same engine as rooms." />
       <Card title="Jobs, Marketplace, Rent" body="Job Poster lists jobs. Job Seekers apply. Marketplace and Rent are showcase + contact only — no selling or renting inside the app. Staff approve first." />
       <Card title="Staff" body="Tap the logo 5 times or open /ops. Not in the public menu. First signed-in owner claims super. Nobody else can be made super. Super verifies handles (Kilode Verified) and can override account type." />
       <Card title="Scale" body="Chat polls only while the tab is visible. Writes are rate-limited per account. Video and music play from YouTube / Spotify / SoundCloud — not from Kilode. Vercel Hobby is built for thousands of people, not a million at the same second. Upgrade hosting before you advertise a Super Bowl." />
       <Card title="Privacy" body="No public email. Login uses a private username. Do not put real addresses or ID numbers in chat. Cookies keep you signed in. We do not sell your handle list." />
-      <div className="raised whitespace-pre-wrap rounded-xl p-3 text-xs text-muted">{TERMS}</div>
+      <p className="px-1 text-[11px] text-muted">
+        <a href="/terms" className="text-lime-2 underline">
+          Full Terms, Rules, Privacy and How to use
+        </a>
+      </p>
       <p className="px-1 text-[10px] text-muted">
         Developer{" "}
         <a href="https://t.me/Builtbystacks" target="_blank" rel="noreferrer" className="text-lime-2">

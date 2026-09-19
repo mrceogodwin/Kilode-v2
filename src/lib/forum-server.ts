@@ -151,7 +151,7 @@ export const listPosts = createServerFn({ method: "GET" }).handler(async () => {
 
 export const savePost = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { title: string; body: string; excerpt?: string; category?: string; tags?: string; link?: string; image?: string; slug?: string }) => d)
+  .validator((d: { title: string; body: string; excerpt?: string; category?: string; tags?: string; link?: string; image?: string; slug?: string; seoTitle?: string; seoDesc?: string; altText?: string; sourceName?: string; status?: "draft" | "publish"; commentsOn?: boolean }) => d)
   .handler(async ({ context, data }) => {
     if (!allowWrite(`post:${context.userId}`, 8)) return { ok: false as const, reason: RATE_BLOCKED };
     const title = data.title.trim();
@@ -162,10 +162,24 @@ export const savePost = createServerFn({ method: "POST" })
     const ts = Date.now();
     const author = await publicHandle(context.userId);
     if ((await restrictionOf(context.userId)) === "ban") return { ok: false as const, reason: "This account is banned." };
+    const blocked = await requireKind(context.userId, "feeds.post");
+    if (blocked) return { ok: false as const, reason: blocked };
     const gate = await gateText("feeds", body, { userId: context.userId, author });
     if (!gate.ok) return { ok: false as const, reason: gate.reason };
-    await sql`insert into nf_posts (id, user_id, title, body, excerpt, category, tags, link, image, slug, status, author, ts)
-      values (${id}, ${context.userId}, ${title}, ${gate.text}, ${data.excerpt ?? gate.text.slice(0, 140)}, ${data.category ?? "General"}, ${data.tags ?? ""}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.slug ?? ""}, ${"publish"}, ${author}, ${ts})`;
+    const excerpt = data.excerpt ?? gate.text.slice(0, 140);
+    const seoTitle = (data.seoTitle ?? "").trim().slice(0, 80);
+    const seoDesc = (data.seoDesc ?? "").trim().slice(0, 180);
+    const altText = (data.altText ?? "").trim().slice(0, 120);
+    const sourceName = (data.sourceName ?? "").trim().slice(0, 80);
+    const status = data.status === "draft" ? "draft" : "publish";
+    const commentsOn = data.commentsOn === false ? 0 : 1;
+    try {
+      await sql`insert into nf_posts (id, user_id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, seo_title, seo_desc, alt_text, source_name, comments_on)
+        values (${id}, ${context.userId}, ${title}, ${gate.text}, ${excerpt}, ${data.category ?? "General"}, ${data.tags ?? ""}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.slug ?? ""}, ${status}, ${author}, ${ts}, ${seoTitle}, ${seoDesc}, ${altText}, ${sourceName}, ${commentsOn})`;
+    } catch {
+      await sql`insert into nf_posts (id, user_id, title, body, excerpt, category, tags, link, image, slug, status, author, ts)
+        values (${id}, ${context.userId}, ${title}, ${gate.text}, ${excerpt}, ${data.category ?? "General"}, ${data.tags ?? ""}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.slug ?? ""}, ${status}, ${author}, ${ts})`;
+    }
     return { id };
   });
 
@@ -244,23 +258,67 @@ export const saveTrack = createServerFn({ method: "POST" })
 
 export const listAds = createServerFn({ method: "GET" }).handler(async () => {
   const sql = await getSql();
-  const rows = await sql<{
-    id: string;
-    name: string;
-    note: string | null;
-    placement: string;
-    status: string;
-    amount: string | null;
-    tx_hash: string | null;
-    coin: string | null;
-    link: string | null;
-    image: string | null;
-    kind: string | null;
-    video: string | null;
-    views: number | string | null;
-    ts: number | string;
-  }>`select id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts from nf_ads order by ts desc limit 80`;
-  return rows.map((r) => ({
+  const now = Date.now();
+  try {
+    const rows = await sql<{
+      id: string;
+      name: string;
+      note: string | null;
+      placement: string;
+      status: string;
+      amount: string | null;
+      tx_hash: string | null;
+      coin: string | null;
+      link: string | null;
+      image: string | null;
+      kind: string | null;
+      video: string | null;
+      views: number | string | null;
+      ts: number | string;
+      days: number | string | null;
+      expires_at: number | string | null;
+    }>`select id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts, days, expires_at from nf_ads where status = ${"approved"} and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
+    return rows.map(mapAd);
+  } catch {
+    const rows = await sql<{
+      id: string;
+      name: string;
+      note: string | null;
+      placement: string;
+      status: string;
+      amount: string | null;
+      tx_hash: string | null;
+      coin: string | null;
+      link: string | null;
+      image: string | null;
+      kind: string | null;
+      video: string | null;
+      views: number | string | null;
+      ts: number | string;
+    }>`select id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts from nf_ads where status = ${"approved"} order by ts desc limit 80`;
+    return rows.map((r) => mapAd({ ...r, days: 7, expires_at: null }));
+  }
+});
+
+function mapAd(r: {
+  id: string;
+  name: string;
+  note: string | null;
+  placement: string;
+  status: string;
+  amount: string | null;
+  tx_hash: string | null;
+  coin: string | null;
+  link: string | null;
+  image: string | null;
+  kind: string | null;
+  video: string | null;
+  views: number | string | null;
+  ts: number | string;
+  days?: number | string | null;
+  expires_at?: number | string | null;
+}) {
+  return {
     id: r.id,
     name: r.name,
     note: r.note ?? "",
@@ -275,20 +333,57 @@ export const listAds = createServerFn({ method: "GET" }).handler(async () => {
     video: r.video ?? undefined,
     views: Number(r.views ?? 0),
     ts: Number(r.ts),
-  }));
-});
+    days: Number(r.days ?? 7),
+    expiresAt: r.expires_at ? Number(r.expires_at) : undefined,
+  };
+}
 
 type CampaignPlacement = "sidebar" | "hero" | "chat" | "board" | "chat-pin";
 type Campaign = { kind?: "image" | "video" | "image-text" | "video-text" | "text" };
 
+export const listMyAds = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    try {
+      const rows = await sql<{
+        id: string;
+        name: string;
+        note: string | null;
+        placement: string;
+        status: string;
+        amount: string | null;
+        tx_hash: string | null;
+        coin: string | null;
+        link: string | null;
+        image: string | null;
+        kind: string | null;
+        video: string | null;
+        views: number | string | null;
+        ts: number | string;
+        days: number | string | null;
+        expires_at: number | string | null;
+      }>`select id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts, days, expires_at from nf_ads where user_id = ${context.userId} order by ts desc limit 40`;
+      return rows.map(mapAd);
+    } catch {
+      return [] as ReturnType<typeof mapAd>[];
+    }
+  });
+
 export const saveAdRow = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { name: string; note: string; placement?: string; status?: string; amount?: string; txHash?: string; coin?: string; link?: string; image?: string; kind?: string; video?: string }) => d)
+  .validator((d: { name: string; note: string; placement?: string; status?: string; amount?: string; txHash?: string; coin?: string; link?: string; image?: string; kind?: string; video?: string; days?: number }) => d)
   .handler(async ({ context, data }) => {
     if (!allowWrite(`ad:${context.userId}`, 6)) return { ok: false as const, reason: RATE_BLOCKED };
     const name = data.name.trim();
     if (!name) return null;
     const sql = await getSql();
+    try {
+      await sql`alter table nf_ads add column if not exists days int not null default 7`;
+      await sql`alter table nf_ads add column if not exists expires_at bigint`;
+    } catch {
+      /* older drivers */
+    }
     if ((await restrictionOf(context.userId)) === "ban") return { ok: false as const, reason: "This account is banned." };
     const blocked = await requireKind(context.userId, "ads.submit");
     if (blocked) return { ok: false as const, reason: blocked };
@@ -297,8 +392,9 @@ export const saveAdRow = createServerFn({ method: "POST" })
     if (!gate.ok) return { ok: false as const, reason: gate.reason };
     const id = nid();
     const ts = Date.now();
-    await sql`insert into nf_ads (id, user_id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts)
-      values (${id}, ${context.userId}, ${name}, ${data.note}, ${data.placement ?? "board"}, ${data.status ?? "pending"}, ${data.amount ?? ""}, ${data.txHash ?? ""}, ${data.coin ?? ""}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.kind ?? "image-text"}, ${data.video ?? ""}, ${0}, ${ts})`;
+    const days = [7, 14, 30].includes(Number(data.days)) ? Number(data.days) : 7;
+    await sql`insert into nf_ads (id, user_id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts, days)
+      values (${id}, ${context.userId}, ${name}, ${data.note}, ${data.placement ?? "board"}, ${data.status ?? "pending"}, ${data.amount ?? ""}, ${data.txHash ?? ""}, ${data.coin ?? ""}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.kind ?? "image-text"}, ${data.video ?? ""}, ${0}, ${ts}, ${days})`;
     return { id };
   });
 
@@ -509,13 +605,16 @@ export const saveTeam = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { name: string }) => d)
   .handler(async ({ context, data }) => {
-    const name = data.name.trim();
-    if (!name) return null;
+    if (!allowWrite(`team:${context.userId}`, 6)) return { ok: false as const, reason: RATE_BLOCKED };
+    const name = data.name.trim().slice(0, 40);
+    if (name.length < 2) return { ok: false as const, reason: "Name needs 2+ characters." };
     const sql = await getSql();
+    const n = await sql<{ n: string | number }>`select count(*) as n from nf_teams where user_id = ${context.userId}`;
+    if (Number(n[0]?.n ?? 0) >= 3) return { ok: false as const, reason: "Max 3 teams you create." };
     const id = nid();
     const who = await publicHandle(context.userId);
     await sql`insert into nf_teams (id, user_id, name, members, ts) values (${id}, ${context.userId}, ${name}, ${who}, ${Date.now()})`;
-    return { id, name, members: [who] };
+    return { ok: true as const, id, name, members: [who] };
   });
 
 export const joinTeamRow = createServerFn({ method: "POST" })
@@ -527,7 +626,10 @@ export const joinTeamRow = createServerFn({ method: "POST" })
     if (!rows[0]) return null;
     const who = await publicHandle(context.userId);
     const members = rows[0].members.split(",").filter(Boolean);
-    if (!members.includes(who)) members.push(who);
+    if (!members.includes(who)) {
+      if (members.length >= 40) return { ok: false as const, reason: "This team is full (40)." };
+      members.push(who);
+    }
     await sql`update nf_teams set members = ${members.join(",")} where id = ${id}`;
     return { id, members };
   });

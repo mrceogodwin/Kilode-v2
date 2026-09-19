@@ -19,7 +19,7 @@ import {
   type Team,
 } from "@/lib/qonvo-data";
 import { DEMO_ADS, DEMO_JOINS, DEMO_NOTES, DEMO_POSTS, DEMO_TRACKS } from "@/lib/qonvo-seed";
-import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, savePin, savePost, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
+import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, savePin, savePost, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
 import { listNotes } from "@/lib/social-server";
 import { hidePost as hidePostRow, setAdPlacement, setAdStatus } from "@/lib/staff-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -306,6 +306,15 @@ export function useQonvo() {
       void listNotes()
         .then((rows) => {
           if (rows.length) setNotes(rows);
+        })
+        .catch(() => undefined);
+      void listMyAds()
+        .then((mine) => {
+          if (!mine.length) return;
+          setCampaigns((prev) => {
+            const ids = new Set(prev.map((c) => c.id));
+            return [...mine.filter((m) => !ids.has(m.id)), ...prev];
+          });
         })
         .catch(() => undefined);
       void getProfile()
@@ -643,6 +652,11 @@ export function useQonvo() {
       image?: string;
       slug?: string;
       status?: "draft" | "publish";
+      seoTitle?: string;
+      seoDesc?: string;
+      altText?: string;
+      sourceName?: string;
+      commentsOn?: boolean;
     }) => {
       const t = draft.title.trim();
       const b = draft.body.trim();
@@ -663,6 +677,7 @@ export function useQonvo() {
         image: draft.image,
         slug: draft.slug,
         status: draft.status ?? "publish",
+        commentsOn: draft.commentsOn !== false,
       };
       setPosts((prev) => [item, ...prev]);
       void savePost({
@@ -675,6 +690,12 @@ export function useQonvo() {
           link: draft.link,
           image: draft.image,
           slug: draft.slug,
+          seoTitle: draft.seoTitle,
+          seoDesc: draft.seoDesc,
+          altText: draft.altText,
+          sourceName: draft.sourceName,
+          status: draft.status ?? "publish",
+          commentsOn: draft.commentsOn !== false,
         },
       }).then((r) => {
         if (r && "ok" in r && r.ok === false) {
@@ -755,7 +776,14 @@ export function useQonvo() {
       const who = session.user?.displayName || ensureHandle();
       const item = { id: uid(), name: n, members: [who] };
       setTeams((prev) => [item, ...prev]);
-      void saveTeam({ data: { name: n } }).catch(() => undefined);
+      void saveTeam({ data: { name: n } }).then((r) => {
+        if (r && "ok" in r && r.ok === false) {
+          setTeams((prev) => prev.filter((t) => t.id !== item.id));
+          note(r.reason);
+        } else if (r && "id" in r && r.id) {
+          setTeams((prev) => prev.map((t) => (t.id === item.id ? { ...t, id: String(r.id) } : t)));
+        }
+      }).catch(() => undefined);
       note(`Created team ${n}`);
     },
     [ensureHandle, needAccount, note, session.user],
@@ -793,6 +821,7 @@ export function useQonvo() {
         video: extra?.video,
         kind: extra?.kind ?? "image-text",
         views: 0,
+        days: extra?.days ?? 7,
       } as Campaign;
       setCampaigns((prev) => [row, ...prev]);
       void saveAdRow({
@@ -808,6 +837,7 @@ export function useQonvo() {
           image: extra?.image,
           kind: extra?.kind,
           video: extra?.video,
+          days: extra?.days,
         },
       }).catch(() => undefined);
       note(`Ad submitted: ${n}`);

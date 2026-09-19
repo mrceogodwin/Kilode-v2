@@ -38,6 +38,7 @@ import {
   Moon,
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
+import { canKind } from "@/lib/permissions";
 import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
@@ -80,9 +81,14 @@ const ICONS: Record<MenuId, typeof Home> = {
 
 const MENU_GROUPS: { label: string; ids: MenuId[] }[] = [
   { label: "Me", ids: ["profile", "dashboard", "bookmarks", "inbox", "notifications", "teams"] },
-  { label: "Discover", ids: ["forum", "trending", "community", "search", "leaderboard", "badges"] },
+  { label: "Discover", ids: ["trending", "community", "search", "leaderboard", "badges"] },
   { label: "Create", ids: ["create", "ads", "jobs", "market", "rent"] },
   { label: "Account", ids: ["settings", "contact", "help"] },
+];
+
+const GUEST_GROUPS: { label: string; ids: MenuId[] }[] = [
+  { label: "Browse", ids: ["trending", "community", "search", "jobs", "market", "rent"] },
+  { label: "Account", ids: ["help", "contact"] },
 ];
 
 function fmt(n: number) {
@@ -171,6 +177,7 @@ function mixChatAds(rows: ChatRow[], ads: Campaign[]): ChatRow[] {
 export function QonvoApp() {
   const store = useQonvo();
   const session = useCurrentUserState();
+  const signedIn = Boolean(session.user);
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("All");
   const [draft, setDraft] = useState("");
@@ -183,6 +190,7 @@ export function QonvoApp() {
   const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema">("feeds");
   const [joinPass, setJoinPass] = useState("");
   const [joinAgree, setJoinAgree] = useState(false);
+  const [joinAgreeRules, setJoinAgreeRules] = useState(false);
   const [joinKind, setJoinKind] = useState<AccountKind>("member");
   const [joinFace, setJoinFace] = useState(KIND_FACE.member);
   const [joinErr, setJoinErr] = useState("");
@@ -306,7 +314,9 @@ export function QonvoApp() {
             <HomeTab label="Music" on={homeTab === "music" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("music"); setScreen("home"); setMenuOpen(false); }} />
             <HomeTab label="Cinema" on={homeTab === "cinema" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("cinema"); setScreen("home"); setMenuOpen(false); }} />
             <HomeTab label="Ads" on={homeTab === "advert" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("advert"); setScreen("home"); setMenuOpen(false); }} />
-            <HomeTab label="Me" on={screen === "profile"} onClick={() => { setScreen("profile"); setMenuOpen(false); }} />
+            {signedIn ? (
+              <HomeTab label="Me" on={screen === "profile"} onClick={() => { setScreen("profile"); setMenuOpen(false); }} />
+            ) : null}
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
             <SkinToggle />
@@ -361,27 +371,25 @@ export function QonvoApp() {
 
       {screen === "home" ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {homeTab === "feeds" ? (
-            <div className="hidden shrink-0 border-b border-white/[0.05] px-4 py-3 md:block">
-              <p className="text-[11px] font-medium tracking-wide text-lime-2">Feeds for every conversation</p>
-              <h1 className="text-xl font-extrabold tracking-tight">
-                Talk Nigeria. <span className="text-lime-2">Live.</span>
-              </h1>
-            </div>
-          ) : null}
           {homeTab === "feeds" || homeTab === "music" || homeTab === "advert" ? (
             <div className="flex shrink-0 justify-end gap-1 border-b border-line px-2 py-0.5">
               {homeTab === "feeds" ? (
-                <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))}>
+                <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => (signedIn ? setScreen("create") : (window.location.href = "/login?mode=up"))}>
                   New post
                 </button>
               ) : homeTab === "music" ? (
-                <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))}>
-                  Add track
+                canKind(store.kind, "music.submit") && signedIn ? (
+                  <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => setScreen("create")}>
+                    Add track
+                  </button>
+                ) : null
+              ) : canKind(store.kind, "ads.submit") && signedIn ? (
+                <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => setScreen("ads")}>
+                  Place ad
                 </button>
               ) : (
-                <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => (store.authed || session.user ? setScreen("ads") : (window.location.href = "/login"))}>
-                  Place ad
+                <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => (window.location.href = signedIn ? "/login" : "/login?mode=up")}>
+                  {signedIn ? "Ads Poster accounts only" : "Join to advertise"}
                 </button>
               )}
             </div>
@@ -695,13 +703,15 @@ export function QonvoApp() {
         </div>
       )}
 
-      <nav className="z-20 grid shrink-0 grid-cols-6 border-t border-line bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav className={`z-20 grid shrink-0 border-t border-line bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden ${signedIn ? "grid-cols-6" : "grid-cols-5"}`}>
         <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); store.setOpenPost(null); }} />
         <Tab icon={<MessageSquare className="size-3.5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
         <Tab icon={<Radio className="size-3.5" />} label="Music" on={screen === "home" && homeTab === "music"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("music"); }} />
         <Tab icon={<Film className="size-3.5" />} label="Cinema" on={screen === "home" && homeTab === "cinema"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("cinema"); }} />
         <Tab icon={<Megaphone className="size-3.5" />} label="Ads" on={screen === "home" && homeTab === "advert"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("advert"); }} />
-        <Tab icon={<User className="size-3.5" />} label="Me" on={screen === "profile"} onClick={() => { setMenuOpen(false); setScreen("profile"); }} />
+        {signedIn ? (
+          <Tab icon={<User className="size-3.5" />} label="Me" on={screen === "profile"} onClick={() => { setMenuOpen(false); setScreen("profile"); }} />
+        ) : null}
       </nav>
 
       {roomsOpen ? (
@@ -786,11 +796,16 @@ export function QonvoApp() {
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-5">
+              {!(signedIn) ? (
+                <a href="/login?mode=up" className="btn-join mb-4 block rounded-xl py-3 text-center text-sm font-bold">
+                  JOIN KILODE NOW
+                </a>
+              ) : (
               <div className="mb-4 grid grid-cols-3 gap-2 px-0.5">
                 {[
                   { n: store.posts.filter((p) => !!p?.id && p.author === store.handle).length, l: "Yours" },
                   { n: store.pins.length, l: "Rooms" },
-                  { n: store.campaigns.filter((c) => c.status === "approved").length, l: "Ads" },
+                  { n: store.savedPosts.length, l: "Saved" },
                 ].map((s) => (
                   <div key={s.l} className="raised rounded-xl px-2 py-2.5 text-center">
                     <div className="text-sm font-bold text-lime-2">{s.n}</div>
@@ -798,14 +813,18 @@ export function QonvoApp() {
                   </div>
                 ))}
               </div>
+              )}
 
+              {signedIn ? (
               <div className="mb-4 px-0.5">
                 <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Quick</div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { id: "create" as MenuId, label: "Create", tab: null as null | "feeds" | "music" | "chat" | "videos" },
-                    { id: "ads" as MenuId, label: "Place ad", tab: null },
-                    { id: "inbox" as MenuId, label: "Messages", tab: null },
+                    ...(canKind(store.kind, "feeds.post") || canKind(store.kind, "music.submit")
+                      ? [{ id: "create" as MenuId, label: "Create", tab: null as null | "feeds" | "music" | "chat" | "videos" }]
+                      : []),
+                    ...(canKind(store.kind, "ads.submit") ? [{ id: "ads" as MenuId, label: "Place ad", tab: null as null }] : []),
+                    { id: "inbox" as MenuId, label: "Messages", tab: null as null },
                     { id: "home" as MenuId, label: "Chat rooms", tab: "chat" as const },
                   ].map((q) => {
                     const Icon = ICONS[q.id === "home" ? "forum" : q.id] ?? MessageSquare;
@@ -830,6 +849,19 @@ export function QonvoApp() {
                   })}
                 </div>
               </div>
+              ) : (
+              <div className="mb-4 px-0.5">
+                <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Quick</div>
+                <button
+                  type="button"
+                  className="raised flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left"
+                  onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }}
+                >
+                  <MessageSquare className="size-4 shrink-0 text-lime-2" />
+                  <span className="text-[12px] font-semibold">Chat rooms</span>
+                </button>
+              </div>
+              )}
 
               {store.campaigns.filter((c) => c.status === "approved").slice(0, 2).length ? (
                 <div className="mb-4 px-0.5">
@@ -880,11 +912,17 @@ export function QonvoApp() {
                 </div>
               </div>
 
-              {MENU_GROUPS.map((group) => (
+              {(signedIn ? MENU_GROUPS : GUEST_GROUPS).map((group) => (
                 <div key={group.label} className="mb-4">
                   <div className="px-1 py-1.5 text-[10px] font-medium tracking-normal text-muted">{group.label}</div>
                   <div className="space-y-0.5">
-                    {group.ids.map((id) => {
+                    {group.ids
+                      .filter((id) => {
+                        if (id === "create") return canKind(store.kind, "feeds.post") || canKind(store.kind, "music.submit");
+                        if (id === "ads") return canKind(store.kind, "ads.submit") || group.label === "Browse";
+                        return true;
+                      })
+                      .map((id) => {
                       const Icon = ICONS[id];
                       const label = MENU.find((m) => m[0] === id)?.[1] ?? id;
                       return (
@@ -892,8 +930,11 @@ export function QonvoApp() {
                           key={id}
                           type="button"
                           onClick={() => {
-                            if (id === "home") goHome();
-                            else setScreen(id);
+                            if (id === "home" || id === "forum") {
+                              store.setOpenPost(null);
+                              setHomeTab("feeds");
+                              setScreen("home");
+                            } else setScreen(id);
                             setMenuOpen(false);
                           }}
                           className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm ${
@@ -945,9 +986,9 @@ export function QonvoApp() {
                 Donate
               </button>
               <p className="mt-3 text-center text-[9px] leading-snug text-muted">
-                <button type="button" className="underline" onClick={() => { setScreen("help"); setMenuOpen(false); }}>
-                  Terms · Privacy
-                </button>
+                <a href="/terms" className="underline">
+                  Terms · Privacy · Rules
+                </a>
                 {" · "}
                 <a href="https://t.me/Builtbystacks" target="_blank" rel="noreferrer" className="text-lime-2">
                   @Builtbystacks
@@ -1001,17 +1042,34 @@ export function QonvoApp() {
               <div className="mb-1 text-[10px] font-medium tracking-normal text-muted">Your avatar</div>
               <AvatarPicker value={joinFace} handle={joinName} onChange={setJoinFace} />
             </div>
-            <label className="mb-2 flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">
+            <label className="mb-2 flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] leading-snug text-muted">
               <input type="checkbox" className="mt-0.5" checked={joinAgree} onChange={(e) => setJoinAgree(e.target.checked)} />
               <span>
-                I agree to the{" "}
-                <button type="button" className="text-lime-2 underline" onClick={() => { setJoinOpen(false); setScreen("help"); }}>
-                  Terms
-                </button>
+                I have read and agree to the{" "}
+                <a href="/terms#terms" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                  Terms of Use
+                </a>
                 .
               </span>
             </label>
-            <p className="mb-2 text-[11px] text-muted">No email. Needed to post, list music, or place ads.</p>
+            <label className="mb-2 flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] leading-snug text-muted">
+              <input type="checkbox" className="mt-0.5" checked={joinAgreeRules} onChange={(e) => setJoinAgreeRules(e.target.checked)} />
+              <span>
+                I accept the{" "}
+                <a href="/terms#rules" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                  Community Rules
+                </a>
+                . I am responsible for what I submit. Kilode is not liable.{" "}
+                <a href="/terms#howto" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                  How to use
+                </a>
+                .
+              </span>
+            </label>
+            <a href="/terms" className="mb-2 block text-center text-[11px] font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+              Open full Terms, Rules, Privacy & How to use
+            </a>
+            <p className="mb-2 text-[11px] text-muted">No email. Username + password only.</p>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -1019,8 +1077,8 @@ export function QonvoApp() {
                 onClick={() => {
                   void (async () => {
                     setJoinErr("");
-                    if (!joinAgree) {
-                      setJoinErr("Tick the box to accept the Terms.");
+                    if (!joinAgree || !joinAgreeRules) {
+                      setJoinErr("Tick both boxes. Read the Terms and the Rules first.");
                       return;
                     }
                     const r = await kilodeSignUp(joinName, joinPass, joinKind, joinFace);
@@ -1069,7 +1127,7 @@ function SkinToggle() {
       type="button"
       className="grid size-9 place-items-center rounded-lg border border-line bg-panel-2"
       aria-label={skin === "night" ? "Switch to light skin" : "Switch to night skin"}
-      title={skin === "night" ? "Ivory (light)" : "Night"}
+      title={skin === "night" ? "Light" : "Night"}
       onClick={() => {
         const next = skin === "night" ? "ivory" : "night";
         setSkin(next);
@@ -1579,7 +1637,7 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
         <div className="mt-8 border-t border-line pt-4">
           <div className="flex items-center justify-between">
             <div className="text-[10px] font-medium tracking-normal text-muted">{post.comments.length} comments</div>
-            <span className="text-[10px] text-muted">Reply to keep the convo going</span>
+            <span className="text-[10px] text-muted">{post.commentsOn === false ? "Comments are off" : "Reply to keep the convo going"}</span>
           </div>
           {roots.map((c) => (
             <div key={c.ts} className="mt-3 rounded-xl border border-white/5 bg-panel-3/60 p-3 text-sm">
@@ -1601,6 +1659,9 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
               ))}
             </div>
           ))}
+          {post.commentsOn === false ? (
+            <p className="mt-3 text-[12px] text-muted">The author turned comments off for this post.</p>
+          ) : (
           <form
             className="mt-3 flex gap-2"
             onSubmit={(e) => {
@@ -1613,13 +1674,14 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder={store.authed || session.user ? (replyTo ? "Reply to comment…" : "Write a comment") : "Sign in to comment"}
+              placeholder={session.user ? (replyTo ? "Reply to comment…" : "Write a comment") : "Sign in to comment"}
               className="min-h-10 flex-1 rounded-lg border border-line bg-panel px-3 text-sm"
             />
             <button type="submit" className="btn-3d rounded-lg px-3 text-xs font-semibold">
               {replyTo ? "Reply" : "Comment"}
             </button>
           </form>
+          )}
           {replyTo ? (
             <button type="button" className="mt-1 text-[10px] text-muted" onClick={() => setReplyTo(null)}>
               Cancel reply
@@ -1664,7 +1726,7 @@ function EmptyHero({ title, body, cta, onClick }: { title: string; body: string;
 
 function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
   const [cat, setCat] = useState("All");
-  const [shown, setShown] = useState(16);
+  const [shown, setShown] = useState(20);
   const open = store.posts.find((p) => p.id === store.openPost);
   const live = store.posts.filter((p) => !!p?.id && p.status !== "draft" && (cat === "All" || p.category === cat));
   if (open) {
@@ -1679,7 +1741,7 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
             type="button"
             onClick={() => {
               setCat(c);
-              setShown(16);
+              setShown(20);
             }}
             className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold tracking-wide ${cat === c ? "btn-3d text-lime-2" : "border border-line bg-panel-2 text-fg/80"}`}
           >
@@ -1726,7 +1788,7 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
           <button
             type="button"
             className="btn-join mt-3 mb-2 w-full rounded-lg py-2.5 text-[12px] font-bold"
-            onClick={() => setShown((n) => n + 16)}
+            onClick={() => setShown((n) => n + 20)}
           >
             Load more · {live.length - shown} left
           </button>

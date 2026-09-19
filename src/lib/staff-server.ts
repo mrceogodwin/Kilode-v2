@@ -230,8 +230,91 @@ export const setAdStatus = createServerFn({ method: "POST" })
     const me = await staffOf(context.userId);
     if (!me) throw new Error("Forbidden");
     const sql = await getSql();
-    await sql`update nf_ads set status = ${data.status} where id = ${data.id}`;
+    try {
+      await sql`alter table nf_ads add column if not exists days int not null default 7`;
+      await sql`alter table nf_ads add column if not exists expires_at bigint`;
+    } catch {
+      /* ignore */
+    }
+    if (data.status === "approved") {
+      const rows = await sql<{ days: number | string | null; expires_at: number | string | null }>`select days, expires_at from nf_ads where id = ${data.id} limit 1`;
+      const days = Number(rows[0]?.days ?? 7) || 7;
+      const exp = rows[0]?.expires_at ? Number(rows[0].expires_at) : Date.now() + days * 86_400_000;
+      await sql`update nf_ads set status = ${data.status}, expires_at = ${exp} where id = ${data.id}`;
+    } else {
+      await sql`update nf_ads set status = ${data.status} where id = ${data.id}`;
+    }
     return { ok: true };
+  });
+
+export const listAdsQueue = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { status?: string; q?: string; offset?: number }) => d)
+  .handler(async ({ context, data }) => {
+    const me = await staffOf(context.userId);
+    if (!me) throw new Error("Forbidden");
+    const sql = await getSql();
+    const offset = Math.max(0, Math.min(5000, data.offset ?? 0));
+    const q = (data.q ?? "").trim().slice(0, 40).toLowerCase();
+    const status = (data.status ?? "").trim();
+    const like = q ? `%${q}%` : "%";
+    try {
+      const totalRows = status
+        ? await sql<{ n: string | number }>`select count(*) as n from nf_ads where status = ${status} and (lower(name) like ${like} or lower(coalesce(tx_hash, '')) like ${like})`
+        : await sql<{ n: string | number }>`select count(*) as n from nf_ads where lower(name) like ${like} or lower(coalesce(tx_hash, '')) like ${like}`;
+      const rows = status
+        ? await sql<{
+            id: string;
+            name: string;
+            note: string | null;
+            placement: string;
+            status: string;
+            amount: string | null;
+            tx_hash: string | null;
+            coin: string | null;
+            kind: string | null;
+            image: string | null;
+            days: number | string | null;
+            expires_at: number | string | null;
+            ts: number | string;
+          }>`select id, name, note, placement, status, amount, tx_hash, coin, kind, image, days, expires_at, ts from nf_ads where status = ${status} and (lower(name) like ${like} or lower(coalesce(tx_hash, '')) like ${like}) order by ts desc limit 40 offset ${offset}`
+        : await sql<{
+            id: string;
+            name: string;
+            note: string | null;
+            placement: string;
+            status: string;
+            amount: string | null;
+            tx_hash: string | null;
+            coin: string | null;
+            kind: string | null;
+            image: string | null;
+            days: number | string | null;
+            expires_at: number | string | null;
+            ts: number | string;
+          }>`select id, name, note, placement, status, amount, tx_hash, coin, kind, image, days, expires_at, ts from nf_ads where lower(name) like ${like} or lower(coalesce(tx_hash, '')) like ${like} order by ts desc limit 40 offset ${offset}`;
+      return {
+        total: Number(totalRows[0]?.n ?? 0),
+        offset,
+        rows: rows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          note: r.note ?? "",
+          placement: r.placement,
+          status: r.status,
+          amount: r.amount ?? "",
+          txHash: r.tx_hash ?? "",
+          coin: r.coin ?? "",
+          kind: r.kind ?? "",
+          image: r.image ?? "",
+          days: Number(r.days ?? 7),
+          expiresAt: r.expires_at ? Number(r.expires_at) : 0,
+          ts: Number(r.ts),
+        })),
+      };
+    } catch {
+      return { total: 0, offset, rows: [] as { id: string; name: string; note: string; placement: string; status: string; amount: string; txHash: string; coin: string; kind: string; image: string; days: number; expiresAt: number; ts: number }[] };
+    }
   });
 
 export const hidePost = createServerFn({ method: "POST" })
