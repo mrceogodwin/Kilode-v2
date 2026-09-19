@@ -34,6 +34,8 @@ import {
   UsersRound,
   Shield,
   X,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
@@ -307,6 +309,7 @@ export function QonvoApp() {
             <HomeTab label="Me" on={screen === "profile"} onClick={() => { setScreen("profile"); setMenuOpen(false); }} />
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            <SkinToggle />
             <button
               type="button"
               className="grid size-9 place-items-center rounded-lg border border-line bg-panel-2"
@@ -1050,6 +1053,76 @@ export function QonvoApp() {
   );
 }
 
+function SkinToggle() {
+  const [skin, setSkin] = useState<"night" | "ivory">("night");
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem("kilode-skin") === "ivory" ? "ivory" : "night";
+      setSkin(s);
+      document.documentElement.setAttribute("data-skin", s);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  return (
+    <button
+      type="button"
+      className="grid size-9 place-items-center rounded-lg border border-line bg-panel-2"
+      aria-label={skin === "night" ? "Switch to light skin" : "Switch to night skin"}
+      title={skin === "night" ? "Ivory (light)" : "Night"}
+      onClick={() => {
+        const next = skin === "night" ? "ivory" : "night";
+        setSkin(next);
+        document.documentElement.setAttribute("data-skin", next);
+        try {
+          localStorage.setItem("kilode-skin", next);
+        } catch {
+          /* ignore */
+        }
+      }}
+    >
+      {skin === "night" ? <Sun className="size-3.5 text-lime-2" /> : <Moon className="size-3.5" />}
+    </button>
+  );
+}
+
+function ShareIco({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" aria-label={label} title={label} className="share-ico" onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
+function IconWa() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4 fill-current" aria-hidden>
+      <path d="M12.04 2C6.58 2 2.15 6.4 2.15 11.83c0 1.74.46 3.44 1.34 4.94L2 22l5.4-1.41a10.1 10.1 0 0 0 4.64 1.12h.01c5.46 0 9.89-4.4 9.89-9.84C21.94 6.4 17.5 2 12.04 2Zm5.72 13.99c-.24.68-1.4 1.25-1.93 1.33-.49.07-1.1.1-1.78-.11-.41-.13-.94-.3-1.61-.59-2.84-1.23-4.7-4.1-4.84-4.29-.14-.19-1.15-1.53-1.15-2.92 0-1.39.73-2.07.99-2.36.26-.29.57-.36.76-.36h.55c.18 0 .41-.07.64.49.24.58.82 2 .89 2.14.07.15.12.32.02.51-.1.2-.15.32-.3.5-.14.17-.3.38-.43.51-.14.14-.29.29-.12.56.16.27.73 1.2 1.57 1.95 1.08.96 1.99 1.26 2.26 1.4.27.14.43.12.59-.07.16-.19.68-.79.86-1.06.18-.27.36-.22.61-.13.24.1 1.54.73 1.8.86.27.13.44.2.51.31.07.11.07.64-.17 1.32Z" />
+    </svg>
+  );
+}
+function IconX() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-3.5 fill-current" aria-hidden>
+      <path d="M18.9 2H22l-6.8 7.8L23 22h-6.5l-5.1-6.7L5.8 22H2.7l7.3-8.3L1 2h6.6l4.6 6.1L18.9 2Zm-1.1 18h1.8L6.3 3.9H4.4L17.8 20Z" />
+    </svg>
+  );
+}
+function IconFb() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4 fill-current" aria-hidden>
+      <path d="M14 9h3V6h-3c-2.2 0-4 1.8-4 4v2H8v3h2v7h3v-7h2.6l.4-3H13v-2c0-.6.4-1 1-1Z" />
+    </svg>
+  );
+}
+function IconTg() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4 fill-current" aria-hidden>
+      <path d="M21.5 3.5 2.8 10.7c-1.3.5-1.3 1.2-.2 1.5l4.8 1.5 1.9 5.8c.2.7.4 1 1.1.6l2.7-2.5 5.3 3.9c1 .6 1.7.3 2-1l3.4-16c.4-1.5-.5-2.2-1.6-1.7Z" />
+    </svg>
+  );
+}
+
 function Tab({
   icon,
   label,
@@ -1162,7 +1235,14 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
           }}
         >
           {t.cover ? (
-            <img src={t.cover} alt="" className={`${compact ? "size-8" : "size-9"} shrink-0 rounded object-cover`} />
+            <img
+              src={t.cover}
+              alt=""
+              className={`${compact ? "size-8" : "size-9"} shrink-0 rounded object-cover`}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
           ) : (
             <span className="btn-3d grid size-8 shrink-0 place-items-center rounded-full">
               <Play className="size-3 fill-lime-2 text-lime-2" />
@@ -1433,14 +1513,13 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
               <h1 className="mt-1 text-2xl font-extrabold leading-tight">{post.title}</h1>
               <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
                 <AvatarImg handle={post.author} size={22} />
-                <span>
-                  Posted by <HandleLink handle={post.author} className="text-[11px] font-semibold" />
-                </span>
+                <span className="font-semibold tracking-wide text-muted">POSTED BY:</span>
+                <HandleLink handle={post.author} className="text-[11px] font-semibold" />
                 <span>· {timeLabel(post.ts)}</span>
                 <span>· {mins} min read</span>
                 {post.tags ? <span>· {post.tags}</span> : null}
               </div>
-              {post.excerpt ? <p className="mt-3 text-sm italic text-muted">{post.excerpt}</p> : null}
+              {post.excerpt && post.excerpt.trim() !== post.title.trim() ? <p className="mt-3 text-sm italic text-muted">{post.excerpt}</p> : null}
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-white/5 px-3 py-2 text-[11px]">
@@ -1460,31 +1539,31 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
             ))}
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <button type="button" className="btn-3d inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-semibold" onClick={() => store.likePost(post.id)}>
-            <Heart className="size-3 fill-lime-2 text-lime-2" /> Like
-          </button>
-          <button type="button" className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${saved ? "btn-3d" : "border-line text-muted"}`} onClick={() => store.savePostMark(post.id)}>
-            <Bookmark className="size-3" /> {saved ? "Saved" : "Save"}
-          </button>
-          <button type="button" className="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-[11px]" onClick={() => share("wa")}>
-            WA
-          </button>
-          <button type="button" className="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-[11px]" onClick={() => share("x")}>
-            X
-          </button>
-          <button type="button" className="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-[11px]" onClick={() => share("fb")}>
-            Facebook
-          </button>
-          <button type="button" className="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-[11px]" onClick={() => share("tg")}>
-            Telegram
-          </button>
-          <button type="button" className="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-[11px]" onClick={() => share("copy")}>
-            <Copy className="size-3" /> {copied ? "Copied" : "Copy"}
-          </button>
-          <button type="button" className="inline-flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-[11px]" onClick={() => share("native")}>
-            <Share2 className="size-3 text-lime-2" /> Share
-          </button>
+        <div className="share-row mt-3">
+          <ShareIco label="Like" onClick={() => store.likePost(post.id)}>
+            <Heart className={`size-3.5 ${likes ? "fill-lime-2 text-lime-2" : ""}`} />
+          </ShareIco>
+          <ShareIco label={saved ? "Saved" : "Save"} onClick={() => store.savePostMark(post.id)}>
+            <Bookmark className={`size-3.5 ${saved ? "fill-lime-2 text-lime-2" : ""}`} />
+          </ShareIco>
+          <ShareIco label="WhatsApp" onClick={() => share("wa")}>
+            <IconWa />
+          </ShareIco>
+          <ShareIco label="X" onClick={() => share("x")}>
+            <IconX />
+          </ShareIco>
+          <ShareIco label="Facebook" onClick={() => share("fb")}>
+            <IconFb />
+          </ShareIco>
+          <ShareIco label="Telegram" onClick={() => share("tg")}>
+            <IconTg />
+          </ShareIco>
+          <ShareIco label={copied ? "Copied" : "Copy link"} onClick={() => share("copy")}>
+            <Copy className="size-3.5" />
+          </ShareIco>
+          <ShareIco label="Share" onClick={() => share("native")}>
+            <Share2 className="size-3.5 text-lime-2" />
+          </ShareIco>
         </div>
         <div className="mt-5 space-y-3 text-[15px] leading-7 text-fg/90">
           {post.body.split(/\n+/).map((para, i) => (

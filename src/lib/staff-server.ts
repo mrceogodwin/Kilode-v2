@@ -5,6 +5,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 import { invalidateMod, loadMod } from "@/lib/mod-cache";
 import { invalidateChatTtl } from "@/lib/forum-server";
+import { asAccountKind } from "@/lib/qonvo-data";
 
 type StaffRole = "mod" | "admin" | "super";
 type GrantRole = "mod" | "admin";
@@ -154,15 +155,73 @@ export const listMembers = createServerFn({ method: "GET" })
     if (!me) return [];
     const sql = await getSql();
     try {
-      const rows = await sql<{ id: string; name: string; kind: string | null }>`
-        select u.id, u.name, p.kind from "user" u
+      const rows = await sql<{ id: string; name: string; kind: string | null; verified: number | string | boolean | null }>`
+        select u.id, u.name, p.kind, p.verified from "user" u
         left join nf_profiles p on p.user_id = u.id
         order by u."createdAt" desc limit 80`;
-      return rows.map((r) => ({ id: r.id, handle: r.name, kind: r.kind || "member" }));
+      return rows.map((r) => ({
+        id: r.id,
+        handle: r.name,
+        kind: r.kind || "member",
+        verified: Number(r.verified) === 1 || r.verified === true,
+      }));
     } catch {
-      return [];
+      try {
+        const rows = await sql<{ id: string; name: string; kind: string | null }>`
+          select u.id, u.name, p.kind from "user" u
+          left join nf_profiles p on p.user_id = u.id
+          order by u."createdAt" desc limit 80`;
+        return rows.map((r) => ({ id: r.id, handle: r.name, kind: r.kind || "member", verified: false }));
+      } catch {
+        return [];
+      }
     }
   });
+
+export const listVerified = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const sql = await getSql();
+    const rows = await sql<{ handle: string }>`select handle from nf_profiles where verified = 1 limit 200`;
+    const official = rows.map((r) => r.handle).filter(Boolean);
+    official.push("Kilode", "Kilode.ng");
+    return official;
+  } catch {
+    return ["Kilode", "Kilode.ng"];
+  }
+});
+
+export const setVerified = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { handle: string; on: boolean }) => d)
+  .handler(async ({ context, data }) => {
+    const me = await staffOf(context.userId);
+    if (me?.role !== "super" && me?.role !== "admin") throw new Error("Forbidden");
+    const handle = data.handle.replace(/^@/, "").trim();
+    if (!handle) return { ok: false as const, reason: "Missing handle." };
+    const sql = await getSql();
+    try {
+      await sql.query(`ALTER TABLE nf_profiles ADD COLUMN IF NOT EXISTS verified INTEGER NOT NULL DEFAULT 0`);
+    } catch {
+      /* exists */
+    }
+    await sql`update nf_profiles set verified = ${data.on ? 1 : 0} where lower(handle) = ${handle.toLowerCase()}`;
+    return { ok: true as const };
+  });
+
+export const setAccountKind = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { handle: string; kind: string }) => d)
+  .handler(async ({ context, data }) => {
+    const me = await staffOf(context.userId);
+    if (me?.role !== "super") throw new Error("Forbidden");
+    const handle = data.handle.replace(/^@/, "").trim();
+    const kind = asAccountKind(data.kind);
+    if (!handle) return { ok: false as const, reason: "Missing handle." };
+    const sql = await getSql();
+    await sql`update nf_profiles set kind = ${kind} where lower(handle) = ${handle.toLowerCase()}`;
+    return { ok: true as const, kind };
+  });
+
 
 export const setAdStatus = createServerFn({ method: "POST" })
   .middleware([authMiddleware])

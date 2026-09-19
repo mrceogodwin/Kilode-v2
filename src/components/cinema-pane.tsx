@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Film, Send } from "lucide-react";
-import { CINEMA_SECTIONS, listCinema, listCinemaQueue, setMovieStatus, submitMovie, voteMovie, type CinemaMovie, type CinemaSection } from "@/lib/cinema-server";
+import { CINEMA_SECTIONS, CINEMA_SEED, listCinema, listCinemaQueue, setMovieStatus, submitMovie, voteMovie, type CinemaMovie, type CinemaSection } from "@/lib/cinema-server";
 import { listMsgs, saveMsg, getProfile } from "@/lib/forum-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { timeLabel, type AccountKind, type ChatMsg } from "@/lib/qonvo-data";
@@ -14,8 +14,8 @@ function thumb(id: string) {
 export function CinemaPane() {
   const session = useCurrentUserState();
   const [sec, setSec] = useState<CinemaSection>("watching");
-  const [watching, setWatching] = useState<CinemaMovie | null>(null);
-  const [movies, setMovies] = useState<CinemaMovie[]>([]);
+  const [watching, setWatching] = useState<CinemaMovie | null>(CINEMA_SEED[0]);
+  const [movies, setMovies] = useState<CinemaMovie[]>(CINEMA_SEED);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [title, setTitle] = useState("");
@@ -27,12 +27,12 @@ export function CinemaPane() {
   function load(section: CinemaSection = sec) {
     void listCinema({ data: { section } })
       .then((r) => {
-        setWatching(r.watching);
-        setMovies(r.movies);
+        setWatching(r.watching ?? CINEMA_SEED[0]);
+        setMovies(r.movies.length ? r.movies : CINEMA_SEED);
       })
       .catch(() => {
-        setWatching(null);
-        setMovies([]);
+        setWatching(CINEMA_SEED[0]);
+        setMovies(CINEMA_SEED);
       });
   }
 
@@ -50,6 +50,7 @@ export function CinemaPane() {
   }, [session.user]);
 
   const signed = !!session.user;
+  const also = movies.filter((m) => m.id !== watching?.id).slice(0, shown);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -67,6 +68,9 @@ export function CinemaPane() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-4">
+        <p className="mb-2 px-0.5 text-[11px] leading-snug text-muted">
+          Communal watch room. Anyone can watch the YouTube embed. Signed-in users vote once a day. Cinema Advertisers submit URLs. Kilode never hosts the file.
+        </p>
         {watching ? (
           <div className="mb-3 overflow-hidden rounded-xl border border-line bg-black">
             <div className="flex items-center justify-between px-2 py-1.5">
@@ -86,11 +90,11 @@ export function CinemaPane() {
             <div className="flex items-center justify-between gap-2 border-t border-white/5 bg-panel px-2 py-1.5">
               <div>
                 <div className="text-sm font-semibold">{watching.title}</div>
-                <p className="text-[10px] text-muted">YouTube embed. Kilode does not host or stream the file.</p>
+                <p className="text-[10px] text-muted">Played from YouTube. Not stored on Kilode.</p>
               </div>
               <button
                 type="button"
-                className="shrink-0 rounded border border-line px-2 py-1 text-[10px] font-semibold"
+                className="btn-3d shrink-0 rounded-lg px-2 py-1 text-[10px] font-semibold"
                 onClick={() => {
                   if (!signed) {
                     window.location.href = "/login?mode=up";
@@ -107,9 +111,7 @@ export function CinemaPane() {
             </div>
             <CinemaChat movieId={watching.id} signed={signed} />
           </div>
-        ) : (
-          <p className="mb-2 text-[11px] text-muted">No Watching Now yet. Vote a title to the top — staff can pin one.</p>
-        )}
+        ) : null}
 
         {kind === "cinema" ? (
         <div className="mb-3 rounded-xl border border-line bg-panel p-2">
@@ -151,13 +153,14 @@ export function CinemaPane() {
         </div>
         ) : (
           <p className="mb-3 rounded-xl border border-line px-3 py-2 text-[11px] text-muted">
-            Voting is open to signed-in users. To submit a movie YouTube URL, register as <strong>Advertiser (Cinema)</strong>.
+            Watch free. Vote after you join. To submit a title, register as <strong>Advertiser (Cinema)</strong>.
           </p>
         )}
+        {err && kind !== "cinema" ? <p className="mb-2 text-[11px] text-danger">{err}</p> : null}
 
         <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted">{sec === "watching" ? "Also in Cinema" : sec}</div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {movies.filter((m) => m.id !== watching?.id || sec !== "watching").slice(0, shown).map((m) => (
+          {also.map((m) => (
             <article key={m.id} className="raised overflow-hidden rounded-lg">
               <img src={thumb(m.youtube_id)} alt="" className="aspect-video w-full object-cover" />
               <div className="p-1.5">
@@ -186,7 +189,7 @@ export function CinemaPane() {
             </article>
           ))}
         </div>
-        {shown < movies.length ? (
+        {shown < movies.filter((m) => m.id !== watching?.id).length ? (
           <button type="button" className="btn-3d mx-auto mt-3 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + 8)}>
             Load more
           </button>
@@ -205,6 +208,7 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
   useEffect(() => {
     let on = true;
     const pull = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       void listMsgs({ data: { roomId } })
         .then((r) => {
           if (!on) return;
@@ -214,7 +218,7 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
         .catch(() => undefined);
     };
     pull();
-    const t = setInterval(pull, 6500);
+    const t = setInterval(pull, 8000);
     return () => {
       on = false;
       clearInterval(t);
@@ -224,7 +228,7 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
   return (
     <div className="border-t border-white/5 bg-bg">
       <div className="max-h-56 overflow-y-auto px-2 py-1.5">
-        {msgs.length === 0 ? <p className="text-[10px] text-muted">Chat this film. Sign in to send.</p> : null}
+        {msgs.length === 0 ? <p className="text-[10px] text-muted">Talk this film. Sign in to send.</p> : null}
         {msgs.map((m) => (
           <div key={m.ts + m.n} className="py-0.5">
             <div className="flex items-baseline gap-1.5">
@@ -320,5 +324,3 @@ export function CinemaAdminPanel() {
     </div>
   );
 }
-
-

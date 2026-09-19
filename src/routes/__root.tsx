@@ -65,6 +65,11 @@ export const Route = createRootRoute({
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var s=localStorage.getItem("kilode-skin");if(s==="ivory"||s==="night")document.documentElement.setAttribute("data-skin",s)}catch(e){}`,
+          }}
+        />
       </head>
       <body className="bg-bg font-sans text-fg antialiased" style={{ background: "#0a0a0a", color: "#eeeeec", minHeight: "100dvh" }}>
         <PreviewHostBridge />

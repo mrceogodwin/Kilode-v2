@@ -5,6 +5,7 @@ import { asAccountKind, type AccountKind } from "@/lib/qonvo-data";
 import { canKind, kindActionHint, type KindAction } from "@/lib/permissions";
 import { gateText } from "@/lib/mod-cache";
 import { pushNote, userIdByHandle } from "@/lib/social-server";
+import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 
 async function kindOf(userId: string): Promise<AccountKind> {
   try {
@@ -32,6 +33,25 @@ async function publicHandle(userId: string) {
   const h = rows[0]?.handle?.trim();
   if (h) return h.slice(0, 24);
   return userId.slice(0, 12);
+}
+
+async function musicCover(url: string, platform: string) {
+  const ctrl = AbortSignal.timeout(2500);
+  try {
+    if (platform === "Spotify") {
+      const r = await fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`, { signal: ctrl });
+      const j = (await r.json()) as { thumbnail_url?: string };
+      return j.thumbnail_url ?? "";
+    }
+    if (platform === "SoundCloud") {
+      const r = await fetch(`https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(url)}`, { signal: ctrl });
+      const j = (await r.json()) as { thumbnail_url?: string };
+      return j.thumbnail_url ?? "";
+    }
+  } catch {
+    return "";
+  }
+  return "";
 }
 
 const gTtl = globalThis as typeof globalThis & { __nfChatTtl?: { at: number; hours: number } };
@@ -133,6 +153,7 @@ export const savePost = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { title: string; body: string; excerpt?: string; category?: string; tags?: string; link?: string; image?: string; slug?: string }) => d)
   .handler(async ({ context, data }) => {
+    if (!allowWrite(`post:${context.userId}`, 8)) return { ok: false as const, reason: RATE_BLOCKED };
     const title = data.title.trim();
     const body = data.body.trim();
     if (!title || !body) return null;
@@ -205,6 +226,7 @@ export const saveTrack = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { title: string; artist: string; url: string; platform: string; embed?: string; cover?: string; genre?: string; album?: string; note?: string; tags?: string }) => d)
   .handler(async ({ context, data }) => {
+    if (!allowWrite(`track:${context.userId}`, 8)) return { ok: false as const, reason: RATE_BLOCKED };
     const sql = await getSql();
     if ((await restrictionOf(context.userId)) === "ban") return { ok: false as const, reason: "This account is banned." };
     const blocked = await requireKind(context.userId, "music.submit");
@@ -214,8 +236,9 @@ export const saveTrack = createServerFn({ method: "POST" })
     if (!gate.ok) return { ok: false as const, reason: gate.reason };
     const id = nid();
     const ts = Date.now();
+    const cover = data.cover?.trim() || (await musicCover(data.url, data.platform));
     await sql`insert into nf_tracks (id, user_id, title, artist, url, platform, embed, cover, genre, album, note, tags, author, ts)
-      values (${id}, ${context.userId}, ${data.title}, ${data.artist}, ${data.url}, ${data.platform}, ${data.embed ?? ""}, ${data.cover ?? ""}, ${data.genre ?? ""}, ${data.album ?? ""}, ${data.note ?? ""}, ${data.tags ?? ""}, ${author}, ${ts})`;
+      values (${id}, ${context.userId}, ${data.title}, ${data.artist}, ${data.url}, ${data.platform}, ${data.embed ?? ""}, ${cover}, ${data.genre ?? ""}, ${data.album ?? ""}, ${data.note ?? ""}, ${data.tags ?? ""}, ${author}, ${ts})`;
     return { id };
   });
 
@@ -262,6 +285,7 @@ export const saveAdRow = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { name: string; note: string; placement?: string; status?: string; amount?: string; txHash?: string; coin?: string; link?: string; image?: string; kind?: string; video?: string }) => d)
   .handler(async ({ context, data }) => {
+    if (!allowWrite(`ad:${context.userId}`, 6)) return { ok: false as const, reason: RATE_BLOCKED };
     const name = data.name.trim();
     if (!name) return null;
     const sql = await getSql();
@@ -380,6 +404,7 @@ export const saveMsg = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { roomId: string; text: string; parentTs?: number }) => d)
   .handler(async ({ context, data }) => {
+    if (!allowWrite(`msg:${context.userId}`, 30)) return { ok: false as const, reason: RATE_BLOCKED };
     const text = data.text.trim();
     if (!text) return null;
     const hit = await restrictionOf(context.userId);
@@ -511,7 +536,7 @@ export const getProfile = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
-    const empty = { handle: "", bio: "", city: "", kind: "member" as AccountKind, stage: "", genre: "", website: "", brand: "", face: "" };
+    const empty = { handle: "", bio: "", city: "", kind: "member" as AccountKind, stage: "", genre: "", website: "", brand: "", face: "", verified: false };
     try {
       const rows = await sql<{
         handle: string;
@@ -523,7 +548,8 @@ export const getProfile = createServerFn({ method: "GET" })
         website: string | null;
         brand: string | null;
         face: string | null;
-      }>`select handle, bio, city, kind, stage, genre, website, brand, face from nf_profiles where user_id = ${context.userId} limit 1`;
+        verified?: number | string | boolean | null;
+      }>`select handle, bio, city, kind, stage, genre, website, brand, face, verified from nf_profiles where user_id = ${context.userId} limit 1`;
       if (!rows[0]) return empty;
       return {
         handle: rows[0].handle,
@@ -535,6 +561,7 @@ export const getProfile = createServerFn({ method: "GET" })
         website: rows[0].website ?? "",
         brand: rows[0].brand ?? "",
         face: rows[0].face ?? "",
+        verified: Number(rows[0].verified) === 1 || rows[0].verified === true,
       };
     } catch {
       const rows = await sql<{ handle: string; bio: string | null; city: string | null }>`select handle, bio, city from nf_profiles where user_id = ${context.userId} limit 1`;
@@ -554,7 +581,7 @@ export const saveProfile = createServerFn({ method: "POST" })
     const genre = (data.genre ?? "").trim().slice(0, 80);
     const website = (data.website ?? "").trim().slice(0, 200);
     const brand = (data.brand ?? "").trim().slice(0, 80);
-    const face = (data.face ?? "").trim().slice(0, 8);
+    const face = (data.face ?? "").trim().slice(0, 32);
     const sql = await getSql();
     const existing = await sql<{ user_id: string; kind: string | null }>`select user_id, kind from nf_profiles where user_id = ${context.userId} limit 1`;
     const kind = existing[0]?.kind ? asAccountKind(existing[0].kind) : asAccountKind(data.kind);

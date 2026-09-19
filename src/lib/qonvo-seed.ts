@@ -2,8 +2,7 @@ import type { Campaign, Join, MusicTrack, Note, Post } from "@/lib/qonvo-data";
 import { parseMusicUrl } from "@/lib/qonvo-data";
 
 function poster(bg: string, label: string) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="360"><rect fill="${bg}" width="800" height="360"/><text x="36" y="196" fill="#f3f3f0" font-size="34" font-family="Segoe UI,sans-serif">${label}</text></svg>`;
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  return `https://picsum.photos/seed/${encodeURIComponent(label.replace(/\s+/g, "-").toLowerCase())}/400/400`;
 }
 
 export const DEMO_POSTS: Post[] = [

@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { dbSource, getSql } from "@/lib/db";
 import { asAccountKind, type AccountKind } from "@/lib/qonvo-data";
 import { accountEmail, publicUsername } from "@/lib/account-email";
+import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 
 function fail(reason: string) {
   return { ok: false as const, reason };
@@ -12,6 +13,7 @@ function fail(reason: string) {
 export const registerAccount = createServerFn({ method: "POST" })
   .validator((d: { name: string; password: string; kind: string; agree: boolean; face?: string }) => d)
   .handler(async ({ data }) => {
+    if (!allowWrite(`reg:${(data.name || "").toLowerCase()}`, 5, 10 * 60_000)) return fail(RATE_BLOCKED);
     if (!data.agree) return fail("Tick the box to accept the Terms.");
     const handle = publicUsername(data.name);
     if (handle.length < 3) return fail("Username needs 3+ letters or numbers.");
@@ -72,12 +74,12 @@ async function saveKind(handle: string, email: string, kind: AccountKind, face?:
   const userId = u[0]?.id;
   if (!userId) return;
   const existing = await sql<{ user_id: string }>`select user_id from nf_profiles where user_id = ${userId} limit 1`;
-  const f = (face ?? "").slice(0, 8);
+  const f = (face ?? "").slice(0, 32);
   if (existing[0]) {
     try {
-      await sql`update nf_profiles set handle = ${handle}, kind = ${kind}, face = ${f}, ts = ${Date.now()} where user_id = ${userId}`;
+      await sql`update nf_profiles set handle = ${handle}, face = ${f}, ts = ${Date.now()} where user_id = ${userId}`;
     } catch {
-      await sql`update nf_profiles set handle = ${handle}, kind = ${kind}, ts = ${Date.now()} where user_id = ${userId}`;
+      await sql`update nf_profiles set handle = ${handle}, ts = ${Date.now()} where user_id = ${userId}`;
     }
   } else {
     try {

@@ -4,6 +4,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { asAccountKind, type AccountKind, youtubeId } from "@/lib/qonvo-data";
 import { canKind, kindActionHint } from "@/lib/permissions";
 import { gateText } from "@/lib/mod-cache";
+import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 
 export type CinemaMovie = {
   id: string;
@@ -19,6 +20,18 @@ export type CinemaMovie = {
 
 export const CINEMA_SECTIONS = ["watching", "top", "trending", "nigerian", "global", "coming"] as const;
 export type CinemaSection = (typeof CINEMA_SECTIONS)[number];
+
+/** Official trailers only. Kilode never hosts the file. Used to seed an empty table and as a client fallback. */
+export const CINEMA_SEED: CinemaMovie[] = [
+  { id: "seed-black-panther", youtube_id: "xjDjIWPwcPU", title: "Black Panther", section: "global", status: "approved", watching: true, votes: 18, submitter: "Kilode", ts: 1726700000000 },
+  { id: "seed-wakanda", youtube_id: "_Z3QKkl1WyM", title: "Black Panther: Wakanda Forever", section: "global", status: "approved", watching: false, votes: 14, submitter: "Kilode", ts: 1726700001000 },
+  { id: "seed-woman-king", youtube_id: "3RDaPV_rJ1Y", title: "The Woman King", section: "nigerian", status: "approved", watching: false, votes: 11, submitter: "Kilode", ts: 1726700002000 },
+  { id: "seed-dune", youtube_id: "8g18jFHCLXk", title: "Dune", section: "coming", status: "approved", watching: false, votes: 9, submitter: "Kilode", ts: 1726700003000 },
+  { id: "seed-endgame", youtube_id: "TcMBFSGVi1c", title: "Avengers: Endgame", section: "coming", status: "approved", watching: false, votes: 8, submitter: "Kilode", ts: 1726700004000 },
+  { id: "seed-noway", youtube_id: "JfVOs4VSpmA", title: "Spider-Man: No Way Home", section: "global", status: "approved", watching: false, votes: 7, submitter: "Kilode", ts: 1726700005000 },
+  { id: "seed-johnwick", youtube_id: "qEVUtrk8_B4", title: "John Wick: Chapter 4", section: "global", status: "approved", watching: false, votes: 6, submitter: "Kilode", ts: 1726700006000 },
+  { id: "seed-oppen", youtube_id: "uYPbbksJxIg", title: "Oppenheimer", section: "coming", status: "approved", watching: false, votes: 5, submitter: "Kilode", ts: 1726700007000 },
+];
 
 function nid() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -92,6 +105,21 @@ async function ensureMovies() {
   await sql.query(`CREATE TABLE IF NOT EXISTS nf_votes (
     user_id TEXT NOT NULL, movie_id TEXT NOT NULL, day TEXT NOT NULL, ts BIGINT NOT NULL,
     PRIMARY KEY (user_id, movie_id, day))`);
+  await sql.query(`CREATE UNIQUE INDEX IF NOT EXISTS nf_movies_yt ON nf_movies (youtube_id)`);
+}
+
+async function seedCinemaIfEmpty() {
+  const sql = await getSql();
+  const n = await sql<{ n: string | number }>`select count(*) as n from nf_movies`;
+  if (Number(n[0]?.n ?? 0) > 0) return;
+  for (const m of CINEMA_SEED) {
+    try {
+      await sql`insert into nf_movies (id, youtube_id, title, section, status, watching, votes, submitter, ts)
+        values (${m.id}, ${m.youtube_id}, ${m.title}, ${m.section}, ${"approved"}, ${m.watching ? 1 : 0}, ${m.votes}, ${m.submitter}, ${m.ts})`;
+    } catch {
+      /* duplicate */
+    }
+  }
 }
 
 async function crownIfEmpty() {
@@ -105,17 +133,14 @@ async function crownIfEmpty() {
 export const listCinema = createServerFn({ method: "GET" })
   .validator((d?: { section?: string }) => d ?? {})
   .handler(async ({ data }) => {
-    const sql = await getSql();
     try {
+      await ensureMovies();
+      await seedCinemaIfEmpty();
       await crownIfEmpty();
     } catch {
-      try {
-        await ensureMovies();
-        await crownIfEmpty();
-      } catch {
-        return { watching: null as CinemaMovie | null, movies: [] as CinemaMovie[] };
-      }
+      return { watching: CINEMA_SEED.find((m) => m.watching) ?? CINEMA_SEED[0], movies: CINEMA_SEED };
     }
+    const sql = await getSql();
     const rows = await sql<{
       id: string;
       youtube_id: string;
@@ -128,20 +153,20 @@ export const listCinema = createServerFn({ method: "GET" })
       ts: number | string;
     }>`select id, youtube_id, title, section, status, watching, votes, submitter, ts from nf_movies where status = 'approved' order by watching desc, votes desc, ts desc limit 80`;
     const movies = rows.map(mapRow);
-    const watching = movies.find((m) => m.watching) ?? null;
-    const sec = data.section || "top";
+    const watching = movies.find((m) => m.watching) ?? movies[0] ?? null;
+    const sec = data.section || "watching";
     let list = movies;
-    if (sec === "watching") list = watching ? [watching] : [];
-    else if (sec === "nigerian" || sec === "global" || sec === "coming") list = movies.filter((m) => m.section === sec);
-    else if (sec === "trending") list = [...movies].sort((a, b) => b.votes - a.votes || b.ts - a.ts);
-    else list = [...movies].sort((a, b) => b.votes - a.votes);
-    return { watching, movies: list };
+    if (sec === "nigerian" || sec === "global" || sec === "coming") list = movies.filter((m) => m.section === sec);
+    else if (sec === "trending" || sec === "top") list = [...movies].sort((a, b) => b.votes - a.votes || b.ts - a.ts);
+    /* watching tab: keep full list so "Also in Cinema" is not empty */
+    return { watching, movies: list.length ? list : movies };
   });
 
 export const submitMovie = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { title: string; url: string; section?: string }) => d)
   .handler(async ({ context, data }) => {
+    if (!allowWrite(`cin-sub:${context.userId}`, 8)) return { ok: false as const, reason: RATE_BLOCKED };
     const kind = await kindOf(context.userId);
     if (!canKind(kind, "cinema.submit")) return { ok: false as const, reason: kindActionHint("cinema.submit") };
     const yt = youtubeId(data.url);
@@ -170,6 +195,7 @@ export const voteMovie = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { id: string }) => d)
   .handler(async ({ context, data }) => {
+    if (!allowWrite(`cin-vote:${context.userId}`, 20)) return { ok: false as const, reason: RATE_BLOCKED };
     const sql = await getSql();
     try {
       await ensureMovies();
@@ -193,6 +219,12 @@ export const listCinemaQueue = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     if (!(await staffRole(context.userId))) return [];
     const sql = await getSql();
+    try {
+      await ensureMovies();
+      await seedCinemaIfEmpty();
+    } catch {
+      /* ok */
+    }
     const rows = await sql<{
       id: string;
       youtube_id: string;

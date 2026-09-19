@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Mail } from "lucide-react";
-import { AD_COINS, AD_KINDS, AD_PLACEMENTS, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, POST_CATS, REGIONS, ROOMS, TERMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
+import { AD_COINS, AD_KINDS, AD_PLACEMENTS, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, TERMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
-import { claimOps, clearModUser, getModSettings, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setModHitStatus, setModUser, setStaffRole, staffMe } from "@/lib/staff-server";
+import { claimOps, clearModUser, getModSettings, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, staffMe } from "@/lib/staff-server";
 import {
   approveNewsDraft,
   fetchNewsLatest,
@@ -939,7 +939,7 @@ function Admin({ store }: { store: Store }) {
   const [mail, setMail] = useState<{ id: string; author: string; body: string; ts: number }[]>([]);
   const [reports, setReports] = useState<{ id: string; post_id: string; author: string; reason: string; ts: number }[]>([]);
   const [wallets, setWallets] = useState<Record<string, string>>({});
-  const [members, setMembers] = useState<{ id: string; handle: string; kind?: string }[]>([]);
+  const [members, setMembers] = useState<{ id: string; handle: string; kind?: string; verified?: boolean }[]>([]);
   const [walletMsg, setWalletMsg] = useState("");
   const [extraCoin, setExtraCoin] = useState("");
   const [extraAddr, setExtraAddr] = useState("");
@@ -1113,6 +1113,7 @@ function Admin({ store }: { store: Store }) {
       {role === "super" || role === "admin" ? <ListingsAdminPanel /> : null}
       {role === "super" ? <DbPanel /> : null}
       {role ? <BanMutePanel members={members} /> : null}
+      {role === "super" || role === "admin" ? <VerifyKindPanel members={members} canKind={role === "super"} onReload={() => void listMembers().then(setMembers).catch(() => undefined)} /> : null}
       {role === "super" || role === "admin" ? <ModPanel /> : null}
       {role === "super" || role === "admin" ? <AdminPassword /> : null}
       {role === "super" || role === "admin" ? <AdminResetPassword members={members} /> : null}
@@ -1344,6 +1345,101 @@ function AdminPassword() {
       >
         Update password
       </button>
+    </div>
+  );
+}
+
+function VerifyKindPanel({
+  members,
+  canKind: canChangeKind,
+  onReload,
+}: {
+  members: { id: string; handle: string; kind?: string; verified?: boolean }[];
+  canKind: boolean;
+  onReload: () => void;
+}) {
+  const [handle, setHandle] = useState("");
+  const [kind, setKind] = useState<AccountKind>("member");
+  const [msg, setMsg] = useState("");
+  const picked = members.find((m) => m.handle.toLowerCase() === handle.trim().toLowerCase());
+  return (
+    <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
+      <div className="text-[11px] font-medium text-muted">Kilode Verified + account type</div>
+      <p className="text-xs text-muted">Badge appears next to @handle on posts and chat. Only you (super) can change account type. Users cannot switch themselves.</p>
+      <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      {picked ? <p className="text-[11px] text-muted">{picked.handle} · {picked.kind} · {picked.verified ? "verified" : "not verified"}</p> : null}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn-join rounded-lg px-3 py-2 text-[11px] font-bold"
+          onClick={() => {
+            if (!handle.trim()) return;
+            void setVerified({ data: { handle: handle.trim(), on: true } }).then((r) => {
+              setMsg(r.ok ? `Verified @${handle.trim()}` : "Could not verify");
+              onReload();
+            });
+          }}
+        >
+          Give Verified badge
+        </button>
+        <button
+          type="button"
+          className="rounded-lg border border-line px-3 py-2 text-[11px]"
+          onClick={() => {
+            if (!handle.trim()) return;
+            void setVerified({ data: { handle: handle.trim(), on: false } }).then((r) => {
+              setMsg(r.ok ? "Badge removed" : "Could not update");
+              onReload();
+            });
+          }}
+        >
+          Remove badge
+        </button>
+      </div>
+      {canChangeKind ? (
+        <div className="flex flex-wrap gap-2">
+          <select value={kind} onChange={(e) => setKind(e.target.value as AccountKind)} className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 text-sm">
+            {ACCOUNT_KINDS.map((k) => (
+              <option key={k.id} value={k.id}>
+                {k.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn-3d rounded-lg px-3 py-2 text-[11px] font-bold"
+            onClick={() => {
+              if (!handle.trim()) return;
+              void setAccountKind({ data: { handle: handle.trim(), kind } }).then((r) => {
+                setMsg(r.ok ? `Type → ${kind}` : "Could not change type");
+                onReload();
+              });
+            }}
+          >
+            Override type
+          </button>
+        </div>
+      ) : null}
+      {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
+      <div className="max-h-40 overflow-y-auto">
+        {members.slice(0, 40).map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            className="flex w-full items-center justify-between gap-2 border-b border-white/5 py-1 text-left text-[11px]"
+            onClick={() => {
+              setHandle(m.handle);
+              if (m.kind) setKind(m.kind as AccountKind);
+            }}
+          >
+            <span>@{m.handle}</span>
+            <span className="text-muted">
+              {m.kind}
+              {m.verified ? " · ✓" : ""}
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1833,11 +1929,12 @@ function Help() {
       <Card title="Accounts" body="Username + password. Tick Terms. One account type at register — you cannot switch it. Super admin can override. No public email." />
       <Card title="What each type can do" body="Normal user: chat, feeds, vote, apply to jobs. Artist: music URLs only. Writer: feeds. Ads Poster: business ads. Cinema Advertiser: movie YouTube URLs. Job Poster / Seeker, Marketplace seller, Rent lister: their module only." />
       <Card title="Chat" body="Signed-in messages save on the server. Super admin sets how long they live (1 hour to 30 days, or never). Use ‹ › to page older/newer chat. Tap Translate under a line for Yoruba, Igbo, Hausa, French, Spanish." />
-      <Card title="Feeds & music" body="Create post after you sign in. Only Artist lists music. Music is a URL to Spotify / Apple / SoundCloud / Audiomack / Boomplay — we do not host files." />
+      <Card title="Feeds & music" body="Create post after you sign in. Only Artist lists music. Paste a Spotify / SoundCloud / Audiomack / Apple / Boomplay / Deezer URL. We embed their player — nothing streams from Kilode. Spotify iframe is a 30-second preview unless the visitor is logged into Spotify. SoundCloud and Audiomack play the full track if the artist allowed streaming. Artwork is fetched once via oEmbed when you submit." />
       <Card title="Ads" body="Advert grid $40. Chat stream $250. Pinned chat $800. Copy the wallet from this app, pay, paste tx. Staff approve. Super can pin / revoke." />
-      <Card title="Cinema" body="Watching Now is a YouTube embed of the voted film. Chat under the player uses the same chat engine as rooms. Cinema Advertisers submit YouTube URLs. Staff approve. One vote per title per day. We never host movie files or call YouTube search on each view." />
+      <Card title="Cinema" body="Anyone can watch Watching Now — it is a YouTube embed, not a file on Kilode. Signed-in users vote once per title per day. Advertiser (Cinema) submits a YouTube URL. Staff approve and can pin. Chat under the player uses the same engine as rooms." />
       <Card title="Jobs, Marketplace, Rent" body="Job Poster lists jobs. Job Seekers apply. Marketplace and Rent are showcase + contact only — no selling or renting inside the app. Staff approve first." />
-      <Card title="Staff" body="Tap the logo 5 times or open /ops. Not in the public menu. First signed-in owner claims super. Nobody else can be made super." />
+      <Card title="Staff" body="Tap the logo 5 times or open /ops. Not in the public menu. First signed-in owner claims super. Nobody else can be made super. Super verifies handles (Kilode Verified) and can override account type." />
+      <Card title="Scale" body="Chat polls only while the tab is visible. Writes are rate-limited per account. Video and music play from YouTube / Spotify / SoundCloud — not from Kilode. Vercel Hobby is built for thousands of people, not a million at the same second. Upgrade hosting before you advertise a Super Bowl." />
       <Card title="Privacy" body="No public email. Login uses a private username. Do not put real addresses or ID numbers in chat. Cookies keep you signed in. We do not sell your handle list." />
       <div className="raised whitespace-pre-wrap rounded-xl p-3 text-xs text-muted">{TERMS}</div>
       <p className="px-1 text-[10px] text-muted">
@@ -1854,36 +1951,122 @@ function Help() {
 function Dash({ store, onHome, onForum }: { store: Store; onHome: (id?: string) => void; onForum?: () => void }) {
   const kindLabel = ACCOUNT_KINDS.find((k) => k.id === store.kind)?.label ?? "Member";
   const mine = store.handle ? store.posts.filter((p) => !!p?.id && p.author === store.handle) : [];
+  const songs = store.handle ? store.tracks.filter((t) => !!t?.id && (t.author === store.handle || t.artist === store.handle)) : [];
+  const ads = store.campaigns.filter((c) => c.status !== "rejected").slice(0, 6);
   const signed = Boolean(store.handle);
+  const purpose = KIND_PURPOSE[store.kind] ?? KIND_PURPOSE.member;
+
+  if (!signed) {
+    return (
+      <Screen kicker="KILODE" title="Your place on Kilode" sub="Browse Feeds, Chat, Music, Cinema and Ads as a guest. Join to post, vote, and keep a dashboard that matches the account type you pick — once.">
+        <div className="raised mb-4 rounded-2xl p-4">
+          <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">WHY JOIN</div>
+          <h3 className="mt-1 text-lg font-extrabold">One handle. One type. Your work lives here.</h3>
+          <ul className="mt-3 space-y-1.5 text-[12px] text-muted">
+            <li>Normal user — chat, feeds, cinema votes, apply to jobs.</li>
+            <li>Artist — list music URLs. We embed the player. No files on Kilode.</li>
+            <li>Writer — publish in Feeds.</li>
+            <li>Ads Poster / Brand — pay crypto, staff approve, ads go live.</li>
+            <li>Cinema Advertiser — submit a YouTube URL to Watching Now.</li>
+          </ul>
+        </div>
+        <a href="/login?mode=up" className="btn-join mb-4 block rounded-xl py-3 text-center text-sm font-bold tracking-wide">
+          JOIN KILODE NOW
+        </a>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            ["Feeds", "News and posts"],
+            ["Chat", "Live rooms"],
+            ["Music", "Artist + digital"],
+            ["Cinema", "Watch + vote"],
+          ].map(([t, s]) => (
+            <div key={t} className="raised rounded-2xl px-3 py-3">
+              <div className="text-sm font-extrabold">{t}</div>
+              <div className="text-[10px] text-muted">{s}</div>
+            </div>
+          ))}
+        </div>
+      </Screen>
+    );
+  }
+
+  const stats =
+    store.kind === "artist"
+      ? [
+          { n: songs.length, l: "Tracks" },
+          { n: mine.length, l: "Topics" },
+          { n: store.savedPosts.length, l: "Saved" },
+        ]
+      : store.kind === "advertiser" || store.kind === "brand"
+        ? [
+            { n: ads.length, l: "Ads" },
+            { n: mine.length, l: "Topics" },
+            { n: store.savedPosts.length, l: "Saved" },
+          ]
+        : store.kind === "cinema"
+          ? [
+              { n: store.pins.length, l: "Rooms" },
+              { n: mine.length, l: "Topics" },
+              { n: store.savedPosts.length, l: "Saved" },
+            ]
+          : [
+              { n: mine.length, l: "Topics" },
+              { n: store.pins.length, l: "Rooms" },
+              { n: store.savedPosts.length, l: "Saved" },
+            ];
+
   return (
-    <Screen kicker="YOU" title="Dashboard" sub={signed ? `${kindLabel} on Kilode.` : "Join to own a dashboard. Guests can browse feeds."}>
+    <Screen kicker={kindLabel.toUpperCase()} title={`@${store.handle}`} sub={purpose}>
       <div className="raised mb-4 flex items-center gap-3 rounded-2xl p-4">
-        <AvatarImg handle={store.handle || "Guest"} face={signed ? store.face : undefined} size={56} />
+        <AvatarImg handle={store.handle} face={store.face} size={56} />
         <div className="min-w-0">
-          <div className="truncate text-lg font-extrabold">{store.handle || "Guest"}</div>
-          <div className="text-[11px] text-lime-2">{signed ? kindLabel : "Not signed in"}</div>
+          <div className="truncate text-lg font-extrabold">{store.handle}</div>
+          <div className="text-[11px] text-lime-2">{kindLabel} · locked</div>
         </div>
       </div>
       <div className="mb-4 grid grid-cols-3 gap-2">
-        {[
-          { n: mine.length, l: "Topics" },
-          { n: store.pins.length, l: "Rooms" },
-          { n: store.savedPosts.length, l: "Saved" },
-        ].map((s) => (
+        {stats.map((s) => (
           <div key={s.l} className="raised rounded-2xl px-2 py-3 text-center">
             <div className="text-lg font-extrabold text-lime-2">{s.n}</div>
             <div className="text-[10px] text-muted">{s.l}</div>
           </div>
         ))}
       </div>
-      {!signed ? (
-        <a href="/login?mode=up" className="btn-join mb-4 block rounded-xl py-3 text-center text-sm font-bold">
-          Join to post
-        </a>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {canKind(store.kind, "feeds.post") ? (
+          <button type="button" className="btn-join rounded-lg px-3 py-2 text-[11px] font-bold" onClick={() => window.dispatchEvent(new Event("kilode:create"))}>
+            New post
+          </button>
+        ) : null}
+        {canKind(store.kind, "music.submit") ? (
+          <button type="button" className="btn-3d rounded-lg px-3 py-2 text-[11px] font-bold" onClick={() => window.dispatchEvent(new Event("kilode:create"))}>
+            Add track
+          </button>
+        ) : null}
+        {canKind(store.kind, "ads.submit") ? (
+          <a href="/" className="btn-3d rounded-lg px-3 py-2 text-[11px] font-bold" onClick={(e) => { e.preventDefault(); onHome(); }}>
+            Place ad
+          </a>
+        ) : null}
+      </div>
+      {store.kind === "artist" ? (
+        <>
+          <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">YOUR TRACKS</div>
+          {songs.length === 0 ? <p className="mb-3 text-sm text-muted">Add a Spotify / SoundCloud / Audiomack URL from Music. Kilode embeds their player.</p> : null}
+          {songs.slice(0, 6).map((t) => (
+            <div key={t.id} className="mb-2 flex items-center gap-2 rounded-xl border border-line bg-panel p-2">
+              {t.cover ? <img src={t.cover} alt="" className="size-10 rounded object-cover" /> : <div className="size-10 rounded bg-panel-3" />}
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold">{t.title}</div>
+                <div className="text-[10px] text-muted">{t.artist} · {t.platform}</div>
+              </div>
+            </div>
+          ))}
+        </>
       ) : null}
-      <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">YOUR TOPICS</div>
+      <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">{store.kind === "writer" ? "YOUR STORIES" : "YOUR TOPICS"}</div>
       {mine.length === 0 ? (
-        <p className="text-sm text-muted">{signed ? "No topics yet. Create from Writer / Member." : "Your posts appear here after you join."}</p>
+        <p className="text-sm text-muted">{canKind(store.kind, "feeds.post") ? "Nothing published yet. New post puts you in Feeds." : "This account type does not publish Feeds."}</p>
       ) : (
         mine.slice(0, 8).map((p) => (
           <button
@@ -1898,7 +2081,7 @@ function Dash({ store, onHome, onForum }: { store: Store; onHome: (id?: string) 
             {p.image ? <img src={p.image} alt="" className="h-14 w-14 shrink-0 object-cover" /> : <div className="h-14 w-14 bg-panel-3" />}
             <div className="min-w-0 py-2 pr-2">
               <div className="truncate text-sm font-semibold">{p.title}</div>
-              <div className="text-[10px] text-muted">{p.category} · 💬 {p.comments?.length ?? 0}</div>
+              <div className="text-[10px] text-muted">{p.category} · {p.comments?.length ?? 0} comments</div>
             </div>
           </button>
         ))

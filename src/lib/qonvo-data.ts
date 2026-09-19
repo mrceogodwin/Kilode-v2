@@ -114,6 +114,30 @@ export function asAccountKind(v: string | null | undefined): AccountKind {
   return ACCOUNT_KINDS.some((k) => k.id === v) ? (v as AccountKind) : "member";
 }
 
+export function isOfficialHandle(handle: string) {
+  return /^kilode(\.ng)?$/i.test(handle.replace(/^@/, "").trim());
+}
+
+export function handleLabel(handle: string) {
+  const h = handle.replace(/^@/, "").trim();
+  if (isOfficialHandle(h)) return "Kilode.ng";
+  return h;
+}
+
+export const KIND_PURPOSE: Record<AccountKind, string> = {
+  member: "Chat live, post in Feeds, vote Cinema, apply to jobs.",
+  artist: "List music as a URL. We embed the platform player — Kilode never hosts audio files.",
+  writer: "Publish news and opinion in Feeds under your handle.",
+  advertiser: "Place paid ads. Copy the wallet, pay crypto, staff approve.",
+  cinema: "Submit movie YouTube URLs. Staff approve. Votes send them to Watching Now.",
+  job_poster: "List jobs. Seekers apply. Staff approve before they go live.",
+  job_seeker: "Keep a profile and apply to jobs from Jobs.",
+  vendor: "Showcase products with a contact link. No in-app checkout.",
+  renter: "List spaces with a contact link. No in-app renting.",
+  brand: "Company page plus ads. Staff approve ads after payment.",
+};
+
+
 export const COMMUNITIES = [
   { id: "africa", name: "Africa Hub", region: "Africa" },
   { id: "americas", name: "Americas Hub", region: "Americas" },
