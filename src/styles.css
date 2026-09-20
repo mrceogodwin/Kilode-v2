@@ -345,13 +345,19 @@ html[data-skin="ivory"] *::-webkit-scrollbar-thumb {
   display: none;
 }
 .rail-card {
-  flex: 0 0 68%;
+  flex: 0 0 58%;
   scroll-snap-align: start;
 }
 @media (min-width: 640px) {
   .rail-card {
-    flex-basis: 36%;
+    flex-basis: 28%;
   }
+}
+.rail-flat {
+  gap: 6px;
+}
+.rail-flat .rail-card {
+  box-shadow: none;
 }
 
 .how-cursor {

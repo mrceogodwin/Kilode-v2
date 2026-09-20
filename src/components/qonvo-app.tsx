@@ -53,7 +53,7 @@ import { TranslateBtn } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
 import { NotifyBell } from "@/components/notify-bell";
 import { HowKilode } from "@/components/how-kilode";
-import { GetAppRow, JoinCta, MenuLegal } from "@/components/get-app";
+import { JoinCta, MenuLegal, MenuPin } from "@/components/get-app";
 import { AdSlotOrEmpty } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, isDupExcerpt } from "@/components/engage-rail";
 
@@ -813,12 +813,12 @@ export function QonvoApp() {
                 <X className="size-4" />
               </button>
             </div>
+            <MenuPin />
             <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-5">
               {!(signedIn) ? (
                 <div className="mb-3 space-y-2">
                   <HowKilode />
                   <JoinCta />
-                  <GetAppRow />
                 </div>
               ) : (
               <div className="mb-4 grid grid-cols-3 gap-2 px-0.5">
@@ -999,9 +999,6 @@ export function QonvoApp() {
                   <Film className="size-4 shrink-0 text-lime-2" />
                   Cinema
                 </button>
-              </div>
-              <div className="mt-3">
-                <GetAppRow />
               </div>
             </div>
             <MenuLegal onDonate={() => { setDonateOpen(true); setMenuOpen(false); }} />
@@ -1723,14 +1720,16 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
             </button>
           </form>
         </div>
-        <div className="mt-6 grid gap-2 sm:grid-cols-2">
-          <AdSlotOrEmpty id="article_leader" label="Long banner · 728×90" className="sm:col-span-2" />
+        <AdSlotOrEmpty id="article_leader" label="Long banner · 728×90" />
+        <RelatedGrid posts={store.posts} exclude={post.id} category={post.category} onOpen={(id) => store.setOpenPost(id)} />
+        <div className="mt-6 grid grid-cols-2 gap-2">
           <AdSlotOrEmpty id="article_box" label="Google / box · 300×250" />
           <AdSlotOrEmpty id="article_video" label="Video ad · YouTube" />
-          <AdSlotOrEmpty id="article_native" label="Native tile · image + link" className="sm:col-span-2" />
         </div>
-        <RelatedGrid posts={store.posts} exclude={post.id} category={post.category} onOpen={(id) => store.setOpenPost(id)} />
         <TopTen posts={store.posts} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
+        <div className="mt-6">
+          <AdSlotOrEmpty id="article_native" label="Native tile · image + link" />
+        </div>
       </div>
     </article>
   );
@@ -1782,10 +1781,10 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
-              {p.image ? <img src={p.image} alt="" className="aspect-[5/4] w-full object-cover sm:aspect-[4/3]" /> : <div className="aspect-[5/4] bg-panel-3 sm:aspect-[4/3]" />}
-              <div className="px-1 py-1.5 sm:px-1.5">
+              {p.image ? <img src={p.image} alt="" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
+              <div className="px-1 py-1 sm:px-1.5">
                 <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
-                <div className="mt-0.5 line-clamp-3 text-[11px] font-semibold leading-snug text-fg sm:line-clamp-4 sm:text-[12px] md:text-[13px]">{p.title}</div>
+                <div className="mt-0.5 line-clamp-4 text-[10px] font-normal leading-tight text-fg sm:text-[11px] md:text-[12px]">{p.title}</div>
                 <div className="mt-0.5 flex items-center gap-1.5 text-[8px] tabular-nums text-muted">
                   <span className="inline-flex items-center gap-0.5">
                     <Eye className="size-2.5" />

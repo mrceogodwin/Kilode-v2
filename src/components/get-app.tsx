@@ -82,11 +82,19 @@ export function DigestBox() {
   );
 }
 
+export function MenuPin() {
+  return (
+    <div className="shrink-0 space-y-2 border-b border-line bg-panel px-3 py-2">
+      <GetAppRow />
+      <DigestBox />
+    </div>
+  );
+}
+
 export function MenuLegal({ onDonate }: { onDonate?: () => void }) {
   return (
-    <div className="border-t border-white/5 px-4 py-3">
-      <DigestBox />
-      <p className="mt-3 text-center text-[10px] leading-snug text-muted">
+    <div className="shrink-0 border-t border-white/5 px-4 py-3">
+      <p className="text-center text-[10px] leading-snug text-muted">
         <a href="/terms" className="underline">
           Terms
         </a>

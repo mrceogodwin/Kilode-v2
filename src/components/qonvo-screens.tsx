@@ -116,7 +116,7 @@ function Forum({ store, onHome }: { store: Store; onHome: (roomId?: string) => v
             {p.image ? <img src={p.image} alt="" className="aspect-[5/4] w-full object-cover" /> : <div className="aspect-[5/4] bg-panel-3" />}
             <div className="px-1 py-1.5">
               <div className="text-[9px] font-medium text-lime-2/80">{p.category || "General"}</div>
-              <div className="mt-0.5 line-clamp-3 text-[11px] font-semibold leading-snug sm:line-clamp-4 sm:text-[12px]">{p.title}</div>
+              <div className="mt-0.5 line-clamp-4 text-[10px] font-normal leading-tight sm:text-[11px]">{p.title}</div>
               <div className="mt-0.5 flex items-center gap-1.5 text-[8px] tabular-nums text-muted">
                 <span className="inline-flex items-center gap-0.5">
                   <Eye className="size-2.5" />
