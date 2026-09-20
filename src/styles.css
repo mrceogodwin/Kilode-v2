@@ -217,58 +217,91 @@
 }
 
 html[data-skin="ivory"] {
-  --color-bg: #f7f4ee;
+  --color-bg: #ffffff;
   --color-panel: #ffffff;
-  --color-panel-2: #f3f0e8;
-  --color-panel-3: #ece8de;
-  --color-fg: #121212;
-  --color-muted: #5c5a54;
-  --color-lime: #1a6b38;
+  --color-panel-2: #f3f6f4;
+  --color-panel-3: #e8eee9;
+  --color-fg: #111111;
+  --color-muted: #3f4741;
+  --color-lime: #2f6b3c;
   --color-lime-2: #1f7a40;
-  --color-line: #e4dfd4;
+  --color-line: #dce4de;
   --color-danger: #b42318;
 }
 html[data-skin="ivory"] body {
-  background-image:
-    radial-gradient(ellipse 70% 40% at 12% 0%, rgba(31, 122, 64, 0.08) 0%, transparent 46%),
-    linear-gradient(180deg, #ffffff 0%, #f7f4ee 55%, #f3f0e8 100%);
+  background-image: none;
+  background-color: #ffffff;
 }
 html[data-skin="ivory"] .raised {
   background: #ffffff;
-  border: 1px solid rgba(18, 18, 18, 0.08);
-  box-shadow:
-    inset 0 1px 0 #fff,
-    0 8px 18px rgba(18, 18, 18, 0.06);
+  border: 1px solid #dce4de;
+  box-shadow: 0 1px 0 #fff, 0 8px 20px rgba(17, 17, 17, 0.05);
 }
 html[data-skin="ivory"] .btn-3d,
 html[data-skin="ivory"] .share-ico {
-  background: linear-gradient(180deg, #ffffff 0%, #f3f0e8 100%);
-  border: 1px solid rgba(18, 18, 18, 0.1);
-  box-shadow:
-    inset 0 1px 0 #fff,
-    0 2px 0 #d9d4c8;
-  color: #121212;
+  background: linear-gradient(180deg, #ffffff 0%, #f3f6f4 100%);
+  border: 1px solid #cfd8d2;
+  box-shadow: inset 0 1px 0 #fff, 0 2px 0 #c5cec8;
+  color: #111111;
 }
 html[data-skin="ivory"] .inset-well {
-  background: #f3f0e8;
-  border: 1px solid rgba(18, 18, 18, 0.08);
+  background: #f3f6f4;
+  border: 1px solid #dce4de;
 }
 html[data-skin="ivory"] .nav-pill.on {
-  background: rgba(31, 122, 64, 0.12);
-  color: #1a6b38;
+  background: rgba(31, 122, 64, 0.1);
+  color: #1f7a40;
   border-color: rgba(31, 122, 64, 0.28);
 }
 html[data-skin="ivory"] .app-tab.on {
-  color: #1a6b38;
+  color: #1f7a40;
 }
 html[data-skin="ivory"] .app-tab.on::before {
-  background: #1a6b38;
+  background: #1f7a40;
 }
 html[data-skin="ivory"] * {
-  scrollbar-color: #c9c3b6 transparent;
+  scrollbar-color: #b7c4bb transparent;
 }
 html[data-skin="ivory"] *::-webkit-scrollbar-thumb {
-  background: rgba(26, 107, 56, 0.28);
+  background: rgba(47, 107, 60, 0.28);
+}
+html[data-skin="ivory"] .kilode-shell,
+html[data-skin="ivory"] header,
+html[data-skin="ivory"] .app-tab {
+  color: #111111;
+}
+html[data-skin="ivory"] .logo-night {
+  display: none;
+}
+html[data-skin="ivory"] .logo-day {
+  display: block;
+}
+.logo-day {
+  display: none;
+}
+.how-zoom {
+  animation: how-pinch 4.2s ease-in-out infinite;
+  transform-origin: 40% 30%;
+}
+@keyframes how-pinch {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.12); }
+}
+.how-arrow {
+  position: absolute;
+  left: 42%;
+  top: 38%;
+  width: 0;
+  height: 0;
+  border-left: 8px solid #1f7a40;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
+  animation: how-cursor 4.2s ease-in-out infinite;
+}
+@keyframes how-cursor {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(10px, 8px); }
 }
 
 @keyframes ticker {

@@ -43,6 +43,8 @@ import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTION
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
 import { CinemaPane } from "@/components/cinema-pane";
+import { ChatTermsBar, ForumClock, ForumWhy } from "@/components/forum-why";
+import { PremiumSquareAd, PremiumStoryAd } from "@/components/premium-ad";
 import { Link } from "@tanstack/react-router";
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -54,7 +56,7 @@ import { HandleLink } from "@/components/handle-link";
 import { NotifyBell } from "@/components/notify-bell";
 import { HowKilode } from "@/components/how-kilode";
 import { JoinCta, MenuLegal, MenuPin } from "@/components/get-app";
-import { AdSlotOrEmpty } from "@/components/ad-slot";
+import { AdSlot, AdSlotOrEmpty } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, isDupExcerpt } from "@/components/engage-rail";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
@@ -210,6 +212,8 @@ export function QonvoApp() {
   const [openFolds, setOpenFolds] = useState<Record<string, boolean>>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const [replyTo, setReplyTo] = useState<ChatMsg | null>(null);
+  const [forumWhy, setForumWhy] = useState(false);
+  const [chatOk, setChatOk] = useState(false);
 
   const room = ROOMS.find((r) => r.id === store.roomId) ?? ROOMS[0];
   const listed = useMemo(
@@ -222,6 +226,14 @@ export function QonvoApp() {
     [query, region],
   );
 
+
+  useEffect(() => {
+    try {
+      setChatOk(localStorage.getItem("kilode-chat-ok") === "1");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     const go = () => {
@@ -311,7 +323,8 @@ export function QonvoApp() {
               goHome();
             }}
           >
-            <img src="/kilode-logo-green.png" alt="Kilode" className="h-11 w-auto max-w-[250px] object-contain object-left sm:h-12 sm:max-w-[260px]" />
+            <img src="/kilode-logo-green.png" alt="Kilode" className="logo-night h-11 w-auto max-w-[250px] object-contain object-left sm:h-12 sm:max-w-[260px]" />
+            <img src="/kilode-logo-light.svg" alt="Kilode" className="logo-day hidden h-11 w-auto max-w-[250px] object-contain object-left sm:h-12 sm:max-w-[260px]" />
           </button>
           <nav className="mx-auto hidden min-w-0 items-center justify-center gap-1 md:flex">
             <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
@@ -321,7 +334,9 @@ export function QonvoApp() {
             <HomeTab label="Ads" on={homeTab === "advert" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("advert"); setScreen("home"); setMenuOpen(false); }} />
             {signedIn ? (
               <HomeTab label="Me" on={screen === "profile"} onClick={() => { setScreen("profile"); setMenuOpen(false); }} />
-            ) : null}
+            ) : (
+              <HomeTab label="Me" on={false} onClick={() => { window.location.href = "/login?mode=up"; }} />
+            )}
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
             <NotifyBell
@@ -437,6 +452,7 @@ export function QonvoApp() {
                 <>
               <div className="flex items-center justify-between border-b border-white/5 bg-panel px-3 py-2">
                 <div>
+                  <div className="text-[10px] font-medium tracking-[0.14em] text-lime-2">KILODE FORUM</div>
                   <div className="text-sm font-bold">{room.name}</div>
                   <div className="text-[10px] text-muted">
                     <span className="font-semibold text-lime-2">{store.online.length} online</span>
@@ -445,6 +461,7 @@ export function QonvoApp() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
+                  <ForumClock label={purge === "kept" ? "kept" : purge} onOpen={() => setForumWhy(true)} />
                   <button
                     type="button"
                     aria-label="Older messages"
@@ -484,6 +501,9 @@ export function QonvoApp() {
                   </span>
                 ))}
                 {store.online.length === 0 ? <span className="text-[10px] text-muted">Be first in this room</span> : null}
+                <span className="ml-auto shrink-0">
+                  <ForumClock label={purge === "kept" ? "kept" : purge} onOpen={() => setForumWhy(true)} />
+                </span>
                 {store.typing.filter((n) => n !== store.handle).length ? (
                   <span className="ml-1 shrink-0 text-[10px] text-lime-2">
                     {store.typing.filter((n) => n !== store.handle).slice(0, 2).join(", ")} typing
@@ -596,12 +616,27 @@ export function QonvoApp() {
                 </button>
               ) : null}
               </div>
+              <ChatTermsBar
+                accepted={chatOk}
+                onAccept={() => {
+                  setChatOk(true);
+                  try {
+                    localStorage.setItem("kilode-chat-ok", "1");
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+              />
               <form
                 className="relative flex shrink-0 gap-2 border-t border-line bg-panel/90 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur"
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!(store.authed || session.user)) {
                     window.location.href = "/login";
+                    return;
+                  }
+                  if (!chatOk) {
+                    setForumWhy(true);
                     return;
                   }
                   store.send(draft, replyTo?.ts);
@@ -721,15 +756,13 @@ export function QonvoApp() {
         </div>
       )}
 
-      <nav className={`z-20 grid shrink-0 border-t border-line bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden ${signedIn ? "grid-cols-6" : "grid-cols-5"}`}>
+      <nav className="z-20 grid shrink-0 grid-cols-6 border-t border-line bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); store.setOpenPost(null); }} />
         <Tab icon={<MessageSquare className="size-3.5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
         <Tab icon={<Radio className="size-3.5" />} label="Music" on={screen === "home" && homeTab === "music"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("music"); }} />
         <Tab icon={<Film className="size-3.5" />} label="Cinema" on={screen === "home" && homeTab === "cinema"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("cinema"); }} />
         <Tab icon={<Megaphone className="size-3.5" />} label="Ads" on={screen === "home" && homeTab === "advert"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("advert"); }} />
-        {signedIn ? (
-          <Tab icon={<User className="size-3.5" />} label="Me" on={screen === "profile"} onClick={() => { setMenuOpen(false); setScreen("profile"); }} />
-        ) : null}
+        <Tab icon={<User className="size-3.5" />} label="Me" on={screen === "profile"} onClick={() => { setMenuOpen(false); if (signedIn) setScreen("profile"); else window.location.href = "/login?mode=up"; }} />
       </nav>
 
       {roomsOpen ? (
@@ -813,7 +846,6 @@ export function QonvoApp() {
                 <X className="size-4" />
               </button>
             </div>
-            <MenuPin />
             <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-5">
               {!(signedIn) ? (
                 <div className="mb-3 space-y-2">
@@ -1001,6 +1033,7 @@ export function QonvoApp() {
                 </button>
               </div>
             </div>
+            <MenuPin />
             <MenuLegal onDonate={() => { setDonateOpen(true); setMenuOpen(false); }} />
           </aside>
           <button type="button" className="flex-1 bg-black/60" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
@@ -1008,6 +1041,7 @@ export function QonvoApp() {
       ) : null}
 
       {donateOpen ? <DonateSheet onClose={() => setDonateOpen(false)} /> : null}
+      {forumWhy ? <ForumWhy hoursLabel={store.chatHours === 0 ? "kept forever" : chatTtlLabel(store.chatHours)} onClose={() => setForumWhy(false)} /> : null}
 
       {joinOpen ? (
         <div className="fixed inset-0 z-40 grid place-items-end bg-black/70 p-3 sm:place-items-center">
@@ -1720,6 +1754,9 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
             </button>
           </form>
         </div>
+        <div className="mt-6">
+          <PremiumStoryAd />
+        </div>
         <AdSlotOrEmpty id="article_leader" label="Long banner · 728×90" />
         <RelatedGrid posts={store.posts} exclude={post.id} category={post.category} onOpen={(id) => store.setOpenPost(id)} />
         <div className="mt-6 grid grid-cols-2 gap-2">
@@ -1778,6 +1815,7 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
         ))}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-6">
+        <AdSlot id="article_top" className="mb-3" />
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
@@ -1843,54 +1881,51 @@ function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreate: () =
         </button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-3">
-        <AdSlotOrEmpty id="ads_leader" label="Leaderboard banner · paste in /ops" className="mb-2" />
-        <div className="mb-2 grid grid-cols-2 gap-2">
-          <AdSlotOrEmpty id="ads_split_a" label="Google / left split" />
-          <AdSlotOrEmpty id="ads_split_b" label="Image / right split" />
-        </div>
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
-          {live.slice(0, shown).map((a) => {
-            const yt = a.video ? youtubeId(a.video) || a.video : undefined;
-            const inner = (
-              <div className="raised overflow-hidden rounded-md text-left">
-                {a.kind === "video" || a.kind === "video-text" ? (
-                  yt ? (
-                    <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" className="aspect-square w-full object-cover" />
+        <PremiumSquareAd />
+        <AdSlot id="ads_leader" className="mb-3" />
+        {(["image", "image-text", "video", "video-text", "text"] as const).map((kind) => {
+          const pack = live.filter((a) => (a.kind || "image-text") === kind);
+          if (!pack.length) return null;
+          return (
+            <section key={kind} className="mb-4">
+              <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">{kind.replace("-", " + ").toUpperCase()}</div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {pack.slice(0, kind === "text" ? shown : shown).map((a) => {
+                  const yt = a.video ? youtubeId(a.video) || a.video : undefined;
+                  const inner = (
+                    <div className="overflow-hidden rounded-xl border border-line bg-panel text-left">
+                      {a.kind === "video" || a.kind === "video-text" ? (
+                        yt ? (
+                          <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" className="aspect-[16/10] w-full object-cover" />
+                        ) : (
+                          <div className="grid aspect-[16/10] place-items-center bg-panel-3 text-[9px] text-muted">Video</div>
+                        )
+                      ) : a.image ? (
+                        <img src={a.image} alt="" className="aspect-[16/10] w-full object-cover" />
+                      ) : (
+                        <div className="grid aspect-[16/10] place-items-center bg-panel-3 px-2 text-center text-[11px] font-semibold">{a.name}</div>
+                      )}
+                      <div className="px-2 py-1.5">
+                        <div className="line-clamp-2 text-[12px] font-normal leading-snug">{a.name}</div>
+                        {a.note ? <p className="mt-0.5 line-clamp-2 text-[10px] text-muted">{a.note}</p> : null}
+                        <div className="mt-1 text-[10px] tabular-nums text-muted">{fmtCount(a.views ?? 0)} views</div>
+                      </div>
+                    </div>
+                  );
+                  return a.link ? (
+                    <a key={a.id} href={a.link} target="_blank" rel="noopener noreferrer" onClick={() => onView(a.id)}>
+                      {inner}
+                    </a>
                   ) : (
-                    <div className="grid aspect-square place-items-center bg-panel-3 text-[9px] text-muted">Video</div>
-                  )
-                ) : a.image ? (
-                  <img src={a.image} alt="" className="aspect-square w-full object-cover" />
-                ) : (
-                  <div className="grid aspect-square place-items-center bg-panel-3 px-1.5 text-center text-[10px] font-semibold">{a.name}</div>
-                )}
-                <div className="px-1.5 py-1">
-                  <div className="text-[11px] font-medium tracking-normal text-lime-2">{a.kind || "image-text"}</div>
-                  <div className="mt-px line-clamp-2 text-[13px] font-semibold leading-snug">{a.name}</div>
-                  {a.kind === "image-text" || a.kind === "video-text" || a.kind === "text" ? (
-                    <p className="mt-px line-clamp-1 text-[11px] text-muted">{a.note}</p>
-                  ) : null}
-                  <div className="mt-px text-[11px] text-muted">{fmtCount(a.views ?? 0)}</div>
-                </div>
+                    <button key={a.id} type="button" onClick={() => onView(a.id)}>
+                      {inner}
+                    </button>
+                  );
+                })}
               </div>
-            );
-            return a.link ? (
-              <a
-                key={a.id}
-                href={a.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => onView(a.id)}
-              >
-                {inner}
-              </a>
-            ) : (
-              <button key={a.id} type="button" onClick={() => onView(a.id)}>
-                {inner}
-              </button>
-            );
-          })}
-        </div>
+            </section>
+          );
+        })}
         {live.length === 0 ? <EmptyHero title="No ads live" body="Place an ad after crypto payment — Nigeria is watching." cta="Place an ad" onClick={onCreate} /> : null}
         {shown < live.length ? (
           <button type="button" className="btn-3d mx-auto mt-3 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + 6)}>

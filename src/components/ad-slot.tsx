@@ -109,12 +109,5 @@ export function AdSlotOrEmpty({ id, label, className = "" }: { id: string; label
   if (slot && (slot.image || slot.video || (slot.pubId && slot.adUnit) || slot.html)) {
     return <AdSlot id={id} className={className} />;
   }
-  return (
-    <div className={`ad-box grid min-h-[48px] place-items-center rounded-lg border border-dashed border-line bg-panel-2/40 px-3 py-2 text-center ${className}`}>
-      <div>
-        <div className="text-[9px] font-bold tracking-[0.16em] text-muted">AD SLOT</div>
-        <div className="mt-0.5 text-[11px] text-muted">{label}</div>
-      </div>
-    </div>
-  );
+  return null;
 }

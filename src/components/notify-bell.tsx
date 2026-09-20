@@ -63,7 +63,7 @@ export function NotifyBell({
         {badge > 0 ? <span className="absolute top-1 right-1 size-1.5 rounded-full bg-lime-2" /> : null}
       </button>
       {open ? (
-        <div className="absolute right-0 z-40 mt-1 w-[min(300px,82vw)] overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl">
+        <div className="fixed top-14 right-2 z-50 w-[min(340px,calc(100vw-1rem))] overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl">
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
             <div className="text-[11px] font-bold">{signedIn ? "Your alerts" : "Latest on Kilode"}</div>
             {signedIn ? (

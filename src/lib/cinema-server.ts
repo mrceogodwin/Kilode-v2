@@ -254,3 +254,90 @@ export const setMovieStatus = createServerFn({ method: "POST" })
     }
     return { ok: true as const };
   });
+
+export type CinemaQuiz = {
+  id: string;
+  movie_id: string;
+  topic: string;
+  q: string;
+  a: string;
+  b: string;
+  c: string;
+  d: string;
+  e: string;
+  answer: string;
+};
+
+async function ensureCinemaExtra() {
+  const sql = await getSql();
+  await sql.query(`CREATE TABLE IF NOT EXISTS nf_cinema_rate (
+    movie_id TEXT NOT NULL, user_id TEXT NOT NULL, stars INTEGER NOT NULL, ts BIGINT NOT NULL,
+    PRIMARY KEY (movie_id, user_id))`);
+  await sql.query(`CREATE TABLE IF NOT EXISTS nf_cinema_quiz (
+    id TEXT PRIMARY KEY, movie_id TEXT NOT NULL, topic TEXT NOT NULL DEFAULT 'general',
+    q TEXT NOT NULL, a TEXT NOT NULL, b TEXT NOT NULL, c TEXT NOT NULL, d TEXT NOT NULL, e TEXT NOT NULL,
+    answer TEXT NOT NULL)`);
+}
+
+const QUIZ_SEED: CinemaQuiz[] = [
+  { id: "q-bp-1", movie_id: "seed-black-panther", topic: "Nollywood / Africa", q: "Who directed Black Panther?", a: "Ryan Coogler", b: "Ava DuVernay", c: "Barry Jenkins", d: "Jordan Peele", e: "Steve McQueen", answer: "A" },
+  { id: "q-bp-2", movie_id: "seed-black-panther", topic: "Story", q: "What is the African nation in the film?", a: "Zamunda", b: "Wakanda", c: "Genovia", d: "Asgard", e: "Latveria", answer: "B" },
+  { id: "q-wk-1", movie_id: "seed-woman-king", topic: "Nollywood / Africa", q: "The Woman King is set among which warriors?", a: "Zulu", b: "Maasai", c: "Agojie of Dahomey", d: "Ashanti", e: "Mandinka", answer: "C" },
+];
+
+export const getCinemaExtra = createServerFn({ method: "GET" })
+  .validator((d: { movieId: string }) => d)
+  .handler(async ({ data }) => {
+    try {
+      await ensureCinemaExtra();
+    } catch {
+      return { avg: 0, n: 0, mine: 0, quiz: QUIZ_SEED.filter((q) => q.movie_id === data.movieId) };
+    }
+    const sql = await getSql();
+    const n = await sql<{ n: string | number; avg: string | number | null }>`select count(*) as n, avg(stars) as avg from nf_cinema_rate where movie_id = ${data.movieId}`;
+    let quiz = await sql<CinemaQuiz>`select id, movie_id, topic, q, a, b, c, d, e, answer from nf_cinema_quiz where movie_id = ${data.movieId} limit 12`;
+    if (!quiz.length) {
+      for (const q of QUIZ_SEED) {
+        try {
+          await sql`insert into nf_cinema_quiz (id, movie_id, topic, q, a, b, c, d, e, answer)
+            values (${q.id}, ${q.movie_id}, ${q.topic}, ${q.q}, ${q.a}, ${q.b}, ${q.c}, ${q.d}, ${q.e}, ${q.answer})`;
+        } catch {
+          /* dup */
+        }
+      }
+      quiz = await sql<CinemaQuiz>`select id, movie_id, topic, q, a, b, c, d, e, answer from nf_cinema_quiz where movie_id = ${data.movieId} limit 12`;
+      if (!quiz.length) quiz = QUIZ_SEED.filter((q) => q.movie_id === data.movieId);
+    }
+    return { avg: Number(n[0]?.avg ?? 0), n: Number(n[0]?.n ?? 0), mine: 0, quiz };
+  });
+
+export const rateMovie = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string; stars: number }) => d)
+  .handler(async ({ context, data }) => {
+    if (!allowWrite(`cin-rate:${context.userId}`, 20)) return { ok: false as const, reason: RATE_BLOCKED };
+    const stars = Math.min(5, Math.max(1, Math.round(data.stars)));
+    const sql = await getSql();
+    await ensureCinemaExtra();
+    await sql`insert into nf_cinema_rate (movie_id, user_id, stars, ts) values (${data.id}, ${context.userId}, ${stars}, ${Date.now()})
+      on conflict (movie_id, user_id) do update set stars = ${stars}, ts = ${Date.now()}`;
+    const n = await sql<{ n: string | number; avg: string | number | null }>`select count(*) as n, avg(stars) as avg from nf_cinema_rate where movie_id = ${data.id}`;
+    return { ok: true as const, avg: Number(n[0]?.avg ?? stars), n: Number(n[0]?.n ?? 1) };
+  });
+
+export const saveCinemaQuiz = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: CinemaQuiz) => d)
+  .handler(async ({ context, data }) => {
+    const role = await staffRole(context.userId);
+    if (role !== "super" && role !== "admin") throw new Error("Forbidden");
+    await ensureCinemaExtra();
+    const sql = await getSql();
+    const id = data.id || nid();
+    const answer = data.answer.toUpperCase().slice(0, 1);
+    if (!"ABCDE".includes(answer)) return { ok: false as const, reason: "Answer must be A–E." };
+    await sql`insert into nf_cinema_quiz (id, movie_id, topic, q, a, b, c, d, e, answer)
+      values (${id}, ${data.movie_id}, ${data.topic.slice(0, 40)}, ${data.q.slice(0, 240)}, ${data.a.slice(0, 120)}, ${data.b.slice(0, 120)}, ${data.c.slice(0, 120)}, ${data.d.slice(0, 120)}, ${data.e.slice(0, 120)}, ${answer})
+      on conflict (id) do update set q = excluded.q, a = excluded.a, b = excluded.b, c = excluded.c, d = excluded.d, e = excluded.e, answer = excluded.answer, topic = excluded.topic`;
+    return { ok: true as const, id };
+  });
