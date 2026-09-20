@@ -118,16 +118,17 @@ export function TrendingRail({
 }
 
 export function RelatedGrid({ posts, exclude, category, onOpen }: { posts: Post[]; exclude: string; category?: string; onOpen: (id: string) => void }) {
-  const related = posts.filter((p) => p.id !== exclude && p.status !== "draft" && (!category || p.category === category)).slice(0, 8);
-  const extra = related.length < 8 ? posts.filter((p) => p.id !== exclude && !related.includes(p)).slice(0, 8 - related.length) : [];
-  const list = [...related, ...extra].slice(0, 8);
+  const [shown, setShown] = useState(6);
+  const related = posts.filter((p) => p.id !== exclude && p.status !== "draft" && (!category || p.category === category));
+  const extra = posts.filter((p) => p.id !== exclude && p.status !== "draft" && !related.includes(p));
+  const list = [...related, ...extra];
   if (!list.length) return null;
   return (
     <div className="mt-8">
       <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">RELATED</div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {list.map((p) => (
-          <button key={p.id} type="button" className="raised overflow-hidden rounded-xl text-left" onClick={() => onOpen(p.id)}>
+      <div className="grid grid-cols-3 gap-1.5">
+        {list.slice(0, shown).map((p) => (
+          <button key={p.id} type="button" className="raised overflow-hidden rounded-lg text-left" onClick={() => onOpen(p.id)}>
             {p.image ? <img src={p.image} alt="" className="aspect-[16/10] w-full object-cover" /> : <div className="aspect-[16/10] bg-panel-3" />}
             <div className="p-1.5">
               <div className="text-[9px] text-lime-2">{p.category || "General"}</div>
@@ -136,6 +137,11 @@ export function RelatedGrid({ posts, exclude, category, onOpen }: { posts: Post[
           </button>
         ))}
       </div>
+      {shown < list.length ? (
+        <button type="button" className="btn-3d mx-auto mt-2 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + 6)}>
+          Load more · {list.length - shown} left
+        </button>
+      ) : null}
     </div>
   );
 }

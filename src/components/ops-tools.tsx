@@ -3,6 +3,8 @@ import { AI_KEY_SLOTS, listAiKeys, saveAiKey } from "@/lib/keys-server";
 import { boostSeo, listSeoWeak, type SeoWeak } from "@/lib/seo-server";
 import { AD_SLOT_DEFS, type AdSlotKind, type AdSlotRow } from "@/lib/ad-slots";
 import { listAdSlots, listDigestCount, saveAdSlot } from "@/lib/ad-slots-server";
+import { listAdCatalog, saveAdCatalog, type AdCatalog } from "@/lib/ad-catalog-server";
+import { AD_PLACEMENTS } from "@/lib/qonvo-data";
 import { listRoomsAdmin, saveCustomRoom, setRoomPaused } from "@/lib/rooms-server";
 import { ROOM_SECTION_ORDER } from "@/lib/qonvo-data";
 
@@ -115,6 +117,93 @@ export function OpsSeoPanel() {
           </a>
         </div>
       ))}
+    </div>
+  );
+}
+
+export function AdCatalogPanel() {
+  const [cat, setCat] = useState<AdCatalog | null>(null);
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    void listAdCatalog()
+      .then(setCat)
+      .catch(() => undefined);
+  }, []);
+  if (!cat) return null;
+  return (
+    <div className="md:col-span-2 raised space-y-3 rounded-2xl p-4">
+      <div>
+        <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">AD CATALOG · PRICES · CAPS</div>
+        <h3 className="text-lg font-extrabold">Paid inventory</h3>
+        <p className="text-[11px] text-muted">
+          Daily cap stops a flood of submissions. Featured N is how many live ads rotate at the top of the Ads tab so a paid campaign is not buried. Page size is the first 3-column page; more loads on scroll. Save to take effect.
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <label className="text-[11px]">
+          Ads / day
+          <input
+            type="number"
+            min={1}
+            max={200}
+            value={cat.dailyCap}
+            onChange={(e) => setCat({ ...cat, dailyCap: Number(e.target.value) })}
+            className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5"
+          />
+        </label>
+        <label className="text-[11px]">
+          Featured slider
+          <input
+            type="number"
+            min={3}
+            max={24}
+            value={cat.featuredN}
+            onChange={(e) => setCat({ ...cat, featuredN: Number(e.target.value) })}
+            className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5"
+          />
+        </label>
+        <label className="text-[11px]">
+          Grid page size
+          <input
+            type="number"
+            min={6}
+            max={48}
+            value={cat.pageSize}
+            onChange={(e) => setCat({ ...cat, pageSize: Number(e.target.value) })}
+            className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5"
+          />
+        </label>
+      </div>
+      <div className="grid gap-1.5 sm:grid-cols-2">
+        {AD_PLACEMENTS.map((p) => (
+          <label key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-line px-2 py-1.5 text-[12px]">
+            <span className="min-w-0 truncate">{p.label}</span>
+            <span className="flex items-center gap-1">
+              $
+              <input
+                type="number"
+                min={1}
+                value={cat.prices[p.id] ?? p.usd}
+                onChange={(e) => setCat({ ...cat, prices: { ...cat.prices, [p.id]: Number(e.target.value) } })}
+                className="w-16 rounded border border-line bg-bg px-1 py-0.5 text-right"
+              />
+            </span>
+          </label>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="btn-3d rounded-md px-3 py-1.5 text-[11px] font-semibold"
+        onClick={() => {
+          void saveAdCatalog({ data: cat }).then((r) => {
+            setMsg(r.ok ? "Catalog saved. Live prices and caps apply now." : "Could not save");
+            if (r.ok) setCat(r.catalog);
+          });
+        }}
+      >
+        Save catalog
+      </button>
+      {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
     </div>
   );
 }

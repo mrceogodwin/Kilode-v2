@@ -3,7 +3,7 @@ import { saveDigest } from "@/lib/ad-slots-server";
 
 export function JoinCta({ className = "" }: { className?: string }) {
   return (
-    <a href="/login?mode=up" className={`btn-join block rounded-lg py-2 text-center text-[12px] font-bold ${className}`}>
+    <a href="/login?mode=up" className={`btn-3d block rounded-md py-1.5 text-center text-[10px] font-semibold ${className}`}>
       Join Kilode
     </a>
   );
@@ -58,7 +58,7 @@ export function DigestBox() {
       onSubmit={(e) => {
         e.preventDefault();
         void saveDigest({ data: { email } }).then((r) => {
-          setMsg(r.ok ? "Saved. Digest mail waits until Super pastes a mail key in /ops." : r.reason);
+          setMsg(r.ok ? "Saved. Digest mail starts when mail is ready." : r.reason);
           if (r.ok) setEmail("");
         });
       }}

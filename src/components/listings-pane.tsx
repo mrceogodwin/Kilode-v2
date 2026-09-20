@@ -135,7 +135,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
           Load more
         </button>
       ) : null}
-      {rows.length === 0 ? <p className="text-sm text-muted">Nothing live yet. Staff approve listings from /ops.</p> : null}
+      {rows.length === 0 ? <p className="text-sm text-muted">Nothing live yet.</p> : null}
     </div>
   );
 }

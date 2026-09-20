@@ -5,7 +5,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 import { invalidateMod, loadMod } from "@/lib/mod-cache";
 import { invalidateChatTtl } from "@/lib/forum-server";
-import { asAccountKind } from "@/lib/qonvo-data";
+import { asAccountKind, isAdPlacement } from "@/lib/qonvo-data";
 
 type StaffRole = "mod" | "admin" | "super";
 type GrantRole = "mod" | "admin";
@@ -139,13 +139,33 @@ export const resetUserPassword = createServerFn({ method: "POST" })
 
 export const setAdPlacement = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { id: string; placement: "board" | "chat" | "chat-pin" }) => d)
+  .validator((d: { id: string; placement: string }) => d)
   .handler(async ({ context, data }) => {
     const me = await staffOf(context.userId);
     if (!me) throw new Error("Forbidden");
+    if (!isAdPlacement(data.placement)) return { ok: false as const, reason: "Unknown slot." };
     const sql = await getSql();
     await sql`update nf_ads set placement = ${data.placement} where id = ${data.id}`;
-    return { ok: true };
+    return { ok: true as const };
+  });
+
+export const setAdWindow = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string; days: number }) => d)
+  .handler(async ({ context, data }) => {
+    const me = await staffOf(context.userId);
+    if (!me) throw new Error("Forbidden");
+    const days = Math.max(1, Math.min(90, Math.round(Number(data.days) || 7)));
+    const sql = await getSql();
+    try {
+      await sql`alter table nf_ads add column if not exists days int not null default 7`;
+      await sql`alter table nf_ads add column if not exists expires_at bigint`;
+    } catch {
+      /* ignore */
+    }
+    const exp = Date.now() + days * 86_400_000;
+    await sql`update nf_ads set days = ${days}, expires_at = ${exp} where id = ${data.id}`;
+    return { ok: true as const, days, expiresAt: exp };
   });
 
 export const listMembers = createServerFn({ method: "GET" })

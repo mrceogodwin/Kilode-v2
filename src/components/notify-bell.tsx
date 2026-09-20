@@ -75,7 +75,7 @@ export function NotifyBell({
           {!signedIn ? (
             <div className="border-b border-line px-3 py-2">
               <p className="text-[11px] leading-snug text-muted">
-                Allow this browser to ping you when a new post loads while you have Kilode open. No email. Background push needs a VAPID key later in /ops.
+                Allow this browser to ping you when a new post loads while you have Kilode open. No email.
               </p>
               <button type="button" className="btn-3d mt-2 rounded-lg px-2.5 py-1 text-[11px] font-semibold" onClick={() => void allow()}>
                 {perm === "granted" ? "Allowed on this device" : perm === "denied" ? "Blocked in browser settings" : perm === "unsupported" ? "Not supported here" : "Allow updates"}

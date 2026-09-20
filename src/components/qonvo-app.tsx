@@ -17,6 +17,7 @@ import {
   Megaphone,
   Menu,
   MessageSquare,
+  Plus,
   PlusSquare,
   Radio,
   Play,
@@ -59,7 +60,7 @@ import { HandleLink } from "@/components/handle-link";
 import { NotifyBell } from "@/components/notify-bell";
 import { HowKilode } from "@/components/how-kilode";
 import { JoinCta, MenuLegal, MenuPin } from "@/components/get-app";
-import { AdSlot, AdSlotOrEmpty } from "@/components/ad-slot";
+import { AdSlot, AdSlotOrEmpty, FlatAdBox } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, isDupExcerpt } from "@/components/engage-rail";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
@@ -198,6 +199,8 @@ export function QonvoApp() {
   const [screen, setScreen] = useState<MenuId>("home");
   const [roomsOpen, setRoomsOpen] = useState(false);
   const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema">("feeds");
+  const [feedQ, setFeedQ] = useState("");
+  const [feedSearchOn, setFeedSearchOn] = useState(false);
   const [joinPass, setJoinPass] = useState("");
   const [joinAgree, setJoinAgree] = useState(false);
   const [joinAgreeRules, setJoinAgreeRules] = useState(false);
@@ -419,27 +422,46 @@ export function QonvoApp() {
 
       {screen === "home" ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {homeTab === "feeds" || homeTab === "music" || homeTab === "advert" ? (
-            <div className="flex shrink-0 justify-end gap-1 border-b border-line px-2 py-0.5">
-              {homeTab === "feeds" ? (
-                <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => (signedIn ? setScreen("create") : (window.location.href = "/login?mode=up"))}>
-                  New post
-                </button>
-              ) : homeTab === "music" ? (
-                canKind(store.kind, "music.submit") && signedIn ? (
-                  <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => setScreen("create")}>
-                    Add track
-                  </button>
-                ) : null
-              ) : canKind(store.kind, "ads.submit") && signedIn ? (
-                <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => setScreen("ads")}>
-                  Place ad
-                </button>
+          {homeTab === "feeds" ? (
+            <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-2 py-1">
+              {feedSearchOn ? (
+                <input
+                  value={feedQ}
+                  onChange={(e) => setFeedQ(e.target.value)}
+                  placeholder="Search feeds"
+                  className="min-h-8 flex-1 rounded-md border border-line bg-panel px-2 text-[11px]"
+                  autoFocus
+                />
               ) : (
-                <button type="button" className="btn-join rounded-full px-2.5 py-0.5 text-[10px] font-bold" onClick={() => (window.location.href = signedIn ? "/login" : "/login?mode=up")}>
-                  {signedIn ? "Ads Poster accounts only" : "Join to advertise"}
-                </button>
+                <FlatAdBox id="feeds_inline" className="min-h-[36px] flex-1" />
               )}
+              <button
+                type="button"
+                aria-label="Search feeds"
+                className="btn-3d grid size-8 place-items-center rounded-md"
+                onClick={() => {
+                  setFeedSearchOn((v) => !v);
+                  if (feedSearchOn) setFeedQ("");
+                }}
+              >
+                <Search className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label="New post"
+                className="btn-3d grid size-8 place-items-center rounded-md text-[14px] font-semibold"
+                onClick={() => (signedIn ? setScreen("create") : (window.location.href = "/login?mode=up"))}
+              >
+                <Plus className="size-3.5" />
+              </button>
+            </div>
+          ) : homeTab === "music" ? (
+            <div className="flex shrink-0 justify-end gap-1 border-b border-line px-2 py-0.5">
+              {canKind(store.kind, "music.submit") && signedIn ? (
+                <button type="button" className="btn-3d rounded-md px-2.5 py-0.5 text-[10px] font-semibold" onClick={() => setScreen("create")}>
+                  Add track
+                </button>
+              ) : null}
             </div>
           ) : null}
 
@@ -450,7 +472,7 @@ export function QonvoApp() {
 
             <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-bg">
               {homeTab === "feeds" ? (
-                <FeedPane store={store} />
+                <FeedPane store={store} q={feedQ} />
               ) : homeTab === "music" ? (
                 <MusicPane store={store} onAdd={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))} />
               ) : homeTab === "cinema" ? (
@@ -860,8 +882,10 @@ export function QonvoApp() {
               {!(signedIn) ? (
                 <div className="mb-3 space-y-2">
                   <MenuPremiumAd />
-                  <HowKilode />
-                  <JoinCta />
+                  <div className="flex gap-1.5">
+                    <HowKilode className="flex-1" />
+                    <JoinCta className="flex-1" />
+                  </div>
                 </div>
               ) : (
               <div className="mb-4 grid grid-cols-3 gap-2 px-0.5">
@@ -1642,7 +1666,7 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
           </a>
         ) : null}
         <div className="mt-6">
-          <AdSlotOrEmpty id="article_mid" label="Image · Google · video — Super Admin pastes this in /ops" />
+          <AdSlotOrEmpty id="article_mid" label="" />
         </div>
         <div className="mt-8 border-t border-line pt-4">
           <div className="flex items-end justify-between gap-2">
@@ -1760,11 +1784,18 @@ function EmptyHero({ title, body, cta, onClick }: { title: string; body: string;
 }
 
 
-function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
+function FeedPane({ store, q = "" }: { store: ReturnType<typeof useQonvo>; q?: string }) {
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(20);
   const open = store.posts.find((p) => p.id === store.openPost);
-  const live = store.posts.filter((p) => !!p?.id && p.status !== "draft" && (cat === "All" || p.category === cat));
+  const needle = q.trim().toLowerCase();
+  const live = store.posts.filter(
+    (p) =>
+      !!p?.id &&
+      p.status !== "draft" &&
+      (cat === "All" || p.category === cat) &&
+      (!needle || p.title.toLowerCase().includes(needle) || (p.excerpt || "").toLowerCase().includes(needle)),
+  );
   if (open) {
     return <ArticleRead post={open} store={store} />;
   }
@@ -1824,7 +1855,7 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
         {shown < live.length ? (
           <button
             type="button"
-            className="btn-join mt-3 mb-2 w-full rounded-lg py-2.5 text-[12px] font-bold"
+            className="btn-3d mt-3 mb-2 w-full rounded-md py-2 text-[11px] font-semibold"
             onClick={() => setShown((n) => n + 20)}
           >
             Load more · {live.length - shown} left
@@ -1834,6 +1865,16 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
         ) : (
           <EmptyHero title="No posts yet" body="Be first — share a take for Nigeria." cta="Create a post" onClick={() => { window.dispatchEvent(new CustomEvent("kilode:create")); }} />
         )}
+        <div className="mt-4">
+          <AdSlotOrEmpty id="feeds_before_top10" label="" />
+        </div>
+        <TopTen posts={store.posts} exclude="" onOpen={(id) => store.setOpenPost(id)} />
+        <div className="mt-4">
+          <AdSlotOrEmpty id="feeds_google" label="" />
+        </div>
+        <div className="mt-4">
+          <AdSlotOrEmpty id="feeds_after_top10" label="" />
+        </div>
       </div>
     </div>
   );
@@ -1963,7 +2004,7 @@ function DonateSheet({ onClose }: { onClose: () => void }) {
               <div key={id} className="rounded-lg border border-white/5 px-2 py-1.5">
                 <div className="text-[10px] font-medium tracking-normal text-lime-2">{ticker}</div>
                 <div className="flex items-center gap-2">
-                  <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-muted">{addr || "Not set yet — add on /ops"}</span>
+                  <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-muted">{addr || "Not set yet"}</span>
                   {addr ? (
                     <button
                       type="button"

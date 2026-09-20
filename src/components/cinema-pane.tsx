@@ -7,6 +7,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { timeLabel, type AccountKind, type ChatMsg } from "@/lib/qonvo-data";
 import { HandleLink } from "@/components/handle-link";
 import { TranslateBtn } from "@/components/translate-btn";
+import { AdSlot } from "@/components/ad-slot";
 
 function thumb(id: string) {
   return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
@@ -93,6 +94,7 @@ export function CinemaPane() {
       ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-4">
+        <AdSlot id="cinema_banner" className="mb-2" quiet />
         {watching ? (
           <div className="mb-3 md:grid md:grid-cols-[minmax(0,1.35fr)_minmax(280px,1fr)] md:items-start md:gap-3">
             <div className="overflow-hidden rounded-xl border border-line bg-black">

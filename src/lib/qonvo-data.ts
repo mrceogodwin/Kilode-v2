@@ -315,12 +315,23 @@ export function chatTtlLabel(hours: number) {
 }
 
 export const AD_PLACEMENTS = [
-  { id: "board", label: "Ads grid", usd: 40, hint: "Live on the Ads tab. Square or landscape tile." },
-  { id: "chat", label: "Chat stream · premium", usd: 250, hint: "Scrolls up with live chat every few messages." },
-  { id: "chat-pin", label: "Pinned in chat · top", usd: 800, hint: "Stays at the top of Chat until it expires." },
+  { id: "board", label: "Ads grid tile", usd: 40, hint: "3-column tile on the Ads tab. Title, thumb, link." },
+  { id: "featured", label: "Ads featured slider", usd: 150, hint: "Rotates at the top of Ads so the campaign is never buried." },
+  { id: "square", label: "Ads square", usd: 90, hint: "Square tile near the top of the Ads tab." },
+  { id: "chat", label: "Chat stream", usd: 250, hint: "Scrolls with live chat every few messages." },
+  { id: "chat-pin", label: "Pinned in chat", usd: 800, hint: "Stays at the top of Chat until it expires." },
+  { id: "feeds-strip", label: "Feeds strip", usd: 180, hint: "Flat banner under the category row on Feeds." },
+  { id: "story", label: "Story portrait", usd: 400, hint: "Tall 9:16 creative on every story page." },
+  { id: "article-leader", label: "Article long banner", usd: 220, hint: "Wide banner under the story." },
+  { id: "article-mid", label: "Inside article", usd: 150, hint: "Sits between the story and comments." },
+  { id: "cinema", label: "Cinema banner", usd: 300, hint: "Shows on the Cinema tab while a title plays." },
 ] as const;
 
 export type AdPlacement = (typeof AD_PLACEMENTS)[number]["id"];
+
+export function isAdPlacement(v: string): v is AdPlacement {
+  return AD_PLACEMENTS.some((p) => p.id === v);
+}
 
 export const AD_DAYS = [1, 7, 14, 30] as const;
 export type AdDays = (typeof AD_DAYS)[number];
@@ -340,9 +351,16 @@ export function adDayBucket(days?: number) {
 }
 
 export const AD_SIZES: Record<AdPlacement, { label: string; hint: string }> = {
-  board: { label: "1080 × 1080", hint: "Square preferred. Landscape 1200 × 628 also works. JPG/PNG, max 2MB." },
-  chat: { label: "1200 × 400", hint: "Wide banner. JPG/PNG, max 2MB." },
-  "chat-pin": { label: "1200 × 240", hint: "Slim banner for the pin strip. JPG/PNG, max 2MB." },
+  board: { label: "1080 × 720", hint: "Landscape tile. JPG/PNG, max 2MB." },
+  featured: { label: "1200 × 628", hint: "Wide featured slide. JPG/PNG, max 2MB." },
+  square: { label: "1080 × 1080", hint: "Square. JPG/PNG, max 2MB." },
+  chat: { label: "1200 × 400", hint: "Wide banner in chat. JPG/PNG, max 2MB." },
+  "chat-pin": { label: "1200 × 240", hint: "Slim pin strip. JPG/PNG, max 2MB." },
+  "feeds-strip": { label: "1200 × 120", hint: "Flat strip. Keep it short. JPG/PNG, max 2MB." },
+  story: { label: "1080 × 1920", hint: "9:16 portrait. JPG/PNG or YouTube, max 2MB image." },
+  "article-leader": { label: "728 × 90", hint: "Long banner. JPG/PNG, max 2MB." },
+  "article-mid": { label: "600 × 300", hint: "In-story box. JPG/PNG, max 2MB." },
+  cinema: { label: "1280 × 220", hint: "Cinema strip. JPG/PNG, max 2MB." },
 };
 
 export type Campaign = {
@@ -351,7 +369,7 @@ export type Campaign = {
   note: string;
   ts: number;
   status: "pending" | "paid" | "approved" | "rejected";
-  placement: "sidebar" | "hero" | "chat" | "board" | "chat-pin";
+  placement: AdPlacement | "sidebar" | "hero";
   txHash?: string;
   amount?: string;
   coin?: string;

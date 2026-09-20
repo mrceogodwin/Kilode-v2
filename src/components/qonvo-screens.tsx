@@ -16,6 +16,7 @@ import {
   type NewsSource,
 } from "@/lib/news-engine-server";
 import { listWallets, getChatTtl } from "@/lib/forum-server";
+import { listAdCatalog } from "@/lib/ad-catalog-server";
 import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { authClient } from "@/lib/auth/client";
@@ -24,7 +25,7 @@ import { canKind } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
 import { JoinCta, TelegramLink } from "@/components/get-app";
-import { AdSlotsPanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
+import { AdCatalogPanel, AdSlotsPanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { listListings, type Listing } from "@/lib/listings-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 
@@ -636,7 +637,7 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
         <div className="mb-1 text-[11px] font-medium text-muted">Account type (locked)</div>
         <p className="rounded-lg border border-line bg-panel px-3 py-2 text-sm">
           {kindLabel}
-          <span className="mt-0.5 block text-[10px] text-muted">Chosen at register. Super admin can override on /ops.</span>
+          <span className="mt-0.5 block text-[10px] text-muted">Chosen at register. It does not change later.</span>
         </p>
       </div>
       {kind === "artist" ? (
@@ -922,15 +923,20 @@ function Ads({ store }: { store: Store }) {
   const [copied, setCopied] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [wallets, setWallets] = useState<{ coin: string; address: string }[]>([]);
+  const [prices, setPrices] = useState<Record<string, number>>({});
   useEffect(() => {
     void listWallets()
       .then(setWallets)
       .catch(() => setWallets([]));
+    void listAdCatalog()
+      .then((c) => setPrices(c.prices))
+      .catch(() => undefined);
   }, []);
   const payTo = wallets.find((w) => w.coin === coin)?.address;
   const mine = store.campaigns.filter((c) => !!c?.id && (c.status !== "approved" || c.expiresAt));
-  const size = AD_SIZES[place];
+  const size = AD_SIZES[place] ?? AD_SIZES.board;
   const slot = AD_PLACEMENTS.find((p) => p.id === place);
+  const usd = prices[place] ?? slot?.usd ?? 40;
   async function onFile(file: File | undefined) {
     setErr("");
     if (!file) return;
@@ -954,7 +960,7 @@ function Ads({ store }: { store: Store }) {
   }
   if (!canKind(store.kind, "ads.submit")) {
     return (
-      <Screen kicker="ADS" title="Ads Poster accounts only" sub="You registered as a different type. Super admin can switch it on /ops if you picked the wrong one.">
+      <Screen kicker="ADS" title="Ads Poster accounts only" sub="You registered as a different type. Super admin can switch the type from the staff console.">
         <p className="text-sm text-muted">Browse live ads on the Ads tab. To place one, you need an Ads Poster or Brand account.</p>
       </Screen>
     );
@@ -999,7 +1005,7 @@ function Ads({ store }: { store: Store }) {
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-bold">{p.label}</span>
-              <span className="text-[12px] font-extrabold text-lime-2">${p.usd}</span>
+              <span className="text-[12px] font-extrabold text-lime-2">${prices[p.id] ?? p.usd}</span>
             </div>
             <div className="text-[11px] text-muted">{p.hint}</div>
           </button>
@@ -1053,7 +1059,7 @@ function Ads({ store }: { store: Store }) {
       </div>
       <div className="raised mb-3 rounded-2xl p-3 text-xs">
         <div className="text-muted">Send {AD_COINS.find((c) => c.id === coin)?.label} to this Kilode wallet only</div>
-        <div className="mt-1 break-all font-mono text-[11px]">{payTo || "Wallet not set yet — staff must paste addresses on /ops."}</div>
+        <div className="mt-1 break-all font-mono text-[11px]">{payTo || "Wallet not set yet."}</div>
         {payTo ? (
           <button
             type="button"
@@ -1072,7 +1078,7 @@ function Ads({ store }: { store: Store }) {
           Verify the first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet. Staff match your tx hash by hand.
         </p>
       </div>
-      <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount sent (about $${slot?.usd ?? 40} USD in crypto)`} className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount sent (about $${usd} USD in crypto)`} className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash / payment ID after you pay" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
       {err ? <p className="mb-2 text-sm text-danger">{err}</p> : null}
       <label className="mb-3 flex items-start gap-2 text-[11px] text-muted">
@@ -1213,6 +1219,20 @@ function AdsQueuePanel({ store }: { store: Store }) {
             </div>
             {c.image ? <img src={c.image} alt="" className="h-14 w-16 rounded object-cover" /> : null}
             <div className="flex flex-wrap gap-1">
+              <select
+                className="rounded border border-line bg-bg px-1 py-1 text-[11px]"
+                defaultValue={String(c.days || 7)}
+                onChange={(e) => {
+                  store.patchAd(c.id, { days: Number(e.target.value) });
+                  load(offset, status, q);
+                }}
+              >
+                {[1, 3, 7, 14, 30, 60].map((d) => (
+                  <option key={d} value={d}>
+                    {d}d from today
+                  </option>
+                ))}
+              </select>
               <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => { store.patchAd(c.id, { status: "paid" }); load(offset, status, q); }}>
                 Mark paid
               </button>
@@ -1355,6 +1375,7 @@ function Admin({ store }: { store: Store }) {
       <OpsKeysPanel />
       <OpsSeoPanel />
       <AdsQueuePanel store={store} />
+      {role === "super" ? <AdCatalogPanel /> : null}
       {role === "super" ? <AdSlotsPanel /> : null}
       {role === "super" ? <RoomsAdminPanel /> : null}
       <div className="md:col-span-2 space-y-2">
@@ -2443,7 +2464,7 @@ function Contact({ store }: { store: Store }) {
       >
         Send to staff
       </button>
-      {sent ? <p className="text-sm text-lime-2">Sent. Staff see it on /ops.</p> : null}
+      {sent ? <p className="text-sm text-lime-2">Sent. We have it.</p> : null}
     </div>
   );
 }

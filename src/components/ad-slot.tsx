@@ -57,14 +57,14 @@ function GoogleIns({ client, slot }: { client: string; slot: string }) {
   );
 }
 
-export function AdSlot({ id, className = "" }: { id: string; className?: string }) {
+export function AdSlot({ id, className = "", quiet }: { id: string; className?: string; quiet?: boolean }) {
   const rows = useAdSlots();
   const slot = rows.find((r) => r.id === id && r.enabled);
   if (!slot) return null;
   if (slot.kind === "google" && isPubId(slot.pubId) && isAdUnit(slot.adUnit)) {
     return (
       <div className={`ad-box overflow-hidden rounded-xl border border-line bg-panel ${className}`}>
-        <div className="px-2 pt-1 text-[9px] font-medium tracking-[0.14em] text-muted">AD</div>
+        {quiet ? null : <div className="px-2 pt-1 text-[9px] font-medium tracking-[0.14em] text-muted">AD</div>}
         <GoogleIns client={slot.pubId} slot={slot.adUnit} />
       </div>
     );
@@ -72,7 +72,7 @@ export function AdSlot({ id, className = "" }: { id: string; className?: string 
   if (slot.kind === "video" && slot.video) {
     return (
       <div className={`ad-box overflow-hidden rounded-xl border border-line bg-black ${className}`}>
-        <div className="px-2 py-1 text-[9px] font-medium tracking-[0.14em] text-muted">AD</div>
+        {quiet ? null : <div className="px-2 py-1 text-[9px] font-medium tracking-[0.14em] text-muted">AD</div>}
         <iframe title={slot.label || "Ad"} src={`https://www.youtube.com/embed/${slot.video}?rel=0`} className="aspect-video w-full border-0" allow="encrypted-media; fullscreen" loading="lazy" />
       </div>
     );
@@ -80,16 +80,16 @@ export function AdSlot({ id, className = "" }: { id: string; className?: string 
   if (slot.kind === "html" && slot.html) {
     return (
       <div className={`ad-box overflow-hidden rounded-xl border border-line bg-panel ${className}`}>
-        <div className="px-2 pt-1 text-[9px] font-medium tracking-[0.14em] text-muted">AD</div>
+        {quiet ? null : <div className="px-2 pt-1 text-[9px] font-medium tracking-[0.14em] text-muted">AD</div>}
         <iframe title="Ad" sandbox="allow-popups allow-popups-to-escape-sandbox allow-scripts" srcDoc={slot.html} className="h-24 w-full border-0 bg-transparent" />
       </div>
     );
   }
   if (slot.image) {
-    const inner = <img src={slot.image} alt="" className="max-h-28 w-full object-cover" />;
+    const inner = <img src={slot.image} alt="" className={quiet ? "max-h-10 w-full object-cover" : "max-h-28 w-full object-cover"} />;
     return (
       <div className={`ad-box overflow-hidden rounded-xl border border-line bg-panel ${className}`}>
-        <div className="px-2 pt-1 text-[9px] font-medium tracking-[0.14em] text-muted">AD</div>
+        {quiet ? null : <div className="px-2 pt-1 text-[9px] font-medium tracking-[0.14em] text-muted">AD</div>}
         {slot.link ? (
           <a href={slot.link} target="_blank" rel="noopener noreferrer">
             {inner}
@@ -110,4 +110,14 @@ export function AdSlotOrEmpty({ id, label, className = "" }: { id: string; label
     return <AdSlot id={id} className={className} />;
   }
   return null;
+}
+
+/** Reserved flat strip. No label. Super fills it from the console. */
+export function FlatAdBox({ id, className = "" }: { id: string; className?: string }) {
+  const rows = useAdSlots();
+  const slot = rows.find((r) => r.id === id && r.enabled);
+  if (slot && (slot.image || slot.video || slot.html || (slot.pubId && slot.adUnit))) {
+    return <AdSlot id={id} quiet className={className} />;
+  }
+  return <div className={`min-h-[40px] rounded-md bg-panel-2 ${className}`} aria-hidden />;
 }

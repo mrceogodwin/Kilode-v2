@@ -21,7 +21,7 @@ import {
 import { DEMO_ADS, DEMO_JOINS, DEMO_NOTES, DEMO_POSTS, DEMO_TRACKS } from "@/lib/qonvo-seed";
 import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, savePin, savePost, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
 import { listNotes } from "@/lib/social-server";
-import { hidePost as hidePostRow, setAdPlacement, setAdStatus } from "@/lib/staff-server";
+import { hidePost as hidePostRow, setAdPlacement, setAdStatus, setAdWindow } from "@/lib/staff-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { publicUsername } from "@/lib/account-email";
 
@@ -839,6 +839,11 @@ export function useQonvo() {
           video: extra?.video,
           days: extra?.days,
         },
+      }).then((r) => {
+        if (r && typeof r === "object" && "ok" in r && r.ok === false) {
+          setCampaigns((prev) => prev.filter((c) => c.id !== row.id));
+          note(r.reason);
+        }
       }).catch(() => undefined);
       note(`Ad submitted: ${n}`);
     },
@@ -850,8 +855,11 @@ export function useQonvo() {
     if (patch.status) {
       void setAdStatus({ data: { id, status: patch.status } }).catch(() => undefined);
     }
-    if (patch.placement === "board" || patch.placement === "chat" || patch.placement === "chat-pin") {
-      void setAdPlacement({ data: { id, placement: patch.placement } }).catch(() => undefined);
+    if (patch.placement) {
+      void setAdPlacement({ data: { id, placement: String(patch.placement) } }).catch(() => undefined);
+    }
+    if (typeof patch.days === "number") {
+      void setAdWindow({ data: { id, days: patch.days } }).catch(() => undefined);
     }
   }, []);
 

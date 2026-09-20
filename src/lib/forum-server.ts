@@ -277,7 +277,7 @@ export const listAds = createServerFn({ method: "GET" }).handler(async () => {
       ts: number | string;
       days: number | string | null;
       expires_at: number | string | null;
-    }>`select id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts, days, expires_at from nf_ads where status = ${"approved"} and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
+    }>`select id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts, days, expires_at from nf_ads where status = ${"approved"} and (expires_at is null or expires_at > ${now}) order by ts desc limit 200`;
     return rows.map(mapAd);
   } catch {
     const rows = await sql<{
@@ -295,7 +295,7 @@ export const listAds = createServerFn({ method: "GET" }).handler(async () => {
       video: string | null;
       views: number | string | null;
       ts: number | string;
-    }>`select id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts from nf_ads where status = ${"approved"} order by ts desc limit 80`;
+    }>`select id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts from nf_ads where status = ${"approved"} order by ts desc limit 200`;
     return rows.map((r) => mapAd({ ...r, days: 7, expires_at: null }));
   }
 });
@@ -387,6 +387,19 @@ export const saveAdRow = createServerFn({ method: "POST" })
     if ((await restrictionOf(context.userId)) === "ban") return { ok: false as const, reason: "This account is banned." };
     const blocked = await requireKind(context.userId, "ads.submit");
     if (blocked) return { ok: false as const, reason: blocked };
+    try {
+      await sql`create table if not exists nf_ad_catalog (k text primary key, v text not null)`;
+      const capRows = await sql<{ v: string }>`select v from nf_ad_catalog where k = ${"daily_cap"}`;
+      const cap = Math.min(200, Number(capRows[0]?.v ?? 40) || 40);
+      const dayStart = new Date();
+      dayStart.setHours(0, 0, 0, 0);
+      const today = await sql<{ n: string | number }>`select count(*) as n from nf_ads where ts >= ${dayStart.getTime()}`;
+      if (Number(today[0]?.n ?? 0) >= cap) {
+        return { ok: false as const, reason: "Today's ad slots are full. Try again tomorrow." };
+      }
+    } catch {
+      /* catalog optional on first boot */
+    }
     const author = await publicHandle(context.userId);
     const gate = await gateText("ads", `${name} ${data.note}`, { userId: context.userId, author });
     if (!gate.ok) return { ok: false as const, reason: gate.reason };
