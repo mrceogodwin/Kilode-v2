@@ -1,4 +1,5 @@
-import { HOWTO } from "@/lib/legal";
+import { useState } from "react";
+import { HOWTO, HOWTO_MORE } from "@/lib/legal";
 
 const SHOT: Record<string, string[]> = {
   guest: ["Open Feeds, Chat, Music, Cinema, Ads without an account.", "Me, Create, Messages stay locked until you Join."],
@@ -54,27 +55,46 @@ function Frame({ kind }: { kind: string }) {
 }
 
 export function HowToGuide() {
+  const [open, setOpen] = useState<string | null>(null);
   return (
     <div className="mt-4 space-y-3">
-      {HOWTO.map((h) => (
-        <article key={h.id} className="raised overflow-hidden rounded-2xl">
-          <div className="flex gap-3 p-3">
-            <Frame kind={h.id} />
-            <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-extrabold">{h.title}</h3>
-              <p className="mt-1 text-[13px] leading-6 text-muted">{h.body}</p>
-              <ul className="mt-2 space-y-1 text-[12px] text-fg/80">
-                {(SHOT[h.id] ?? []).map((s) => (
-                  <li key={s} className="flex gap-2">
-                    <span className="mt-1 size-1.5 shrink-0 rounded-full bg-lime-2" />
-                    {s}
-                  </li>
-                ))}
-              </ul>
+      {HOWTO.map((h) => {
+        const more = HOWTO_MORE[h.id] ?? [];
+        const expanded = open === h.id;
+        return (
+          <article key={h.id} id={`howto-${h.id}`} className="raised overflow-hidden rounded-2xl">
+            <div className="flex gap-3 p-3">
+              <Frame kind={h.id} />
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-extrabold">{h.title}</h3>
+                <p className="mt-1 text-[13px] leading-6 text-muted">{h.body}</p>
+                <ul className="mt-2 space-y-1 text-[12px] text-fg/80">
+                  {(SHOT[h.id] ?? []).map((s) => (
+                    <li key={s} className="flex gap-2">
+                      <span className="mt-1 size-1.5 shrink-0 rounded-full bg-lime-2" />
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+                {expanded ? (
+                  <ol className="mt-3 list-decimal space-y-1.5 pl-4 text-[12px] leading-5 text-fg/90">
+                    {more.map((s) => (
+                      <li key={s}>{s}</li>
+                    ))}
+                  </ol>
+                ) : null}
+                <button
+                  type="button"
+                  className="mt-3 rounded-full border border-lime-2/40 px-3 py-1 text-[11px] font-bold text-lime-2"
+                  onClick={() => setOpen(expanded ? null : h.id)}
+                >
+                  {expanded ? "Hide" : "READ MORE"}
+                </button>
+              </div>
             </div>
-          </div>
-        </article>
-      ))}
+          </article>
+        );
+      })}
     </div>
   );
 }

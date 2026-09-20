@@ -19,6 +19,8 @@ export type Listing = {
   submitter: string;
   ts: number;
   views: number;
+  days: number;
+  expiresAt?: number;
 };
 
 function nid() {
@@ -68,10 +70,17 @@ async function ensure() {
     body TEXT NOT NULL DEFAULT '', city TEXT NOT NULL DEFAULT '',
     contact TEXT NOT NULL DEFAULT '', link TEXT NOT NULL DEFAULT '',
     company TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'pending',
-    submitter TEXT NOT NULL DEFAULT '', user_id TEXT, ts BIGINT NOT NULL, views INTEGER NOT NULL DEFAULT 0)`);
+    submitter TEXT NOT NULL DEFAULT '', user_id TEXT, ts BIGINT NOT NULL, views INTEGER NOT NULL DEFAULT 0,
+    days INT NOT NULL DEFAULT 30, expires_at BIGINT)`);
   await sql.query(`CREATE TABLE IF NOT EXISTS nf_apps (
     id TEXT PRIMARY KEY, listing_id TEXT NOT NULL, user_id TEXT NOT NULL,
     handle TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', ts BIGINT NOT NULL)`);
+  try {
+    await sql.query(`ALTER TABLE nf_listings ADD COLUMN IF NOT EXISTS days INT NOT NULL DEFAULT 30`);
+    await sql.query(`ALTER TABLE nf_listings ADD COLUMN IF NOT EXISTS expires_at BIGINT`);
+  } catch {
+    /* exists */
+  }
 }
 
 type ListingRow = {
@@ -87,6 +96,8 @@ type ListingRow = {
   submitter: string | null;
   ts: number | string;
   views: number | string | null;
+  days?: number | string | null;
+  expires_at?: number | string | null;
 };
 
 function map(r: ListingRow): Listing {
@@ -103,6 +114,8 @@ function map(r: ListingRow): Listing {
     submitter: r.submitter ?? "",
     ts: Number(r.ts),
     views: Number(r.views ?? 0),
+    days: Number(r.days ?? 30),
+    expiresAt: r.expires_at ? Number(r.expires_at) : undefined,
   };
 }
 
@@ -116,15 +129,16 @@ export const listListings = createServerFn({ method: "GET" })
       /* exists */
     }
     const kind = asKind(data.kind);
+    const now = Date.now();
     const rows = data.staff
-      ? await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views from nf_listings where kind = ${kind} order by ts desc limit 80`
-      : await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views from nf_listings where kind = ${kind} and status = 'approved' order by ts desc limit 80`;
+      ? await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings where kind = ${kind} order by ts desc limit 80`
+      : await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings where kind = ${kind} and status = 'approved' and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
     return rows.map(map);
   });
 
 export const saveListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { kind: string; title: string; body?: string; city?: string; contact?: string; link?: string; company?: string }) => d)
+  .validator((d: { kind: string; title: string; body?: string; city?: string; contact?: string; link?: string; company?: string; days?: number }) => d)
   .handler(async ({ context, data }) => {
     const kind = asKind(data.kind);
     const ak = await kindOf(context.userId);
@@ -142,8 +156,9 @@ export const saveListing = createServerFn({ method: "POST" })
     }
     const id = nid();
     const link = safeHttpUrl(data.link ?? "") ?? "";
-    await sql`insert into nf_listings (id, kind, title, body, city, contact, link, company, status, submitter, user_id, ts, views)
-      values (${id}, ${kind}, ${title}, ${(data.body ?? "").slice(0, 2000)}, ${(data.city ?? "").slice(0, 80)}, ${(data.contact ?? "").slice(0, 120)}, ${link}, ${(data.company ?? "").slice(0, 80)}, ${"pending"}, ${submitter}, ${context.userId}, ${Date.now()}, ${0})`;
+    const days = [7, 14, 30].includes(Number(data.days)) ? Number(data.days) : 30;
+    await sql`insert into nf_listings (id, kind, title, body, city, contact, link, company, status, submitter, user_id, ts, views, days)
+      values (${id}, ${kind}, ${title}, ${(data.body ?? "").slice(0, 2000)}, ${(data.city ?? "").slice(0, 80)}, ${(data.contact ?? "").slice(0, 120)}, ${link}, ${(data.company ?? "").slice(0, 80)}, ${"pending"}, ${submitter}, ${context.userId}, ${Date.now()}, ${0}, ${days})`;
     return { ok: true as const, id };
   });
 
@@ -172,7 +187,14 @@ export const setListingStatus = createServerFn({ method: "POST" })
     const role = await staffRole(context.userId);
     if (role !== "super" && role !== "admin") throw new Error("Forbidden");
     const sql = await getSql();
-    await sql`update nf_listings set status = ${data.status} where id = ${data.id}`;
+    if (data.status === "approved") {
+      const rows = await sql<{ days: number | string | null }>`select days from nf_listings where id = ${data.id} limit 1`;
+      const days = Number(rows[0]?.days ?? 30) || 30;
+      const exp = Date.now() + days * 86_400_000;
+      await sql`update nf_listings set status = ${data.status}, expires_at = ${exp} where id = ${data.id}`;
+    } else {
+      await sql`update nf_listings set status = ${data.status} where id = ${data.id}`;
+    }
     return { ok: true as const };
   });
 
@@ -186,6 +208,6 @@ export const listListingQueue = createServerFn({ method: "GET" })
     } catch {
       return [];
     }
-    const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views from nf_listings order by ts desc limit 80`;
+    const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings order by ts desc limit 80`;
     return rows.map(map);
   });

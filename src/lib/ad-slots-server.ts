@@ -21,6 +21,12 @@ async function ensure() {
     ad_unit text not null default '',
     ts bigint not null default 0
   )`;
+  try {
+    await sql`alter table nf_ad_slots add column if not exists days int not null default 30`;
+    await sql`alter table nf_ad_slots add column if not exists expires_at bigint`;
+  } catch {
+    /* exists */
+  }
   await sql`create table if not exists nf_digest (email text primary key, ts bigint not null)`;
   return sql;
 }
@@ -36,7 +42,11 @@ function rowOf(r: {
   html: string;
   pub_id: string;
   ad_unit: string;
+  days?: number | string | null;
+  expires_at?: number | string | null;
 }): AdSlotRow {
+  const days = Number(r.days ?? 30) || 30;
+  const expiresAt = r.expires_at ? Number(r.expires_at) : undefined;
   return {
     id: r.id,
     kind: (["image", "video", "google", "html"].includes(r.kind) ? r.kind : "image") as AdSlotKind,
@@ -48,6 +58,8 @@ function rowOf(r: {
     html: r.html,
     pubId: r.pub_id,
     adUnit: r.ad_unit,
+    days,
+    expiresAt,
   };
 }
 
@@ -65,9 +77,16 @@ export const listAdSlots = createServerFn({ method: "GET" }).handler(async () =>
       html: string;
       pub_id: string;
       ad_unit: string;
-    }>`select id, kind, enabled, label, image, video, link, html, pub_id, ad_unit from nf_ad_slots`;
+      days?: number | string | null;
+      expires_at?: number | string | null;
+    }>`select id, kind, enabled, label, image, video, link, html, pub_id, ad_unit, days, expires_at from nf_ad_slots`;
+    const now = Date.now();
     const map = Object.fromEntries(rows.map((r) => [r.id, rowOf(r)]));
-    return AD_SLOT_DEFS.map((d) => map[d.id] ?? { id: d.id, kind: d.kind, enabled: false, label: d.label, image: "", video: "", link: "", html: "", pubId: "", adUnit: "" });
+    return AD_SLOT_DEFS.map((d) => {
+      const row = map[d.id] ?? { id: d.id, kind: d.kind, enabled: false, label: d.label, image: "", video: "", link: "", html: "", pubId: "", adUnit: "", days: 30 };
+      if (row.expiresAt && row.expiresAt < now) return { ...row, enabled: false };
+      return row;
+    });
   } catch {
     return AD_SLOT_DEFS.map((d) => ({ id: d.id, kind: d.kind, enabled: false, label: d.label, image: "", video: "", link: "", html: "", pubId: "", adUnit: "" }));
   }
@@ -75,7 +94,7 @@ export const listAdSlots = createServerFn({ method: "GET" }).handler(async () =>
 
 export const saveAdSlot = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { id: string; kind?: AdSlotKind; enabled?: boolean; image?: string; video?: string; link?: string; html?: string; pubId?: string; adUnit?: string }) => d)
+  .validator((d: { id: string; kind?: AdSlotKind; enabled?: boolean; image?: string; video?: string; link?: string; html?: string; pubId?: string; adUnit?: string; days?: number }) => d)
   .handler(async ({ context, data }) => {
     const me = await assertStaff(context.userId, "super");
     void me;
@@ -90,9 +109,11 @@ export const saveAdSlot = createServerFn({ method: "POST" })
     const pubId = isPubId(data.pubId ?? "") ? data.pubId!.trim() : "";
     const adUnit = isAdUnit(data.adUnit ?? "") ? data.adUnit!.trim() : "";
     const enabled = data.enabled ? 1 : 0;
-    await sql`insert into nf_ad_slots (id, kind, enabled, label, image, video, link, html, pub_id, ad_unit, ts)
-      values (${def.id}, ${kind}, ${enabled}, ${def.label}, ${image}, ${video}, ${link}, ${html}, ${pubId}, ${adUnit}, ${Date.now()})
-      on conflict (id) do update set kind = ${kind}, enabled = ${enabled}, image = ${image}, video = ${video}, link = ${link}, html = ${html}, pub_id = ${pubId}, ad_unit = ${adUnit}, ts = ${Date.now()}`;
+    const days = [1, 7, 14, 30].includes(Number(data.days)) ? Number(data.days) : 30;
+    const exp = data.enabled ? Date.now() + days * 86_400_000 : null;
+    await sql`insert into nf_ad_slots (id, kind, enabled, label, image, video, link, html, pub_id, ad_unit, ts, days, expires_at)
+      values (${def.id}, ${kind}, ${enabled}, ${def.label}, ${image}, ${video}, ${link}, ${html}, ${pubId}, ${adUnit}, ${Date.now()}, ${days}, ${exp})
+      on conflict (id) do update set kind = ${kind}, enabled = ${enabled}, image = ${image}, video = ${video}, link = ${link}, html = ${html}, pub_id = ${pubId}, ad_unit = ${adUnit}, ts = ${Date.now()}, days = ${days}, expires_at = ${exp}`;
     return { ok: true as const };
   });
 

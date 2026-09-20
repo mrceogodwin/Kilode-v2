@@ -796,6 +796,7 @@ export const DEMO_ADS: Campaign[] = [
     image: "https://picsum.photos/seed/paystack-ad/640/160",
     kind: "image-text",
     views: 1280,
+    days: 30,
   },
   {
     id: "demo-ad-side",
@@ -811,6 +812,7 @@ export const DEMO_ADS: Campaign[] = [
     image: "https://picsum.photos/seed/glo-ad/640/160",
     kind: "image",
     views: 940,
+    days: 7,
   },
   {
     id: "demo-ad-chat",
@@ -826,6 +828,7 @@ export const DEMO_ADS: Campaign[] = [
     image: "https://picsum.photos/seed/spotify-ad/640/160",
     kind: "image-text",
     views: 2104,
+    days: 7,
   },
   {
     id: "demo-ad-mtn",
@@ -839,6 +842,7 @@ export const DEMO_ADS: Campaign[] = [
     image: "https://picsum.photos/seed/mtn-ad/640/160",
     kind: "image",
     views: 640,
+    days: 1,
   },
   {
     id: "demo-ad-jumia",
@@ -852,6 +856,7 @@ export const DEMO_ADS: Campaign[] = [
     image: "https://picsum.photos/seed/jumia-ad/640/160",
     kind: "image-text",
     views: 402,
+    days: 30,
   },
   {
     id: "demo-ad-bolt",
@@ -865,6 +870,7 @@ export const DEMO_ADS: Campaign[] = [
     image: "https://picsum.photos/seed/bolt-ad/640/160",
     kind: "text",
     views: 188,
+    days: 1,
   },
   {
     id: "demo-ad-yt",
@@ -878,6 +884,7 @@ export const DEMO_ADS: Campaign[] = [
     video: "kJQP7kiw5Fk",
     kind: "video-text",
     views: 3301,
+    days: 30,
   },
   {
     id: "demo-ad-yt2",
@@ -890,6 +897,7 @@ export const DEMO_ADS: Campaign[] = [
     video: "9bZkp7q19f0",
     kind: "video",
     views: 5120,
+    days: 7,
   },
   {
     id: "demo-ad-wait",

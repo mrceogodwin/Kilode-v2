@@ -44,7 +44,10 @@ import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
 import { CinemaPane } from "@/components/cinema-pane";
 import { ChatTermsBar, ForumClock, ForumWhy } from "@/components/forum-why";
-import { PremiumSquareAd, PremiumStoryAd } from "@/components/premium-ad";
+import { PremiumSquareAd, PremiumStoryAd, MenuPremiumAd } from "@/components/premium-ad";
+import { AdvertPane } from "@/components/advert-pane";
+import { RoomList } from "@/components/rooms-list";
+import { listRoomOverlay } from "@/lib/rooms-server";
 import { Link } from "@tanstack/react-router";
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -214,17 +217,29 @@ export function QonvoApp() {
   const [replyTo, setReplyTo] = useState<ChatMsg | null>(null);
   const [forumWhy, setForumWhy] = useState(false);
   const [chatOk, setChatOk] = useState(false);
+  const [roomOverlay, setRoomOverlay] = useState<{ extra: Room[]; paused: string[] }>({ extra: [], paused: [] });
 
-  const room = ROOMS.find((r) => r.id === store.roomId) ?? ROOMS[0];
+  const liveRooms = useMemo(() => {
+    const paused = new Set(roomOverlay.paused);
+    return [...ROOMS.filter((r) => !paused.has(r.id)), ...roomOverlay.extra];
+  }, [roomOverlay]);
+
+  const room = liveRooms.find((r) => r.id === store.roomId) ?? liveRooms[0] ?? ROOMS[0];
   const listed = useMemo(
     () =>
-      ROOMS.filter(
+      liveRooms.filter(
         (r) =>
           (region === "All" || r.region === region) &&
           r.name.toLowerCase().includes(query.toLowerCase()),
       ),
-    [query, region],
+    [query, region, liveRooms],
   );
+
+  useEffect(() => {
+    void listRoomOverlay()
+      .then(setRoomOverlay)
+      .catch(() => undefined);
+  }, []);
 
 
   useEffect(() => {
@@ -385,7 +400,7 @@ export function QonvoApp() {
         {/* Rooms/Live/Videos folded into Chat & Me — keep tab bar clear on mobile */}
         <div className="h-6 overflow-hidden border-t border-line/60 bg-panel-2">
           <div className="ticker-track px-4 text-[10px] leading-6 text-muted">
-            {[...ROOMS.slice(0, 12), ...ROOMS.slice(0, 12)].map((r, i) => (
+            {[...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10), ...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10)].map((r, i) => (
               <button key={r.id + i} type="button" aria-label={`Open room ${r.name}`} className="shrink-0 hover:text-fg" onClick={() => goHome(r.id)}>
                 {r.name} · {fmt(r.online)}
               </button>
@@ -450,45 +465,43 @@ export function QonvoApp() {
                 />
               ) : (
                 <>
-              <div className="flex items-center justify-between border-b border-white/5 bg-panel px-3 py-2">
-                <div>
-                  <div className="text-[10px] font-medium tracking-[0.14em] text-lime-2">KILODE FORUM</div>
-                  <div className="text-sm font-bold">{room.name}</div>
-                  <div className="text-[10px] text-muted">
-                    <span className="font-semibold text-lime-2">{store.online.length} online</span>
-                    {" · "}
-                    {store.handle || "guest"}
+              <div className="border-b border-white/5 bg-panel px-3 py-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[9px] font-medium tracking-[0.16em] text-lime-2">KILODE FORUM</div>
+                    <div className="truncate text-sm font-bold leading-tight">{room.name}</div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1">
                   <ForumClock label={purge === "kept" ? "kept" : purge} onOpen={() => setForumWhy(true)} />
-                  <button
-                    type="button"
-                    aria-label="Older messages"
-                    disabled={!store.hasOlder}
-                    onClick={() => store.olderChat()}
-                    className={`grid size-7 place-items-center rounded-md border text-sm ${store.hasOlder ? "border-line text-fg" : "border-white/5 text-muted/40"}`}
-                  >
-                    <ChevronLeft className="size-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Newer messages"
-                    disabled={!store.hasNewer}
-                    onClick={() => store.newerChat()}
-                    className={`grid size-7 place-items-center rounded-md border text-sm ${store.hasNewer ? "border-line text-fg" : "border-white/5 text-muted/40"}`}
-                  >
-                    <ChevronRight className="size-3.5" />
-                  </button>
-                  <button type="button" onClick={() => setRoomsOpen(true)} className="btn-3d ml-1 rounded-full px-3 py-1 text-xs md:hidden">
-                    Rooms
-                  </button>
-                  <button type="button" onClick={store.pinRoom} className="btn-3d ml-1 rounded-full px-3 py-1 text-xs">
-                    Bookmark
-                  </button>
-                  <button type="button" onClick={() => setDonateOpen(true)} className="ml-1 rounded-full border border-line px-3 py-1 text-[10px] font-semibold text-muted">
-                    Donate
-                  </button>
+                </div>
+                <div className="mt-1.5 flex items-center gap-1">
+                  <span className="shrink-0 text-[10px] font-bold text-lime-2">{store.online.length} online</span>
+                  <span className="min-w-0 truncate text-[10px] text-muted">· {store.handle || "guest"}</span>
+                  <div className="ml-auto flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      aria-label="Older messages"
+                      disabled={!store.hasOlder}
+                      onClick={() => store.olderChat()}
+                      className={`grid size-7 place-items-center rounded-md border text-sm ${store.hasOlder ? "border-line text-fg" : "border-white/5 text-muted/40"}`}
+                    >
+                      <ChevronLeft className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Newer messages"
+                      disabled={!store.hasNewer}
+                      onClick={() => store.newerChat()}
+                      className={`grid size-7 place-items-center rounded-md border text-sm ${store.hasNewer ? "border-line text-fg" : "border-white/5 text-muted/40"}`}
+                    >
+                      <ChevronRight className="size-3.5" />
+                    </button>
+                    <button type="button" onClick={() => setRoomsOpen(true)} className="btn-3d rounded-full px-2.5 py-1 text-[10px] md:hidden">
+                      Rooms
+                    </button>
+                    <button type="button" onClick={store.pinRoom} className="btn-3d rounded-full px-2.5 py-1 text-[10px]">
+                      Bookmark
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2 overflow-x-auto border-b border-white/5 px-3 py-1.5">
@@ -501,9 +514,6 @@ export function QonvoApp() {
                   </span>
                 ))}
                 {store.online.length === 0 ? <span className="text-[10px] text-muted">Be first in this room</span> : null}
-                <span className="ml-auto shrink-0">
-                  <ForumClock label={purge === "kept" ? "kept" : purge} onOpen={() => setForumWhy(true)} />
-                </span>
                 {store.typing.filter((n) => n !== store.handle).length ? (
                   <span className="ml-1 shrink-0 text-[10px] text-lime-2">
                     {store.typing.filter((n) => n !== store.handle).slice(0, 2).join(", ")} typing
@@ -775,7 +785,7 @@ export function QonvoApp() {
               </button>
             </div>
             <div className="flex gap-2 overflow-x-auto p-2">
-              {REGIONS.slice(0, 8).map((r) => (
+              {REGIONS.map((r) => (
                 <button
                   key={r}
                   type="button"
@@ -849,6 +859,7 @@ export function QonvoApp() {
             <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-5">
               {!(signedIn) ? (
                 <div className="mb-3 space-y-2">
+                  <MenuPremiumAd />
                   <HowKilode />
                   <JoinCta />
                 </div>
@@ -1238,52 +1249,6 @@ function Tab({
       {icon}
       {label}
     </button>
-  );
-}
-
-function RoomList({
-  query,
-  setQuery,
-  listed,
-  roomId,
-  onOpen,
-}: {
-  query: string;
-  setQuery: (v: string) => void;
-  listed: Room[];
-  roomId: string;
-  onOpen: (id: string) => void;
-}) {
-  return (
-    <>
-      <div className="shrink-0 border-b border-white/5 p-2">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search rooms"
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-xs outline-none"
-        />
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-      {listed.map((r) => (
-        <button
-          key={r.id}
-          type="button"
-          onClick={() => onOpen(r.id)}
-          className={`flex w-full items-center justify-between border-l-2 px-3 py-2 text-left ${
-            r.id === roomId ? "border-lime-2 bg-panel-2" : "border-transparent hover:bg-panel-2"
-          }`}
-        >
-          <span>
-            <span className="block text-xs font-semibold">{r.name}</span>
-            <span className="text-[10px] text-muted">
-              {fmt(r.online)} · {r.region}
-            </span>
-          </span>
-        </button>
-      ))}
-      </div>
-    </>
   );
 }
 
@@ -1759,11 +1724,17 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
         </div>
         <AdSlotOrEmpty id="article_leader" label="Long banner · 728×90" />
         <RelatedGrid posts={store.posts} exclude={post.id} category={post.category} onOpen={(id) => store.setOpenPost(id)} />
+        <div className="mt-6">
+          <AdSlotOrEmpty id="article_before_top10" label="Company banner · before Top 10" />
+        </div>
+        <TopTen posts={store.posts} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
+        <div className="mt-6">
+          <AdSlotOrEmpty id="article_after_top10" label="Company banner · after Top 10" />
+        </div>
         <div className="mt-6 grid grid-cols-2 gap-2">
           <AdSlotOrEmpty id="article_box" label="Google / box · 300×250" />
           <AdSlotOrEmpty id="article_video" label="Video ad · YouTube" />
         </div>
-        <TopTen posts={store.posts} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
         <div className="mt-6">
           <AdSlotOrEmpty id="article_native" label="Native tile · image + link" />
         </div>
@@ -1863,82 +1834,6 @@ function FeedPane({ store }: { store: ReturnType<typeof useQonvo> }) {
         ) : (
           <EmptyHero title="No posts yet" body="Be first — share a take for Nigeria." cta="Create a post" onClick={() => { window.dispatchEvent(new CustomEvent("kilode:create")); }} />
         )}
-      </div>
-    </div>
-  );
-}
-
-function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreate: () => void; onView: (id: string) => void }) {
-  const [shown, setShown] = useState(12);
-  const live = ads.filter((a) => a.status === "approved");
-  const mine = ads.filter((a) => a.status !== "approved");
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between border-b border-white/5 px-3 py-2">
-        <span className="text-xs text-muted">Ads · 5 formats</span>
-        <button type="button" className="btn-3d rounded-md px-3 py-1 text-[11px] font-semibold" onClick={onCreate}>
-          Place ad
-        </button>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-3">
-        <PremiumSquareAd />
-        <AdSlot id="ads_leader" className="mb-3" />
-        {(["image", "image-text", "video", "video-text", "text"] as const).map((kind) => {
-          const pack = live.filter((a) => (a.kind || "image-text") === kind);
-          if (!pack.length) return null;
-          return (
-            <section key={kind} className="mb-4">
-              <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">{kind.replace("-", " + ").toUpperCase()}</div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {pack.slice(0, kind === "text" ? shown : shown).map((a) => {
-                  const yt = a.video ? youtubeId(a.video) || a.video : undefined;
-                  const inner = (
-                    <div className="overflow-hidden rounded-xl border border-line bg-panel text-left">
-                      {a.kind === "video" || a.kind === "video-text" ? (
-                        yt ? (
-                          <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" className="aspect-[16/10] w-full object-cover" />
-                        ) : (
-                          <div className="grid aspect-[16/10] place-items-center bg-panel-3 text-[9px] text-muted">Video</div>
-                        )
-                      ) : a.image ? (
-                        <img src={a.image} alt="" className="aspect-[16/10] w-full object-cover" />
-                      ) : (
-                        <div className="grid aspect-[16/10] place-items-center bg-panel-3 px-2 text-center text-[11px] font-semibold">{a.name}</div>
-                      )}
-                      <div className="px-2 py-1.5">
-                        <div className="line-clamp-2 text-[12px] font-normal leading-snug">{a.name}</div>
-                        {a.note ? <p className="mt-0.5 line-clamp-2 text-[10px] text-muted">{a.note}</p> : null}
-                        <div className="mt-1 text-[10px] tabular-nums text-muted">{fmtCount(a.views ?? 0)} views</div>
-                      </div>
-                    </div>
-                  );
-                  return a.link ? (
-                    <a key={a.id} href={a.link} target="_blank" rel="noopener noreferrer" onClick={() => onView(a.id)}>
-                      {inner}
-                    </a>
-                  ) : (
-                    <button key={a.id} type="button" onClick={() => onView(a.id)}>
-                      {inner}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-        {live.length === 0 ? <EmptyHero title="No ads live" body="Place an ad after crypto payment — Nigeria is watching." cta="Place an ad" onClick={onCreate} /> : null}
-        {shown < live.length ? (
-          <button type="button" className="btn-3d mx-auto mt-3 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + 6)}>
-            Load more
-          </button>
-        ) : null}
-        <AdSlotOrEmpty id="ads_footer" label="Footer long banner · /ops" className="mt-3" />
-        {mine.length ? <div className="mt-3 text-[10px] font-medium tracking-normal text-muted">Your queue</div> : null}
-        {mine.map((a) => (
-          <div key={a.id} className="mt-1 rounded-md border border-line px-2 py-1.5 text-[11px] text-muted">
-            {a.name} · {a.status} · {a.kind} · {(a.coin || "").toUpperCase()} {a.amount || ""}
-          </div>
-        ))}
       </div>
     </div>
   );

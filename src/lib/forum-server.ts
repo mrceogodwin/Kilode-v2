@@ -392,7 +392,7 @@ export const saveAdRow = createServerFn({ method: "POST" })
     if (!gate.ok) return { ok: false as const, reason: gate.reason };
     const id = nid();
     const ts = Date.now();
-    const days = [7, 14, 30].includes(Number(data.days)) ? Number(data.days) : 7;
+    const days = [1, 7, 14, 30].includes(Number(data.days)) ? Number(data.days) : 7;
     await sql`insert into nf_ads (id, user_id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts, days)
       values (${id}, ${context.userId}, ${name}, ${data.note}, ${data.placement ?? "board"}, ${data.status ?? "pending"}, ${data.amount ?? ""}, ${data.txHash ?? ""}, ${data.coin ?? ""}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.kind ?? "image-text"}, ${data.video ?? ""}, ${0}, ${ts}, ${days})`;
     return { id };

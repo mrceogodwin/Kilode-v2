@@ -69,6 +69,44 @@ export const HOWTO = [
   },
 ] as const;
 
+export const HOWTO_MORE: Record<string, string[]> = {
+  guest: [
+    "Tap Feeds, Chat, Music, Cinema, Ads in the bottom bar. You can read everything public.",
+    "Tap Join (top right) → username + password → pick a type → tick Terms + Rules.",
+    "No email. If you forget the password, only staff can reset it after you prove the handle.",
+  ],
+  member: [
+    "Join as Normal user. Open Chat, Accept the ticker, then send. No links. No phone numbers.",
+    "Feeds: tap New post if your type allows. Comment on a story after you sign in.",
+    "Cinema: vote once per title per day. Jobs: apply from Jobs with a short note.",
+  ],
+  writer: [
+    "Create post → title, body, excerpt, category, tags, featured image, source URL, SEO title + description.",
+    "Publish. It appears on Feeds under your handle. Comments stay on unless you turn them off.",
+    "You are the publisher. Kilode does not edit your copy. Staff may hide a post that breaks Rules.",
+  ],
+  artist: [
+    "Create → Music. Paste a Spotify, SoundCloud, Audiomack, Apple, Boomplay or Deezer URL. No files.",
+    "We embed their player. Artwork comes from that platform. We never host audio.",
+  ],
+  advertiser: [
+    "Ads tab → Place ad. Pick slot (grid / chat stream / chat pin), creative type, and 1 / 7 / 14 / 30 days.",
+    "Copy the wallet in the app. Pay crypto. Paste the tx hash. Tick Ads terms. Submit.",
+    "Staff approve. Your campaigns list shows status, days left, and views. Never send funds to a DM.",
+  ],
+  cinema: [
+    "Submit a YouTube watch URL + title from Cinema. Staff approve.",
+    "Signed-in users vote once a day. Top title (or a staff pin) becomes Watching Now.",
+  ],
+  job_poster: [
+    "Jobs → title, company, city, contact, duration (7 / 14 / 30 days). Staff approve. Re-submit to renew.",
+  ],
+  job_seeker: ["Open an approved job. Write a short apply note. Contact is on the listing."],
+  vendor: ["Marketplace → product title, contact, duration. Staff approve. No cart on Kilode."],
+  renter: ["Rent → space title, area, contact, duration. Staff approve. No deposits inside the app."],
+  brand: ["Same ads path as Ads Poster, plus a company page. Crypto + staff approve."],
+};
+
 export const TERMS_LONG = `Kilode Terms of Use
 
 Last updated ${LEGAL_UPDATED}

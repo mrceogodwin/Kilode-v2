@@ -6,48 +6,81 @@ export type Room = {
 };
 
 export const ROOMS: Room[] = [
-  { id: "global", name: "Global Chat", region: "Featured", online: 12481 },
   { id: "hot", name: "Hot Topics", region: "Featured", online: 8204 },
-  { id: "music", name: "Music & Vibes", region: "Entertainment", online: 2401 },
-  { id: "game", name: "Gaming Lounge", region: "Gaming", online: 5802 },
-  { id: "tech", name: "Tech", region: "Tech", online: 3901 },
-  { id: "sport", name: "Sports", region: "Sports", online: 3102 },
-  { id: "edu", name: "Education", region: "Education", online: 1402 },
-  { id: "food", name: "Food", region: "Food", online: 980 },
-  { id: "biz", name: "Business", region: "Business", online: 1604 },
-  { id: "lang", name: "Language Exchange", region: "Featured", online: 3119 },
-  { id: "ng", name: "Nigeria", region: "Africa", online: 8204 },
-  { id: "gh", name: "Ghana", region: "Africa", online: 1892 },
-  { id: "za", name: "South Africa", region: "Africa", online: 2103 },
-  { id: "ke", name: "Kenya", region: "Africa", online: 1204 },
-  { id: "eg", name: "Egypt", region: "Africa", online: 2890 },
-  { id: "et", name: "Ethiopia", region: "Africa", online: 891 },
-  { id: "ma", name: "Morocco", region: "Africa", online: 1340 },
-  { id: "us", name: "United States", region: "Americas", online: 9310 },
-  { id: "br", name: "Brazil", region: "Americas", online: 4108 },
-  { id: "mx", name: "Mexico", region: "Americas", online: 3890 },
-  { id: "ca", name: "Canada", region: "Americas", online: 2104 },
-  { id: "ar", name: "Argentina", region: "Americas", online: 1802 },
-  { id: "in", name: "India", region: "Asia", online: 11020 },
-  { id: "jp", name: "Japan", region: "Asia", online: 6520 },
-  { id: "kr", name: "South Korea", region: "Asia", online: 5102 },
-  { id: "id", name: "Indonesia", region: "Asia", online: 4580 },
-  { id: "ph", name: "Philippines", region: "Asia", online: 3740 },
-  { id: "cn", name: "China", region: "Asia", online: 7041 },
-  { id: "pk", name: "Pakistan", region: "Asia", online: 3120 },
-  { id: "gb", name: "United Kingdom", region: "Europe", online: 3210 },
-  { id: "fr", name: "France", region: "Europe", online: 2801 },
-  { id: "de", name: "Germany", region: "Europe", online: 2210 },
-  { id: "it", name: "Italy", region: "Europe", online: 1904 },
-  { id: "es", name: "Spain", region: "Europe", online: 2011 },
-  { id: "tr", name: "Turkey", region: "Middle East", online: 3401 },
-  { id: "sa", name: "Saudi Arabia", region: "Middle East", online: 2890 },
-  { id: "ae", name: "UAE", region: "Middle East", online: 2201 },
-  { id: "au", name: "Australia", region: "Oceania", online: 2801 },
-  { id: "nz", name: "New Zealand", region: "Oceania", online: 891 },
+  { id: "ng", name: "Nigeria", region: "Featured", online: 8204 },
+  { id: "politics", name: "Politics", region: "Featured", online: 6102 },
+  { id: "sport", name: "Sports", region: "Featured", online: 3102 },
+  { id: "music", name: "Music & Vibes", region: "Featured", online: 2401 },
+  { id: "tech", name: "Tech", region: "Featured", online: 3901 },
+  { id: "biz", name: "Business", region: "Featured", online: 1604 },
+  { id: "jobs", name: "Jobs", region: "Featured", online: 2104 },
+  { id: "st-fct", name: "FCT Abuja", region: "North Central", online: 4201 },
+  { id: "st-benue", name: "Benue", region: "North Central", online: 980 },
+  { id: "st-kogi", name: "Kogi", region: "North Central", online: 870 },
+  { id: "st-kwara", name: "Kwara", region: "North Central", online: 910 },
+  { id: "st-nasarawa", name: "Nasarawa", region: "North Central", online: 640 },
+  { id: "st-niger", name: "Niger", region: "North Central", online: 720 },
+  { id: "st-plateau", name: "Plateau", region: "North Central", online: 1104 },
+  { id: "st-adamawa", name: "Adamawa", region: "North East", online: 701 },
+  { id: "st-bauchi", name: "Bauchi", region: "North East", online: 830 },
+  { id: "st-borno", name: "Borno", region: "North East", online: 940 },
+  { id: "st-gombe", name: "Gombe", region: "North East", online: 560 },
+  { id: "st-taraba", name: "Taraba", region: "North East", online: 490 },
+  { id: "st-yobe", name: "Yobe", region: "North East", online: 410 },
+  { id: "st-jigawa", name: "Jigawa", region: "North West", online: 620 },
+  { id: "st-kaduna", name: "Kaduna", region: "North West", online: 2104 },
+  { id: "st-kano", name: "Kano", region: "North West", online: 3401 },
+  { id: "st-katsina", name: "Katsina", region: "North West", online: 980 },
+  { id: "st-kebbi", name: "Kebbi", region: "North West", online: 540 },
+  { id: "st-sokoto", name: "Sokoto", region: "North West", online: 710 },
+  { id: "st-zamfara", name: "Zamfara", region: "North West", online: 430 },
+  { id: "st-abia", name: "Abia", region: "South East", online: 1204 },
+  { id: "st-anambra", name: "Anambra", region: "South East", online: 1802 },
+  { id: "st-ebonyi", name: "Ebonyi", region: "South East", online: 640 },
+  { id: "st-enugu", name: "Enugu", region: "South East", online: 1501 },
+  { id: "st-imo", name: "Imo", region: "South East", online: 1402 },
+  { id: "st-akwaibom", name: "Akwa Ibom", region: "South South", online: 1301 },
+  { id: "st-bayelsa", name: "Bayelsa", region: "South South", online: 720 },
+  { id: "st-crossriver", name: "Cross River", region: "South South", online: 810 },
+  { id: "st-delta", name: "Delta", region: "South South", online: 1604 },
+  { id: "st-edo", name: "Edo", region: "South South", online: 1408 },
+  { id: "st-rivers", name: "Rivers", region: "South South", online: 2401 },
+  { id: "st-ekiti", name: "Ekiti", region: "South West", online: 890 },
+  { id: "st-lagos", name: "Lagos", region: "South West", online: 9204 },
+  { id: "st-ogun", name: "Ogun", region: "South West", online: 1802 },
+  { id: "st-ondo", name: "Ondo", region: "South West", online: 940 },
+  { id: "st-osun", name: "Osun", region: "South West", online: 1010 },
+  { id: "st-oyo", name: "Oyo", region: "South West", online: 1704 },
+  { id: "game", name: "Gaming Lounge", region: "More rooms", online: 5802 },
+  { id: "edu", name: "Education", region: "More rooms", online: 1402 },
+  { id: "food", name: "Food", region: "More rooms", online: 980 },
+  { id: "lang", name: "Language Exchange", region: "More rooms", online: 3119 },
+  { id: "global", name: "Global Chat", region: "More rooms", online: 12481 },
+  { id: "gh", name: "Ghana", region: "World", online: 1892 },
+  { id: "za", name: "South Africa", region: "World", online: 2103 },
+  { id: "ke", name: "Kenya", region: "World", online: 1204 },
+  { id: "eg", name: "Egypt", region: "World", online: 2890 },
+  { id: "et", name: "Ethiopia", region: "World", online: 891 },
+  { id: "ma", name: "Morocco", region: "World", online: 1340 },
+  { id: "us", name: "United States", region: "World", online: 9310 },
+  { id: "br", name: "Brazil", region: "World", online: 4108 },
+  { id: "gb", name: "United Kingdom", region: "World", online: 3210 },
+  { id: "in", name: "India", region: "World", online: 11020 },
 ];
 
-export const REGIONS = ["All", ...Array.from(new Set(ROOMS.map((r) => r.region)))];
+export const ROOM_SECTION_ORDER = [
+  "Featured",
+  "North Central",
+  "North East",
+  "North West",
+  "South East",
+  "South South",
+  "South West",
+  "More rooms",
+  "World",
+] as const;
+
+export const REGIONS = ["All", ...ROOM_SECTION_ORDER];
 
 export const ACCOUNT_KINDS = [
   { id: "member", label: "Normal user", hint: "Chat, feeds, vote, apply to jobs" },
@@ -139,13 +172,14 @@ export const KIND_PURPOSE: Record<AccountKind, string> = {
 
 
 export const COMMUNITIES = [
-  { id: "africa", name: "Africa Hub", region: "Africa" },
-  { id: "americas", name: "Americas Hub", region: "Americas" },
-  { id: "asia", name: "Asia Hub", region: "Asia" },
-  { id: "europe", name: "Europe Hub", region: "Europe" },
-  { id: "me", name: "Middle East Hub", region: "Middle East" },
-  { id: "tech", name: "Tech", region: "Tech" },
-  { id: "game", name: "Gaming", region: "Gaming" },
+  { id: "featured", name: "Featured rooms", region: "Featured" },
+  { id: "sw", name: "South West", region: "South West" },
+  { id: "ss", name: "South South", region: "South South" },
+  { id: "se", name: "South East", region: "South East" },
+  { id: "nc", name: "North Central", region: "North Central" },
+  { id: "nw", name: "North West", region: "North West" },
+  { id: "ne", name: "North East", region: "North East" },
+  { id: "more", name: "More rooms", region: "More rooms" },
 ] as const;
 
 export const MENU = [
@@ -288,8 +322,22 @@ export const AD_PLACEMENTS = [
 
 export type AdPlacement = (typeof AD_PLACEMENTS)[number]["id"];
 
-export const AD_DAYS = [7, 14, 30] as const;
+export const AD_DAYS = [1, 7, 14, 30] as const;
 export type AdDays = (typeof AD_DAYS)[number];
+
+export function daysLeft(expiresAt?: number, fallbackDays?: number) {
+  if (expiresAt && expiresAt > Date.now()) return Math.max(1, Math.ceil((expiresAt - Date.now()) / 86_400_000));
+  if (expiresAt && expiresAt <= Date.now()) return 0;
+  return fallbackDays ?? 0;
+}
+
+export function adDayBucket(days?: number) {
+  const d = Number(days ?? 7);
+  if (d <= 1) return 1;
+  if (d <= 7) return 7;
+  if (d <= 14) return 14;
+  return 30;
+}
 
 export const AD_SIZES: Record<AdPlacement, { label: string; hint: string }> = {
   board: { label: "1080 × 1080", hint: "Square preferred. Landscape 1200 × 628 also works. JPG/PNG, max 2MB." },

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { applyListing, listListingQueue, listListings, saveListing, setListingStatus, type Listing, type ListingKind } from "@/lib/listings-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { timeLabel } from "@/lib/qonvo-data";
+import { timeLabel, daysLeft } from "@/lib/qonvo-data";
 
 const COPY: Record<ListingKind, { title: string; who: string; contact: string; extra: string }> = {
   job: { title: "Jobs", who: "Job Poster accounts list roles. Job Seekers / members apply. Staff approve. No in-app hiring.", contact: "Apply note / WhatsApp", extra: "Company" },
@@ -20,6 +20,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [link, setLink] = useState("");
   const [company, setCompany] = useState("");
   const [note, setNote] = useState("");
+  const [days, setDays] = useState(30);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [shown, setShown] = useState(8);
@@ -50,6 +51,13 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
         <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder={copy.contact} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
         <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Short description" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+        <div className="flex flex-wrap gap-1">
+          {[7, 14, 30].map((d) => (
+            <button key={d} type="button" onClick={() => setDays(d)} className={`rounded-full px-2.5 py-1 text-[11px] ${days === d ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
+              {d} days live
+            </button>
+          ))}
+        </div>
         {err ? <p className="text-[11px] text-danger">{err}</p> : null}
         {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
         <button
@@ -62,7 +70,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             }
             setErr("");
             setMsg("");
-            void saveListing({ data: { kind, title, body, city, contact, link, company } }).then((r) => {
+            void saveListing({ data: { kind, title, body, city, contact, link, company, days } }).then((r) => {
               if (!r?.ok) setErr(r && "reason" in r ? r.reason : "Could not post.");
               else {
                 setMsg("Submitted. Staff will approve before it is public.");
@@ -87,7 +95,10 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             <h3 className="text-sm font-semibold">{r.title}</h3>
             {r.company ? <div className="text-[11px] text-muted">{r.company}</div> : null}
             <p className="mt-1 line-clamp-3 text-[12px] text-muted">{r.body}</p>
-            <div className="mt-2 text-[10px] text-muted">{r.submitter} · {timeLabel(r.ts)}</div>
+            <div className="mt-2 text-[10px] text-muted">
+              {r.submitter} · {timeLabel(r.ts)}
+              {r.expiresAt ? ` · ${daysLeft(r.expiresAt, r.days)}d left` : r.days ? ` · ${r.days}d window` : ""}
+            </div>
             {r.link ? (
               <a href={r.link} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[11px] text-lime-2">
                 Open link

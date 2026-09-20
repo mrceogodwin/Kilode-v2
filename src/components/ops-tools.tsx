@@ -3,6 +3,8 @@ import { AI_KEY_SLOTS, listAiKeys, saveAiKey } from "@/lib/keys-server";
 import { boostSeo, listSeoWeak, type SeoWeak } from "@/lib/seo-server";
 import { AD_SLOT_DEFS, type AdSlotKind, type AdSlotRow } from "@/lib/ad-slots";
 import { listAdSlots, listDigestCount, saveAdSlot } from "@/lib/ad-slots-server";
+import { listRoomsAdmin, saveCustomRoom, setRoomPaused } from "@/lib/rooms-server";
+import { ROOM_SECTION_ORDER } from "@/lib/qonvo-data";
 
 export function OpsKeysPanel() {
   const [rows, setRows] = useState<(typeof AI_KEY_SLOTS[number] & { value: string; set: boolean })[]>([]);
@@ -203,6 +205,16 @@ export function AdSlotsPanel() {
                   placeholder="Ad unit id"
                   className="rounded-lg border border-line bg-bg px-2 py-1.5 font-mono text-[11px]"
                 />
+                <select
+                  value={String(cur.days ?? 30)}
+                  onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, days: Number(e.target.value) } }))}
+                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]"
+                >
+                  <option value="1">1 day</option>
+                  <option value="7">7 days</option>
+                  <option value="14">14 days</option>
+                  <option value="30">30 days</option>
+                </select>
               </div>
               <textarea
                 value={cur.html ?? ""}
@@ -226,6 +238,7 @@ export function AdSlotsPanel() {
                       html: cur.html ?? "",
                       pubId: cur.pubId ?? "",
                       adUnit: cur.adUnit ?? "",
+                      days: Number(cur.days ?? 30),
                     },
                   }).then((r) => {
                     setMsg(r.ok ? `Saved ${d.label}` : r.reason);
@@ -238,6 +251,82 @@ export function AdSlotsPanel() {
             </div>
           );
         })}
+      </div>
+      {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
+    </div>
+  );
+}
+
+export function RoomsAdminPanel() {
+  const [rows, setRows] = useState<{ id: string; name: string; region: string; paused: boolean; custom: boolean }[]>([]);
+  const [name, setName] = useState("");
+  const [region, setRegion] = useState<string>("More rooms");
+  const [msg, setMsg] = useState("");
+  const [q, setQ] = useState("");
+  function load() {
+    void listRoomsAdmin()
+      .then(setRows)
+      .catch(() => setRows([]));
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  const shown = rows.filter((r) => !q || r.name.toLowerCase().includes(q.toLowerCase()) || r.region.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div className="md:col-span-2 raised space-y-3 rounded-2xl p-4">
+      <div>
+        <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">ROOMS · 36 STATES · PAUSE</div>
+        <h3 className="text-lg font-extrabold">Chat rooms</h3>
+        <p className="text-[11px] text-muted">Pause hides a room from the list. Create extra rooms under More rooms. Pause is saved immediately.</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New room name" className="min-w-[140px] flex-1 rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]" />
+        <select value={region} onChange={(e) => setRegion(e.target.value)} className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]">
+          {ROOM_SECTION_ORDER.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="btn-join rounded-lg px-3 py-1.5 text-[11px] font-bold"
+          onClick={() => {
+            void saveCustomRoom({ data: { name, region } }).then((r) => {
+              setMsg(r.ok ? `Created ${name}` : r.reason);
+              if (r.ok) setName("");
+              load();
+            });
+          }}
+        >
+          Create room
+        </button>
+      </div>
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search rooms" className="w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]" />
+      <div className="max-h-80 overflow-y-auto">
+        {shown.map((r) => (
+          <div key={r.id} className="flex items-center justify-between gap-2 border-b border-line py-1.5">
+            <div className="min-w-0">
+              <div className="truncate text-[12px] font-semibold">{r.name}</div>
+              <div className="text-[10px] text-muted">
+                {r.region}
+                {r.custom ? " · custom" : ""}
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.paused ? "bg-danger/20 text-danger" : "border border-line"}`}
+              onClick={() => {
+                void setRoomPaused({ data: { id: r.id, paused: !r.paused, name: r.name, region: r.region } }).then(() => {
+                  setMsg(r.paused ? `Live: ${r.name}` : `Paused: ${r.name}`);
+                  load();
+                });
+              }}
+            >
+              {r.paused ? "Paused · tap to live" : "Pause"}
+            </button>
+          </div>
+        ))}
       </div>
       {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
     </div>

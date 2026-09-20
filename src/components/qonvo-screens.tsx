@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Mail, MessageSquare, Share2 } from "lucide-react";
-import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
+import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, daysLeft, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 import { claimOps, clearModUser, getModSettings, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, staffMe } from "@/lib/staff-server";
 import {
@@ -24,7 +24,7 @@ import { canKind } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
 import { JoinCta, TelegramLink } from "@/components/get-app";
-import { AdSlotsPanel, OpsKeysPanel, OpsSeoPanel } from "@/components/ops-tools";
+import { AdSlotsPanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { listListings, type Listing } from "@/lib/listings-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 
@@ -1133,7 +1133,9 @@ function Ads({ store }: { store: Store }) {
             <div className="text-[10px] text-lime-2">{c.status} · {c.days ?? 7} days · {c.placement}</div>
             <div className="truncate text-[10px] text-muted">
               {(c.coin || "").toUpperCase()} {c.amount || ""}
-              {c.expiresAt ? ` · ends ${new Date(c.expiresAt).toLocaleDateString()}` : ""}
+              {c.expiresAt ? ` · ${daysLeft(c.expiresAt, c.days)}d left` : ""}
+              {" · "}
+              {fmtCount(c.views ?? 0)} views
             </div>
           </div>
         </div>
@@ -1354,6 +1356,7 @@ function Admin({ store }: { store: Store }) {
       <OpsSeoPanel />
       <AdsQueuePanel store={store} />
       {role === "super" ? <AdSlotsPanel /> : null}
+      {role === "super" ? <RoomsAdminPanel /> : null}
       <div className="md:col-span-2 space-y-2">
         <div className="text-[11px] font-medium text-muted">Inbox</div>
         {mail.length === 0 ? <p className="text-sm text-muted">No contact mail.</p> : null}
