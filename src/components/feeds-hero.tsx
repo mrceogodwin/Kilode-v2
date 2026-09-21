@@ -144,6 +144,17 @@ export function FeedsHero({
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
     >
+      <div className="flash-bar flex items-center gap-2.5 px-3">
+        <span className="news-flash">NEWS FLASH</span>
+        <a href="/advertise" className="flash-rail min-w-0 flex-1" aria-label="This frame is available for brand placement">
+          <span className="flash-stack">
+            <span>This 16:9 holds one brand — not a strip of stickers.</span>
+            <span>Image, film, or AdSense. Priced by the day.</span>
+            <span>A single frame at the top of Feeds. Enquire to place.</span>
+            <span>This 16:9 holds one brand — not a strip of stickers.</span>
+          </span>
+        </a>
+      </div>
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-black">
         <HeroSlide slide={slide} play={play} onPlay={setPlay} onOpen={onOpen} onViewAd={onViewAd} />
         {slides.length > 1 ? (

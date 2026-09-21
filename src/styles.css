@@ -151,6 +151,48 @@
     border: 1px solid rgba(107, 158, 120, 0.32);
     box-shadow: 0 0 0 1px rgba(107, 158, 120, 0.06), 0 16px 36px rgba(0, 0, 0, 0.35);
   }
+  .flash-bar {
+    border-bottom: 1px solid var(--color-line);
+    background: linear-gradient(180deg, rgba(107, 158, 120, 0.08) 0%, transparent 100%);
+    min-height: 28px;
+  }
+  .news-flash {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    color: var(--color-lime-2);
+  }
+  .flash-rail {
+    height: 18px;
+    overflow: hidden;
+    display: block;
+  }
+  .flash-stack {
+    display: flex;
+    flex-direction: column;
+    animation: flash-down 16s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+  .flash-stack span {
+    height: 18px;
+    line-height: 18px;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: var(--color-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hero-flag:hover .flash-stack {
+    animation-play-state: paused;
+  }
+  @keyframes flash-down {
+    0%, 22% { transform: translateY(0); }
+    28%, 50% { transform: translateY(-18px); }
+    56%, 78% { transform: translateY(-36px); }
+    84%, 100% { transform: translateY(-54px); }
+  }
   .kilode-word {
     font-weight: 800;
     letter-spacing: -0.045em;
@@ -306,6 +348,12 @@ html[data-skin="ivory"] .site-foot {
 }
 html[data-skin="ivory"] .hero-flag {
   background: #ffffff;
+}
+html[data-skin="ivory"] .flash-bar {
+  background: linear-gradient(180deg, #eef6f0 0%, #ffffff 100%);
+}
+html[data-skin="ivory"] .flash-stack span {
+  color: #3f4741;
 }
 .logo-day {
   display: none;
