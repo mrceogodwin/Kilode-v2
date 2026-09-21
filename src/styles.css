@@ -359,10 +359,13 @@ html[data-skin="ivory"] .app-tab {
   color: #111111;
 }
 html[data-skin="ivory"] .logo-night {
-  display: none;
+  display: block;
+  background: #070b08;
+  border-radius: 10px;
+  padding: 3px 10px 3px 4px;
 }
 html[data-skin="ivory"] .logo-day {
-  display: block;
+  display: none;
 }
 html[data-skin="ivory"] .trend-ticker {
   border-color: #c5d4c8;

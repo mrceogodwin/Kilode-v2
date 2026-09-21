@@ -13,7 +13,7 @@ export function JoinCta({ className = "" }: { className?: string }) {
 export function GetAppRow() {
   return (
     <a href="/install" className="menu-install flex items-center gap-3 rounded-xl px-3 py-2.5">
-      <img src="/kilode-logo-green.png" alt="" className="h-8 w-auto shrink-0 object-contain" />
+      <img src="/kilode-bang-icon.png" alt="" className="size-8 shrink-0 rounded-[9px] object-contain" />
       <span className="min-w-0 flex-1 text-left">
         <span className="block text-[13px] font-bold leading-tight">Install Kilode</span>
         <span className="block text-[10px] text-muted">Home screen · iPhone and Android</span>

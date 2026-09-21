@@ -58,7 +58,7 @@ function Login() {
     <main className="min-h-dvh overflow-y-auto bg-bg px-4 py-4 text-fg">
       <div className="raised mx-auto w-full max-w-sm space-y-2 rounded-2xl p-3">
         <div className="flex flex-col items-center text-center">
-          <img src="/kilode-lockup-lg.png" alt="Kilode" className="mx-auto h-9 w-auto max-w-[150px] object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/kilode-logo-green.png"; }} />
+          <img src="/kilode-lockup-lg.png" alt="Kilode" className="mx-auto h-12 w-auto max-w-[220px] object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/kilode-logo-green.png"; }} />
           {staff ? <p className="mt-1 text-[11px] font-medium text-muted">Staff console</p> : null}
         </div>
         <p className="text-[12px] text-muted">
