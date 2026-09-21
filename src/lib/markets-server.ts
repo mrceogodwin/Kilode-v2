@@ -16,7 +16,7 @@ export type Quote = {
   extra?: string;
 };
 
-export type FxPair = { pair: string; px: number; base: string; quote: string };
+export type FxPair = { pair: string; px: number; base: string; quote: string; spark: number[]; chp: number };
 
 export type SportEvent = {
   id: string;
@@ -134,7 +134,7 @@ async function cachedLoad<T>(k: string, ttl: number, load: () => Promise<T>): Pr
 }
 
 const IDX = ["^GSPC", "^DJI", "^IXIC"];
-const WORLD = ["^FTSE", "^GDAXI", "^FCHI", "^STOXX50E", "^N225", "^HSI", "^AXJO", "^BSESN"];
+const WORLD = ["^FTSE", "^GDAXI", "^FCHI", "^STOXX50E", "^N225", "^HSI", "^AXJO", "^BSESN", "GC=F", "CL=F"];
 const US = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "TSLA", "JPM", "XOM", "BRK-B", "UNH", "V", "AVGO", "LLY"];
 const NAMES: Record<string, string> = {
   "^GSPC": "S&P 500",
@@ -148,6 +148,8 @@ const NAMES: Record<string, string> = {
   "^HSI": "Hang Seng",
   "^AXJO": "ASX 200",
   "^BSESN": "Sensex",
+  "GC=F": "Gold",
+  "CL=F": "WTI Crude",
   AAPL: "Apple",
   MSFT: "Microsoft",
   NVDA: "NVIDIA",
@@ -414,29 +416,30 @@ function fxFromRates(r: Record<string, number>): ForexPayload {
   const codes = ["EUR", "GBP", "JPY", "GHS", "ZAR", "KES", "CAD", "CHF", "AUD", "CNY", "XOF", "INR", "BRL"];
   const board = [{ code: "NGN", px: ngn }, ...codes.map((c) => ({ code: c, px: pick(c) })).filter((x) => x.px)];
   const pairs: FxPair[] = [];
-  if (ngn) pairs.push({ pair: "USD/NGN", px: ngn, base: "USD", quote: "NGN" });
+  if (ngn) pairs.push({ pair: "USD/NGN", px: ngn, base: "USD", quote: "NGN", spark: [], chp: 0 });
   const eur = pick("EUR");
   const gbp = pick("GBP");
   const jpy = pick("JPY");
   const ghs = pick("GHS");
   const zar = pick("ZAR");
   const inr = pick("INR");
-  if (eur) pairs.push({ pair: "EUR/USD", px: 1 / eur, base: "EUR", quote: "USD" });
-  if (gbp) pairs.push({ pair: "GBP/USD", px: 1 / gbp, base: "GBP", quote: "USD" });
-  if (jpy) pairs.push({ pair: "USD/JPY", px: jpy, base: "USD", quote: "JPY" });
-  if (eur && ngn) pairs.push({ pair: "EUR/NGN", px: ngn / eur, base: "EUR", quote: "NGN" });
-  if (gbp && ngn) pairs.push({ pair: "GBP/NGN", px: ngn / gbp, base: "GBP", quote: "NGN" });
-  if (ghs && ngn) pairs.push({ pair: "GHS/NGN", px: ngn / ghs, base: "GHS", quote: "NGN" });
-  if (zar) pairs.push({ pair: "USD/ZAR", px: zar, base: "USD", quote: "ZAR" });
-  if (inr) pairs.push({ pair: "USD/INR", px: inr, base: "USD", quote: "INR" });
+  if (eur) pairs.push({ pair: "EUR/USD", px: 1 / eur, base: "EUR", quote: "USD", spark: [], chp: 0 });
+  if (gbp) pairs.push({ pair: "GBP/USD", px: 1 / gbp, base: "GBP", quote: "USD", spark: [], chp: 0 });
+  if (jpy) pairs.push({ pair: "USD/JPY", px: jpy, base: "USD", quote: "JPY", spark: [], chp: 0 });
+  if (eur && ngn) pairs.push({ pair: "EUR/NGN", px: ngn / eur, base: "EUR", quote: "NGN", spark: [], chp: 0 });
+  if (gbp && ngn) pairs.push({ pair: "GBP/NGN", px: ngn / gbp, base: "GBP", quote: "NGN", spark: [], chp: 0 });
+  if (ghs && ngn) pairs.push({ pair: "GHS/NGN", px: ngn / ghs, base: "GHS", quote: "NGN", spark: [], chp: 0 });
+  if (zar) pairs.push({ pair: "USD/ZAR", px: zar, base: "USD", quote: "ZAR", spark: [], chp: 0 });
+  if (inr) pairs.push({ pair: "USD/INR", px: inr, base: "USD", quote: "INR", spark: [], chp: 0 });
   if (!ngn && !pairs.length) throw new Error("fx");
   return { ts: Date.now(), ngn, pairs, board };
 }
 
 async function loadForex(): Promise<ForexPayload> {
+  let fx: ForexPayload;
   try {
     const j = (await pull("https://open.er-api.com/v6/latest/USD", 6000)) as { rates?: Record<string, number> };
-    return fxFromRates(j.rates ?? {});
+    fx = fxFromRates(j.rates ?? {});
   } catch {
     const j = (await pull("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.json", 6000)) as {
       usd?: Record<string, number>;
@@ -444,8 +447,25 @@ async function loadForex(): Promise<ForexPayload> {
     const usd = j.usd ?? {};
     const rates: Record<string, number> = {};
     for (const [k, v] of Object.entries(usd)) rates[k.toUpperCase()] = v;
-    return fxFromRates(rates);
+    fx = fxFromRates(rates);
   }
+  const y = await yahooSparkBatch(["NGN=X", "EURUSD=X", "GBPUSD=X", "USDJPY=X", "USDZAR=X", "USDGHS=X", "USDINR=X"], "5d");
+  const by = Object.fromEntries(y.map((q) => [q.s, q]));
+  const yahooOf: Record<string, string> = {
+    "USD/NGN": "NGN=X",
+    "EUR/USD": "EURUSD=X",
+    "GBP/USD": "GBPUSD=X",
+    "USD/JPY": "USDJPY=X",
+    "USD/ZAR": "USDZAR=X",
+    "USD/GHS": "USDGHS=X",
+    "USD/INR": "USDINR=X",
+  };
+  fx.pairs = fx.pairs.map((p) => {
+    const q = by[yahooOf[p.pair] || ""];
+    if (!q) return p;
+    return { ...p, px: q.px || p.px, spark: q.spark, chp: q.chp };
+  });
+  return fx;
 }
 
 function espnState(s: string): "pre" | "in" | "post" {

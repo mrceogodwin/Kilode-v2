@@ -416,6 +416,7 @@ function ForexDesk() {
   if (!d) return <Wait />;
   const n = Number(amt) || 0;
   const out = dir === "usd" ? n * d.ngn : d.ngn ? n / d.ngn : 0;
+  const ngn = d.pairs.find((p) => p.pair === "USD/NGN");
   return (
     <div className="space-y-4">
       <div className="flex items-end justify-between">
@@ -423,9 +424,18 @@ function ForexDesk() {
         <span className="text-[10px] tabular-nums text-muted">Lagos · {stamp(d.ts)}</span>
       </div>
       <div className="rounded-2xl border border-lime-2/30 bg-gradient-to-br from-lime-2/10 to-transparent px-4 py-5">
-        <div className="text-[11px] tracking-[0.2em] text-lime-2">USD / NGN</div>
-        <div className="mt-1 text-[36px] font-semibold tabular-nums leading-none">{d.ngn ? px(d.ngn, 2) : "—"}</div>
-        <p className="mt-2 text-[11px] text-muted">One dollar, in naira.</p>
+        <div className="flex items-end justify-between gap-2">
+          <div>
+            <div className="text-[11px] tracking-[0.2em] text-lime-2">USD / NGN</div>
+            <div className="mt-1 text-[36px] font-semibold tabular-nums leading-none">{d.ngn ? px(d.ngn, 2) : "—"}</div>
+            {ngn && ngn.chp ? <Ch chp={ngn.chp} /> : <p className="mt-2 text-[11px] text-muted">One dollar, in naira.</p>}
+          </div>
+        </div>
+        {ngn && ngn.spark.length > 1 ? (
+          <div className="mt-3">
+            <Spark pts={ngn.spark} up={ngn.chp >= 0} wide />
+          </div>
+        ) : null}
       </div>
       {d.ngn ? (
         <div className="raised rounded-2xl px-3 py-3">
@@ -451,11 +461,24 @@ function ForexDesk() {
           .filter((p) => p.pair !== "USD/NGN")
           .map((p) => (
             <div key={p.pair} className="raised rounded-xl px-3 py-3">
-              <div className="text-[10px] tracking-[0.14em] text-muted">{p.pair}</div>
-              <div className="mt-1 text-[18px] font-semibold tabular-nums">{px(p.px, p.px > 20 ? 2 : 4)}</div>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-[10px] tracking-[0.14em] text-muted">{p.pair}</div>
+                  <div className="mt-1 text-[18px] font-semibold tabular-nums">{px(p.px, p.px > 20 ? 2 : 4)}</div>
+                  {p.chp ? <Ch chp={p.chp} /> : null}
+                </div>
+                {p.spark.length > 1 ? <Spark pts={p.spark} up={p.chp >= 0} /> : null}
+              </div>
             </div>
           ))}
       </div>
+      {d.pairs.length ? (
+        <div className="grid grid-cols-4 gap-1">
+          {d.pairs.slice(0, 8).map((p) => (
+            <Heat key={p.pair} q={{ s: p.pair, n: p.pair, px: p.px, ch: 0, chp: p.chp, spark: p.spark }} />
+          ))}
+        </div>
+      ) : null}
       <div className="overflow-hidden rounded-2xl border border-line">
         <div className="px-3 py-2 text-[10px] tracking-[0.16em] text-lime-2">USD BOARD</div>
         {d.board.map((b, i) => (
