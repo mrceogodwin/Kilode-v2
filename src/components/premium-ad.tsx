@@ -17,7 +17,7 @@ export function ContactCta({ className = "" }: { className?: string }) {
 
 export function RentCta({ className = "" }: { className?: string }) {
   return (
-    <a href="/advertise" className={`btn-join inline-flex items-center justify-center rounded-md px-2.5 py-1 text-[9px] font-extrabold tracking-[0.16em] ${className}`}>
+    <a href="/advertise" className={`text-[10px] font-medium tracking-[0.16em] text-lime-2 ${className}`}>
       RENT
     </a>
   );
@@ -85,7 +85,7 @@ export function MenuPremiumAd() {
     <aside className="overflow-hidden rounded-2xl border border-line bg-panel">
       <div className="flex items-center justify-between gap-2 px-2.5 py-2">
         <span className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PREMIUM ADS</span>
-        <a href="/advertise" className="news-flash">
+        <a href="/advertise" className="text-[10px] font-medium tracking-[0.16em] text-lime-2">
           RENT
         </a>
       </div>
