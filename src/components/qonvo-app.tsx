@@ -1054,9 +1054,9 @@ export function QonvoApp() {
 
       {joinOpen ? (
         <div className="fixed inset-0 z-40 grid place-items-end bg-black/70 p-3 sm:place-items-center">
-          <div className="max-h-[90dvh] w-full max-w-sm overflow-y-auto rounded-2xl border border-line bg-panel p-4">
+          <div className="w-full max-w-sm overflow-y-auto rounded-2xl border border-line bg-panel p-3">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-lg font-bold">Username + password</h2>
+              <h2 className="text-base font-bold">Join Kilode</h2>
               <button type="button" onClick={() => setJoinOpen(false)} aria-label="Close">
                 <X className="size-4" />
               </button>
@@ -1065,19 +1065,18 @@ export function QonvoApp() {
               value={joinName}
               onChange={(e) => setJoinName(e.target.value)}
               placeholder="Username"
-              className="mb-2 w-full rounded-lg border border-line bg-black/40 px-3 py-2 text-sm outline-none"
+              className="mb-1.5 w-full rounded-lg border border-line bg-black/40 px-3 py-1.5 text-sm outline-none"
             />
             <input
               type="password"
               value={joinPass}
               onChange={(e) => setJoinPass(e.target.value)}
               placeholder="Password (8+ characters)"
-              className="mb-3 w-full rounded-lg border border-line bg-black/40 px-3 py-2 text-sm outline-none"
+              className="mb-1.5 w-full rounded-lg border border-line bg-black/40 px-3 py-1.5 text-sm outline-none"
             />
-            {joinErr ? <p className="mb-2 text-sm text-danger">{joinErr}</p> : null}
-            {store.authErr ? <p className="mb-2 text-sm text-danger">{store.authErr}</p> : null}
-            <div className="mb-2">
-              <div className="mb-1 text-[10px] font-medium tracking-normal text-muted">Joining as (new users)</div>
+            {joinErr ? <p className="mb-1.5 text-sm text-danger">{joinErr}</p> : null}
+            {store.authErr ? <p className="mb-1.5 text-sm text-danger">{store.authErr}</p> : null}
+            <div className="mb-1.5">
               <AccountKindPicker
                 compact
                 value={joinKind}
@@ -1086,43 +1085,35 @@ export function QonvoApp() {
                   setJoinFace(KIND_FACE[k]);
                 }}
               />
-              <p className="mt-1 text-[10px] text-muted">{ACCOUNT_KINDS.find((k) => k.id === joinKind)?.hint}</p>
             </div>
-            <div className="mb-2">
-              <div className="mb-1 text-[10px] font-medium tracking-normal text-muted">Your avatar</div>
-              <AvatarPicker value={joinFace} handle={joinName} onChange={setJoinFace} />
+            <div className="mb-1.5">
+              <AvatarPicker compact value={joinFace} handle={joinName} onChange={setJoinFace} />
             </div>
-            <div className="mb-2">
+            <div className="mb-1.5">
               <YearBornSelect value={joinYear} onChange={setJoinYear} />
             </div>
-            <label className="mb-2 flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] leading-snug text-muted">
-              <input type="checkbox" className="mt-0.5" checked={joinAgree} onChange={(e) => setJoinAgree(e.target.checked)} />
-              <span>
-                I have read and agree to the{" "}
-                <a href="/terms#terms" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
-                  Terms of Use
-                </a>
-                .
-              </span>
-            </label>
-            <label className="mb-2 flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] leading-snug text-muted">
-              <input type="checkbox" className="mt-0.5" checked={joinAgreeRules} onChange={(e) => setJoinAgreeRules(e.target.checked)} />
-              <span>
-                I accept the{" "}
-                <a href="/terms#rules" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
-                  Community Rules
-                </a>
-                . I am responsible for what I submit. Kilode is not liable.{" "}
-                <a href="/terms#howto" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
-                  How to use
-                </a>
-                .
-              </span>
-            </label>
-            <a href="/terms" className="mb-2 block text-center text-[11px] font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
-              Open full Terms, Rules, Privacy & How to use
-            </a>
-            <p className="mb-2 text-[11px] text-muted">No email. Username + password only.</p>
+            <div className="mb-2 space-y-1.5 rounded-lg border border-line px-2 py-1.5">
+              <label className="flex items-start gap-2 text-[10px] leading-snug text-muted">
+                <input type="checkbox" className="mt-0.5" checked={joinAgree} onChange={(e) => setJoinAgree(e.target.checked)} />
+                <span>
+                  I agree to the{" "}
+                  <a href="/terms#terms" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                    Terms
+                  </a>
+                  .
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-[10px] leading-snug text-muted">
+                <input type="checkbox" className="mt-0.5" checked={joinAgreeRules} onChange={(e) => setJoinAgreeRules(e.target.checked)} />
+                <span>
+                  I accept the{" "}
+                  <a href="/terms#rules" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                    Rules
+                  </a>
+                  . I am responsible for what I submit.
+                </span>
+              </label>
+            </div>
             <div className="flex gap-2">
               <button
                 type="button"

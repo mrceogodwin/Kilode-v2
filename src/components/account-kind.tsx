@@ -19,16 +19,15 @@ export function AccountKindPicker({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex w-full items-center justify-between rounded-xl border border-line bg-panel px-3 py-2.5 text-left"
+          className="flex w-full items-center justify-between rounded-lg border border-line bg-panel px-3 py-1.5 text-left"
         >
-          <span>
-            <span className="block text-[13px] font-semibold">{current?.label ?? "Choose type"}</span>
-            <span className="block text-[10px] text-muted">{current?.hint}</span>
+          <span className="min-w-0">
+            <span className="block truncate text-[13px] font-semibold">{current?.label ?? "Choose type"}</span>
           </span>
           <ChevronDown className={`size-4 shrink-0 text-muted transition ${open ? "rotate-180" : ""}`} />
         </button>
         {open ? (
-          <div className="absolute z-40 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-line bg-panel-2 p-1 shadow-xl">
+          <div className="absolute z-40 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-line bg-panel-2 p-1 shadow-xl">
             {ACCOUNT_KINDS.map((k) => (
               <button
                 key={k.id}
@@ -37,7 +36,7 @@ export function AccountKindPicker({
                   onChange(k.id);
                   setOpen(false);
                 }}
-                className={`flex w-full flex-col rounded-lg px-3 py-2 text-left ${value === k.id ? "bg-lime-2/15 text-lime-2" : "hover:bg-panel"}`}
+                className={`flex w-full flex-col rounded-lg px-3 py-1.5 text-left ${value === k.id ? "bg-lime-2/15 text-lime-2" : "hover:bg-panel"}`}
               >
                 <span className="text-[13px] font-semibold">{k.label}</span>
                 <span className="text-[10px] text-muted">{k.hint}</span>
@@ -92,11 +91,33 @@ export function AvatarPicker({
   value,
   handle,
   onChange,
+  compact,
 }: {
   value: string;
   handle?: string;
   onChange: (v: string) => void;
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <div className="flex gap-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {AVATAR_SEEDS.map((seed) => {
+          const id = `av:${seed}`;
+          return (
+            <button
+              key={seed}
+              type="button"
+              onClick={() => onChange(id)}
+              className={`size-9 shrink-0 overflow-hidden rounded-full ${value === id ? "ring-2 ring-lime-2 ring-offset-1 ring-offset-bg" : "ring-1 ring-line"}`}
+              aria-label={`Avatar ${seed}`}
+            >
+              <img src={avatarUrl(handle || seed, id)} alt="" className="size-full object-cover" />
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <div className="grid grid-cols-6 gap-1.5">
       {AVATAR_SEEDS.map((seed) => {
@@ -132,22 +153,20 @@ export function YearBornSelect({
   const years: number[] = [];
   for (let n = y - 15; n >= y - 100; n--) years.push(n);
   return (
-    <div>
-      <div className="mb-1 text-[11px] font-medium text-muted">Year you were born · 15+</div>
+    <label className="flex items-center gap-2">
+      <span className="shrink-0 text-[11px] font-medium text-muted">Born · 15+</span>
       <select
         value={value === "" ? "" : String(value)}
         onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")}
-        className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm"
+        className="min-h-9 min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-sm"
       >
-        <option value="">Select year</option>
+        <option value="">Year</option>
         {years.map((n) => (
           <option key={n} value={n}>
             {n}
           </option>
         ))}
       </select>
-      <p className="mt-1 text-[10px] text-muted">You must be 15 or older to join Kilode.</p>
-    </div>
+    </label>
   );
 }
-

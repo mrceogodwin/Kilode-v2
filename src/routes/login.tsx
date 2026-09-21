@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { authEnabled } from "@/lib/auth/client";
 import { AccountKindPicker, AvatarPicker, YearBornSelect } from "@/components/account-kind";
-import { ACCOUNT_KINDS, KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
+import { KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 
 export const Route = createFileRoute("/login")({
@@ -55,75 +55,67 @@ function Login() {
   }
 
   return (
-    <main className="min-h-dvh overflow-y-auto bg-bg px-4 py-6 text-fg">
-      <div className="raised mx-auto w-full max-w-sm space-y-3 rounded-2xl p-4">
+    <main className="min-h-dvh overflow-y-auto bg-bg px-4 py-4 text-fg">
+      <div className="raised mx-auto w-full max-w-sm space-y-2 rounded-2xl p-3">
         <div className="flex flex-col items-center text-center">
-          <img src="/kilode-lockup-lg.png" alt="Kilode" className="mx-auto h-12 w-auto max-w-[180px] object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/kilode-logo-green.png"; }} />
-          {staff ? <p className="mt-2 text-[11px] font-medium text-muted">Staff console</p> : null}
+          <img src="/kilode-lockup-lg.png" alt="Kilode" className="mx-auto h-9 w-auto max-w-[150px] object-contain" onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/kilode-logo-green.png"; }} />
+          {staff ? <p className="mt-1 text-[11px] font-medium text-muted">Staff console</p> : null}
         </div>
-        <p className="text-sm text-muted">
+        <p className="text-[12px] text-muted">
           {staff
-            ? "Owner login. Username + password only. No account type."
+            ? "Owner login. Username + password only."
             : mode === "in"
               ? "Sign in with username + password."
-              : "Pick a username, password, and account type. No email."}
+              : "Username + password. No email. Type locks after you join."}
         </p>
         {authEnabled ? (
           <>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Username" autoComplete="username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (8+ characters)" autoComplete={mode === "in" ? "current-password" : "new-password"} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Username" autoComplete="username" className="w-full rounded-lg border border-line bg-panel px-3 py-1.5 text-sm" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (8+ characters)" autoComplete={mode === "in" ? "current-password" : "new-password"} className="w-full rounded-lg border border-line bg-panel px-3 py-1.5 text-sm" />
             {mode === "up" && !staff ? (
               <>
-                <div>
-                  <div className="mb-1 text-[11px] font-medium text-muted">I am joining as</div>
-                  <AccountKindPicker
-                    compact
-                    value={kind}
-                    onChange={(k) => {
-                      setKind(k);
-                      setFace(KIND_FACE[k]);
-                    }}
-                  />
-                  <p className="mt-1 text-[11px] leading-snug text-muted">{ACCOUNT_KINDS.find((k) => k.id === kind)?.hint} · locked after you register.</p>
-                </div>
-                <div>
-                  <div className="mb-1 text-[11px] font-medium text-muted">Your avatar</div>
-                  <AvatarPicker value={face} handle={name} onChange={setFace} />
-                </div>
+                <AccountKindPicker
+                  compact
+                  value={kind}
+                  onChange={(k) => {
+                    setKind(k);
+                    setFace(KIND_FACE[k]);
+                  }}
+                />
+                <AvatarPicker compact value={face} handle={name} onChange={setFace} />
                 <YearBornSelect value={yearBorn} onChange={setYearBorn} />
-                <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] leading-snug text-muted">
-                  <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-                  <span>
-                    I have read and agree to the{" "}
-                    <a href="/terms#terms" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
-                      Terms of Use
-                    </a>
-                    .
-                  </span>
-                </label>
-                <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] leading-snug text-muted">
-                  <input type="checkbox" className="mt-0.5" checked={agreeRules} onChange={(e) => setAgreeRules(e.target.checked)} />
-                  <span>
-                    I accept the{" "}
-                    <a href="/terms#rules" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
-                      Community Rules
-                    </a>{" "}
-                    and I am responsible for what I submit. Kilode is not liable.{" "}
-                    <a href="/terms#howto" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
-                      How to use
-                    </a>
-                    .
-                  </span>
-                </label>
-                <a href="/terms" className="block text-center text-[11px] font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
-                  Open the full Terms, Rules, Privacy and How to use →
-                </a>
+                <div className="space-y-1.5 rounded-lg border border-line px-2 py-1.5">
+                  <label className="flex items-start gap-2 text-[10px] leading-snug text-muted">
+                    <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+                    <span>
+                      I agree to the{" "}
+                      <a href="/terms#terms" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                        Terms
+                      </a>
+                      .
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 text-[10px] leading-snug text-muted">
+                    <input type="checkbox" className="mt-0.5" checked={agreeRules} onChange={(e) => setAgreeRules(e.target.checked)} />
+                    <span>
+                      I accept the{" "}
+                      <a href="/terms#rules" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                        Rules
+                      </a>
+                      . I am responsible for what I submit.{" "}
+                      <a href="/terms#howto" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                        How to use
+                      </a>
+                      .
+                    </span>
+                  </label>
+                </div>
               </>
             ) : null}
             {mode === "up" && staff ? (
               <>
                 <YearBornSelect value={yearBorn} onChange={setYearBorn} />
-                <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">
+                <label className="flex items-start gap-2 rounded-lg border border-line px-2 py-1.5 text-[11px] text-muted">
                   <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
                   <span>I am creating the owner account for this site.</span>
                 </label>
