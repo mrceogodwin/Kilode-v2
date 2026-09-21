@@ -132,8 +132,8 @@ export function SiteFooter() {
       <DigestBox />
       <div className="mt-3">
         <div className="mb-1.5 text-[10px] font-bold tracking-[0.14em] text-muted">SHARE</div>
-        <div className="flex flex-wrap gap-2">
-          <ShareChip label="X" count={n.x} className="bg-[#111] text-white" onClick={() => share("x")}>
+        <div className="grid grid-cols-5 gap-1">
+          <ShareChip label="X" count={n.x} className="bg-black text-white ring-1 ring-white/20" onClick={() => share("x")}>
             <IconX />
           </ShareChip>
           <ShareChip label="WhatsApp" count={n.wa} className="bg-[#25D366] text-white" onClick={() => share("wa")}>
@@ -188,10 +188,9 @@ function ShareChip({
   children: ReactNode;
 }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 shadow-[0_3px_0_rgba(0,0,0,0.25)] ${className}`}>
-      {children}
-      <span className="text-[10px] font-bold">{label}</span>
-      <span className="text-[10px] tabular-nums opacity-90">{fmtCount(count)}</span>
+    <button type="button" aria-label={label} onClick={onClick} className="flex flex-col items-center gap-1">
+      <span className={`grid size-10 place-items-center rounded-full shadow-[0_2px_0_rgba(0,0,0,0.25)] ${className}`}>{children}</span>
+      <span className="text-[9px] tabular-nums text-muted">{fmtCount(count)}</span>
     </button>
   );
 }
