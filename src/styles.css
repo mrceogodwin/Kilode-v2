@@ -339,25 +339,25 @@
 }
 
 html[data-skin="ivory"] {
-  --color-bg: #ffffff;
-  --color-panel: #ffffff;
-  --color-panel-2: #f3f6f4;
-  --color-panel-3: #e8eee9;
-  --color-fg: #111111;
-  --color-muted: #3f4741;
+  --color-bg: #e7ece7;
+  --color-panel: #eef2ee;
+  --color-panel-2: #e3e9e3;
+  --color-panel-3: #d8e0d8;
+  --color-fg: #1a1e1b;
+  --color-muted: #4a534c;
   --color-lime: #2f6b3c;
   --color-lime-2: #1f7a40;
-  --color-line: #dce4de;
+  --color-line: #c5d0c6;
   --color-danger: #b42318;
 }
 html[data-skin="ivory"] body {
   background-image: none;
-  background-color: #ffffff;
+  background-color: #e7ece7;
 }
 html[data-skin="ivory"] .raised {
-  background: #ffffff;
-  border: 1px solid #dce4de;
-  box-shadow: 0 1px 0 #fff, 0 8px 20px rgba(17, 17, 17, 0.05);
+  background: #f3f6f3;
+  border: 1px solid #c5d0c6;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6), 0 8px 20px rgba(17, 17, 17, 0.05);
 }
 html[data-skin="ivory"] .btn-3d,
 html[data-skin="ivory"] .share-ico {
@@ -411,9 +411,9 @@ html[data-skin="ivory"] .trend-ticker .ticker-track {
   color: #111111;
 }
 html[data-skin="ivory"] .site-foot {
-  background: linear-gradient(180deg, #e7f3ea 0%, #f7fbf8 55%, #ffffff 100%);
-  border: 1px solid #c5d4c8;
-  color: #111111;
+  background: linear-gradient(180deg, #dce8de 0%, #e7ece7 55%, #eef2ee 100%);
+  border: 1px solid #c5d0c6;
+  color: #1a1e1b;
   box-shadow: 0 8px 24px rgba(31, 122, 64, 0.08);
 }
 html[data-skin="ivory"] .chrome-head {
@@ -421,7 +421,7 @@ html[data-skin="ivory"] .chrome-head {
   filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.85)) drop-shadow(0 2px 1px rgba(0, 0, 0, 0.12));
 }
 html[data-skin="ivory"] .hero-flag {
-  background: #ffffff;
+  background: #eef2ee;
 }
 html[data-skin="ivory"] .hero-stage {
   background: #e8f0ea;
@@ -461,8 +461,38 @@ html[data-skin="ivory"] .menu-install .text-muted {
 html[data-skin="ivory"] .menu-dock {
   background: #f7fbf8;
 }
-.logo-day {
-  display: none;
+.brand-lockup {
+  max-width: 168px;
+}
+.brand-word {
+  display: block;
+  font-weight: 700;
+  font-style: normal;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  background-image: linear-gradient(180deg, #e6e8eb 0%, #c5c9d0 42%, #9aa1aa 56%, #d8dbe0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.28));
+}
+.brand-url {
+  display: block;
+  margin-top: 3px;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--color-lime-2);
+}
+html[data-skin="ivory"] .brand-word {
+  background-image: linear-gradient(180deg, #2c322e 0%, #171b18 55%, #3a413c 100%);
+  filter: none;
+}
+.shop-hero {
+  background: linear-gradient(180deg, rgba(107, 158, 120, 0.14) 0%, transparent 70%);
+}
+html[data-skin="ivory"] .shop-hero {
+  background: linear-gradient(180deg, #dce8de 0%, #eef2ee 70%);
 }
 .music-rail {
   background: linear-gradient(145deg, var(--rail), #0a0a0a);

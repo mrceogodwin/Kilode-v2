@@ -25,6 +25,7 @@ import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account
 import { canKind } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
+import { ShopAdminPanel } from "@/components/downloads-pane";
 import { JoinCta, TelegramLink } from "@/components/get-app";
 import { AdCatalogPanel, AdSlotsPanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { SiteFlagsPanel } from "@/components/site-chrome";
@@ -1440,6 +1441,7 @@ function Admin({ store }: { store: Store }) {
         ))}
       </div>
       <FeedsDeskPanel store={store} />
+      {role === "super" ? <ShopAdminPanel /> : null}
       {role === "super" ? <ChatTtlPanel /> : null}
       {role === "super" ? <NewsEnginePanel store={store} /> : null}
       {role === "super" || role === "admin" ? <CinemaAdminPanel /> : null}

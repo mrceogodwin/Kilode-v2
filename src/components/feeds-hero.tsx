@@ -146,12 +146,6 @@ export function FeedsHero({
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
     >
-      <div className="flash-bar flex items-center justify-between gap-3 px-3">
-        <span className="news-flash">NEWS FLASH</span>
-        <a href="/advertise" className="news-flash">
-          RENT
-        </a>
-      </div>
       <div className="hero-stage relative aspect-[16/9] w-full overflow-hidden">
         <HeroSlide slide={slide} play={play} onPlay={setPlay} onOpen={onOpen} onViewAd={onViewAd} />
         {slides.length > 1 ? (
