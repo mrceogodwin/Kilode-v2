@@ -10,7 +10,9 @@ type Slide =
   | { k: "paid"; ad: Campaign }
   | { k: "slot"; id: string; image: string; video: string; link: string; label: string }
   | { k: "google"; id: string }
-  | { k: "rent" };
+  | { k: "company"; n: number; id: string; image: string; video: string; link: string };
+
+const COMPANY_IDS = ["feeds_hero_c1", "feeds_hero_c2", "feeds_hero_c3", "feeds_hero_c4", "feeds_hero_c5"] as const;
 
 const FALLBACK: AdCatalog = {
   dailyCap: 40,
@@ -26,6 +28,16 @@ const FALLBACK: AdCatalog = {
 
 function isVideoAd(ad: Campaign) {
   return Boolean(ad.video) || ad.kind === "video" || ad.kind === "video-text";
+}
+
+function interleave(posts: Slide[], ads: Slide[]) {
+  const out: Slide[] = [];
+  const n = Math.max(posts.length, ads.length);
+  for (let i = 0; i < n; i++) {
+    if (posts[i]) out.push(posts[i]);
+    if (ads[i]) out.push(ads[i]);
+  }
+  return out;
 }
 
 export function FeedsHero({
@@ -52,7 +64,9 @@ export function FeedsHero({
   }, []);
 
   const slides = useMemo(() => {
-    const out: Slide[] = [];
+    const story: Slide[] = [];
+    const banners: Slide[] = [];
+
     if (cat.heroPosts) {
       const live = posts.filter((p) => p.status !== "draft" && p.title);
       const trending = [...live].sort((a, b) => (b.views ?? 0) - (a.views ?? 0) || b.ts - a.ts).slice(0, 5);
@@ -61,35 +75,48 @@ export function FeedsHero({
       for (const p of [...trending, ...newest]) {
         if (seen.has(p.id)) continue;
         seen.add(p.id);
-        out.push({ k: "post", post: p });
+        story.push({ k: "post", post: p });
       }
     }
+
+    if (cat.heroGoogle) {
+      banners.push({ k: "google", id: "feeds_hero_google" });
+    }
+
+    COMPANY_IDS.forEach((id, idx) => {
+      const s = slots.find((r) => r.id === id);
+      banners.push({
+        k: "company",
+        n: idx + 1,
+        id,
+        image: s?.image || "",
+        video: s?.video || "",
+        link: s?.link || "",
+      });
+    });
+
     if (cat.heroPaid) {
       for (const ad of ads) {
         if (ad.status !== "approved") continue;
         if (ad.placement !== "feeds-hero" && ad.placement !== "hero") continue;
         if (!cat.heroVideo && isVideoAd(ad)) continue;
-        out.push({ k: "paid", ad });
+        banners.push({ k: "paid", ad });
       }
     }
+
     const superSlot = slots.find((s) => s.id === "feeds_hero" && s.enabled);
-    if (superSlot && (superSlot.image || superSlot.video)) {
-      if (!superSlot.video || cat.heroVideo) {
-        out.push({
-          k: "slot",
-          id: superSlot.id,
-          image: superSlot.image || "",
-          video: superSlot.video || "",
-          link: superSlot.link || "",
-          label: superSlot.label || "Premium",
-        });
-      }
+    if (superSlot && (superSlot.image || superSlot.video) && (!superSlot.video || cat.heroVideo)) {
+      banners.push({
+        k: "slot",
+        id: superSlot.id,
+        image: superSlot.image || "",
+        video: superSlot.video || "",
+        link: superSlot.link || "",
+        label: superSlot.label || "Premium",
+      });
     }
-    if (cat.heroGoogle) {
-      const g = slots.find((s) => s.id === "feeds_hero_google" && s.enabled);
-      if (g && isPubId(g.pubId) && isAdUnit(g.adUnit)) out.push({ k: "google", id: g.id });
-    }
-    return out.length ? out : ([{ k: "rent" }] as Slide[]);
+
+    return interleave(story, banners);
   }, [ads, cat.heroGoogle, cat.heroPaid, cat.heroPosts, cat.heroVideo, posts, slots]);
 
   useEffect(() => {
@@ -117,12 +144,6 @@ export function FeedsHero({
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
     >
-      <div className="flex items-center justify-between px-3 py-1.5">
-        <span className="text-[10px] font-medium tracking-[0.16em] text-lime-2">FLAGSHIP</span>
-        <a href="/advertise" className="btn-join rounded-md px-2.5 py-1 text-[9px] font-extrabold tracking-[0.16em]">
-          RENT
-        </a>
-      </div>
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-black">
         <HeroSlide slide={slide} play={play} onPlay={setPlay} onOpen={onOpen} onViewAd={onViewAd} />
         {slides.length > 1 ? (
@@ -174,19 +195,51 @@ function HeroSlide({
   onOpen: (id: string) => void;
   onViewAd?: (id: string) => void;
 }) {
+  const slots = useAdSlots();
   if (slide.k === "google") {
+    const g = slots.find((s) => s.id === slide.id && s.enabled);
+    const live = g && isPubId(g.pubId) && isAdUnit(g.adUnit);
+    if (live) {
+      return (
+        <div className="grid h-full w-full place-items-center bg-panel-2">
+          <AdSlot id={slide.id} className="w-full border-0 bg-transparent" />
+        </div>
+      );
+    }
     return (
-      <div className="grid h-full w-full place-items-center bg-panel-2">
-        <AdSlot id={slide.id} className="w-full border-0 bg-transparent" />
+      <div className="grid h-full w-full place-items-center bg-[#1a1f1c] px-6 text-center">
+        <div>
+          <div className="text-[9px] font-medium tracking-[0.2em] text-muted">ADVERTISEMENT</div>
+          <div className="mt-1 text-[13px] font-medium text-white/90">Google AdSense</div>
+          <p className="mt-1 text-[11px] text-muted">This slide fills when Super pastes ca-pub + unit.</p>
+        </div>
       </div>
     );
   }
-  if (slide.k === "rent") {
+  if (slide.k === "company") {
+    const yt = slide.video ? youtubeId(slide.video) || slide.video : "";
+    const key = `co:${slide.id}`;
+    if (slide.image || yt) {
+      return (
+        <HeroMedia
+          title={`Company ${slide.n}`}
+          note=""
+          badge="AD"
+          thumb={slide.image || (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : "")}
+          yt={yt}
+          playing={play === key}
+          onPlay={() => onPlay(key)}
+          href={slide.link || "/advertise"}
+        />
+      );
+    }
+    const tints = ["#152018", "#1a1714", "#14181c", "#1a1520", "#18160f"];
     return (
-      <a href="/advertise" className="grid h-full w-full place-items-center px-6 text-center">
+      <a href="/advertise" className="grid h-full w-full place-items-center px-6 text-center" style={{ background: tints[(slide.n - 1) % tints.length] }}>
         <div>
-          <div className="text-[11px] font-medium tracking-[0.18em] text-lime-2">PLACE ADS HERE · FLAGSHIP</div>
-          <p className="mt-2 text-[12px] font-normal leading-snug text-white/80">16:9 image, click-to-play video, or AdSense. Super prices this slot high.</p>
+          <div className="text-[9px] font-medium tracking-[0.2em] text-lime-2">COMPANY {slide.n}</div>
+          <div className="mt-1 text-[13px] font-medium text-white/90">16:9 banner</div>
+          <p className="mt-1 text-[11px] text-white/55">Reserved in this slider. Super pastes the creative.</p>
         </div>
       </a>
     );
@@ -210,7 +263,6 @@ function HeroSlide({
     const ad = slide.ad;
     const yt = ad.video ? youtubeId(ad.video) || ad.video : "";
     const key = `paid:${ad.id}`;
-    const playing = play === key;
     const thumb = ad.image || (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : "");
     return (
       <HeroMedia
@@ -219,7 +271,7 @@ function HeroSlide({
         badge="AD"
         thumb={thumb}
         yt={yt}
-        playing={playing}
+        playing={play === key}
         onPlay={() => onPlay(key)}
         href={ad.link}
         onClick={() => onViewAd?.(ad.id)}

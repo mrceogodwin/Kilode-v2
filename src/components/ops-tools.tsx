@@ -192,9 +192,9 @@ export function AdCatalogPanel() {
         ))}
       </div>
       <div className="space-y-2 rounded-xl border border-lime-2/30 bg-lime-2/5 p-3">
-        <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">FEEDS FLAGSHIP HERO</div>
+        <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">FEEDS HERO SLIDER</div>
         <p className="text-[11px] text-muted">
-          Slider under TRENDING. Mix trending + new posts, paid feeds-hero campaigns, Super image/video slot, optional AdSense slide, click-to-play video. This unit is expensive — price it under Feeds flagship hero.
+          Mixes trending posts with a Google AdSense slide and five company banners. Paid feeds-hero campaigns and Super image/video also rotate in. No RENT chrome on Feeds — that stays on the Ads tab. Paste creatives under Ad slots (Feeds hero · company 1–5 and Google).
         </p>
         {(
           [
