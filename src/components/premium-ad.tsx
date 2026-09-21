@@ -85,7 +85,14 @@ export function MenuPremiumAd() {
     <aside className="overflow-hidden rounded-2xl border border-line bg-panel">
       <div className="flex items-center justify-between gap-2 px-2.5 py-2">
         <span className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PREMIUM ADS</span>
-        <RentCta />
+        <span className="flex items-center gap-3">
+          <a href="/login?mode=up" className="news-flash">
+            JOIN
+          </a>
+          <a href="/advertise" className="news-flash">
+            RENT
+          </a>
+        </span>
       </div>
       <div className="px-2 pb-2">
         <a href="/advertise" className="grid h-[96px] w-full place-items-center rounded-xl bg-black px-3 text-center">

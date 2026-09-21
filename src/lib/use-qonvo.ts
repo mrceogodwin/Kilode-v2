@@ -87,6 +87,7 @@ export function useQonvo() {
   const msgsRef = useRef<ChatMsg[]>([]);
   const hasNewerRef = useRef(false);
   const lastPing = useRef(0);
+  const [chatLive, setChatLive] = useState(false);
 
   const persistNotes = useCallback((next: Note[]) => {
     setNotes(next);
@@ -247,7 +248,7 @@ export function useQonvo() {
   }, [hasNewer]);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !chatLive) return;
     let dead = false;
     const tick = () => {
       if (dead || (typeof document !== "undefined" && document.hidden)) return;
@@ -278,6 +279,7 @@ export function useQonvo() {
         })
         .catch(() => undefined);
     };
+    tick();
     const id = window.setInterval(tick, 6500);
     const onVis = () => {
       if (!document.hidden) tick();
@@ -288,7 +290,7 @@ export function useQonvo() {
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [ready, roomId]);
+  }, [ready, roomId, chatLive]);
 
   useEffect(() => {
     if (session.isPending) return;
@@ -972,6 +974,7 @@ export function useQonvo() {
     rename,
     send,
     bumpPresence,
+    setChatLive,
     online,
     typing,
     olderChat,

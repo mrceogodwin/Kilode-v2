@@ -63,7 +63,7 @@ import { TranslateBtn } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
 import { NotifyBell } from "@/components/notify-bell";
 import { HowKilode } from "@/components/how-kilode";
-import { JoinCta, MenuLegal, MenuPin } from "@/components/get-app";
+import { MenuLegal, MenuPin } from "@/components/get-app";
 import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
 import { InstallToast, SiteFooter, TrendingTicker } from "@/components/site-chrome";
@@ -279,6 +279,10 @@ export function QonvoApp() {
     if (homeTab !== "chat") return;
     store.bumpPresence(false);
   }, [homeTab, store.roomId]);
+
+  useEffect(() => {
+    store.setChatLive(homeTab === "chat" && screen === "home");
+  }, [homeTab, screen]);
 
   useEffect(() => {
     if (homeTab !== "feeds" || screen !== "home") setMarketDesk(null);
@@ -857,9 +861,8 @@ export function QonvoApp() {
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-5">
               {!(signedIn) ? (
-                <div className="mb-4 space-y-2">
+                <div className="mb-4">
                   <MenuPremiumAd />
-                  <JoinCta className="w-full py-2.5 text-[12px]" />
                 </div>
               ) : (
               <div className="mb-4 grid grid-cols-3 gap-2 px-0.5">
