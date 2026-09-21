@@ -471,7 +471,7 @@ function CinemaQuizAdmin({ movies, onSaved }: { movies: CinemaMovie[]; onSaved: 
   const [answer, setAnswer] = useState("A");
   return (
     <div className="mt-3 border-t border-line pt-3">
-      <div className="text-[11px] font-medium text-muted">A–E quiz (you type it. AI generate waits for a key in /ops — we do not invent answers)</div>
+      <div className="text-[11px] font-medium text-muted">A–E quiz (you type it. AI generate waits for an operator key — we do not invent answers)</div>
       <select value={movieId} onChange={(ev) => setMovieId(ev.target.value)} className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-sm">
         <option value="">Movie</option>
         {movies.map((m) => (

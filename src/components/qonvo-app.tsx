@@ -61,8 +61,9 @@ import { HandleLink } from "@/components/handle-link";
 import { NotifyBell } from "@/components/notify-bell";
 import { HowKilode } from "@/components/how-kilode";
 import { JoinCta, MenuLegal, MenuPin } from "@/components/get-app";
-import { AdSlotOrEmpty, FlatAdBox, AdReserve } from "@/components/ad-slot";
+import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
+import { InstallToast, SiteFooter, TrendingTicker } from "@/components/site-chrome";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -434,7 +435,7 @@ export function QonvoApp() {
                   autoFocus
                 />
               ) : (
-                <FlatAdBox id="feeds_inline" className="min-h-[36px] flex-1" />
+                <TrendingTicker posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
               )}
               <button
                 type="button"
@@ -755,6 +756,7 @@ export function QonvoApp() {
         </div>
       )}
 
+      <InstallToast />
       <nav className="z-20 grid shrink-0 grid-cols-6 border-t border-line bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); store.setOpenPost(null); }} />
         <Tab icon={<MessageSquare className="size-3.5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
@@ -1903,6 +1905,7 @@ function FeedPane({ store, q = "" }: { store: ReturnType<typeof useQonvo>; q?: s
         />
         <TagArchive posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
         <AdReserve id="feeds_after_tags" className="mt-3" />
+        <SiteFooter />
       </div>
     </div>
   );

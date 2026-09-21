@@ -6,6 +6,7 @@ import { canKind, kindActionHint, type KindAction } from "@/lib/permissions";
 import { gateText } from "@/lib/mod-cache";
 import { pushNote, userIdByHandle } from "@/lib/social-server";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
+import { applyMatch } from "@/lib/pay-match";
 
 async function kindOf(userId: string): Promise<AccountKind> {
   try {
@@ -406,9 +407,18 @@ export const saveAdRow = createServerFn({ method: "POST" })
     const id = nid();
     const ts = Date.now();
     const days = [1, 7, 14, 30].includes(Number(data.days)) ? Number(data.days) : 7;
+    const txHash = (data.txHash ?? "").trim();
+    if (txHash) {
+      const dup = await sql<{ id: string }>`select id from nf_ads where tx_hash = ${txHash} and status in ('paid', 'approved') limit 1`;
+      if (dup[0]) return { ok: false as const, reason: "This transaction hash is already used." };
+    }
     await sql`insert into nf_ads (id, user_id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts, days)
-      values (${id}, ${context.userId}, ${name}, ${data.note}, ${data.placement ?? "board"}, ${data.status ?? "pending"}, ${data.amount ?? ""}, ${data.txHash ?? ""}, ${data.coin ?? ""}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.kind ?? "image-text"}, ${data.video ?? ""}, ${0}, ${ts}, ${days})`;
-    return { id };
+      values (${id}, ${context.userId}, ${name}, ${data.note}, ${data.placement ?? "board"}, ${"pending"}, ${data.amount ?? ""}, ${txHash}, ${data.coin ?? ""}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.kind ?? "image-text"}, ${data.video ?? ""}, ${0}, ${ts}, ${days})`;
+    if (txHash) {
+      const matched = await applyMatch(id, data.coin ?? "", txHash).catch(() => null);
+      if (matched) return { id, status: matched.status, match: matched.reason };
+    }
+    return { id, status: "pending" as const };
   });
 
 export const listWallets = createServerFn({ method: "GET" }).handler(async () => {
@@ -582,8 +592,11 @@ export const pingPresence = createServerFn({ method: "POST" })
 export const purgeMsgs = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((roomId: string) => roomId)
-  .handler(async ({ data: roomId }) => {
+  .handler(async ({ context, data: roomId }) => {
     const sql = await getSql();
+    const staff = await sql<{ role: string }>`select role from nf_staff where user_id = ${context.userId} limit 1`.catch(() => [] as { role: string }[]);
+    const role = staff[0]?.role;
+    if (role !== "super" && role !== "admin") throw new Error("Forbidden");
     await sql`delete from nf_msgs where room_id = ${roomId}`;
   });
 

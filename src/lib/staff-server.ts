@@ -297,7 +297,8 @@ export const listAdsQueue = createServerFn({ method: "POST" })
             days: number | string | null;
             expires_at: number | string | null;
             ts: number | string;
-          }>`select id, name, note, placement, status, amount, tx_hash, coin, kind, image, days, expires_at, ts from nf_ads where status = ${status} and (lower(name) like ${like} or lower(coalesce(tx_hash, '')) like ${like}) order by ts desc limit 40 offset ${offset}`
+            match_note?: string | null;
+          }>`select id, name, note, placement, status, amount, tx_hash, coin, kind, image, days, expires_at, ts, match_note from nf_ads where status = ${status} and (lower(name) like ${like} or lower(coalesce(tx_hash, '')) like ${like}) order by ts desc limit 40 offset ${offset}`
         : await sql<{
             id: string;
             name: string;
@@ -312,7 +313,8 @@ export const listAdsQueue = createServerFn({ method: "POST" })
             days: number | string | null;
             expires_at: number | string | null;
             ts: number | string;
-          }>`select id, name, note, placement, status, amount, tx_hash, coin, kind, image, days, expires_at, ts from nf_ads where lower(name) like ${like} or lower(coalesce(tx_hash, '')) like ${like} order by ts desc limit 40 offset ${offset}`;
+            match_note?: string | null;
+          }>`select id, name, note, placement, status, amount, tx_hash, coin, kind, image, days, expires_at, ts, match_note from nf_ads where lower(name) like ${like} or lower(coalesce(tx_hash, '')) like ${like} order by ts desc limit 40 offset ${offset}`;
       return {
         total: Number(totalRows[0]?.n ?? 0),
         offset,
@@ -330,6 +332,7 @@ export const listAdsQueue = createServerFn({ method: "POST" })
           days: Number(r.days ?? 7),
           expiresAt: r.expires_at ? Number(r.expires_at) : 0,
           ts: Number(r.ts),
+          matchNote: r.match_note ?? "",
         })),
       };
     } catch {

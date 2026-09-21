@@ -131,9 +131,7 @@ export const listListings = createServerFn({ method: "GET" })
     }
     const kind = asKind(data.kind);
     const now = Date.now();
-    const rows = data.staff
-      ? await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings where kind = ${kind} order by ts desc limit 80`
-      : await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings where kind = ${kind} and status = 'approved' and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
+    const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings where kind = ${kind} and status = 'approved' and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
     return rows.map(map);
   });
 

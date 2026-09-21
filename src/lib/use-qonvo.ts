@@ -812,7 +812,7 @@ export function useQonvo() {
         name: n,
         note: text.trim(),
         ts: Date.now(),
-        status: extra?.status ?? "pending",
+        status: "pending" as const,
         placement: extra?.placement ?? "board",
         txHash: extra?.txHash,
         amount: extra?.amount,
@@ -830,7 +830,6 @@ export function useQonvo() {
           name: n,
           note: text.trim(),
           placement: row.placement,
-          status: row.status,
           amount: extra?.amount,
           txHash: extra?.txHash,
           coin: extra?.coin,
@@ -844,6 +843,11 @@ export function useQonvo() {
         if (r && typeof r === "object" && "ok" in r && r.ok === false) {
           setCampaigns((prev) => prev.filter((c) => c.id !== row.id));
           note(r.reason);
+          return;
+        }
+        if (r && typeof r === "object" && "status" in r && typeof r.status === "string") {
+          setCampaigns((prev) => prev.map((c) => (c.id === row.id ? { ...c, status: r.status as Campaign["status"] } : c)));
+          if ("match" in r && typeof r.match === "string") note(r.match);
         }
       }).catch(() => undefined);
       note(`Ad submitted: ${n}`);

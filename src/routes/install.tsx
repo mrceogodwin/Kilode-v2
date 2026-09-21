@@ -48,7 +48,7 @@ function InstallPage() {
         </section>
 
         <p className="mt-5 text-[12px] leading-relaxed text-muted">
-          Notifications on the device still need you to tap Allow on the bell. Password reset is not by email — staff can reset a handle from /ops if you prove it is yours.
+          Notifications on the device still need you to tap Allow on the bell. Password reset is not by email — use Contact while signed in if you lose access and can prove the handle is yours.
         </p>
 
         <Link to="/" className="btn-join mt-6 block rounded-lg py-2.5 text-center text-sm font-bold">

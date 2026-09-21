@@ -1,4 +1,4 @@
-export const LEGAL_UPDATED = "19 September 2026";
+export const LEGAL_UPDATED = "21 September 2026";
 
 export const LEGAL_NAV = [
   { id: "terms", label: "Terms of Use" },
@@ -111,7 +111,7 @@ export const TERMS_LONG = `Kilode Terms of Use
 
 Last updated ${LEGAL_UPDATED}
 
-These Terms are a contract between you and the operator of Kilode (kilode.ng and kilode.vercel.app). By creating an account, ticking the boxes on Join, or using post, comment, chat, music, cinema, ads, jobs, marketplace, rent, or teams, you agree.
+These Terms are a contract between you and the operator of Kilode (kilode.ng). By creating an account, ticking the boxes on Join, or using post, comment, chat, music, cinema, ads, jobs, marketplace, rent, or teams, you agree.
 
 1. The service
 Kilode is a public community for conversation, news-style posts, music links, cinema voting, and classified-style listings. It is not a bank, lawyer, employer, streaming host, or payment processor.
@@ -214,7 +214,7 @@ Teams are small named groups with a member list and a private-feeling chat room 
 export const ADS_LONG = `Ads, crypto, and money
 
 1. Manual crypto only
-You copy the wallet address shown in this app, send the listed coin, and paste the transaction hash. Staff mark paid and approve. There is no card checkout and no NOWPayments unless the operator later pastes an API key.
+You copy the wallet address shown in this app, send the listed coin, and paste the transaction hash. Kilode checks the hash on the public chain against the listed wallet. Review still happens before an ad goes live. There is no card checkout.
 
 2. Verify the address
 After Copy, check the first 6 and last 6 characters against the screen. Kilode never DMs a wallet. Wrong network or a fake address = funds lost. We cannot reverse a chain transfer.

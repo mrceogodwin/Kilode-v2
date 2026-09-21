@@ -10,7 +10,7 @@ function niceAuthError(raw: string) {
     return "That username is taken. Sign in instead.";
   }
   if (m.includes("invalid origin") || m.includes("forbidden")) {
-    return "Sign-up was blocked by the host. Open kilode.ng or kilode.vercel.app and try again.";
+    return "Sign-up was blocked by the host. Open kilode.ng and try again.";
   }
   if (m.includes("password") && m.includes("invalid")) return "Wrong username or password.";
   if (m.includes("password")) return "Password needs 8+ characters.";

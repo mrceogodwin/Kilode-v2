@@ -2,7 +2,7 @@ import { Clock, X } from "lucide-react";
 
 export const FORUM_RULES = [
   "No links. No phone numbers. No WhatsApp. No @handles that point off-site.",
-  "Chat is live talk, not a court record. Super Admin sets how long a line lives (hours or days). Then it is gone.",
+  "Chat is live talk, not a court record. Lines expire after a clock the operator sets (hours or days). Then they are gone.",
   "Feeds, Music, Cinema, Ads, Jobs stay. Only Chat expires.",
   "This is the old forum: rooms (Nigeria, Tech, Sports…). Feeds is news. Chat is the conversation.",
 ];
@@ -21,7 +21,7 @@ export function ForumWhy({ hoursLabel, onClose }: { hoursLabel: string; onClose:
           </button>
         </div>
         <p className="mt-2 text-[13px] leading-relaxed text-muted">
-          Kilode brought the forum back as live rooms, not endless threads. A line that never dies becomes a place to dump numbers, scams, and screenshots of people who already left. So Super Admin sets a clock. Right now: <strong className="text-fg">{hoursLabel}</strong>.
+          Kilode brought the forum back as live rooms, not endless threads. A line that never dies becomes a place to dump numbers, scams, and screenshots of people who already left. So chat expires. Right now: <strong className="text-fg">{hoursLabel}</strong>.
         </p>
         <ul className="mt-3 space-y-2">
           {FORUM_RULES.map((r) => (
@@ -31,7 +31,7 @@ export function ForumWhy({ hoursLabel, onClose }: { hoursLabel: string; onClose:
           ))}
         </ul>
         <p className="mt-3 text-[11px] text-muted">
-          You still tick Terms at Join. Before you send in Chat you also Accept the Chat ticker. Staff can ban. Super Admin never chats as a member.
+          You still tick Terms at Join. Before you send in Chat you also Accept the Chat ticker. Abuse can be banned.
         </p>
         <a href="/terms#rules" className="btn-join mt-4 block rounded-lg py-2 text-center text-[12px] font-bold">
           Full rules

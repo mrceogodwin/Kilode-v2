@@ -26,6 +26,8 @@ import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
 import { JoinCta, TelegramLink } from "@/components/get-app";
 import { AdCatalogPanel, AdSlotsPanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
+import { SiteFlagsPanel } from "@/components/site-chrome";
+import { matchAdPayments, matchOneAd } from "@/lib/pay-match-server";
 import { listListings, type Listing } from "@/lib/listings-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 
@@ -1075,7 +1077,7 @@ function Ads({ store }: { store: Store }) {
           </button>
         ) : null}
         <p className="mt-2 text-[10px] leading-snug text-danger">
-          Verify the first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet. Staff match your tx hash by hand.
+          Verify the first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet. We match your tx on the public chain.
         </p>
       </div>
       <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount sent (about $${usd} USD in crypto)`} className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
@@ -1113,7 +1115,6 @@ function Ads({ store }: { store: Store }) {
             image: img,
             video: kind.includes("video") ? youtubeId(video) || safeHttpUrl(video) : undefined,
             kind,
-            status: "paid",
             days,
           });
           setDone(name.trim());
@@ -1155,7 +1156,9 @@ function AdsQueuePanel({ store }: { store: Store }) {
   const [q, setQ] = useState("");
   const [offset, setOffset] = useState(0);
   const [total, setTotal] = useState(0);
-  const [rows, setRows] = useState<{ id: string; name: string; note: string; placement: string; status: string; amount: string; txHash: string; coin: string; kind: string; image: string; days: number; expiresAt: number; ts: number }[]>([]);
+  const [rows, setRows] = useState<{ id: string; name: string; note: string; placement: string; status: string; amount: string; txHash: string; coin: string; kind: string; image: string; days: number; expiresAt: number; ts: number; matchNote?: string }[]>([]);
+  const [matchMsg, setMatchMsg] = useState("");
+  const [matching, setMatching] = useState(false);
   function load(next = offset, st = status, query = q) {
     void listAdsQueue({ data: { status: st === "all" ? "" : st, q: query, offset: next } })
       .then((r) => {
@@ -1202,7 +1205,24 @@ function AdsQueuePanel({ store }: { store: Store }) {
         <button type="button" className="btn-3d rounded-lg px-2 py-1.5 text-xs" onClick={() => load(0, status, q)}>
           Search
         </button>
+        <button
+          type="button"
+          disabled={matching}
+          className="btn-join rounded-lg px-2 py-1.5 text-xs font-bold"
+          onClick={() => {
+            setMatching(true);
+            void matchAdPayments()
+              .then((r) => {
+                setMatchMsg(r.ok ? `Checked ${r.n} pending · ${r.paid} confirmed on chain` : "Match failed");
+                load(0, status, q);
+              })
+              .finally(() => setMatching(false));
+          }}
+        >
+          {matching ? "Matching…" : "Match payments"}
+        </button>
       </div>
+      {matchMsg ? <p className="text-[11px] text-lime-2">{matchMsg}</p> : null}
       {rows.length === 0 ? <p className="text-sm text-muted">Nothing in this page.</p> : null}
       {rows.map((c) => (
         <div key={c.id} className="rounded-xl border border-line bg-panel p-3">
@@ -1215,6 +1235,7 @@ function AdsQueuePanel({ store }: { store: Store }) {
               </div>
               {c.note ? <p className="mt-1 text-sm">{c.note}</p> : null}
               {c.txHash ? <p className="mt-1 break-all text-[11px] text-muted">tx {c.txHash}</p> : null}
+              {c.matchNote ? <p className="mt-1 text-[11px] text-lime-2">{c.matchNote}</p> : null}
               {c.expiresAt ? <p className="text-[10px] text-muted">ends {new Date(c.expiresAt).toLocaleDateString()}</p> : null}
             </div>
             {c.image ? <img src={c.image} alt="" className="h-14 w-16 rounded object-cover" /> : null}
@@ -1235,6 +1256,18 @@ function AdsQueuePanel({ store }: { store: Store }) {
               </select>
               <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => { store.patchAd(c.id, { status: "paid" }); load(offset, status, q); }}>
                 Mark paid
+              </button>
+              <button
+                type="button"
+                className="rounded border border-line px-2 py-1 text-xs"
+                onClick={() => {
+                  void matchOneAd({ data: { id: c.id } }).then((r) => {
+                    setMatchMsg(r.ok ? r.match.reason : r.reason);
+                    load(offset, status, q);
+                  });
+                }}
+              >
+                Match tx
               </button>
               <button type="button" className="rounded border border-line px-2 py-1 text-xs" onClick={() => { store.patchAd(c.id, { status: "approved" }); load(offset, status, q); }}>
                 Approve
@@ -1375,6 +1408,7 @@ function Admin({ store }: { store: Store }) {
       <OpsKeysPanel />
       <OpsSeoPanel />
       <AdsQueuePanel store={store} />
+      {role === "super" ? <SiteFlagsPanel /> : null}
       {role === "super" ? <AdCatalogPanel /> : null}
       {role === "super" ? <AdSlotsPanel /> : null}
       {role === "super" ? <RoomsAdminPanel /> : null}
@@ -2236,17 +2270,17 @@ function Settings({ store }: { store: Store }) {
 
 function Help() {
   return (
-    <Screen kicker="KILODE" title="Help & terms" sub="How accounts, ads, cinema, and staff work.">
-      <Card title="Accounts" body="Username + password. Tick Terms and Rules. One account type at register — you cannot switch it. Super admin can override. No public email. Full legal: /terms" />
+    <Screen kicker="KILODE" title="Help & terms" sub="How accounts, ads, cinema, and listings work.">
+      <Card title="Accounts" body="Username + password. Tick Terms and Rules. One account type at register — you cannot switch it. The operator may correct a wrong type. No public email. Full legal: /terms" />
       <Card title="What each type can do" body="Normal user: chat, feeds, vote, apply to jobs. Artist: music URLs only. Writer: feeds. Ads Poster: business ads. Cinema Advertiser: movie YouTube URLs. Job Poster / Seeker, Marketplace seller, Rent lister: their module only." />
-      <Card title="Chat" body="Signed-in messages save on the server. Super admin sets how long they live (1 hour to 30 days, or never). Use ‹ › to page older/newer chat. Tap Translate under a line for Yoruba, Igbo, Hausa, French, Spanish." />
+      <Card title="Chat" body="Signed-in messages save on the server and expire. Use ‹ › to page older/newer chat. Tap Translate under a line for Yoruba, Igbo, Hausa, French, Spanish." />
       <Card title="Feeds & music" body="Create post after you sign in. Only Artist lists music. Paste a Spotify / SoundCloud / Audiomack / Apple / Boomplay / Deezer URL. We embed their player — nothing streams from Kilode. Spotify iframe is a 30-second preview unless the visitor is logged into Spotify. SoundCloud and Audiomack play the full track if the artist allowed streaming. Artwork is fetched once via oEmbed when you submit." />
-      <Card title="Teams" body="Signed-in members create up to 3 teams. Anyone signed in can join (max 40). Open chat is a Kilode room, same engine as Global Chat. Not a second WhatsApp. Staff can still hide abuse." />
-      <Card title="Ads" body="Advert grid $40. Chat stream $250. Pinned chat $800. Pick 7 / 14 / 30 days. Image sizes: grid 1080×1080, stream 1200×400, pin 1200×240. Copy the wallet from this app, pay, paste tx. Staff approve. Super can pin / revoke. 5,000 ads? Staff pages 40 at a time — do not dump them all on one screen." />
-      <Card title="Cinema" body="Anyone can watch Watching Now — it is a YouTube embed, not a file on Kilode. Signed-in users vote once per title per day. Advertiser (Cinema) submits a YouTube URL. Staff approve and can pin. Chat under the player uses the same engine as rooms." />
-      <Card title="Jobs, Marketplace, Rent" body="Job Poster lists jobs. Job Seekers apply. Marketplace and Rent are showcase + contact only — no selling or renting inside the app. Staff approve first." />
-      <Card title="Staff" body="Tap the logo 5 times or open /ops. Not in the public menu. First signed-in owner claims super. Nobody else can be made super. Super verifies handles (Kilode Verified) and can override account type." />
-      <Card title="Scale" body="Chat polls only while the tab is visible. Writes are rate-limited per account. Video and music play from YouTube / Spotify / SoundCloud — not from Kilode. Vercel Hobby is built for thousands of people, not a million at the same second. Upgrade hosting before you advertise a Super Bowl." />
+      <Card title="Teams" body="Signed-in members create up to 3 teams. Anyone signed in can join (max 40). Open chat is a Kilode room, same engine as Global Chat. Not a second WhatsApp. Abuse can be hidden." />
+      <Card title="Ads" body="Pick a slot, creative type, and 1 / 7 / 14 / 30 days. Copy the wallet from this app, pay crypto, paste the tx hash. Ads go live after review. Never send funds to an address from a DM." />
+      <Card title="Cinema" body="Anyone can watch Watching Now — it is a YouTube embed, not a file on Kilode. Signed-in users vote once per title per day. Advertiser (Cinema) submits a YouTube URL. Chat under the player uses the same engine as rooms." />
+      <Card title="Jobs, Marketplace, Rent" body="Job Poster lists jobs. Job Seekers apply. Marketplace and Rent are showcase + contact only — no selling or renting inside the app. Listings are reviewed before they go public." />
+      <Card title="Verification" body="Public handles may show a Kilode Verified mark. The operator can correct an account type if you registered as the wrong one. There is no public staff directory." />
+      <Card title="Scale" body="Chat refreshes while the tab is open. Video and music play from YouTube / Spotify / SoundCloud — not from Kilode servers." />
       <Card title="Privacy" body="No public email. Login uses a private username. Do not put real addresses or ID numbers in chat. Cookies keep you signed in. We do not sell your handle list." />
       <p className="px-1 text-[11px] text-muted">
         <a href="/terms" className="text-lime-2 underline">
