@@ -152,7 +152,7 @@ export function FeedsHero({
           RENT
         </a>
       </div>
-      <div className="relative aspect-[16/9] w-full overflow-hidden bg-black">
+      <div className="hero-stage relative aspect-[16/9] w-full overflow-hidden">
         <HeroSlide slide={slide} play={play} onPlay={setPlay} onOpen={onOpen} onViewAd={onViewAd} />
         {slides.length > 1 ? (
           <>
@@ -215,10 +215,10 @@ function HeroSlide({
       );
     }
     return (
-      <div className="grid h-full w-full place-items-center bg-[#1a1f1c] px-6 text-center">
+      <div className="hero-empty grid h-full w-full place-items-center px-6 text-center">
         <div>
-          <div className="text-[9px] font-medium tracking-[0.2em] text-muted">ADVERTISEMENT</div>
-          <div className="mt-1 text-[13px] font-medium text-white/90">Google AdSense</div>
+          <div className="text-[9px] font-medium tracking-[0.2em] text-lime-2">ADVERTISEMENT</div>
+          <div className="mt-1 text-[13px] font-medium">Google AdSense</div>
           <p className="mt-1 text-[11px] text-muted">This slide fills when Super pastes ca-pub + unit.</p>
         </div>
       </div>
@@ -243,11 +243,15 @@ function HeroSlide({
     }
     const tints = ["#152018", "#1a1714", "#14181c", "#1a1520", "#18160f"];
     return (
-      <a href="/advertise" className="grid h-full w-full place-items-center px-6 text-center" style={{ background: tints[(slide.n - 1) % tints.length] }}>
+      <a
+        href="/advertise"
+        className="hero-empty grid h-full w-full place-items-center px-6 text-center"
+        style={{ background: tints[(slide.n - 1) % tints.length] }}
+      >
         <div>
           <div className="text-[9px] font-medium tracking-[0.2em] text-lime-2">COMPANY {slide.n}</div>
-          <div className="mt-1 text-[13px] font-medium text-white/90">16:9 banner</div>
-          <p className="mt-1 text-[11px] text-white/55">Reserved in this slider. Super pastes the creative.</p>
+          <div className="mt-1 text-[13px] font-medium">16:9 banner</div>
+          <p className="mt-1 text-[11px] text-muted">Reserved in this slider. Super pastes the creative.</p>
         </div>
       </a>
     );
