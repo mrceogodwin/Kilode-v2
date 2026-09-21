@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Eye, Mail, MessageSquare, Share2 } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, daysLeft, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
-import { claimOps, clearModUser, getModSettings, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, staffMe } from "@/lib/staff-server";
+import { claimOps, clearModUser, deletePost, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, listStaffPosts, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, staffMe, unhidePost } from "@/lib/staff-server";
 import {
   approveNewsDraft,
   fetchNewsLatest,
   listNewsDrafts,
   listNewsSources,
   newsEngineInfo,
+  publishNewsWeek,
   rejectNewsDraft,
   setNewsSourceEnabled,
   updateNewsDraft,
@@ -1432,26 +1433,13 @@ function Admin({ store }: { store: Store }) {
               <p className="text-sm">{r.reason}</p>
               <div className="text-[10px] text-muted">post {r.post_id}</div>
             </div>
-            <button type="button" className="shrink-0 text-xs text-danger" onClick={() => store.hidePost(r.post_id)}>
+            <button type="button" className="shrink-0 text-xs text-danger" onClick={() => void hidePost({ data: r.post_id })}>
               Hide post
             </button>
           </div>
         ))}
       </div>
-      <div className="md:col-span-2 space-y-2">
-        <div className="text-[11px] font-medium text-muted">Feeds moderation</div>
-        {store.posts.map((p) => (
-          <div key={p.id} className="flex items-center justify-between gap-2 rounded-xl border border-line bg-panel p-3">
-            <div className="min-w-0">
-              <div className="truncate font-semibold">{p.title}</div>
-              <div className="text-xs text-muted">{p.author}</div>
-            </div>
-            <button type="button" className="shrink-0 text-xs text-danger" onClick={() => store.hidePost(p.id)}>
-              Hide
-            </button>
-          </div>
-        ))}
-      </div>
+      <FeedsDeskPanel store={store} />
       {role === "super" ? <ChatTtlPanel /> : null}
       {role === "super" ? <NewsEnginePanel store={store} /> : null}
       {role === "super" || role === "admin" ? <CinemaAdminPanel /> : null}
@@ -1849,12 +1837,108 @@ function BanMutePanel({ members }: { members: { id: string; handle: string; kind
 }
 
 
+function FeedsDeskPanel({ store }: { store: Store }) {
+  const [rows, setRows] = useState<{ id: string; title: string; category: string | null; image: string | null; status: string; author: string; ts: number; link: string | null }[]>([]);
+  const [q, setQ] = useState("");
+  const [msg, setMsg] = useState("");
+  const load = () => {
+    void listStaffPosts()
+      .then(setRows)
+      .catch(() => setRows([]));
+  };
+  useEffect(() => {
+    load();
+  }, []);
+  const shown = rows.filter((r) => !q || r.title.toLowerCase().includes(q.toLowerCase()) || (r.category || "").toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <div className="text-[11px] font-medium text-muted">Feeds desk</div>
+          <h3 className="text-base font-bold">Archive and delete stories</h3>
+          <p className="mt-1 text-xs text-muted">Archive hides it from Feeds. Delete removes it. Restore brings an archive back.</p>
+        </div>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title" className="rounded-lg border border-line bg-panel px-2 py-1.5 text-sm" />
+      </div>
+      {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
+      <div className="max-h-[420px] space-y-2 overflow-y-auto">
+        {shown.slice(0, 200).map((p) => (
+          <div key={p.id} className="flex items-center gap-2 rounded-xl border border-line bg-panel p-2">
+            {p.image ? <img src={p.image} alt="" className="size-12 shrink-0 rounded-md object-cover" /> : <div className="size-12 shrink-0 rounded-md bg-panel-3" />}
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13px] font-semibold">{p.title}</div>
+              <div className="text-[10px] text-muted">
+                {p.status} · {p.category || "News"} · {p.author}
+              </div>
+            </div>
+            {p.status === "hidden" ? (
+              <button
+                type="button"
+                className="shrink-0 text-[11px] text-lime-2"
+                onClick={() => {
+                  void unhidePost({ data: p.id }).then(() => {
+                    store.pushPost({
+                      id: p.id,
+                      title: p.title,
+                      body: "",
+                      author: p.author,
+                      ts: p.ts,
+                      comments: [],
+                      category: p.category || "News",
+                      image: p.image || undefined,
+                      link: p.link || undefined,
+                      status: "publish",
+                      views: 0,
+                    });
+                    setMsg("Restored");
+                    load();
+                  });
+                }}
+              >
+                Restore
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="shrink-0 text-[11px] text-muted"
+                onClick={() => {
+                  store.hidePost(p.id);
+                  void hidePost({ data: p.id }).then(() => {
+                    setMsg("Archived");
+                    load();
+                  });
+                }}
+              >
+                Archive
+              </button>
+            )}
+            <button
+              type="button"
+              className="shrink-0 text-[11px] text-danger"
+              onClick={() => {
+                if (!window.confirm("Delete this story for good?")) return;
+                void deletePost({ data: p.id }).then(() => {
+                  store.hidePost(p.id);
+                  setMsg("Deleted");
+                  load();
+                });
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function NewsEnginePanel({ store }: { store: Store }) {
   const [sources, setSources] = useState<NewsSource[]>([]);
   const [drafts, setDrafts] = useState<NewsDraft[]>([]);
   const [include, setInclude] = useState("");
   const [exclude, setExclude] = useState("");
-  const [maxAgeHours, setMaxAgeHours] = useState(72);
+  const [maxAgeHours, setMaxAgeHours] = useState(168);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [llm, setLlm] = useState(false);
@@ -1894,9 +1978,9 @@ function NewsEnginePanel({ store }: { store: Store }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <div className="text-[11px] font-medium text-muted">News Engine</div>
-          <h3 className="text-base font-bold">Fetch → rewrite → approve into Feeds</h3>
+          <h3 className="text-base font-bold">Fetch this week · put on Feeds</h3>
           <p className="mt-1 text-xs text-muted">
-            Sources: Google News RSS + publishers (not Google SERP scrape). {llm ? "LLM rewrite keyed." : "Deterministic Kilode-voice rewriter (set OPENAI_API_KEY / NEWS_AI_KEY for LLM)."}
+            Nigeria, Africa, world. Real RSS, real thumbnails only — no fake photos. {llm ? "LLM rewrite keyed." : "Kilode-voice rewrite."} Archive or delete any story in Feeds desk.
           </p>
         </div>
         <button
@@ -1923,6 +2007,24 @@ function NewsEnginePanel({ store }: { store: Store }) {
           }}
         >
           {busy ? "Fetching…" : "Fetch latest"}
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          className="btn-join rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
+          onClick={() => {
+            setBusy(true);
+            setMsg("");
+            void publishNewsWeek()
+              .then((r) => {
+                setMsg(`This week on Feeds: ${r.published} with real photos (${r.withPhoto} ready · ${r.candidates} this week · ${r.feeds} feeds). ${r.errors.length ? r.errors[0] : ""}`);
+                reload();
+              })
+              .catch((e) => setMsg(e instanceof Error ? e.message : "Publish failed"))
+              .finally(() => setBusy(false));
+          }}
+        >
+          {busy ? "Publishing…" : "Put this week on Feeds"}
         </button>
       </div>
 

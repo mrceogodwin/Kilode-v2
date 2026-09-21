@@ -58,70 +58,75 @@ type RssItem = {
   sourceLabel: string;
 };
 
+function gn(id: string, name: string, q: string): NewsSource {
+  return {
+    id,
+    name,
+    url: `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-NG&gl=NG&ceid=NG:en`,
+    kind: "google-news",
+    enabled: true,
+  };
+}
+
+function topic(id: string, name: string, t: string): NewsSource {
+  return {
+    id,
+    name,
+    url: `https://news.google.com/rss/headlines/section/topic/${t}?hl=en-NG&gl=NG&ceid=NG:en`,
+    kind: "google-news",
+    enabled: true,
+  };
+}
+
+function rss(id: string, name: string, url: string): NewsSource {
+  return { id, name, url, kind: "publisher", enabled: true };
+}
+
 const DEFAULT_SOURCES: NewsSource[] = [
-  {
-    id: "gn-nigeria",
-    name: "Google News · Nigeria",
-    url: "https://news.google.com/rss/search?q=Nigeria&hl=en-NG&gl=NG&ceid=NG:en",
-    kind: "google-news",
-    enabled: true,
-  },
-  {
-    id: "gn-lagos",
-    name: "Google News · Lagos",
-    url: "https://news.google.com/rss/search?q=Lagos+Nigeria&hl=en-NG&gl=NG&ceid=NG:en",
-    kind: "google-news",
-    enabled: true,
-  },
-  {
-    id: "gn-afrobeats",
-    name: "Google News · Afrobeats",
-    url: "https://news.google.com/rss/search?q=Afrobeats&hl=en-NG&gl=NG&ceid=NG:en",
-    kind: "google-news",
-    enabled: true,
-  },
-  {
-    id: "gn-fintech",
-    name: "Google News · Fintech NG",
-    url: "https://news.google.com/rss/search?q=Fintech+Nigeria&hl=en-NG&gl=NG&ceid=NG:en",
-    kind: "google-news",
-    enabled: true,
-  },
-  {
-    id: "gn-africa",
-    name: "Google News · Africa business",
-    url: "https://news.google.com/rss/search?q=Africa+business&hl=en-NG&gl=NG&ceid=NG:en",
-    kind: "google-news",
-    enabled: true,
-  },
-  {
-    id: "punch",
-    name: "Punch",
-    url: "https://punchng.com/feed/",
-    kind: "publisher",
-    enabled: true,
-  },
-  {
-    id: "premiumtimes",
-    name: "Premium Times",
-    url: "https://www.premiumtimesng.com/feed",
-    kind: "publisher",
-    enabled: true,
-  },
-  {
-    id: "techcabal",
-    name: "TechCabal",
-    url: "https://techcabal.com/feed/",
-    kind: "publisher",
-    enabled: true,
-  },
-  {
-    id: "bellanaija",
-    name: "BellaNaija",
-    url: "https://www.bellanaija.com/feed/",
-    kind: "publisher",
-    enabled: false,
-  },
+  rss("gn-home", "Google News · Nigeria home", "https://news.google.com/rss?hl=en-NG&gl=NG&ceid=NG:en"),
+  topic("gn-nation", "Google News · Nation", "NATION"),
+  topic("gn-world", "Google News · World", "WORLD"),
+  topic("gn-biz", "Google News · Business", "BUSINESS"),
+  topic("gn-tech", "Google News · Technology", "TECHNOLOGY"),
+  topic("gn-ent", "Google News · Entertainment", "ENTERTAINMENT"),
+  topic("gn-sport", "Google News · Sports", "SPORTS"),
+  topic("gn-sci", "Google News · Science", "SCIENCE"),
+  topic("gn-health", "Google News · Health", "HEALTH"),
+  gn("gn-nigeria", "Google News · Nigeria", "Nigeria"),
+  gn("gn-lagos", "Google News · Lagos", "Lagos Nigeria"),
+  gn("gn-abuja", "Google News · Abuja", "Abuja Nigeria"),
+  gn("gn-ghana", "Google News · Ghana", "Ghana"),
+  gn("gn-kenya", "Google News · Kenya", "Kenya"),
+  gn("gn-sa", "Google News · South Africa", "South Africa"),
+  gn("gn-africa", "Google News · Africa", "Africa"),
+  gn("gn-afrobeats", "Google News · Afrobeats", "Afrobeats"),
+  gn("gn-fintech", "Google News · Fintech NG", "Fintech Nigeria"),
+  gn("gn-epl", "Google News · Premier League", "Premier League"),
+  rss("punch", "Punch", "https://punchng.com/feed/"),
+  rss("premiumtimes", "Premium Times", "https://www.premiumtimesng.com/feed"),
+  rss("vanguard", "Vanguard", "https://www.vanguardngr.com/feed/"),
+  rss("guardian-ng", "Guardian Nigeria", "https://guardian.ng/feed/"),
+  rss("cable", "The Cable", "https://www.thecable.ng/feed/"),
+  rss("channels", "Channels TV", "https://www.channelstv.com/feed/"),
+  rss("dailypost", "Daily Post", "https://dailypost.ng/feed/"),
+  rss("nairametrics", "Nairametrics", "https://nairametrics.com/feed/"),
+  rss("techcabal", "TechCabal", "https://techcabal.com/feed/"),
+  rss("techpoint", "Techpoint", "https://techpoint.africa/feed/"),
+  rss("completesports", "Complete Sports", "https://www.completesports.com/feed/"),
+  rss("bellanaija", "BellaNaija", "https://www.bellanaija.com/feed/"),
+  rss("bbc-africa", "BBC Africa", "https://feeds.bbci.co.uk/news/world/africa/rss.xml"),
+  rss("bbc-world", "BBC World", "https://feeds.bbci.co.uk/news/world/rss.xml"),
+  rss("bbc-biz", "BBC Business", "https://feeds.bbci.co.uk/news/business/rss.xml"),
+  rss("bbc-tech", "BBC Technology", "https://feeds.bbci.co.uk/news/technology/rss.xml"),
+  rss("bbc-sport", "BBC Sport", "https://feeds.bbci.co.uk/sport/rss.xml"),
+  rss("aljazeera", "Al Jazeera", "https://www.aljazeera.com/xml/rss/all.xml"),
+  rss("guardian-uk", "Guardian World", "https://www.theguardian.com/world/rss"),
+  rss("nyt-world", "NYT World", "https://rss.nytimes.com/services/xml/rss/nyt/World.xml"),
+  rss("nyt-africa", "NYT Africa", "https://rss.nytimes.com/services/xml/rss/nyt/Africa.xml"),
+  rss("npr-world", "NPR World", "https://feeds.npr.org/1004/rss.xml"),
+  rss("techcrunch", "TechCrunch", "https://techcrunch.com/feed/"),
+  rss("verge", "The Verge", "https://www.theverge.com/rss/index.xml"),
+  rss("espn", "ESPN", "https://www.espn.com/espn/rss/news"),
 ];
 
 const gMem = globalThis as typeof globalThis & {
@@ -196,14 +201,16 @@ function parseRss(xml: string, sourceLabel: string): RssItem[] {
       attr(block, "media:content", "url") ||
       attr(block, "media:thumbnail", "url") ||
       attr(block, "enclosure", "url") ||
+      (block.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] ?? "") ||
       null;
     const srcName = tag(block, "source") || sourceLabel;
+    const imgOk = image && /^https?:\/\//i.test(image) && !/picsum|placeholder|1x1|spacer|pixel\.gif|doubleclick/i.test(image);
     out.push({
       title,
       link: link.trim(),
       snippet: snippet.slice(0, 600),
       pubDate,
-      image: image && /^https?:\/\//i.test(image) ? image : null,
+      image: imgOk ? image : null,
       sourceLabel: srcName || sourceLabel,
     });
   }
@@ -220,10 +227,33 @@ function mapCategory(title: string, snippet: string, sourceId: string): string {
   return "News";
 }
 
-function coverFor(title: string, link: string, enclosure: string | null): string {
-  if (enclosure) return enclosure;
-  const seed = slugify(title).slice(0, 40) || Buffer.from(link).toString("base64url").slice(0, 24);
-  return `https://picsum.photos/seed/kilode-news-${seed}/800/800`;
+function coverFor(_title: string, _link: string, enclosure: string | null): string {
+  if (enclosure && /^https?:\/\//i.test(enclosure) && !/picsum|placeholder|1x1|spacer/i.test(enclosure)) return enclosure;
+  return "";
+}
+
+async function ogImage(url: string): Promise<string | null> {
+  try {
+    const r = await fetch(url, {
+      redirect: "follow",
+      signal: AbortSignal.timeout(3500),
+      headers: {
+        "User-Agent": "KilodeNewsEngine/1.0 (+https://kilode.ng)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
+    if (!r.ok) return null;
+    const html = (await r.text()).slice(0, 80_000);
+    const m =
+      html.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::secure_url)?["']/i) ||
+      html.match(/<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i);
+    const u = (m?.[1] || "").replace(/&/g, "&").trim();
+    if (!u || !/^https?:\/\//i.test(u) || /picsum|placeholder|1x1/i.test(u)) return null;
+    return u;
+  } catch {
+    return null;
+  }
 }
 
 /** Deterministic Kilode-voice rewrite when no LLM key is set. */
@@ -494,7 +524,7 @@ export const fetchNewsLatest = createServerFn({ method: "POST" })
           continue;
         }
         const xml = await res.text();
-        const items = parseRss(xml, src.name).slice(0, 18);
+        const items = parseRss(xml, src.name).slice(0, 80);
         fetched += items.length;
         for (const item of items) {
           if (!passesFilters(item, filters)) continue;
@@ -833,3 +863,113 @@ export const approveNewsDraft = createServerFn({ method: "POST" })
 
     return { ok: true as const, postId, post };
   });
+
+export const publishNewsWeek = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    await requireSuper(context.userId);
+    const filters: NewsFilters = { maxAgeHours: 168 };
+    const sources = memSources().filter((s) => s.enabled);
+    const seenLinks = new Set<string>();
+    const seenTitles = new Set<string>();
+    try {
+      const sql = await getSql();
+      const rows = await sql<{ link: string | null; title: string }>`select link, title from nf_posts order by ts desc limit 2000`;
+      for (const r of rows) {
+        if (r.link) seenLinks.add(r.link);
+        seenTitles.add(normTitle(r.title));
+      }
+    } catch {
+      /* empty db */
+    }
+
+    const packs = await Promise.allSettled(
+      sources.map(async (src) => {
+        const res = await fetch(src.url, {
+          headers: {
+            "User-Agent": "KilodeNewsEngine/1.0 (+https://kilode.ng; RSS reader)",
+            Accept: "application/rss+xml, application/xml, text/xml, */*",
+          },
+          signal: AbortSignal.timeout(12_000),
+        });
+        if (!res.ok) throw new Error(`${src.name}: HTTP ${res.status}`);
+        const xml = await res.text();
+        return { src, items: parseRss(xml, src.name).slice(0, 80) };
+      }),
+    );
+
+    type Row = { src: NewsSource; item: RssItem };
+    const pool: Row[] = [];
+    const errors: string[] = [];
+    for (const p of packs) {
+      if (p.status === "rejected") {
+        errors.push(p.reason instanceof Error ? p.reason.message : "feed failed");
+        continue;
+      }
+      for (const item of p.value.items) {
+        if (!passesFilters(item, filters)) continue;
+        if (seenLinks.has(item.link)) continue;
+        const nt = normTitle(item.title);
+        if (seenTitles.has(nt)) continue;
+        seenLinks.add(item.link);
+        seenTitles.add(nt);
+        pool.push({ src: p.value.src, item });
+      }
+    }
+
+    const needPhoto = pool.filter((x) => !x.item.image).slice(0, 60);
+    for (let i = 0; i < needPhoto.length; i += 8) {
+      const batch = needPhoto.slice(i, i + 8);
+      const photos = await Promise.all(batch.map((x) => ogImage(x.item.link)));
+      photos.forEach((img, j) => {
+        if (img) batch[j]!.item.image = img;
+      });
+    }
+
+    const ready = pool.filter((x) => x.item.image).slice(0, 500);
+    let published = 0;
+    const sql = await getSql();
+    for (const { src, item } of ready) {
+      const rewritten = humanizeDeterministic(item, src.name);
+      const postId = `news-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+      const ts = item.pubDate && item.pubDate > Date.now() - 8 * 24 * 3_600_000 ? item.pubDate : Date.now();
+      const slug = slugify(rewritten.title) || postId;
+      const image = item.image || "";
+      const excerpt = rewritten.meta || rewritten.title.slice(0, 140);
+      try {
+        await sql`
+          insert into nf_posts (id, user_id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, source_name)
+          values (
+            ${postId}, ${context.userId}, ${rewritten.title}, ${rewritten.body}, ${excerpt},
+            ${rewritten.category}, ${rewritten.tags}, ${item.link}, ${image}, ${slug},
+            ${"publish"}, ${"KilodeDesk#01"}, ${ts}, ${src.name}
+          )
+        `;
+        published += 1;
+      } catch {
+        try {
+          await sql`
+            insert into nf_posts (id, user_id, title, body, excerpt, category, tags, link, image, slug, status, author, ts)
+            values (
+              ${postId}, ${context.userId}, ${rewritten.title}, ${rewritten.body}, ${excerpt},
+              ${rewritten.category}, ${rewritten.tags}, ${item.link}, ${image}, ${slug},
+              ${"publish"}, ${"KilodeDesk#01"}, ${ts}
+            )
+          `;
+          published += 1;
+        } catch {
+          /* skip dup */
+        }
+      }
+    }
+
+    return {
+      ok: true as const,
+      feeds: packs.filter((p) => p.status === "fulfilled").length,
+      candidates: pool.length,
+      withPhoto: ready.length,
+      published,
+      errors: errors.slice(0, 8),
+    };
+  });
+

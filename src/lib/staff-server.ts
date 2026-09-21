@@ -351,6 +351,48 @@ export const hidePost = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const unhidePost = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((id: string) => id)
+  .handler(async ({ context, data: id }) => {
+    const me = await staffOf(context.userId);
+    if (!me) throw new Error("Forbidden");
+    const sql = await getSql();
+    await sql`update nf_posts set status = ${"publish"} where id = ${id}`;
+    return { ok: true };
+  });
+
+export const deletePost = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((id: string) => id)
+  .handler(async ({ context, data: id }) => {
+    const me = await staffOf(context.userId);
+    if (me?.role !== "super" && me?.role !== "admin") throw new Error("Forbidden");
+    const sql = await getSql();
+    await sql`delete from nf_comments where post_id = ${id}`;
+    await sql`delete from nf_posts where id = ${id}`;
+    return { ok: true };
+  });
+
+export const listStaffPosts = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const me = await staffOf(context.userId);
+    if (!me) return [];
+    const sql = await getSql();
+    const rows = await sql<{
+      id: string;
+      title: string;
+      category: string | null;
+      image: string | null;
+      status: string;
+      author: string;
+      ts: number | string;
+      link: string | null;
+    }>`select id, title, category, image, status, author, ts, link from nf_posts order by ts desc limit 600`;
+    return rows.map((r) => ({ ...r, ts: Number(r.ts) }));
+  });
+
 export const listMail = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
