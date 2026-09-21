@@ -214,8 +214,15 @@
     animation-play-state: paused;
   }
   .menu-install {
-    background: linear-gradient(180deg, rgba(107, 158, 120, 0.14) 0%, rgba(107, 158, 120, 0.04) 100%);
-    border: 1px solid rgba(107, 158, 120, 0.32);
+    background: linear-gradient(180deg, #2a2a2a 0%, #111111 48%, #070707 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 8px 18px rgba(0, 0, 0, 0.35);
+    color: #eeeeec;
+  }
+  .menu-install .text-muted {
+    color: #9a9a94;
   }
   .menu-dock {
     background: linear-gradient(180deg, rgba(107, 158, 120, 0.06) 0%, transparent 100%);
@@ -402,8 +409,9 @@ html[data-skin="ivory"] .flash-stack span {
   color: #3f4741;
 }
 html[data-skin="ivory"] .menu-install {
-  background: linear-gradient(180deg, #e7f3ea 0%, #f7fbf8 100%);
-  border-color: #c5d4c8;
+  background: linear-gradient(180deg, #2a2a2a 0%, #111111 55%, #070707 100%);
+  border-color: #1a1a1a;
+  color: #eeeeec;
 }
 html[data-skin="ivory"] .menu-dock {
   background: #f7fbf8;

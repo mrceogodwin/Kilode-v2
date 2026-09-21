@@ -109,12 +109,7 @@ export function SiteFooter() {
   const n = site.shares ?? EMPTY.shares;
   return (
     <footer className="site-foot mt-8 overflow-hidden rounded-2xl px-3 py-4">
-      <div className="flex items-center gap-2">
-        <img src="/kilode-bang-icon.png" alt="Kilode" className="size-8 rounded-[9px] object-contain" />
-        <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-extrabold tracking-tight">KILODE</div>
-          <div className="text-[10px] text-muted">Talk Nigeria. Live.</div>
-        </div>
+      <div className="flex justify-end">
         <JoinCta className="min-w-[108px]" />
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] tabular-nums text-muted">
