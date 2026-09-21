@@ -393,13 +393,13 @@ html[data-skin="ivory"] .app-tab {
   color: #111111;
 }
 html[data-skin="ivory"] .logo-night {
-  display: block;
-  background: #141a16;
-  border-radius: 7px;
-  padding: 1px 4px;
+  display: none;
 }
 html[data-skin="ivory"] .logo-day {
-  display: none;
+  display: block;
+  background: none;
+  padding: 0;
+  border-radius: 0;
 }
 html[data-skin="ivory"] .trend-ticker {
   border-color: #c5d4c8;
@@ -463,6 +463,17 @@ html[data-skin="ivory"] .menu-dock {
 }
 .logo-day {
   display: none;
+}
+.music-rail {
+  background: linear-gradient(145deg, var(--rail), #0a0a0a);
+}
+html[data-skin="ivory"] .music-rail {
+  background: linear-gradient(145deg, #eef6f0, #ffffff);
+  border: 1px solid #c5d4c8;
+  color: #111111;
+}
+html[data-skin="ivory"] .music-rail .text-muted {
+  color: #5a655d;
 }
 .how-zoom {
   animation: how-pinch 4.2s ease-in-out infinite;
@@ -763,10 +774,10 @@ html[data-skin="ivory"] .store-3d {
 }
 
 .ad-void {
-  background: #0c0c0c;
+  background: #161c18;
 }
 .ad-void-empty {
-  background: #0a0a0a;
+  background: #1c2620;
 }
 html[data-skin="ivory"] .ad-void {
   background: #161c18;

@@ -106,7 +106,7 @@ export function PortraitAd({ id }: { id: string }) {
       <div className="px-3 py-2">
         <span className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PORTRAIT ADS</span>
       </div>
-      <div className="flex w-full justify-center ad-void">{child}</div>
+      <div className="flex w-full justify-center">{child}</div>
     </aside>
   );
   if (slot && slot.image) {
@@ -127,7 +127,7 @@ export function PortraitAd({ id }: { id: string }) {
     );
   }
   return frame(
-    <a href="/advertise" className="grid h-52 w-full place-items-center ad-void-empty px-4 text-center">
+    <a href="/advertise" className="grid h-36 w-full place-items-center ad-void-empty px-4 text-center">
       <div>
         <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · 9:16</div>
         <div className="mt-1 text-[9px] text-muted">Company portrait</div>

@@ -356,7 +356,7 @@ export function QonvoApp() {
             }}
           >
             <img src="/kilode-logo-green.png" alt="Kilode" className="logo-night h-8 w-auto max-w-[152px] object-contain object-left sm:h-9 sm:max-w-[172px]" />
-            <img src="/kilode-logo-light.svg" alt="Kilode" className="logo-day hidden h-8 w-auto max-w-[152px] object-contain object-left sm:h-9 sm:max-w-[172px]" />
+            <img src="/kilode-logo-ivory.png" alt="Kilode" className="logo-day h-8 w-auto max-w-[152px] object-contain object-left sm:h-9 sm:max-w-[172px]" />
           </button>
           <nav className="mx-auto hidden min-w-0 items-center justify-center gap-1 md:flex">
             <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home" && !marketDesk} onClick={() => { store.setOpenPost(null); setMarketDesk(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
@@ -1443,7 +1443,13 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
           <div className="mb-1.5 text-[11px] font-bold">Browse</div>
           <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {MUSIC_RAILS.map((r) => (
-              <button key={r.id} type="button" className="w-[132px] shrink-0 overflow-hidden rounded-xl text-left" style={{ background: `linear-gradient(145deg, ${r.color}, #0a0a0a)` }} onClick={onAdd}>
+              <button
+                key={r.id}
+                type="button"
+                className="music-rail w-[132px] shrink-0 overflow-hidden rounded-xl text-left"
+                style={{ ["--rail" as string]: r.color }}
+                onClick={onAdd}
+              >
                 <div className="p-2.5">
                   <div className="text-[11px] font-bold leading-tight text-fg">{r.title}</div>
                   <div className="mt-1 text-[9px] text-muted">{r.subtitle}</div>
