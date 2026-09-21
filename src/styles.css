@@ -163,6 +163,32 @@
     letter-spacing: 0.22em;
     color: var(--color-lime-2);
   }
+  .desk-rail {
+    padding: 2px 0;
+  }
+  .desk-pill {
+    min-height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--color-line);
+    background: transparent;
+    color: var(--color-muted);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    padding: 0 4px;
+  }
+  .desk-pill.on {
+    border-color: rgba(107, 158, 120, 0.45);
+    color: var(--color-lime-2);
+    background: rgba(107, 158, 120, 0.08);
+  }
+  .desk-live {
+    animation: desk-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes desk-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
   .flash-rail {
     height: 18px;
     overflow: hidden;
@@ -358,6 +384,16 @@ html[data-skin="ivory"] .hero-flag {
 }
 html[data-skin="ivory"] .flash-bar {
   background: linear-gradient(180deg, #eef6f0 0%, #ffffff 100%);
+}
+html[data-skin="ivory"] .desk-pill {
+  border-color: #c5d4c8;
+  color: #3f4741;
+  background: #ffffff;
+}
+html[data-skin="ivory"] .desk-pill.on {
+  border-color: #6b9e78;
+  color: #1f7a40;
+  background: #eef6f0;
 }
 html[data-skin="ivory"] .flash-stack span {
   color: #3f4741;

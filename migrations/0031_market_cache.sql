@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS nf_market_cache (
+  k TEXT PRIMARY KEY,
+  v TEXT NOT NULL,
+  ts BIGINT NOT NULL
+);

@@ -31,6 +31,9 @@ import {
   ChevronDown,
   Settings,
   Trophy,
+  LineChart,
+  Coins,
+  Banknote,
   User,
   Users,
   UsersRound,
@@ -65,6 +68,7 @@ import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
 import { InstallToast, SiteFooter, TrendingTicker } from "@/components/site-chrome";
 import { FeedsHero } from "@/components/feeds-hero";
+import { MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -196,6 +200,7 @@ export function QonvoApp() {
   const [screen, setScreen] = useState<MenuId>("home");
   const [roomsOpen, setRoomsOpen] = useState(false);
   const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema">("feeds");
+  const [marketDesk, setMarketDesk] = useState<MarketDesk | null>(null);
   const [feedQ, setFeedQ] = useState("");
   const [feedSearchOn, setFeedSearchOn] = useState(false);
   const [joinPass, setJoinPass] = useState("");
@@ -276,6 +281,10 @@ export function QonvoApp() {
   }, [homeTab, store.roomId]);
 
   useEffect(() => {
+    if (homeTab !== "feeds" || screen !== "home") setMarketDesk(null);
+  }, [homeTab, screen]);
+
+  useEffect(() => {
     const added = store.msgs.length - lastMsgCount.current;
     lastMsgCount.current = store.msgs.length;
     if (added <= 0) return;
@@ -313,6 +322,7 @@ export function QonvoApp() {
       store.openRoom(roomId);
       setHomeTab("chat");
     } else setHomeTab("feeds");
+    setMarketDesk(null);
     setScreen("home");
     setMenuOpen(false);
     setRoomsOpen(false);
@@ -343,7 +353,7 @@ export function QonvoApp() {
             <img src="/kilode-logo-light.svg" alt="Kilode" className="logo-day hidden h-11 w-auto max-w-[250px] object-contain object-left sm:h-12 sm:max-w-[260px]" />
           </button>
           <nav className="mx-auto hidden min-w-0 items-center justify-center gap-1 md:flex">
-            <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
+            <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home" && !marketDesk} onClick={() => { store.setOpenPost(null); setMarketDesk(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
             <HomeTab label="Chat" on={homeTab === "chat" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("chat"); setScreen("home"); setMenuOpen(false); }} />
             <HomeTab label="Music" on={homeTab === "music" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("music"); setScreen("home"); setMenuOpen(false); }} />
             <HomeTab label="Cinema" on={homeTab === "cinema" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("cinema"); setScreen("home"); setMenuOpen(false); }} />
@@ -420,7 +430,7 @@ export function QonvoApp() {
 
       {screen === "home" ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {homeTab === "feeds" ? (
+          {homeTab === "feeds" && !marketDesk ? (
             <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-2 py-1">
               {feedSearchOn ? (
                 <input
@@ -469,8 +479,10 @@ export function QonvoApp() {
             </aside>
 
             <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-bg">
-              {homeTab === "feeds" ? (
-                <FeedPane store={store} q={feedQ} />
+              {homeTab === "feeds" && marketDesk ? (
+                <MarketsDesk desk={marketDesk} onDesk={setMarketDesk} onBack={() => setMarketDesk(null)} />
+              ) : homeTab === "feeds" ? (
+                <FeedPane store={store} q={feedQ} onDesk={setMarketDesk} />
               ) : homeTab === "music" ? (
                 <MusicPane store={store} onAdd={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))} />
               ) : homeTab === "cinema" ? (
@@ -754,7 +766,7 @@ export function QonvoApp() {
 
       <InstallToast />
       <nav className="z-20 grid shrink-0 grid-cols-6 border-t border-line bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); store.setOpenPost(null); }} />
+        <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
         <Tab icon={<MessageSquare className="size-3.5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
         <Tab icon={<Radio className="size-3.5" />} label="Music" on={screen === "home" && homeTab === "music"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("music"); }} />
         <Tab icon={<Film className="size-3.5" />} label="Cinema" on={screen === "home" && homeTab === "cinema"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("cinema"); }} />
@@ -901,12 +913,19 @@ export function QonvoApp() {
               ) : null}
 
               <DrawerGroup label="Kilode">
-                <DrawerRow icon={Home} label="Feeds" hint="News for Nigeria" onClick={() => { store.setOpenPost(null); setScreen("home"); setHomeTab("feeds"); setMenuOpen(false); }} on={homeTab === "feeds" && screen === "home"} />
+                <DrawerRow icon={Home} label="Feeds" hint="News for Nigeria" onClick={() => { store.setOpenPost(null); setMarketDesk(null); setScreen("home"); setHomeTab("feeds"); setMenuOpen(false); }} on={homeTab === "feeds" && screen === "home" && !marketDesk} />
                 <DrawerRow icon={MessageSquare} label="Chat" hint="Live rooms · 36 states" onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }} on={homeTab === "chat" && screen === "home"} />
                 <DrawerRow icon={Radio} label="Music" hint="Artist links. We embed." onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
                 <DrawerRow icon={Film} label="Cinema" hint="Vote and watch together" onClick={() => { setScreen("home"); setHomeTab("cinema"); setMenuOpen(false); }} on={homeTab === "cinema" && screen === "home"} />
                 <DrawerRow icon={Play} label="Videos" hint="Clips on Kilode" onClick={() => { setScreen("home"); setHomeTab("videos"); setMenuOpen(false); }} on={homeTab === "videos" && screen === "home"} />
                 <DrawerRow icon={Megaphone} label="Ads" hint="Live brand campaigns" onClick={() => { setScreen("home"); setHomeTab("advert"); setMenuOpen(false); }} on={homeTab === "advert" && screen === "home"} />
+              </DrawerGroup>
+
+              <DrawerGroup label="Desks">
+                <DrawerRow icon={LineChart} label="Stocks" hint="Indices, NGX, movers" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("stocks"); setMenuOpen(false); }} on={marketDesk === "stocks"} />
+                <DrawerRow icon={Coins} label="Crypto" hint="Coins, dominance, heat" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("crypto"); setMenuOpen(false); }} on={marketDesk === "crypto"} />
+                <DrawerRow icon={Banknote} label="Forex" hint="Naira and crosses" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("forex"); setMenuOpen(false); }} on={marketDesk === "forex"} />
+                <DrawerRow icon={Trophy} label="Sports" hint="Live scores and leans" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("sports"); setMenuOpen(false); }} on={marketDesk === "sports"} />
               </DrawerGroup>
 
               <DrawerGroup label="Listings">
@@ -1787,7 +1806,7 @@ function EmptyHero({ title, body, cta, onClick }: { title: string; body: string;
 }
 
 
-function FeedPane({ store, q = "" }: { store: ReturnType<typeof useQonvo>; q?: string }) {
+function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void }) {
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(20);
   const [catsOpen, setCatsOpen] = useState(false);
@@ -1821,6 +1840,7 @@ function FeedPane({ store, q = "" }: { store: ReturnType<typeof useQonvo>; q?: s
           onOpen={(id) => store.setOpenPost(id)}
           onViewAd={(id) => store.see("ads", id)}
         />
+        <MarketRail onPick={onDesk} />
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">LATEST POST{cat !== "All" ? ` · ${cat.toUpperCase()}` : ""}</div>
           <button
