@@ -111,15 +111,17 @@ export function SiteFooter() {
   const n = site.shares ?? EMPTY.shares;
   const subs = site.subscribers || 0;
   const subLine =
-    subs > 0
-      ? `JOIN ${subs.toLocaleString("en-US")} SUBSCRIBER${subs === 1 ? "" : "S"} FOR INSTANT UPDATES`
-      : "JOIN FOR INSTANT UPDATES";
+    subs <= 0
+      ? "Join for instant updates"
+      : subs === 1
+        ? "Join 1 subscriber for instant updates"
+        : `Join ${subs.toLocaleString("en-US")} subscribers for instant updates`;
   return (
     <footer className="site-foot mt-8 overflow-hidden rounded-2xl px-4 py-6">
-      <a href="/login?mode=up" className="block px-1 text-center">
-        <h2 className="text-[22px] font-extrabold leading-[1.15] tracking-[-0.03em] sm:text-[26px]">{subLine}</h2>
+      <a href="/login?mode=up" className="block px-2 py-1 text-center">
+        <h2 className="chrome-head mx-auto max-w-[15.5rem]">{subLine}</h2>
       </a>
-      <p className="mt-2 text-center text-[11px] text-muted">Talk Nigeria. Live. Real people on this site — not an estimate.</p>
+      <p className="mt-3 text-center text-[12px] leading-relaxed text-muted">Talk Nigeria. Live.</p>
       <div className="mt-4">
         <DigestBox />
       </div>

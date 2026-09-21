@@ -151,6 +151,19 @@
     border: 1px solid rgba(107, 158, 120, 0.32);
     box-shadow: 0 0 0 1px rgba(107, 158, 120, 0.06), 0 16px 36px rgba(0, 0, 0, 0.35);
   }
+  .chrome-head {
+    font-weight: 800;
+    font-style: italic;
+    font-size: 26px;
+    line-height: 1.32;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    background-image: linear-gradient(180deg, #ffffff 0%, #eceff3 26%, #9aa3ae 50%, #d8dce2 74%, #f6f7f9 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.28)) drop-shadow(0 3px 2px rgba(0, 0, 0, 0.55));
+  }
   .flash-bar {
     border-bottom: 1px solid var(--color-line);
     background: linear-gradient(180deg, rgba(107, 158, 120, 0.08) 0%, transparent 100%);
@@ -402,6 +415,10 @@ html[data-skin="ivory"] .site-foot {
   border: 1px solid #c5d4c8;
   color: #111111;
   box-shadow: 0 8px 24px rgba(31, 122, 64, 0.08);
+}
+html[data-skin="ivory"] .chrome-head {
+  background-image: linear-gradient(180deg, #4a4e56 0%, #1a1c20 48%, #6a6f78 100%);
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.85)) drop-shadow(0 2px 1px rgba(0, 0, 0, 0.12));
 }
 html[data-skin="ivory"] .hero-flag {
   background: #ffffff;
