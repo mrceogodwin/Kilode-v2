@@ -181,31 +181,58 @@ export function LandscapeGrid({
   posts,
   exclude,
   onOpen,
+  cols = 4,
 }: {
   title: string;
   posts: Post[];
   exclude?: string;
   onOpen: (id: string) => void;
+  cols?: 3 | 4;
 }) {
-  const [shown, setShown] = useState(6);
+  const [shown, setShown] = useState(cols === 4 ? 8 : 6);
   const list = posts.filter((p) => p.id !== exclude && p.status !== "draft");
   if (!list.length) return null;
+  const step = cols === 4 ? 8 : 6;
   return (
     <section className="mt-6">
       <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">{title}</div>
-      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+      <div className={cols === 4 ? "grid grid-cols-4 gap-1.5" : "grid grid-cols-3 gap-1.5"}>
         {list.slice(0, shown).map((p) => (
-          <button key={p.id} type="button" className="raised overflow-hidden rounded-lg text-left" onClick={() => onOpen(p.id)}>
-            {p.image ? <img src={p.image} alt="" className="aspect-[16/9] w-full object-cover" /> : <div className="aspect-[16/9] bg-panel-3" />}
-            <div className="px-1.5 py-1">
+          <button key={p.id} type="button" className="raised overflow-hidden rounded-md text-left" onClick={() => onOpen(p.id)}>
+            {p.image ? <img src={p.image} alt="" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
+            <div className="px-1 py-1">
               <div className="text-[9px] text-lime-2">{p.category || "General"}</div>
-              <div className="mt-0.5 line-clamp-2 text-[11px] font-normal leading-snug">{p.title}</div>
+              <div className="mt-0.5 line-clamp-3 text-[10px] font-normal leading-tight sm:text-[11px]">{p.title}</div>
             </div>
           </button>
         ))}
       </div>
       {shown < list.length ? (
-        <button type="button" className="btn-3d mx-auto mt-2 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + 6)}>
+        <button type="button" className="btn-3d mx-auto mt-2 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + step)}>
+          Load more · {list.length - shown} left
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
+export function DontMissGrid({ posts, exclude, onOpen }: { posts: Post[]; exclude?: string; onOpen: (id: string) => void }) {
+  const [shown, setShown] = useState(8);
+  const list = posts.filter((p) => p.id !== exclude && p.status !== "draft");
+  if (!list.length) return null;
+  return (
+    <section className="mt-6">
+      <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">DON'T MISS</div>
+      <div className="grid grid-cols-4 gap-1">
+        {list.slice(0, shown).map((p) => (
+          <button key={p.id} type="button" className="raised overflow-hidden rounded text-left" onClick={() => onOpen(p.id)}>
+            {p.image ? <img src={p.image} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square bg-panel-3" />}
+            <div className="line-clamp-2 px-0.5 py-0.5 text-[9px] leading-tight">{p.title}</div>
+          </button>
+        ))}
+      </div>
+      {shown < list.length ? (
+        <button type="button" className="btn-3d mx-auto mt-2 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + 8)}>
           Load more · {list.length - shown} left
         </button>
       ) : null}
@@ -225,18 +252,16 @@ export function CategoryArchive({ posts, onPick }: { posts: Post[]; onPick?: (ca
   return (
     <section className="mt-6">
       <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">CATEGORIES ARCHIVE</div>
-      <div className="flex flex-wrap gap-1.5">
-        {rows.map(([c, n]) => (
-          <button
-            key={c}
-            type="button"
-            className="rounded-md border border-line bg-panel-2 px-2 py-1 text-[10px]"
-            onClick={() => onPick?.(c)}
-          >
-            {c} <span className="text-muted">{n}</span>
-          </button>
+      <ul className="overflow-hidden rounded-xl border border-line">
+        {rows.map(([c, n], i) => (
+          <li key={c} className={i ? "border-t border-line" : ""}>
+            <button type="button" className="flex w-full items-center justify-between px-3 py-2.5 text-left" onClick={() => onPick?.(c)}>
+              <span className="text-[13px] font-semibold">{c}</span>
+              <span className="tabular-nums text-[11px] text-muted">{n} {n === 1 ? "post" : "posts"}</span>
+            </button>
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

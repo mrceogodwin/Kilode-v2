@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Briefcase, Building2, MapPin, Store } from "lucide-react";
 import { applyListing, listListingQueue, listListings, saveListing, setListingStatus, type Listing, type ListingKind } from "@/lib/listings-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getProfile } from "@/lib/forum-server";
@@ -7,6 +8,7 @@ import { canKind, kindActionHint } from "@/lib/permissions";
 import { DEMO_LISTINGS } from "@/lib/qonvo-seed";
 import { AdReserve } from "@/components/ad-slot";
 import { JoinCta } from "@/components/get-app";
+import { PortraitAd } from "@/components/premium-ad";
 
 const COPY: Record<
   ListingKind,
@@ -18,6 +20,7 @@ const COPY: Record<
     extra: string;
     postHint: string;
     apply: boolean;
+    icon: typeof Briefcase;
   }
 > = {
   job: {
@@ -28,6 +31,7 @@ const COPY: Record<
     extra: "Company",
     postHint: "Join as Job Poster to list a role.",
     apply: true,
+    icon: Briefcase,
   },
   market: {
     kicker: "MARKET",
@@ -37,6 +41,7 @@ const COPY: Record<
     extra: "Brand",
     postHint: "Join as Marketplace seller to showcase.",
     apply: false,
+    icon: Store,
   },
   rent: {
     kicker: "SPACES",
@@ -46,6 +51,7 @@ const COPY: Record<
     extra: "Area",
     postHint: "Join as Rent / space lister to post.",
     apply: false,
+    icon: Building2,
   },
 };
 
@@ -64,9 +70,72 @@ function mergeRows(kind: ListingKind, live: Listing[]): Card[] {
   return [...live, ...extra];
 }
 
+function SlimRail({ rows, onOpen }: { rows: Card[]; onOpen: (r: Card) => void }) {
+  const track = useRef<HTMLDivElement>(null);
+  const hover = useRef(false);
+  useEffect(() => {
+    if (rows.length < 2) return;
+    const t = window.setInterval(() => {
+      if (hover.current || !track.current) return;
+      const el = track.current;
+      const next = el.scrollLeft + el.clientWidth * 0.55;
+      el.scrollTo({ left: next >= el.scrollWidth - 8 ? 0 : next, behavior: "smooth" });
+    }, 4000);
+    return () => window.clearInterval(t);
+  }, [rows.length]);
+  if (!rows.length) return null;
+  return (
+    <section className="mb-4">
+      <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">FEATURED</div>
+      <div
+        ref={track}
+        className="flex gap-1.5 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        onPointerEnter={() => {
+          hover.current = true;
+        }}
+        onPointerLeave={() => {
+          hover.current = false;
+        }}
+      >
+        {rows.map((r) => (
+          <button key={r.id} type="button" className="w-[168px] shrink-0 overflow-hidden rounded-md border border-line bg-panel text-left" onClick={() => onOpen(r)}>
+            <div className="flex">
+              <img src={cover(r)} alt="" className="h-12 w-[72px] shrink-0 object-cover" />
+              <div className="min-w-0 flex-1 px-1.5 py-1">
+                <div className="truncate text-[10px] text-lime-2">{r.city || r.kind}</div>
+                <div className="line-clamp-2 text-[11px] font-semibold leading-tight">{r.title}</div>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Tile({ r, kind, onOpen }: { r: Card; kind: ListingKind; onOpen: (r: Card) => void }) {
+  return (
+    <button type="button" className="raised overflow-hidden rounded-lg text-left" onClick={() => onOpen(r)}>
+      <img src={cover(r)} alt="" className="aspect-[16/9] w-full object-cover" />
+      <div className="px-1.5 py-1">
+        <div className="flex items-center gap-1 text-[9px] uppercase text-lime-2">
+          <MapPin className="size-2.5" />
+          {r.city || kind}
+        </div>
+        <div className="mt-0.5 line-clamp-2 text-[11px] font-normal leading-snug">{r.title}</div>
+        <div className="mt-0.5 flex items-center justify-between text-[9px] text-muted">
+          <span className="truncate">{r.company}</span>
+          <span>{r.days ? `${r.days}d` : ""}</span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export function ListingsPane({ kind }: { kind: ListingKind }) {
   const session = useCurrentUserState();
   const copy = COPY[kind];
+  const Icon = copy.icon;
   const [rows, setRows] = useState<Card[]>(() => mergeRows(kind, []));
   const [meKind, setMeKind] = useState<AccountKind>("member");
   const [title, setTitle] = useState("");
@@ -79,7 +148,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [days, setDays] = useState(30);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
-  const [shown, setShown] = useState(9);
+  const [shown, setShown] = useState(12);
   const [filter, setFilter] = useState("All");
   const [formOn, setFormOn] = useState(false);
   const [open, setOpen] = useState<Card | null>(null);
@@ -91,7 +160,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   }
   useEffect(() => {
     load();
-    setShown(9);
+    setShown(12);
     setFilter("All");
     setOpen(null);
     setFormOn(false);
@@ -115,8 +184,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
     return ["All", ...[...set].sort()];
   }, [rows]);
   const filtered = filter === "All" ? rows : rows.filter((r) => r.city === filter);
-  const featured = filtered.slice(0, 4);
-  const rest = filtered.slice(4);
+  const featured = filtered.slice(0, 8);
   const canPost = !!session.user && canKind(meKind, ACTION[kind]);
   const canApply = !!session.user && canKind(meKind, "jobs.apply");
 
@@ -126,10 +194,15 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
 
   return (
     <div className="mx-auto max-w-3xl p-3 pb-20">
-      <div className="mb-3">
-        <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{copy.kicker}</div>
-        <h2 className="text-2xl font-extrabold tracking-tight">{copy.title}</h2>
-        <p className="mt-1 text-[12px] leading-snug text-muted">{copy.who}</p>
+      <div className="mb-3 flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-panel-2 text-lime-2">
+          <Icon className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{copy.kicker}</div>
+          <h2 className="text-2xl font-extrabold tracking-tight">{copy.title}</h2>
+          <p className="mt-1 text-[12px] leading-snug text-muted">{copy.who}</p>
+        </div>
       </div>
 
       <AdReserve id={`list_${kind}_top`} className="mb-3" />
@@ -141,7 +214,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             type="button"
             onClick={() => {
               setFilter(c);
-              setShown(9);
+              setShown(12);
             }}
             className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] ${filter === c ? "btn-3d font-semibold text-lime-2" : "border border-line text-muted"}`}
           >
@@ -258,69 +331,38 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
         </article>
       ) : null}
 
-      {featured.length ? (
-        <section className="mb-4">
-          <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">FEATURED</div>
-          <div className="grid grid-cols-2 gap-1.5">
-            {featured.map((r) => (
-              <button key={r.id} type="button" className="raised overflow-hidden rounded-lg text-left" onClick={() => setOpen(r)}>
-                <img src={cover(r)} alt="" className="aspect-[16/9] w-full object-cover" />
-                <div className="px-1.5 py-1">
-                  <div className="text-[9px] uppercase text-lime-2">{r.city || kind}</div>
-                  <div className="line-clamp-2 text-[11px] font-semibold leading-snug">{r.title}</div>
-                  {r.company ? <div className="truncate text-[10px] text-muted">{r.company}</div> : null}
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
+      <SlimRail rows={featured} onOpen={setOpen} />
       <AdReserve id={`list_${kind}_mid`} className="mb-4" />
 
       <section>
-        <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">
+        <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">
+          <Icon className="size-3" />
           {kind === "job" ? "OPEN ROLES" : kind === "market" ? "ON THE MARKET" : "SPACES"}
         </div>
-        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-1.5">
           {filtered.slice(0, shown).map((r) => (
-            <button key={r.id} type="button" className="raised overflow-hidden rounded-lg text-left" onClick={() => setOpen(r)}>
-              <img src={cover(r)} alt="" className="aspect-[16/10] w-full object-cover" />
-              <div className="px-1.5 py-1">
-                <div className="text-[9px] uppercase text-lime-2">{r.city || kind}</div>
-                <div className="line-clamp-2 text-[11px] font-normal leading-snug">{r.title}</div>
-                <div className="mt-0.5 flex items-center justify-between text-[9px] text-muted">
-                  <span className="truncate">{r.company}</span>
-                  <span>{r.days ? `${r.days}d` : ""}</span>
-                </div>
-              </div>
-            </button>
+            <Tile key={r.id} r={r} kind={kind} onOpen={setOpen} />
           ))}
         </div>
         {shown < filtered.length ? (
-          <button type="button" className="btn-3d mx-auto mt-2 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + 9)}>
+          <button type="button" className="btn-3d mx-auto mt-2 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + 12)}>
             Load more · {filtered.length - shown} left
           </button>
         ) : null}
       </section>
 
-      {rest.length > 6 ? (
-        <>
-          <AdReserve id={`list_${kind}_low`} className="my-4" />
-          <section>
-            <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">{kind === "job" ? "MORE ROLES" : kind === "market" ? "MORE FINDS" : "MORE SPACES"}</div>
-            <div className="grid grid-cols-3 gap-1.5">
-              {rest.slice(0, 6).map((r) => (
-                <button key={`m-${r.id}`} type="button" className="raised overflow-hidden rounded-lg text-left" onClick={() => setOpen(r)}>
-                  <img src={cover(r)} alt="" className="aspect-[16/9] w-full object-cover" />
-                  <div className="px-1 py-1">
-                    <div className="line-clamp-2 text-[10px] leading-snug">{r.title}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
-        </>
+      <PortraitAd id={`list_${kind}_portrait`} />
+      <AdReserve id={`list_${kind}_low`} className="my-4" />
+
+      {filtered.length > 6 ? (
+        <section>
+          <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">{kind === "job" ? "MORE ROLES" : kind === "market" ? "MORE FINDS" : "MORE SPACES"}</div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {filtered.slice(shown, shown + 6).map((r) => (
+              <Tile key={`m-${r.id}`} r={r} kind={kind} onOpen={setOpen} />
+            ))}
+          </div>
+        </section>
       ) : null}
 
       <AdReserve id={`list_${kind}_foot`} className="mt-4" />

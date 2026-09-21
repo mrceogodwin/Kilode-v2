@@ -14,8 +14,8 @@ export function HowKilode({ className = "" }: { className?: string }) {
   const [failed, setFailed] = useState(false);
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={`btn-3d rounded-md py-1.5 text-center text-[10px] font-semibold tracking-wide ${className}`}>
-        How Kilode works
+      <button type="button" onClick={() => setOpen(true)} className={className || "btn-3d rounded-md py-1.5 text-center text-[10px] font-semibold tracking-wide"}>
+        HOW KILODE WORKS
       </button>
       {open ? (
         <div className="fixed inset-0 z-[60] grid place-items-end bg-black/70 p-3 sm:place-items-center" onClick={() => setOpen(false)}>
@@ -46,7 +46,7 @@ export function HowKilode({ className = "" }: { className?: string }) {
               <video
                 className="aspect-video w-full bg-white"
                 src="/howto/how-kilode.mp4"
-                poster="/howto/feeds.jpg"
+                poster="/howto/poster.jpg"
                 controls
                 playsInline
                 autoPlay

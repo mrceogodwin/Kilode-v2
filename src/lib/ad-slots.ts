@@ -23,6 +23,7 @@ export const AD_SLOT_DEFS = [
   { id: "feeds_highlights_ad", label: "Feeds · after More Highlights", kind: "google" as const, hint: "Google or image between highlight rails." },
   { id: "feeds_news_ad", label: "Feeds · after More News", kind: "google" as const, hint: "Google or image between news rails." },
   { id: "feeds_after_miss", label: "Feeds · after Don't Miss", kind: "google" as const, hint: "Google unit under Don't Miss." },
+  { id: "feeds_portrait_miss", label: "Feeds · portrait under Don't Miss", kind: "image" as const, hint: "9:16 company portrait before Categories archive." },
   { id: "feeds_after_tags", label: "Feeds · after tags", kind: "google" as const, hint: "Google unit under tag archive." },
   { id: "ads_g1", label: "Ads tab · Google 1", kind: "google" as const, hint: "AdSense unit between verticals." },
   { id: "ads_g2", label: "Ads tab · Google 2", kind: "google" as const, hint: "AdSense unit mid-page." },
@@ -39,6 +40,9 @@ export const AD_SLOT_DEFS = [
   { id: "list_rent_mid", label: "Rent · mid banner", kind: "google" as const, hint: "Between featured and the grid." },
   { id: "list_rent_low", label: "Rent · lower banner", kind: "image" as const, hint: "Before more spaces." },
   { id: "list_rent_foot", label: "Rent · footer", kind: "google" as const, hint: "Footer unit on Rent." },
+  { id: "list_job_portrait", label: "Jobs · portrait", kind: "image" as const, hint: "9:16 company ad on Jobs." },
+  { id: "list_market_portrait", label: "Marketplace · portrait", kind: "image" as const, hint: "9:16 company ad on Marketplace." },
+  { id: "list_rent_portrait", label: "Rent · portrait", kind: "image" as const, hint: "9:16 company ad on Rent." },
 ] as const;
 
 export type AdSlotId = (typeof AD_SLOT_DEFS)[number]["id"];

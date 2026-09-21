@@ -788,7 +788,7 @@ export const DEMO_ADS: Campaign[] = [
     note: "Collect payments in Naira.",
     ts: Date.now() - 4000_000,
     status: "approved",
-    placement: "featured",
+    placement: "chat-pin",
     amount: "80 USDT",
     coin: "usdt",
     txHash: "0xdemohero001",

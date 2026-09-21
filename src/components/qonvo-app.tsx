@@ -28,6 +28,7 @@ import {
   Store,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Settings,
   Trophy,
   User,
@@ -61,7 +62,7 @@ import { NotifyBell } from "@/components/notify-bell";
 import { HowKilode } from "@/components/how-kilode";
 import { JoinCta, MenuLegal, MenuPin } from "@/components/get-app";
 import { AdSlotOrEmpty, FlatAdBox, AdReserve } from "@/components/ad-slot";
-import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, isDupExcerpt } from "@/components/engage-rail";
+import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -848,10 +849,12 @@ export function QonvoApp() {
               {!(signedIn) ? (
                 <div className="mb-3 space-y-2">
                   <MenuPremiumAd />
-                  <div className="flex gap-1">
-                    <HowKilode className="min-w-0 flex-1 whitespace-nowrap px-1 text-[9px]" />
-                    <ContactCta className="min-w-0 flex-1 whitespace-nowrap px-1" />
-                    <JoinCta className="min-w-0 flex-1 whitespace-nowrap px-1 text-[9px]" />
+                  <div className="grid grid-cols-3 gap-1">
+                    <HowKilode className="flex min-h-[34px] w-full items-center justify-center rounded-md border border-line bg-transparent px-1 text-center text-[8px] font-semibold uppercase tracking-[0.04em]" />
+                    <ContactCta className="min-h-[34px] w-full px-1" />
+                    <a href="/login?mode=up" className="flex min-h-[34px] items-center justify-center rounded-md border border-line bg-transparent px-1 text-center text-[8px] font-semibold uppercase tracking-[0.04em]">
+                      JOIN KILODE
+                    </a>
                   </div>
                 </div>
               ) : (
@@ -1727,7 +1730,8 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
         <AdReserve id="feeds_highlights_ad" />
         <LandscapeGrid title="MORE NEWS" posts={store.posts.filter((p) => p.category === "News" || p.category === "Naija" || p.category === "Politics")} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
         <AdReserve id="feeds_news_ad" />
-        <LandscapeGrid title="DON'T MISS" posts={[...store.posts].sort((a, b) => b.ts - a.ts)} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
+        <DontMissGrid posts={[...store.posts].sort((a, b) => b.ts - a.ts)} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
+        <PortraitAd id="feeds_portrait_miss" />
         <div className="mt-6 grid grid-cols-2 gap-2">
           <AdReserve id="article_box" minH="min-h-[120px]" />
           <AdReserve id="article_video" minH="min-h-[120px]" />
@@ -1757,6 +1761,7 @@ function EmptyHero({ title, body, cta, onClick }: { title: string; body: string;
 function FeedPane({ store, q = "" }: { store: ReturnType<typeof useQonvo>; q?: string }) {
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(20);
+  const [catsOpen, setCatsOpen] = useState(false);
   const open = store.posts.find((p) => p.id === store.openPost);
   const needle = q.trim().toLowerCase();
   const live = store.posts.filter(
@@ -1766,28 +1771,67 @@ function FeedPane({ store, q = "" }: { store: ReturnType<typeof useQonvo>; q?: s
       (cat === "All" || p.category === cat) &&
       (!needle || p.title.toLowerCase().includes(needle) || (p.excerpt || "").toLowerCase().includes(needle)),
   );
+  const catCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    store.posts.forEach((p) => {
+      if (p.status === "draft") return;
+      const c = p.category || "General";
+      m.set(c, (m.get(c) ?? 0) + 1);
+    });
+    return m;
+  }, [store.posts]);
   if (open) {
     return <ArticleRead post={open} store={store} />;
   }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 flex-nowrap gap-1.5 overflow-x-auto overscroll-x-contain border-b border-line px-2 py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {["All", ...POST_CATS].map((c) => (
-          <button
-            key={c}
-            type="button"
-            onClick={() => {
-              setCat(c);
-              setShown(20);
-            }}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold tracking-wide ${cat === c ? "btn-3d text-lime-2" : "border border-line bg-panel-2 text-fg/80"}`}
-          >
-            {c}
-          </button>
-        ))}
-      </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-6">
         <AdReserve id="article_top" className="mb-3" />
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">LATEST POST{cat !== "All" ? ` · ${cat.toUpperCase()}` : ""}</div>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[10px] font-semibold uppercase tracking-wide"
+            onClick={() => setCatsOpen((v) => !v)}
+          >
+            Categories
+            <ChevronDown className={`size-3 transition ${catsOpen ? "rotate-180" : ""}`} />
+          </button>
+        </div>
+        {catsOpen ? (
+          <ul className="mb-3 overflow-hidden rounded-xl border border-line">
+            <li>
+              <button
+                type="button"
+                className={`flex w-full items-center justify-between px-3 py-2.5 text-left ${cat === "All" ? "text-lime-2" : ""}`}
+                onClick={() => {
+                  setCat("All");
+                  setShown(20);
+                  setCatsOpen(false);
+                }}
+              >
+                <span className="text-[13px] font-semibold">All</span>
+                <span className="tabular-nums text-[11px] text-muted">{store.posts.filter((p) => p.status !== "draft").length} posts</span>
+              </button>
+            </li>
+            {POST_CATS.map((c) => (
+              <li key={c} className="border-t border-line">
+                <button
+                  type="button"
+                  className={`flex w-full items-center justify-between px-3 py-2.5 text-left ${cat === c ? "text-lime-2" : ""}`}
+                  onClick={() => {
+                    setCat(c);
+                    setShown(20);
+                    setCatsOpen(false);
+                  }}
+                >
+                  <span className="text-[13px] font-semibold">{c}</span>
+                  <span className="tabular-nums text-[11px] text-muted">{catCounts.get(c) ?? 0}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
@@ -1847,7 +1891,8 @@ function FeedPane({ store, q = "" }: { store: ReturnType<typeof useQonvo>; q?: s
         <AdReserve id="feeds_highlights_ad" />
         <LandscapeGrid title="MORE NEWS" posts={store.posts.filter((p) => p.category === "News" || p.category === "Naija" || p.category === "Politics")} onOpen={(id) => store.setOpenPost(id)} />
         <AdReserve id="feeds_news_ad" />
-        <LandscapeGrid title="DON'T MISS" posts={[...store.posts].sort((a, b) => b.ts - a.ts)} onOpen={(id) => store.setOpenPost(id)} />
+        <DontMissGrid posts={[...store.posts].sort((a, b) => b.ts - a.ts)} onOpen={(id) => store.setOpenPost(id)} />
+        <PortraitAd id="feeds_portrait_miss" />
         <AdReserve id="feeds_after_miss" className="mt-3" />
         <CategoryArchive
           posts={store.posts}
@@ -1864,9 +1909,11 @@ function FeedPane({ store, q = "" }: { store: ReturnType<typeof useQonvo>; q?: s
 }
 
 function ChatAdCard({ ad, pinned, onView }: { ad: Campaign; pinned?: boolean; onView: () => void }) {
+  const [gone, setGone] = useState(false);
   const href = ad.link || undefined;
+  if (gone) return null;
   const inner = pinned ? (
-    <div className="flex items-center gap-2.5 px-2.5 py-2">
+    <div className="flex items-center gap-2.5 px-2.5 py-2 pr-9">
       {ad.image ? <img src={ad.image} alt="" className="h-12 w-14 shrink-0 rounded-lg object-cover" /> : <div className="grid h-11 w-14 shrink-0 place-items-center rounded-md bg-panel-3 text-[9px] text-lime-2">AD</div>}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
@@ -1895,18 +1942,38 @@ function ChatAdCard({ ad, pinned, onView }: { ad: Campaign; pinned?: boolean; on
       </div>
     </>
   );
-  const cls = pinned ? "mx-3 mt-2 overflow-hidden rounded-xl border border-lime-2/35 bg-panel" : "overflow-hidden rounded-xl border border-line bg-panel";
+  const cls = pinned ? "relative mx-3 mt-2 overflow-hidden rounded-xl border border-lime-2/35 bg-panel" : "overflow-hidden rounded-xl border border-line bg-panel";
+  const close = pinned ? (
+    <button
+      type="button"
+      aria-label="Close ad"
+      className="absolute top-1.5 right-1.5 z-10 grid size-7 place-items-center rounded-md border border-line bg-panel text-fg"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setGone(true);
+      }}
+    >
+      <X className="size-3.5" />
+    </button>
+  ) : null;
   if (href) {
     return (
-      <a href={href} target="_blank" rel="noreferrer" className={`block ${cls}`} onClick={onView}>
-        {inner}
-      </a>
+      <div className={cls}>
+        {close}
+        <a href={href} target="_blank" rel="noreferrer" className="block" onClick={onView}>
+          {inner}
+        </a>
+      </div>
     );
   }
   return (
-    <button type="button" className={`block w-full text-left ${cls}`} onClick={onView}>
-      {inner}
-    </button>
+    <div className={cls}>
+      {close}
+      <button type="button" className="block w-full text-left" onClick={onView}>
+        {inner}
+      </button>
+    </div>
   );
 }
 

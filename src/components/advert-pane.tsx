@@ -64,18 +64,18 @@ function FeaturedRail({ ads, onView }: { ads: Campaign[]; onView: (id: string) =
     const t = window.setInterval(() => {
       if (hover.current || !track.current) return;
       const el = track.current;
-      const next = el.scrollLeft + el.clientWidth * 0.7;
+      const next = el.scrollLeft + el.clientWidth * 0.55;
       el.scrollTo({ left: next >= el.scrollWidth - 8 ? 0 : next, behavior: "smooth" });
-    }, 4200);
+    }, 3800);
     return () => window.clearInterval(t);
   }, [ads.length]);
   if (!ads.length) return null;
   return (
     <section className="mb-3">
-      <div className="mb-1 text-[10px] font-medium tracking-[0.16em] text-lime-2">FEATURED</div>
+      <div className="mb-1 text-[10px] font-medium tracking-[0.16em] text-lime-2">FEATURED ADS</div>
       <div
         ref={track}
-        className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex gap-1.5 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         onPointerEnter={() => {
           hover.current = true;
         }}
@@ -83,11 +83,36 @@ function FeaturedRail({ ads, onView }: { ads: Campaign[]; onView: (id: string) =
           hover.current = false;
         }}
       >
-        {ads.map((a) => (
-          <div key={a.id} className="w-[220px] shrink-0">
-            <AdCard a={a} onView={onView} />
-          </div>
-        ))}
+        {ads.map((a) => {
+          const yt = a.video ? youtubeId(a.video) || a.video : undefined;
+          const left = daysLeft(a.expiresAt, a.days);
+          const thumb = a.image ? a.image : yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : "";
+          const card = (
+            <div className="flex overflow-hidden rounded-md border border-line bg-panel">
+              {thumb ? <img src={thumb} alt="" className="h-12 w-[72px] shrink-0 object-cover" /> : <div className="grid h-12 w-[72px] shrink-0 place-items-center bg-panel-3 text-[8px] text-muted">AD</div>}
+              <div className="min-w-0 flex-1 px-1.5 py-1">
+                <div className="truncate text-[11px] font-semibold leading-tight">{a.name}</div>
+                <div className="mt-0.5 flex items-center justify-between text-[9px] text-muted">
+                  <span>{fmtCount(a.views ?? 0)}</span>
+                  <span className="text-lime-2">{left ? `${left}d` : `${a.days ?? 7}d`}</span>
+                </div>
+              </div>
+            </div>
+          );
+          return (
+            <div key={a.id} className="w-[168px] shrink-0">
+              {a.link ? (
+                <a href={a.link} target="_blank" rel="noopener noreferrer" onClick={() => onView(a.id)}>
+                  {card}
+                </a>
+              ) : (
+                <button type="button" className="block w-full text-left" onClick={() => onView(a.id)}>
+                  {card}
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
