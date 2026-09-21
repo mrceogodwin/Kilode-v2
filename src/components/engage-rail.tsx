@@ -118,7 +118,7 @@ export function TrendingRail({
 }
 
 export function RelatedGrid({ posts, exclude, category, onOpen }: { posts: Post[]; exclude: string; category?: string; onOpen: (id: string) => void }) {
-  const [shown, setShown] = useState(6);
+  const [shown, setShown] = useState(12);
   const related = posts.filter((p) => p.id !== exclude && p.status !== "draft" && (!category || p.category === category));
   const extra = posts.filter((p) => p.id !== exclude && p.status !== "draft" && !related.includes(p));
   const list = [...related, ...extra];
@@ -138,7 +138,7 @@ export function RelatedGrid({ posts, exclude, category, onOpen }: { posts: Post[
         ))}
       </div>
       {shown < list.length ? (
-        <button type="button" className="btn-3d mx-auto mt-3 block rounded-md px-5 py-2 text-[11px] font-extrabold tracking-[0.18em]" onClick={() => setShown((n) => n + 6)}>
+        <button type="button" className="btn-3d mx-auto mt-3 block rounded-md px-5 py-2 text-[11px] font-extrabold tracking-[0.18em]" onClick={() => setShown((n) => n + 12)}>
           NEXT
         </button>
       ) : null}
@@ -189,10 +189,10 @@ export function LandscapeGrid({
   onOpen: (id: string) => void;
   cols?: 3 | 4;
 }) {
-  const [shown, setShown] = useState(cols === 4 ? 8 : 6);
+  const [shown, setShown] = useState(cols === 4 ? 16 : 12);
   const list = posts.filter((p) => p.id !== exclude && p.status !== "draft");
   if (!list.length) return null;
-  const step = cols === 4 ? 8 : 6;
+  const step = cols === 4 ? 16 : 12;
   return (
     <section className="mt-10">
       <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">{title}</div>
@@ -217,7 +217,7 @@ export function LandscapeGrid({
 }
 
 export function DontMissGrid({ posts, exclude, onOpen }: { posts: Post[]; exclude?: string; onOpen: (id: string) => void }) {
-  const [shown, setShown] = useState(8);
+  const [shown, setShown] = useState(16);
   const list = posts.filter((p) => p.id !== exclude && p.status !== "draft");
   if (!list.length) return null;
   return (
@@ -232,7 +232,7 @@ export function DontMissGrid({ posts, exclude, onOpen }: { posts: Post[]; exclud
         ))}
       </div>
       {shown < list.length ? (
-        <button type="button" className="btn-3d mx-auto mt-4 block rounded-md px-5 py-2 text-[11px] font-extrabold tracking-[0.18em]" onClick={() => setShown((n) => n + 8)}>
+        <button type="button" className="btn-3d mx-auto mt-4 block rounded-md px-5 py-2 text-[11px] font-extrabold tracking-[0.18em]" onClick={() => setShown((n) => n + 16)}>
           NEXT
         </button>
       ) : null}

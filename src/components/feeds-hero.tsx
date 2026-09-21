@@ -32,10 +32,12 @@ function isVideoAd(ad: Campaign) {
 
 function interleave(posts: Slide[], ads: Slide[]) {
   const out: Slide[] = [];
-  const n = Math.max(posts.length, ads.length);
-  for (let i = 0; i < n; i++) {
-    if (posts[i]) out.push(posts[i]);
-    if (ads[i]) out.push(ads[i]);
+  let p = 0;
+  let a = 0;
+  while (p < posts.length || a < ads.length) {
+    if (p < posts.length) out.push(posts[p++]);
+    if (p < posts.length) out.push(posts[p++]);
+    if (a < ads.length) out.push(ads[a++]);
   }
   return out;
 }
@@ -69,8 +71,8 @@ export function FeedsHero({
 
     if (cat.heroPosts) {
       const live = posts.filter((p) => p.status !== "draft" && p.title);
-      const trending = [...live].sort((a, b) => (b.views ?? 0) - (a.views ?? 0) || b.ts - a.ts).slice(0, 5);
-      const newest = [...live].sort((a, b) => b.ts - a.ts).slice(0, 3);
+      const trending = [...live].sort((a, b) => (b.views ?? 0) - (a.views ?? 0) || b.ts - a.ts).slice(0, 10);
+      const newest = [...live].sort((a, b) => b.ts - a.ts).slice(0, 8);
       const seen = new Set<string>();
       for (const p of [...trending, ...newest]) {
         if (seen.has(p.id)) continue;

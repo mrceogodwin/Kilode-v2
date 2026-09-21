@@ -1815,17 +1815,19 @@ function EmptyHero({ title, body, cta, onClick }: { title: string; body: string;
 
 function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void }) {
   const [cat, setCat] = useState("All");
-  const [shown, setShown] = useState(20);
+  const [shown, setShown] = useState(48);
   const [catsOpen, setCatsOpen] = useState(false);
   const open = store.posts.find((p) => p.id === store.openPost);
   const needle = q.trim().toLowerCase();
-  const live = store.posts.filter(
-    (p) =>
-      !!p?.id &&
-      p.status !== "draft" &&
-      (cat === "All" || p.category === cat) &&
-      (!needle || p.title.toLowerCase().includes(needle) || (p.excerpt || "").toLowerCase().includes(needle)),
-  );
+  const live = store.posts
+    .filter(
+      (p) =>
+        !!p?.id &&
+        p.status !== "draft" &&
+        (cat === "All" || p.category === cat) &&
+        (!needle || p.title.toLowerCase().includes(needle) || (p.excerpt || "").toLowerCase().includes(needle)),
+    )
+    .sort((a, b) => b.ts - a.ts);
   const catCounts = useMemo(() => {
     const m = new Map<string, number>();
     store.posts.forEach((p) => {
@@ -1867,7 +1869,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
                 className={`flex w-full items-center justify-between px-3 py-2.5 text-left ${cat === "All" ? "text-lime-2" : ""}`}
                 onClick={() => {
                   setCat("All");
-                  setShown(20);
+                  setShown(48);
                   setCatsOpen(false);
                 }}
               >
@@ -1882,7 +1884,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
                   className={`flex w-full items-center justify-between px-3 py-2.5 text-left ${cat === c ? "text-lime-2" : ""}`}
                   onClick={() => {
                     setCat(c);
-                    setShown(20);
+                    setShown(48);
                     setCatsOpen(false);
                   }}
                 >
@@ -1893,13 +1895,13 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
             ))}
           </ul>
         ) : null}
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2 lg:grid-cols-4">
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
               {p.image ? <img src={p.image} alt="" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
-              <div className="px-1 py-1 sm:px-1.5">
+              <div className="px-1.5 py-1.5 sm:px-1.5">
                 <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
-                <div className="mt-0.5 line-clamp-4 text-[10px] font-normal leading-tight text-fg sm:text-[11px] md:text-[12px]">{p.title}</div>
+                <div className="mt-0.5 line-clamp-4 text-[12px] font-normal leading-tight text-fg sm:text-[12px] md:text-[13px]">{p.title}</div>
                 <div className="mt-0.5 flex items-center gap-1.5 text-[8px] tabular-nums text-muted">
                   <span className="inline-flex items-center gap-0.5">
                     <Eye className="size-2.5" />
@@ -1931,7 +1933,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           <button
             type="button"
             className="btn-3d mt-6 mb-8 w-full rounded-md py-2.5 text-[12px] font-extrabold tracking-[0.18em]"
-            onClick={() => setShown((n) => n + 20)}
+            onClick={() => setShown((n) => n + 24)}
           >
             NEXT
           </button>
@@ -1959,7 +1961,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           posts={store.posts}
           onPick={(c) => {
             setCat(c);
-            setShown(20);
+            setShown(48);
           }}
         />
         <TagArchive posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />

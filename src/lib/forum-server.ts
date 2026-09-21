@@ -132,7 +132,7 @@ export const listPosts = createServerFn({ method: "GET" }).handler(async () => {
     author: string;
     ts: number | string;
     views: number | string | null;
-  }>`select id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, views from nf_posts where status = 'publish' order by ts desc limit 80`;
+  }>`select id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, views from nf_posts where status = 'publish' order by ts desc limit 160`;
   const comments = await sql<{
     post_id: string;
     author: string;
