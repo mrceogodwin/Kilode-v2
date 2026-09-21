@@ -18,7 +18,7 @@ import {
   parseMusicUrl,
   type Team,
 } from "@/lib/qonvo-data";
-import { DEMO_ADS, DEMO_JOINS, DEMO_NOTES, DEMO_POSTS, DEMO_TRACKS } from "@/lib/qonvo-seed";
+import { DEMO_ADS, DEMO_JOINS, DEMO_NOTES, DEMO_POSTS, DEMO_TRACKS, MORE_DEMO_ADS } from "@/lib/qonvo-seed";
 import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, savePin, savePost, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
 import { listNotes } from "@/lib/social-server";
 import { hidePost as hidePostRow, setAdPlacement, setAdStatus, setAdWindow } from "@/lib/staff-server";
@@ -134,6 +134,7 @@ export function useQonvo() {
     ];
     const ads = [
       ...DEMO_ADS.filter((d) => !!d?.id && !ads0.some((p) => p.id === d.id)),
+      ...MORE_DEMO_ADS.filter((d) => !!d?.id && !ads0.some((p) => p.id === d.id)),
       ...ads0,
     ];
     setPosts(posts);

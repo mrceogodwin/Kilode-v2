@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { AdSlot, AdSlotOrEmpty } from "@/components/ad-slot";
+import { AdReserve } from "@/components/ad-slot";
 import { PremiumSquareAd } from "@/components/premium-ad";
 import { listAdCatalog } from "@/lib/ad-catalog-server";
-import { adDayBucket, daysLeft, fmtCount, youtubeId, type Campaign } from "@/lib/qonvo-data";
+import { AD_VERTICALS, adDayBucket, adVertical, daysLeft, fmtCount, youtubeId, type Campaign } from "@/lib/qonvo-data";
 
 function EmptyHero({ title, body, cta, onClick }: { title: string; body: string; cta: string; onClick?: () => void }) {
   return (
@@ -97,7 +97,9 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
   const [shown, setShown] = useState<Record<number, number>>({ 30: 12, 14: 12, 7: 12, 1: 12 });
   const [pageSize, setPageSize] = useState(12);
   const [featuredN, setFeaturedN] = useState(8);
-  const live = ads.filter((a) => a.status === "approved");
+  const [vert, setVert] = useState<string>("All");
+  const liveAll = ads.filter((a) => a.status === "approved");
+  const live = vert === "All" ? liveAll : liveAll.filter((a) => adVertical(a.name, a.note) === vert);
   const mine = ads.filter((a) => a.status !== "approved");
   const buckets: { days: number; label: string }[] = [
     { days: 30, label: "30-day ads" },
@@ -149,13 +151,25 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
           Place ad
         </button>
       </div>
+      <div className="flex shrink-0 flex-nowrap gap-1 overflow-x-auto overscroll-x-contain border-b border-line px-2 py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {AD_VERTICALS.map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => setVert(v)}
+            className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] ${vert === v ? "btn-3d font-semibold text-lime-2" : "border border-line text-muted"}`}
+          >
+            {v}
+          </button>
+        ))}
+      </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-3">
         <PremiumSquareAd />
-        <AdSlot id="ads_leader" className="mb-3" />
+        <AdReserve id="ads_leader" className="mb-3" />
         <FeaturedRail ads={featured} onView={onView} />
         <div className="mb-3 grid grid-cols-2 gap-2">
-          <AdSlotOrEmpty id="ads_split_a" label="" />
-          <AdSlotOrEmpty id="ads_split_b" label="" />
+          <AdReserve id="ads_split_a" minH="min-h-[90px]" />
+          <AdReserve id="ads_g1" minH="min-h-[90px]" />
         </div>
         {buckets.map(({ days, label }) => {
           const pack = live.filter((a) => adDayBucket(a.days) === days);
@@ -185,8 +199,28 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
           );
         })}
         <div ref={sentinel} className="h-2" />
+        <AdReserve id="ads_g2" className="mb-3" />
+        {vert === "All"
+          ? AD_VERTICALS.filter((v) => v !== "All")
+              .map((v) => {
+                const pack = liveAll.filter((a) => adVertical(a.name, a.note) === v);
+                if (!pack.length) return null;
+                return (
+                  <section key={v} className="mb-5">
+                    <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">{v.toUpperCase()}</div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {pack.slice(0, 6).map((a) => (
+                        <AdCard key={a.id} a={a} onView={onView} />
+                      ))}
+                    </div>
+                  </section>
+                );
+              })
+              .filter(Boolean)
+              .flatMap((node, i) => (i === 3 ? [node, <AdReserve key="g3" id="ads_g3" className="mb-3" />] : [node]))
+          : null}
         {live.length === 0 ? <EmptyHero title="No ads live" body="Place an ad after crypto payment — Nigeria is watching." cta="Place an ad" onClick={onCreate} /> : null}
-        <AdSlotOrEmpty id="ads_footer" label="" className="mt-3" />
+        <AdReserve id="ads_footer" className="mt-3" />
         {mine.length ? <div className="mt-3 text-[10px] font-medium tracking-normal text-muted">Your queue</div> : null}
         {mine.map((a) => (
           <div key={a.id} className="mt-1 rounded-md border border-line px-2 py-1.5 text-[11px] text-muted">

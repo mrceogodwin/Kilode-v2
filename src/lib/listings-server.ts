@@ -21,6 +21,7 @@ export type Listing = {
   views: number;
   days: number;
   expiresAt?: number;
+  image?: string;
 };
 
 function nid() {

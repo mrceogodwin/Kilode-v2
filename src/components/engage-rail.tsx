@@ -175,3 +175,101 @@ export function TopTen({ posts, exclude, onOpen }: { posts: Post[]; exclude: str
     </div>
   );
 }
+
+export function LandscapeGrid({
+  title,
+  posts,
+  exclude,
+  onOpen,
+}: {
+  title: string;
+  posts: Post[];
+  exclude?: string;
+  onOpen: (id: string) => void;
+}) {
+  const [shown, setShown] = useState(6);
+  const list = posts.filter((p) => p.id !== exclude && p.status !== "draft");
+  if (!list.length) return null;
+  return (
+    <section className="mt-6">
+      <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">{title}</div>
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+        {list.slice(0, shown).map((p) => (
+          <button key={p.id} type="button" className="raised overflow-hidden rounded-lg text-left" onClick={() => onOpen(p.id)}>
+            {p.image ? <img src={p.image} alt="" className="aspect-[16/9] w-full object-cover" /> : <div className="aspect-[16/9] bg-panel-3" />}
+            <div className="px-1.5 py-1">
+              <div className="text-[9px] text-lime-2">{p.category || "General"}</div>
+              <div className="mt-0.5 line-clamp-2 text-[11px] font-normal leading-snug">{p.title}</div>
+            </div>
+          </button>
+        ))}
+      </div>
+      {shown < list.length ? (
+        <button type="button" className="btn-3d mx-auto mt-2 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + 6)}>
+          Load more · {list.length - shown} left
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
+export function CategoryArchive({ posts, onPick }: { posts: Post[]; onPick?: (cat: string) => void }) {
+  const counts = new Map<string, number>();
+  posts.forEach((p) => {
+    if (p.status === "draft") return;
+    const c = p.category || "General";
+    counts.set(c, (counts.get(c) ?? 0) + 1);
+  });
+  const rows = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  if (!rows.length) return null;
+  return (
+    <section className="mt-6">
+      <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">CATEGORIES ARCHIVE</div>
+      <div className="flex flex-wrap gap-1.5">
+        {rows.map(([c, n]) => (
+          <button
+            key={c}
+            type="button"
+            className="rounded-md border border-line bg-panel-2 px-2 py-1 text-[10px]"
+            onClick={() => onPick?.(c)}
+          >
+            {c} <span className="text-muted">{n}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function TagArchive({ posts, onOpen }: { posts: Post[]; onOpen: (id: string) => void }) {
+  const tags = new Map<string, Post[]>();
+  posts.forEach((p) => {
+    if (p.status === "draft" || !p.tags) return;
+    p.tags.split(",").forEach((raw) => {
+      const t = raw.trim().toLowerCase();
+      if (!t) return;
+      const list = tags.get(t) ?? [];
+      list.push(p);
+      tags.set(t, list);
+    });
+  });
+  const rows = [...tags.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 24);
+  if (!rows.length) return null;
+  return (
+    <section className="mt-6">
+      <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">TAGS</div>
+      <div className="flex flex-wrap gap-1.5">
+        {rows.map(([t, list]) => (
+          <button
+            key={t}
+            type="button"
+            className="rounded-md border border-line px-2 py-1 text-[10px] text-muted"
+            onClick={() => list[0] && onOpen(list[0].id)}
+          >
+            #{t} {list.length}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}

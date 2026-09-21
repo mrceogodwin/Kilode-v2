@@ -1,4 +1,4 @@
-import type { Campaign, Join, MusicTrack, Note, Post } from "@/lib/qonvo-data";
+import type { Campaign, ChatMsg, Join, MusicTrack, Note, Post } from "@/lib/qonvo-data";
 import { parseMusicUrl } from "@/lib/qonvo-data";
 
 function poster(bg: string, label: string) {
@@ -788,7 +788,7 @@ export const DEMO_ADS: Campaign[] = [
     note: "Collect payments in Naira.",
     ts: Date.now() - 4000_000,
     status: "approved",
-    placement: "chat-pin",
+    placement: "featured",
     amount: "80 USDT",
     coin: "usdt",
     txHash: "0xdemohero001",
@@ -836,7 +836,7 @@ export const DEMO_ADS: Campaign[] = [
     note: "Data that lasts.",
     ts: Date.now() - 1800_000,
     status: "approved",
-    placement: "board",
+    placement: "featured",
     coin: "eth",
     link: "https://www.mtn.ng",
     image: "https://picsum.photos/seed/mtn-ad/640/160",
@@ -910,6 +910,119 @@ export const DEMO_ADS: Campaign[] = [
     coin: "usdt",
     txHash: "0xpending99",
   },
+];
+
+function moreAd(id: string, name: string, note: string, days: 1 | 7 | 14 | 30, extra: Partial<Campaign> = {}): Campaign {
+  return {
+    ts: Date.now() - 900_000,
+    status: "approved",
+    placement: "board",
+    kind: "image-text",
+    views: 180 + id.length * 21,
+    image: `https://picsum.photos/seed/${id}/640/360`,
+    link: "https://kilode.ng/advertise",
+    coin: "usdt",
+    ...extra,
+    id,
+    name,
+    note,
+    days,
+  };
+}
+
+export const DEMO_CHAT: ChatMsg[] = [
+  { n: "Amaka#2201", t: "Who saw that Chelsea news? Room dey hot.", ts: Date.now() - 820_000, rx: { up: 4, fire: 2 } },
+  { n: "Tunde#104", t: "I dey here. No links in chat — just talk 🔥", ts: Date.now() - 760_000, rx: { up: 3 } },
+  { n: "Kemi#0092", t: "Feeds grid looking clean today. That rain piece?", ts: Date.now() - 690_000 },
+  { n: "Chidi#4410", t: "King’s College story first. Then cinema vote later.", ts: Date.now() - 640_000, parentN: "Kemi#0092", parentT: "Feeds grid looking clean today. That rain piece?", parentTs: Date.now() - 690_000 },
+  { n: "Baba#12", t: "Naija never sleeps. Good morning the room.", ts: Date.now() - 510_000, rx: { up: 6 } },
+  { n: "Ife#830", t: "Anybody in Lagos room or we holding Hot Topics?", ts: Date.now() - 430_000 },
+  { n: "Amaka#2201", t: "Stay here first. Messages expire — say it now.", ts: Date.now() - 360_000, parentN: "Ife#830", parentT: "Anybody in Lagos room or we holding Hot Topics?", parentTs: Date.now() - 430_000 },
+  { n: "Tunde#104", t: "Amen. No phone numbers. Just gist.", ts: Date.now() - 280_000, rx: { fire: 1 } },
+  { n: "Zara#77", t: "Jobs page get roles now. Lagos UI and Abuja writer.", ts: Date.now() - 210_000, rx: { up: 2 } },
+  { n: "Sade#900", t: "Marketplace too. Ankara set from Aba.", ts: Date.now() - 160_000 },
+  { n: "Femi#331", t: "Cinema Watching Now — vote before it shifts.", ts: Date.now() - 110_000, rx: { fire: 3 } },
+  { n: "Ngozi#55", t: "How Kilode works is in the menu. Watch am.", ts: Date.now() - 70_000 },
+];
+
+export type DemoListing = {
+  id: string;
+  kind: "job" | "market" | "rent";
+  title: string;
+  body: string;
+  city: string;
+  contact: string;
+  link: string;
+  company: string;
+  status: "approved";
+  submitter: string;
+  ts: number;
+  views: number;
+  days: number;
+  image: string;
+};
+
+export const DEMO_LISTINGS: DemoListing[] = [
+  { id: "dj1", kind: "job", title: "Frontend designer — Lagos", body: "Figma + React. Remote-friendly. Apply with a short note.", city: "Lagos", contact: "", link: "", company: "Kilode Studio", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 86_400_000, views: 312, days: 30, image: "https://picsum.photos/seed/job-lagos-ui/640/400" },
+  { id: "dj2", kind: "job", title: "Content writer — Abuja", body: "Naija news and culture. Five posts a week.", city: "Abuja", contact: "", link: "", company: "Kilode Desk", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 72_000_000, views: 188, days: 14, image: "https://picsum.photos/seed/job-abuja-write/640/400" },
+  { id: "dj3", kind: "job", title: "Community moderator", body: "Night shift. Chat rooms + reports. Handle only.", city: "Remote", contact: "", link: "", company: "Kilode", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 40_000_000, views: 94, days: 7, image: "https://picsum.photos/seed/job-mod/640/400" },
+  { id: "dj4", kind: "job", title: "Motion designer — PH", body: "Shorts for Cinema trailers. After Effects.", city: "Port Harcourt", contact: "", link: "", company: "Reel Naija", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 20_000_000, views: 141, days: 30, image: "https://picsum.photos/seed/job-motion/640/400" },
+  { id: "dj5", kind: "job", title: "Sales lead — Kano", body: "Marketplace sellers. Field + WhatsApp. Commission.", city: "Kano", contact: "", link: "", company: "Stack Commerce", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 18_000_000, views: 76, days: 14, image: "https://picsum.photos/seed/job-kano-sales/640/400" },
+  { id: "dj6", kind: "job", title: "Nurse — Ibadan clinic", body: "Day shift. Licence required. Apply with note.", city: "Ibadan", contact: "", link: "", company: "Ring Road Care", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 16_000_000, views: 121, days: 30, image: "https://picsum.photos/seed/job-ibadan-nurse/640/400" },
+  { id: "dj7", kind: "job", title: "Product manager — Remote", body: "Feeds + Ads tools. Shipping weekly.", city: "Remote", contact: "", link: "", company: "Kilode", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 14_000_000, views: 203, days: 30, image: "https://picsum.photos/seed/job-pm/640/400" },
+  { id: "dj8", kind: "job", title: "Electrician — Enugu", body: "Estates and shops. Tools provided.", city: "Enugu", contact: "", link: "", company: "Coal Power", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 12_000_000, views: 55, days: 7, image: "https://picsum.photos/seed/job-enugu-elec/640/400" },
+  { id: "dj9", kind: "job", title: "Data analyst — Lagos", body: "SQL + sheets. News desk metrics.", city: "Lagos", contact: "", link: "", company: "Kilode Desk", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 9_000_000, views: 167, days: 14, image: "https://picsum.photos/seed/job-data/640/400" },
+  { id: "dm1", kind: "market", title: "Ankara two-piece set", body: "Made in Aba. WhatsApp to order. No checkout in Kilode.", city: "Aba", contact: "WhatsApp on listing", link: "https://instagram.com", company: "Adire Co", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 50_000_000, views: 420, days: 30, image: "https://picsum.photos/seed/mkt-ankara/640/400" },
+  { id: "dm2", kind: "market", title: "Shea butter 500ml", body: "Unrefined. Jos. Contact the seller.", city: "Jos", contact: "wa.me", link: "", company: "Plateau Shea", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 30_000_000, views: 210, days: 14, image: "https://picsum.photos/seed/mkt-shea/640/400" },
+  { id: "dm3", kind: "market", title: "Beats for artists", body: "Afrobeats pack. URL only — no audio file on Kilode.", city: "Lagos", contact: "DM", link: "https://audiomack.com", company: "Stack Beats", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 12_000_000, views: 156, days: 7, image: "https://picsum.photos/seed/mkt-beats/640/400" },
+  { id: "dm4", kind: "market", title: "Leather slippers — Onitsha", body: "Wholesale pairs. Showcase + contact.", city: "Onitsha", contact: "080 listing", link: "", company: "Main Market", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 8_000_000, views: 88, days: 30, image: "https://picsum.photos/seed/mkt-slippers/640/400" },
+  { id: "dm5", kind: "market", title: "Palm oil 25L", body: "Delta. Contact to order. No checkout.", city: "Warri", contact: "Seller", link: "", company: "Delta Press", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 7_000_000, views: 132, days: 14, image: "https://picsum.photos/seed/mkt-palm/640/400" },
+  { id: "dm6", kind: "market", title: "Phone cases — Computer Village", body: "Bulk iPhone and Tecno. Showcase.", city: "Ikeja", contact: "Shop 12", link: "", company: "CV Cases", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 6_000_000, views: 97, days: 7, image: "https://picsum.photos/seed/mkt-cases/640/400" },
+  { id: "dm7", kind: "market", title: "Handmade beads", body: "Benin craft. Instagram on the card.", city: "Benin", contact: "IG", link: "https://instagram.com", company: "Edo Beads", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 5_000_000, views: 64, days: 30, image: "https://picsum.photos/seed/mkt-beads/640/400" },
+  { id: "dm8", kind: "market", title: "Suya spice pack", body: "Abuja mix. Contact to restock.", city: "Abuja", contact: "Seller", link: "", company: "Wuse Grill", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 4_000_000, views: 201, days: 14, image: "https://picsum.photos/seed/mkt-suya/640/400" },
+  { id: "dm9", kind: "market", title: "Solar lantern", body: "Jos assembled. Showcase + contact.", city: "Jos", contact: "Maker", link: "", company: "Plateau Light", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 3_000_000, views: 73, days: 30, image: "https://picsum.photos/seed/mkt-lantern/640/400" },
+  { id: "dr1", kind: "rent", title: "Self-con in Yaba", body: "New tiles, prepaid meter. Agent contact on listing.", city: "Lagos", contact: "Agent", link: "", company: "Yaba Lets", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 60_000_000, views: 276, days: 30, image: "https://picsum.photos/seed/rent-yaba/640/400" },
+  { id: "dr2", kind: "rent", title: "2-bed in Wuse II", body: "Serviced. No deposit inside Kilode.", city: "Abuja", contact: "Agent", link: "", company: "Wuse Homes", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 44_000_000, views: 198, days: 14, image: "https://picsum.photos/seed/rent-wuse/640/400" },
+  { id: "dr3", kind: "rent", title: "Shop space — Computer Village", body: "Ground floor. Call the lister.", city: "Ikeja", contact: "Lister", link: "", company: "CV Shops", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 22_000_000, views: 133, days: 7, image: "https://picsum.photos/seed/rent-cv/640/400" },
+  { id: "dr4", kind: "rent", title: "Room and parlour — Enugu", body: "Gated. Agent on the card.", city: "Enugu", contact: "Agent", link: "", company: "Coal City Lets", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 10_000_000, views: 77, days: 30, image: "https://picsum.photos/seed/rent-enugu/640/400" },
+  { id: "dr5", kind: "rent", title: "Mini flat — Ikeja GRA", body: "Generator. Agent contact only.", city: "Lagos", contact: "Agent", link: "", company: "GRA Lets", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 9_000_000, views: 154, days: 14, image: "https://picsum.photos/seed/rent-ikeja/640/400" },
+  { id: "dr6", kind: "rent", title: "Office desk — Yaba", body: "Hot desk. No rent paid in Kilode.", city: "Lagos", contact: "Host", link: "", company: "Yaba Hub", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 8_000_000, views: 91, days: 7, image: "https://picsum.photos/seed/rent-desk/640/400" },
+  { id: "dr7", kind: "rent", title: "3-bed — Gwarinpa", body: "Family house. Agent on the card.", city: "Abuja", contact: "Agent", link: "", company: "Gwarinpa Homes", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 7_000_000, views: 188, days: 30, image: "https://picsum.photos/seed/rent-gwarinpa/640/400" },
+  { id: "dr8", kind: "rent", title: "Warehouse — Apapa", body: "Ground floor. Lister contact.", city: "Lagos", contact: "Lister", link: "", company: "Apapa Yards", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 6_000_000, views: 62, days: 14, image: "https://picsum.photos/seed/rent-apapa/640/400" },
+  { id: "dr9", kind: "rent", title: "Short-let — Victoria Island", body: "Weekend stay. Contact the host. No booking in-app.", city: "Lagos", contact: "Host", link: "", company: "VI Stays", status: "approved", submitter: "Kilode.ng", ts: Date.now() - 5_000_000, views: 240, days: 7, image: "https://picsum.photos/seed/rent-vi/640/400" },
+];
+
+export const MORE_DEMO_ADS: Campaign[] = [
+  moreAd("demo-ad-airtel", "Airtel 5G", "Faster in 36 states.", 7, { placement: "featured", link: "https://www.airtel.com.ng" }),
+  moreAd("demo-ad-opay", "OPay wallet", "Send Naira in seconds.", 14, { link: "https://www.opayweb.com" }),
+  moreAd("demo-ad-access", "Access Bank", "More than banking.", 30, { link: "https://www.accessbankplc.com" }),
+  moreAd("demo-ad-infinix", "Infinix Hot", "Phones that last.", 7, { link: "https://www.infinixmobility.com" }),
+  moreAd("demo-ad-dangote", "Dangote Cement", "Build with it.", 30),
+  moreAd("demo-ad-guinness", "Guinness Malta", "Greatness.", 7),
+  moreAd("demo-ad-coke", "Coca-Cola Naija", "Open happiness.", 14),
+  moreAd("demo-ad-bet9ja", "Bet9ja weekend", "Play responsible.", 1),
+  moreAd("demo-ad-konga", "Konga deals", "Shop Nigeria.", 7, { link: "https://www.konga.com" }),
+  moreAd("demo-ad-ibom", "Ibom Air", "Fly the east.", 14),
+  moreAd("demo-ad-shoprite", "Shoprite Lagos", "Fill the cart.", 7),
+  moreAd("demo-ad-farm", "FarmCrowdy", "Grow with agro.", 30),
+  moreAd("demo-ad-total", "TotalEnergies", "Fuel that holds.", 14),
+  moreAd("demo-ad-gtb", "GTBank", "Orange is the new banking.", 30, { link: "https://www.gtbank.com" }),
+  moreAd("demo-ad-tecno", "Tecno Spark", "Capture more.", 7),
+  moreAd("demo-ad-flutter", "Flutterwave", "Accept payments.", 14, { link: "https://flutterwave.com" }),
+  moreAd("demo-ad-hotel", "Eko Hotels", "Lagos stay.", 7),
+  moreAd("demo-ad-wapic", "WAPIC insurance", "Cover the unexpected.", 30),
+  moreAd("demo-ad-cowry", "Cowrywise", "Save in Naira.", 14),
+  moreAd("demo-ad-pmt", "Peace Mass Transit", "Move the country.", 7),
+  moreAd("demo-ad-indomie", "Indomie", "You are the best.", 1),
+  moreAd("demo-ad-dstv", "DStv Compact", "Naija on screen.", 30),
+  moreAd("demo-ad-unilag", "UNILAG extra mural", "Learn after work.", 14),
+  moreAd("demo-ad-reddin", "Reddington Hospital", "Care in Lagos.", 30),
+  moreAd("demo-ad-rccg", "RCCG Lagos", "Sunday service.", 7),
+  moreAd("demo-ad-toyota", "Toyota Nigeria", "Drive longer.", 30),
+  moreAd("demo-ad-furn", "Furniture Palace", "Homes that sit well.", 14),
+  moreAd("demo-ad-quilox", "Quilox nights", "Victoria Island.", 1),
+  moreAd("demo-ad-event", "EventOne halls", "Weddings and launch.", 7),
+  moreAd("demo-ad-kuda", "Kuda Bank", "Free transfers.", 14, { link: "https://kuda.com" }),
 ];
 
 export const DEMO_JOINS: Join[] = [

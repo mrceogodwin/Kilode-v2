@@ -40,12 +40,12 @@ import {
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { canKind } from "@/lib/permissions";
-import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
+import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS, DEMO_CHAT } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
 import { CinemaPane } from "@/components/cinema-pane";
 import { ChatTermsBar, ForumClock, ForumWhy } from "@/components/forum-why";
-import { PremiumSquareAd, PremiumStoryAd, MenuPremiumAd } from "@/components/premium-ad";
+import { PremiumSquareAd, PremiumStoryAd, MenuPremiumAd, PortraitAd, ContactCta } from "@/components/premium-ad";
 import { AdvertPane } from "@/components/advert-pane";
 import { RoomList } from "@/components/rooms-list";
 import { listRoomOverlay } from "@/lib/rooms-server";
@@ -60,8 +60,8 @@ import { HandleLink } from "@/components/handle-link";
 import { NotifyBell } from "@/components/notify-bell";
 import { HowKilode } from "@/components/how-kilode";
 import { JoinCta, MenuLegal, MenuPin } from "@/components/get-app";
-import { AdSlot, AdSlotOrEmpty, FlatAdBox } from "@/components/ad-slot";
-import { RelatedGrid, TopTen, TrendingRail, isDupExcerpt } from "@/components/engage-rail";
+import { AdSlotOrEmpty, FlatAdBox, AdReserve } from "@/components/ad-slot";
+import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, isDupExcerpt } from "@/components/engage-rail";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -562,44 +562,10 @@ export function QonvoApp() {
                 }}
               >
                 {store.msgs.length === 0 ? (
-                  <div className="mx-auto flex max-w-md flex-col items-stretch gap-3 py-6">
-                    <div className="raised rounded-2xl p-4 text-center">
-                      <img src="/kilode-logo-green.png" alt="" className="mx-auto mb-2 h-8 w-auto max-w-[140px] object-contain" />
-                      <div className="text-[11px] font-medium text-lime-2">Chat room</div>
-                      <div className="mt-1 text-lg font-extrabold">{room.name}</div>
-                      <p className="mt-2 text-[12px] leading-relaxed text-muted">
-                        Room is quiet. Sign in and send the first line — or browse another room.
-                      </p>
-                      <div className="mt-3 flex flex-wrap justify-center gap-2">
-                        {["Hello 👋", "Who is online?", "Good vibes only"].map((msg) => (
-                          <button
-                            key={msg}
-                            type="button"
-                            className="rounded-full border border-line px-3 py-1.5 text-[11px] font-semibold"
-                            onClick={() => {
-                              if (!(store.authed || session.user)) {
-                                window.location.href = "/login";
-                                return;
-                              }
-                              store.send(msg);
-                            }}
-                          >
-                            {msg}
-                          </button>
-                        ))}
-                      </div>
-                      <button
-                        type="button"
-                        className="btn-3d mt-3 rounded-full px-4 py-2 text-[11px] font-bold"
-                        onClick={() => setRoomsOpen(true)}
-                      >
-                        Browse rooms
-                      </button>
-                    </div>
-                  </div>
+                  <p className="text-center text-[10px] font-medium tracking-[0.16em] text-lime-2">SAMPLE CONVERSATION</p>
                 ) : null}
                 {mixChatAds(
-                  chatRows(store.msgs),
+                  chatRows(store.msgs.length ? store.msgs : DEMO_CHAT),
                   store.campaigns.filter((c) => c.status === "approved" && c.placement === "chat"),
                 ).map((row) => {
                   if (row.kind === "chip") {
@@ -882,9 +848,10 @@ export function QonvoApp() {
               {!(signedIn) ? (
                 <div className="mb-3 space-y-2">
                   <MenuPremiumAd />
-                  <div className="flex gap-1.5">
-                    <HowKilode className="flex-1" />
-                    <JoinCta className="flex-1" />
+                  <div className="flex gap-1">
+                    <HowKilode className="min-w-0 flex-1 whitespace-nowrap px-1 text-[9px]" />
+                    <ContactCta className="min-w-0 flex-1 whitespace-nowrap px-1" />
+                    <JoinCta className="min-w-0 flex-1 whitespace-nowrap px-1 text-[9px]" />
                   </div>
                 </div>
               ) : (
@@ -1746,21 +1713,24 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
         <div className="mt-6">
           <PremiumStoryAd />
         </div>
-        <AdSlotOrEmpty id="article_leader" label="Long banner · 728×90" />
+        <AdReserve id="article_leader" />
         <RelatedGrid posts={store.posts} exclude={post.id} category={post.category} onOpen={(id) => store.setOpenPost(id)} />
-        <div className="mt-6">
-          <AdSlotOrEmpty id="article_before_top10" label="Company banner · before Top 10" />
-        </div>
+        <PortraitAd id="feeds_portrait_before" />
+        <AdReserve id="article_before_top10" />
         <TopTen posts={store.posts} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
-        <div className="mt-6">
-          <AdSlotOrEmpty id="article_after_top10" label="Company banner · after Top 10" />
+        <PortraitAd id="feeds_portrait_after" />
+        <AdReserve id="article_after_top10" />
+        <LandscapeGrid title="MORE HIGHLIGHTS" posts={[...store.posts].sort((a, b) => (b.views ?? 0) - (a.views ?? 0))} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
+        <div className="mt-4">
+          <PremiumStoryAd compact />
         </div>
+        <AdReserve id="feeds_highlights_ad" />
+        <LandscapeGrid title="MORE NEWS" posts={store.posts.filter((p) => p.category === "News" || p.category === "Naija" || p.category === "Politics")} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
+        <AdReserve id="feeds_news_ad" />
+        <LandscapeGrid title="DON'T MISS" posts={[...store.posts].sort((a, b) => b.ts - a.ts)} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
         <div className="mt-6 grid grid-cols-2 gap-2">
-          <AdSlotOrEmpty id="article_box" label="Google / box · 300×250" />
-          <AdSlotOrEmpty id="article_video" label="Video ad · YouTube" />
-        </div>
-        <div className="mt-6">
-          <AdSlotOrEmpty id="article_native" label="Native tile · image + link" />
+          <AdReserve id="article_box" minH="min-h-[120px]" />
+          <AdReserve id="article_video" minH="min-h-[120px]" />
         </div>
       </div>
     </article>
@@ -1817,7 +1787,7 @@ function FeedPane({ store, q = "" }: { store: ReturnType<typeof useQonvo>; q?: s
         ))}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-6">
-        <AdSlot id="article_top" className="mb-3" />
+        <AdReserve id="article_top" className="mb-3" />
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
@@ -1865,16 +1835,29 @@ function FeedPane({ store, q = "" }: { store: ReturnType<typeof useQonvo>; q?: s
         ) : (
           <EmptyHero title="No posts yet" body="Be first — share a take for Nigeria." cta="Create a post" onClick={() => { window.dispatchEvent(new CustomEvent("kilode:create")); }} />
         )}
-        <div className="mt-4">
-          <AdSlotOrEmpty id="feeds_before_top10" label="" />
-        </div>
+        <PortraitAd id="feeds_portrait_before" />
+        <AdReserve id="feeds_before_top10" />
         <TopTen posts={store.posts} exclude="" onOpen={(id) => store.setOpenPost(id)} />
+        <PortraitAd id="feeds_portrait_after" />
+        <AdReserve id="feeds_after_top10" />
+        <LandscapeGrid title="MORE HIGHLIGHTS" posts={[...store.posts].sort((a, b) => (b.views ?? 0) - (a.views ?? 0))} onOpen={(id) => store.setOpenPost(id)} />
         <div className="mt-4">
-          <AdSlotOrEmpty id="feeds_google" label="" />
+          <PremiumStoryAd compact />
         </div>
-        <div className="mt-4">
-          <AdSlotOrEmpty id="feeds_after_top10" label="" />
-        </div>
+        <AdReserve id="feeds_highlights_ad" />
+        <LandscapeGrid title="MORE NEWS" posts={store.posts.filter((p) => p.category === "News" || p.category === "Naija" || p.category === "Politics")} onOpen={(id) => store.setOpenPost(id)} />
+        <AdReserve id="feeds_news_ad" />
+        <LandscapeGrid title="DON'T MISS" posts={[...store.posts].sort((a, b) => b.ts - a.ts)} onOpen={(id) => store.setOpenPost(id)} />
+        <AdReserve id="feeds_after_miss" className="mt-3" />
+        <CategoryArchive
+          posts={store.posts}
+          onPick={(c) => {
+            setCat(c);
+            setShown(20);
+          }}
+        />
+        <TagArchive posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
+        <AdReserve id="feeds_after_tags" className="mt-3" />
       </div>
     </div>
   );

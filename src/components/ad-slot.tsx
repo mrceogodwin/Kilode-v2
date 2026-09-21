@@ -121,3 +121,20 @@ export function FlatAdBox({ id, className = "" }: { id: string; className?: stri
   }
   return <div className={`min-h-[40px] rounded-md bg-panel-2 ${className}`} aria-hidden />;
 }
+
+/** Always-visible reserved Google / banner box. Fills when a unit is pasted. */
+export function AdReserve({ id, className = "", minH = "min-h-[72px]" }: { id: string; className?: string; minH?: string }) {
+  const rows = useAdSlots();
+  const slot = rows.find((r) => r.id === id && r.enabled);
+  if (slot && (slot.image || slot.video || slot.html || (slot.pubId && slot.adUnit))) {
+    return <AdSlot id={id} className={className} />;
+  }
+  return (
+    <div className={`grid ${minH} place-items-center rounded-lg border border-dashed border-line bg-panel-2 ${className}`}>
+      <div className="px-2 py-2 text-center">
+        <div className="text-[8px] font-medium tracking-[0.18em] text-muted">ADVERTISEMENT</div>
+        <div className="mt-0.5 text-[9px] text-muted/70">Google AdSense</div>
+      </div>
+    </div>
+  );
+}
