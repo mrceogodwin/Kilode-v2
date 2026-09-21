@@ -395,8 +395,8 @@ html[data-skin="ivory"] .app-tab {
 html[data-skin="ivory"] .logo-night {
   display: block;
   background: #070b08;
-  border-radius: 8px;
-  padding: 3px 8px 3px 4px;
+  border-radius: 10px;
+  padding: 2px 6px;
 }
 html[data-skin="ivory"] .logo-day {
   display: none;
