@@ -104,11 +104,25 @@ export const boostSeo = createServerFn({ method: "POST" })
 
 export const sitemapXml = createServerFn({ method: "GET" }).handler(async () => {
   const sql = await getSql().catch(() => null);
-  const urls = [`${SITE.url}/`, `${SITE.url}/login`];
+  const now = new Date().toISOString();
+  const urls: { loc: string; lastmod: string; changefreq: string; priority: string }[] = [
+    { loc: `${SITE.url}/`, lastmod: now, changefreq: "hourly", priority: "1.0" },
+    { loc: `${SITE.url}/advertise`, lastmod: now, changefreq: "weekly", priority: "0.5" },
+    { loc: `${SITE.url}/install`, lastmod: now, changefreq: "monthly", priority: "0.3" },
+  ];
   if (sql) {
     try {
-      const rows = await sql<{ slug: string | null; id: string; ts: number }>`select id, slug, ts from nf_posts order by ts desc limit 500`;
-      for (const r of rows) urls.push(`${SITE.url}/p/${encodeURIComponent(r.slug || r.id)}`);
+      const rows = await sql<{ slug: string | null; id: string; ts: number | string }>`
+        select id, slug, ts from nf_posts where status = ${"publish"} order by ts desc limit 2000
+      `;
+      for (const r of rows) {
+        urls.push({
+          loc: `${SITE.url}/p/${encodeURIComponent(r.slug || r.id)}`,
+          lastmod: new Date(Number(r.ts) || Date.now()).toISOString(),
+          changefreq: "daily",
+          priority: "0.8",
+        });
+      }
     } catch {
       /* seed-only */
     }
@@ -117,7 +131,8 @@ export const sitemapXml = createServerFn({ method: "GET" }).handler(async () => 
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls
   .map(
-    (u) => `  <url><loc>${u}</loc><changefreq>hourly</changefreq></url>`,
+    (u) =>
+      `  <url><loc>${u.loc}</loc><lastmod>${u.lastmod}</lastmod><changefreq>${u.changefreq}</changefreq><priority>${u.priority}</priority></url>`,
   )
   .join("\n")}
 </urlset>`;

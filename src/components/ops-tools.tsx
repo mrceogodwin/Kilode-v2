@@ -82,7 +82,7 @@ export function OpsSeoPanel() {
           <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">SEO</div>
           <h3 className="text-lg font-extrabold">Sitemap · IndexNow · Boost</h3>
           <p className="text-[11px] text-muted">
-            Live sitemap at /sitemap.xml. Article pages ship NewsArticle JSON-LD + Open Graph. Boost fills missing titles/descriptions (and uses an LLM key if you pasted one), then pings IndexNow. This is real crawl hygiene — not a ranking guarantee, and not a Google ToS scrape.
+            Live sitemap at /api/sitemap. Article pages ship NewsArticle JSON-LD + Open Graph. Boost fills missing titles/descriptions (and uses an LLM key if you pasted one), then pings IndexNow. This is crawl hygiene — not a Google ranking guarantee.
           </p>
         </div>
         <button

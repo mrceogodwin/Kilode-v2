@@ -1,15 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { DEMO_POSTS } from "@/lib/qonvo-seed";
-import { listPosts } from "@/lib/forum-server";
+import { getPublicPost } from "@/lib/forum-server";
 import { seoHead } from "@/lib/seo";
 import { timeLabel, handleColor, type Post } from "@/lib/qonvo-data";
 
 export const Route = createFileRoute("/p/$id")({
   loader: async ({ params }): Promise<{ post: Post | null }> => {
     const id = (params as { id: string }).id;
-    const rows = await listPosts().catch(() => [] as Post[]);
-    const all = rows.length ? (rows as Post[]) : DEMO_POSTS;
-    const post = all.find((p) => p.id === id || p.slug === id) ?? DEMO_POSTS.find((p) => p.id === id || p.slug === id) ?? null;
+    const row = await getPublicPost({ data: id }).catch(() => null);
+    const post = (row as Post | null) ?? DEMO_POSTS.find((p) => p.id === id || p.slug === id) ?? null;
     return { post };
   },
   head: ({ loaderData }) => {
@@ -57,7 +56,7 @@ function PublicPost() {
         <p className="mt-2 text-xs text-muted">
           <span style={{ color: handleColor(post.author) }}>{post.author}</span> · {timeLabel(post.ts)}
         </p>
-        {post.image ? <img src={post.image} alt="" className="mt-4 w-full rounded-xl object-cover" /> : null}
+        {post.image ? <img src={post.image} alt={post.title} className="mt-4 w-full rounded-xl object-cover" /> : null}
         <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">{post.body}</p>
       </article>
     </main>

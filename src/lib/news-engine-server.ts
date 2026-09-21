@@ -937,11 +937,11 @@ async function ingestWeek(opts: { userId: string; limit: number; og: boolean }) 
     const excerpt = rewritten.meta || rewritten.title.slice(0, 140);
     try {
       await sql`
-        insert into nf_posts (id, user_id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, source_name)
+        insert into nf_posts (id, user_id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, source_name, seo_title, seo_desc)
         values (
           ${postId}, ${opts.userId}, ${rewritten.title}, ${rewritten.body}, ${excerpt},
           ${rewritten.category}, ${rewritten.tags}, ${item.link}, ${image}, ${slug},
-          ${"publish"}, ${"KilodeDesk#01"}, ${ts}, ${src.name}
+          ${"publish"}, ${"KilodeDesk#01"}, ${ts}, ${src.name}, ${rewritten.title.slice(0, 70)}, ${excerpt.slice(0, 160)}
         )
       `;
       published += 1;

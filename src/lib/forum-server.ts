@@ -150,6 +150,37 @@ export const listPosts = createServerFn({ method: "GET" }).handler(async () => {
   }));
 });
 
+export const getPublicPost = createServerFn({ method: "GET" })
+  .validator((id: string) => id)
+  .handler(async ({ data: id }) => {
+    const key = id.trim();
+    if (!key) return null;
+    const sql = await getSql();
+    const posts = await sql<{
+      id: string;
+      title: string;
+      body: string;
+      excerpt: string | null;
+      category: string | null;
+      tags: string | null;
+      link: string | null;
+      image: string | null;
+      slug: string | null;
+      status: string;
+      author: string;
+      ts: number | string;
+      views: number | string | null;
+    }>`select id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, views from nf_posts where status = ${"publish"} and (id = ${key} or slug = ${key}) limit 1`;
+    const p = posts[0];
+    if (!p) return null;
+    return {
+      ...p,
+      ts: Number(p.ts),
+      views: Number(p.views ?? 0),
+      comments: [] as { author: string; body: string; ts: number; parentTs?: number }[],
+    };
+  });
+
 export const savePost = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { title: string; body: string; excerpt?: string; category?: string; tags?: string; link?: string; image?: string; slug?: string; seoTitle?: string; seoDesc?: string; altText?: string; sourceName?: string; status?: "draft" | "publish"; commentsOn?: boolean }) => d)
