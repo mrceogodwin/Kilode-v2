@@ -34,6 +34,8 @@ import {
   LineChart,
   Coins,
   Banknote,
+  CloudSun,
+  Cpu,
   User,
   Users,
   UsersRound,
@@ -353,8 +355,8 @@ export function QonvoApp() {
               goHome();
             }}
           >
-            <img src="/kilode-logo-green.png" alt="Kilode" className="logo-night h-8 w-auto max-w-[132px] object-contain object-left sm:h-9 sm:max-w-[150px]" />
-            <img src="/kilode-logo-light.svg" alt="Kilode" className="logo-day hidden h-8 w-auto max-w-[132px] object-contain object-left sm:h-9 sm:max-w-[150px]" />
+            <img src="/kilode-logo-green.png" alt="Kilode" className="logo-night h-10 w-auto max-w-[196px] object-contain object-left sm:h-11 sm:max-w-[220px]" />
+            <img src="/kilode-logo-light.svg" alt="Kilode" className="logo-day hidden h-10 w-auto max-w-[196px] object-contain object-left sm:h-11 sm:max-w-[220px]" />
           </button>
           <nav className="mx-auto hidden min-w-0 items-center justify-center gap-1 md:flex">
             <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home" && !marketDesk} onClick={() => { store.setOpenPost(null); setMarketDesk(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
@@ -928,7 +930,9 @@ export function QonvoApp() {
                 <DrawerRow icon={LineChart} label="Stocks" hint="Indices, NGX, movers" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("stocks"); setMenuOpen(false); }} on={marketDesk === "stocks"} />
                 <DrawerRow icon={Coins} label="Crypto" hint="Coins, dominance, heat" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("crypto"); setMenuOpen(false); }} on={marketDesk === "crypto"} />
                 <DrawerRow icon={Banknote} label="Forex" hint="Naira and crosses" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("forex"); setMenuOpen(false); }} on={marketDesk === "forex"} />
-                <DrawerRow icon={Trophy} label="Sports" hint="Live scores and leans" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("sports"); setMenuOpen(false); }} on={marketDesk === "sports"} />
+                <DrawerRow icon={Trophy} label="Sports" hint="Live scores and upcoming" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("sports"); setMenuOpen(false); }} on={marketDesk === "sports"} />
+                <DrawerRow icon={CloudSun} label="Weather" hint="World sky, Lagos first" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("weather"); setMenuOpen(false); }} on={marketDesk === "weather"} />
+                <DrawerRow icon={Cpu} label="Tech" hint="Front page and engineering" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("tech"); setMenuOpen(false); }} on={marketDesk === "tech"} />
               </DrawerGroup>
 
               <DrawerGroup label="Listings">

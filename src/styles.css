@@ -164,18 +164,27 @@
     color: var(--color-lime-2);
   }
   .desk-rail {
-    padding: 2px 0;
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .desk-rail::-webkit-scrollbar {
+    display: none;
   }
   .desk-pill {
-    min-height: 34px;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 32px;
     border-radius: 8px;
     border: 1px solid var(--color-line);
     background: transparent;
     color: var(--color-muted);
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 700;
-    letter-spacing: 0.16em;
-    padding: 0 4px;
+    letter-spacing: 0.1em;
+    padding: 0 2px;
+    white-space: nowrap;
   }
   .desk-pill.on {
     border-color: rgba(107, 158, 120, 0.45);
@@ -369,7 +378,7 @@ html[data-skin="ivory"] .logo-night {
   display: block;
   background: #070b08;
   border-radius: 8px;
-  padding: 2px 8px;
+  padding: 3px 8px 3px 4px;
 }
 html[data-skin="ivory"] .logo-day {
   display: none;
