@@ -5,12 +5,17 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { assertStaff } from "@/lib/staff-server";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 
+export type ShareKey = "x" | "wa" | "tg" | "fb" | "copy";
+
 export type PublicSite = {
   installToast: boolean;
   visitorsToday: number;
   visitorsAll: number;
   members: number;
+  shares: Record<ShareKey, number>;
 };
+
+const ZERO_SHARES: Record<ShareKey, number> = { x: 0, wa: 0, tg: 0, fb: 0, copy: 0 };
 
 function utcDay(ts = Date.now()) {
   return new Date(ts).toISOString().slice(0, 10);
@@ -25,6 +30,7 @@ async function ensure() {
   }
   await sql`create table if not exists nf_visits (day text primary key, n integer not null default 0)`;
   await sql`create table if not exists nf_visit_seen (k text primary key, day text not null, ts bigint not null)`;
+  await sql`create table if not exists nf_shares (k text primary key, n integer not null default 0)`;
   return sql;
 }
 
@@ -37,14 +43,20 @@ async function loadPublic(): Promise<PublicSite> {
     const allRows = await sql<{ n: string | number }>`select coalesce(sum(n), 0) as n from nf_visits`;
     const members = await sql<{ n: string | number }>`select count(*) as n from "user"`;
     const installToast = flag[0]?.install_toast !== 0 && flag[0]?.install_toast !== false && flag[0]?.install_toast !== "0";
+    const shareRows = await sql<{ k: string; n: string | number }>`select k, n from nf_shares`;
+    const shares = { ...ZERO_SHARES };
+    for (const r of shareRows) {
+      if (r.k in shares) shares[r.k as ShareKey] = Number(r.n ?? 0);
+    }
     return {
       installToast,
       visitorsToday: Number(dayRows[0]?.n ?? 0),
       visitorsAll: Number(allRows[0]?.n ?? 0),
       members: Number(members[0]?.n ?? 0),
+      shares,
     };
   } catch {
-    return { installToast: true, visitorsToday: 0, visitorsAll: 0, members: 0 };
+    return { installToast: true, visitorsToday: 0, visitorsAll: 0, members: 0, shares: { ...ZERO_SHARES } };
   }
 }
 
@@ -83,4 +95,15 @@ export const saveSiteFlags = createServerFn({ method: "POST" })
     if (existing[0]) await sql`update nf_site set install_toast = ${toast}, ts = ${Date.now()} where id = 1`;
     else await sql`insert into nf_site (id, chat_ttl_hours, install_toast, ts) values (1, 24, ${toast}, ${Date.now()})`;
     return { ok: true as const, installToast: toast === 1 };
+  });
+
+export const pingShare = createServerFn({ method: "POST" })
+  .validator((d: { k: ShareKey }) => d)
+  .handler(async ({ data }) => {
+    const k = data.k;
+    if (!["x", "wa", "tg", "fb", "copy"].includes(k)) return loadPublic();
+    if (!allowWrite(`share:${k}`, 20, 60_000)) return loadPublic();
+    const sql = await ensure();
+    await sql`insert into nf_shares (k, n) values (${k}, 1) on conflict (k) do update set n = nf_shares.n + 1`;
+    return loadPublic();
   });

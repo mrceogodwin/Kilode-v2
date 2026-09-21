@@ -423,6 +423,7 @@ export const AD_PLACEMENTS = [
   { id: "article-leader", label: "Article long banner", usd: 220, hint: "Wide banner under the story." },
   { id: "article-mid", label: "Inside article", usd: 150, hint: "Sits between the story and comments." },
   { id: "cinema", label: "Cinema banner", usd: 300, hint: "Shows on the Cinema tab while a title plays." },
+  { id: "feeds-hero", label: "Feeds flagship hero", usd: 1200, hint: "Expensive. 16:9 image or video in the Feeds hero slider. Super can mix this with trending posts and AdSense." },
 ] as const;
 
 export type AdPlacement = (typeof AD_PLACEMENTS)[number]["id"];
@@ -459,6 +460,7 @@ export const AD_SIZES: Record<AdPlacement, { label: string; hint: string }> = {
   "article-leader": { label: "728 × 90", hint: "Long banner. JPG/PNG, max 2MB." },
   "article-mid": { label: "600 × 300", hint: "In-story box. JPG/PNG, max 2MB." },
   cinema: { label: "1280 × 220", hint: "Cinema strip. JPG/PNG, max 2MB." },
+  "feeds-hero": { label: "1280 × 720", hint: "Flagship 16:9. Image or YouTube. Super prices this high." },
 };
 
 export type Campaign = {

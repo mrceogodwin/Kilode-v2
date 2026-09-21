@@ -138,6 +138,19 @@
   .ticker-track:hover {
     animation-play-state: paused;
   }
+  .trend-ticker .ticker-track {
+    animation-duration: 72s;
+  }
+  .trend-ticker {
+    border: 1px solid rgba(78, 122, 88, 0.5);
+    background: linear-gradient(90deg, #1a2a1e 0%, #141414 50%, #1a2a1e 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+  .site-foot {
+    background: linear-gradient(180deg, #1c3324 0%, #121a14 52%, #0c120e 100%);
+    border: 1px solid rgba(107, 158, 120, 0.32);
+    box-shadow: 0 0 0 1px rgba(107, 158, 120, 0.06), 0 16px 36px rgba(0, 0, 0, 0.35);
+  }
   .kilode-word {
     font-weight: 800;
     letter-spacing: -0.045em;
@@ -276,6 +289,24 @@ html[data-skin="ivory"] .logo-night {
 html[data-skin="ivory"] .logo-day {
   display: block;
 }
+html[data-skin="ivory"] .trend-ticker {
+  border-color: #c5d4c8;
+  background: linear-gradient(90deg, #eef6f0 0%, #ffffff 50%, #eef6f0 100%);
+  box-shadow: inset 0 1px 0 #fff;
+  color: #111111;
+}
+html[data-skin="ivory"] .trend-ticker .ticker-track {
+  color: #111111;
+}
+html[data-skin="ivory"] .site-foot {
+  background: linear-gradient(180deg, #e7f3ea 0%, #f7fbf8 55%, #ffffff 100%);
+  border: 1px solid #c5d4c8;
+  color: #111111;
+  box-shadow: 0 8px 24px rgba(31, 122, 64, 0.08);
+}
+html[data-skin="ivory"] .hero-flag {
+  background: #ffffff;
+}
 .logo-day {
   display: none;
 }
@@ -362,6 +393,9 @@ html[data-skin="ivory"] .logo-day {
   }
   .ticker-track {
     animation-duration: 40s;
+  }
+  .trend-ticker .ticker-track {
+    animation-duration: 90s;
   }
 }
 

@@ -21,12 +21,23 @@ function niceAuthError(raw: string) {
   return raw || "Could not complete that.";
 }
 
-export async function kilodeSignUp(name: string, password: string, kind: AccountKind, face?: string) {
+export function birthYearList() {
+  const y = new Date().getUTCFullYear();
+  const out: number[] = [];
+  for (let n = y - 15; n >= y - 100; n--) out.push(n);
+  return out;
+}
+
+export async function kilodeSignUp(name: string, password: string, kind: AccountKind, face?: string, yearBorn?: number) {
   const handle = publicUsername(name);
   if (handle.length < 3) return { ok: false as const, reason: "Username needs 3+ letters or numbers." };
   if (password.length < 8) return { ok: false as const, reason: "Password needs 8+ characters." };
+  const year = Number(yearBorn);
+  if (!Number.isInteger(year) || new Date().getUTCFullYear() - year < 15) {
+    return { ok: false as const, reason: "You must be 15 or older. Pick the year you were born." };
+  }
   const created = await registerAccount({
-    data: { name: handle, password, kind: asAccountKind(kind), agree: true, face: face ?? "" },
+    data: { name: handle, password, kind: asAccountKind(kind), agree: true, face: face ?? "", yearBorn: year },
   }).catch((e: unknown) => ({ ok: false as const, reason: e instanceof Error ? e.message : "Sign up failed" }));
   if (!created || !("ok" in created) || !created.ok) {
     return { ok: false as const, reason: niceAuthError(("reason" in created && created.reason) || "Sign up failed") };

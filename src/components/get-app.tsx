@@ -3,8 +3,8 @@ import { saveDigest } from "@/lib/ad-slots-server";
 
 export function JoinCta({ className = "" }: { className?: string }) {
   return (
-    <a href="/login?mode=up" className={`btn-3d block rounded-md py-1.5 text-center text-[10px] font-semibold ${className}`}>
-      JOIN KILODE
+    <a href="/login?mode=up" className={`btn-join block rounded-lg px-3 py-1.5 text-center text-[10px] font-extrabold tracking-[0.14em] ${className}`}>
+      JOIN NOW
     </a>
   );
 }

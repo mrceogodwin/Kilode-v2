@@ -55,7 +55,7 @@ import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { listWallets } from "@/lib/forum-server";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
-import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
+import { AccountKindPicker, AvatarImg, AvatarPicker, YearBornSelect } from "@/components/account-kind";
 import { TranslateBtn } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
 import { NotifyBell } from "@/components/notify-bell";
@@ -64,6 +64,7 @@ import { JoinCta, MenuLegal, MenuPin } from "@/components/get-app";
 import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
 import { InstallToast, SiteFooter, TrendingTicker } from "@/components/site-chrome";
+import { FeedsHero } from "@/components/feeds-hero";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -208,6 +209,7 @@ export function QonvoApp() {
   const [joinAgreeRules, setJoinAgreeRules] = useState(false);
   const [joinKind, setJoinKind] = useState<AccountKind>("member");
   const [joinFace, setJoinFace] = useState(KIND_FACE.member);
+  const [joinYear, setJoinYear] = useState<number | "">("");
   const [joinErr, setJoinErr] = useState("");
   const logoTaps = useRef({ n: 0, t: 0 });
   const [liveOpen, setLiveOpen] = useState(false);
@@ -1090,6 +1092,9 @@ export function QonvoApp() {
               <div className="mb-1 text-[10px] font-medium tracking-normal text-muted">Your avatar</div>
               <AvatarPicker value={joinFace} handle={joinName} onChange={setJoinFace} />
             </div>
+            <div className="mb-2">
+              <YearBornSelect value={joinYear} onChange={setJoinYear} />
+            </div>
             <label className="mb-2 flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] leading-snug text-muted">
               <input type="checkbox" className="mt-0.5" checked={joinAgree} onChange={(e) => setJoinAgree(e.target.checked)} />
               <span>
@@ -1129,7 +1134,7 @@ export function QonvoApp() {
                       setJoinErr("Tick both boxes. Read the Terms and the Rules first.");
                       return;
                     }
-                    const r = await kilodeSignUp(joinName, joinPass, joinKind, joinFace);
+                    const r = await kilodeSignUp(joinName, joinPass, joinKind, joinFace, typeof joinYear === "number" ? joinYear : undefined);
                     if (!r.ok) setJoinErr(r.reason);
                     else window.location.reload();
                   })();
@@ -1718,23 +1723,23 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
         <div className="mt-6">
           <PremiumStoryAd />
         </div>
-        <AdReserve id="article_leader" />
+        <AdReserve id="article_leader" className="mt-8 mb-8" />
         <RelatedGrid posts={store.posts} exclude={post.id} category={post.category} onOpen={(id) => store.setOpenPost(id)} />
         <PortraitAd id="feeds_portrait_before" />
-        <AdReserve id="article_before_top10" />
+        <AdReserve id="article_before_top10" className="mt-8 mb-8" />
         <TopTen posts={store.posts} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
         <PortraitAd id="feeds_portrait_after" />
-        <AdReserve id="article_after_top10" />
+        <AdReserve id="article_after_top10" className="mt-8 mb-8" />
         <LandscapeGrid title="MORE HIGHLIGHTS" posts={[...store.posts].sort((a, b) => (b.views ?? 0) - (a.views ?? 0))} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
-        <div className="mt-4">
+        <div className="mt-10 mb-8">
           <PremiumStoryAd compact />
         </div>
-        <AdReserve id="feeds_highlights_ad" />
+        <AdReserve id="feeds_highlights_ad" className="mt-8 mb-8" />
         <LandscapeGrid title="MORE NEWS" posts={store.posts.filter((p) => p.category === "News" || p.category === "Naija" || p.category === "Politics")} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
-        <AdReserve id="feeds_news_ad" />
+        <AdReserve id="feeds_news_ad" className="mt-8 mb-8" />
         <DontMissGrid posts={[...store.posts].sort((a, b) => b.ts - a.ts)} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
         <PortraitAd id="feeds_portrait_miss" />
-        <div className="mt-6 grid grid-cols-2 gap-2">
+        <div className="mt-8 grid grid-cols-2 gap-2">
           <AdReserve id="article_box" minH="min-h-[120px]" />
           <AdReserve id="article_video" minH="min-h-[120px]" />
         </div>
@@ -1788,7 +1793,12 @@ function FeedPane({ store, q = "" }: { store: ReturnType<typeof useQonvo>; q?: s
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-6">
-        <AdReserve id="article_top" className="mb-3" />
+        <FeedsHero
+          posts={store.posts}
+          ads={store.campaigns}
+          onOpen={(id) => store.setOpenPost(id)}
+          onViewAd={(id) => store.see("ads", id)}
+        />
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">LATEST POST{cat !== "All" ? ` · ${cat.toUpperCase()}` : ""}</div>
           <button
@@ -1871,31 +1881,31 @@ function FeedPane({ store, q = "" }: { store: ReturnType<typeof useQonvo>; q?: s
         {shown < live.length ? (
           <button
             type="button"
-            className="btn-3d mt-3 mb-2 w-full rounded-md py-2 text-[11px] font-semibold"
+            className="btn-3d mt-6 mb-8 w-full rounded-md py-2.5 text-[12px] font-extrabold tracking-[0.18em]"
             onClick={() => setShown((n) => n + 20)}
           >
-            Load more · {live.length - shown} left
+            NEXT
           </button>
         ) : live.length > 0 ? (
-          <p className="mt-3 mb-1 text-center text-[11px] text-muted">End of feeds · {live.length} posts</p>
+          <p className="mt-6 mb-6 text-center text-[11px] text-muted">End of feeds · {live.length} posts</p>
         ) : (
           <EmptyHero title="No posts yet" body="Be first — share a take for Nigeria." cta="Create a post" onClick={() => { window.dispatchEvent(new CustomEvent("kilode:create")); }} />
         )}
         <PortraitAd id="feeds_portrait_before" />
-        <AdReserve id="feeds_before_top10" />
+        <AdReserve id="feeds_before_top10" className="mt-8 mb-8" />
         <TopTen posts={store.posts} exclude="" onOpen={(id) => store.setOpenPost(id)} />
         <PortraitAd id="feeds_portrait_after" />
-        <AdReserve id="feeds_after_top10" />
+        <AdReserve id="feeds_after_top10" className="mt-8 mb-8" />
         <LandscapeGrid title="MORE HIGHLIGHTS" posts={[...store.posts].sort((a, b) => (b.views ?? 0) - (a.views ?? 0))} onOpen={(id) => store.setOpenPost(id)} />
-        <div className="mt-4">
+        <div className="mt-10 mb-8">
           <PremiumStoryAd compact />
         </div>
-        <AdReserve id="feeds_highlights_ad" />
+        <AdReserve id="feeds_highlights_ad" className="mt-8 mb-8" />
         <LandscapeGrid title="MORE NEWS" posts={store.posts.filter((p) => p.category === "News" || p.category === "Naija" || p.category === "Politics")} onOpen={(id) => store.setOpenPost(id)} />
-        <AdReserve id="feeds_news_ad" />
+        <AdReserve id="feeds_news_ad" className="mt-8 mb-8" />
         <DontMissGrid posts={[...store.posts].sort((a, b) => b.ts - a.ts)} onOpen={(id) => store.setOpenPost(id)} />
         <PortraitAd id="feeds_portrait_miss" />
-        <AdReserve id="feeds_after_miss" className="mt-3" />
+        <AdReserve id="feeds_after_miss" className="mt-8 mb-8" />
         <CategoryArchive
           posts={store.posts}
           onPick={(c) => {

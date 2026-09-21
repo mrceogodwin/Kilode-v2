@@ -191,6 +191,40 @@ export function AdCatalogPanel() {
           </label>
         ))}
       </div>
+      <div className="space-y-2 rounded-xl border border-lime-2/30 bg-lime-2/5 p-3">
+        <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">FEEDS FLAGSHIP HERO</div>
+        <p className="text-[11px] text-muted">
+          Slider under TRENDING. Mix trending + new posts, paid feeds-hero campaigns, Super image/video slot, optional AdSense slide, click-to-play video. This unit is expensive — price it under Feeds flagship hero.
+        </p>
+        {(
+          [
+            ["heroPosts", "Trending + new posts"],
+            ["heroPaid", "Paid user campaigns"],
+            ["heroGoogle", "AdSense as a slide"],
+            ["heroVideo", "Click-to-play video"],
+          ] as const
+        ).map(([k, label]) => (
+          <label key={k} className="flex items-center justify-between gap-2 text-[12px]">
+            <span>{label}</span>
+            <input
+              type="checkbox"
+              checked={cat[k]}
+              onChange={(e) => setCat({ ...cat, [k]: e.target.checked })}
+            />
+          </label>
+        ))}
+        <label className="block text-[11px]">
+          Seconds per slide
+          <input
+            type="number"
+            min={4}
+            max={15}
+            value={Math.round(cat.heroMs / 1000)}
+            onChange={(e) => setCat({ ...cat, heroMs: Math.max(4, Math.min(15, Number(e.target.value) || 7)) * 1000 })}
+            className="mt-1 w-24 rounded-lg border border-line bg-bg px-2 py-1.5"
+          />
+        </label>
+      </div>
       <button
         type="button"
         className="btn-3d rounded-md px-3 py-1.5 text-[11px] font-semibold"

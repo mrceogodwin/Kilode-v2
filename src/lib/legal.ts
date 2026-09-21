@@ -72,7 +72,7 @@ export const HOWTO = [
 export const HOWTO_MORE: Record<string, string[]> = {
   guest: [
     "Tap Feeds, Chat, Music, Cinema, Ads in the bottom bar. You can read everything public.",
-    "Tap Join (top right) → username + password → pick a type → tick Terms + Rules.",
+    "Tap Join (top right) → username + password → pick a type → year born (15+) → tick Terms + Rules.",
     "No email. If you forget the password, only staff can reset it after you prove the handle.",
   ],
   member: [
@@ -117,7 +117,7 @@ These Terms are a contract between you and the operator of Kilode (kilode.ng). B
 Kilode is a public community for conversation, news-style posts, music links, cinema voting, and classified-style listings. It is not a bank, lawyer, employer, streaming host, or payment processor.
 
 2. Eligibility
-You must be old enough to form a contract where you live. If you are under that age, do not register.
+You must be 15 or older. You pick the year you were born at register. Kilode is not for children under 15. If you are under 18, a parent or guardian must agree that you may use the service.
 
 3. Account
 You register with a username and password. We do not collect a public email. You pick one account type at register. You cannot change it. The operator may override a type if you registered as the wrong one. You are responsible for your password. There is no email reset. If you forget it, only the operator can set a new one after you prove the handle is yours in chat or contact.
@@ -254,7 +254,7 @@ YouTube, Spotify, SoundCloud and similar see you when you play an embed. Their p
 There is no public email reset. Contact staff while signed in to ask about your data.
 
 8. Children
-Kilode is not directed at children under 13.`;
+Kilode is not directed at children under 15.`;
 
 export const COOKIES_LONG = `Cookies and local storage
 

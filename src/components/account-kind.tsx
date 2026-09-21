@@ -120,3 +120,34 @@ export function AvatarPicker({
 export function FacePicker(props: { value: string; onChange: (v: string) => void; handle?: string }) {
   return <AvatarPicker value={props.value || KIND_FACE.member} handle={props.handle} onChange={props.onChange} />;
 }
+
+export function YearBornSelect({
+  value,
+  onChange,
+}: {
+  value: number | "";
+  onChange: (v: number | "") => void;
+}) {
+  const y = new Date().getUTCFullYear();
+  const years: number[] = [];
+  for (let n = y - 15; n >= y - 100; n--) years.push(n);
+  return (
+    <div>
+      <div className="mb-1 text-[11px] font-medium text-muted">Year you were born · 15+</div>
+      <select
+        value={value === "" ? "" : String(value)}
+        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")}
+        className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm"
+      >
+        <option value="">Select year</option>
+        {years.map((n) => (
+          <option key={n} value={n}>
+            {n}
+          </option>
+        ))}
+      </select>
+      <p className="mt-1 text-[10px] text-muted">You must be 15 or older to join Kilode.</p>
+    </div>
+  );
+}
+

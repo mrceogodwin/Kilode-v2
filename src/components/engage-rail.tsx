@@ -138,8 +138,8 @@ export function RelatedGrid({ posts, exclude, category, onOpen }: { posts: Post[
         ))}
       </div>
       {shown < list.length ? (
-        <button type="button" className="btn-3d mx-auto mt-2 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + 6)}>
-          Load more · {list.length - shown} left
+        <button type="button" className="btn-3d mx-auto mt-3 block rounded-md px-5 py-2 text-[11px] font-extrabold tracking-[0.18em]" onClick={() => setShown((n) => n + 6)}>
+          NEXT
         </button>
       ) : null}
     </div>
@@ -194,7 +194,7 @@ export function LandscapeGrid({
   if (!list.length) return null;
   const step = cols === 4 ? 8 : 6;
   return (
-    <section className="mt-6">
+    <section className="mt-10">
       <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">{title}</div>
       <div className={cols === 4 ? "grid grid-cols-4 gap-1.5" : "grid grid-cols-3 gap-1.5"}>
         {list.slice(0, shown).map((p) => (
@@ -208,8 +208,8 @@ export function LandscapeGrid({
         ))}
       </div>
       {shown < list.length ? (
-        <button type="button" className="btn-3d mx-auto mt-2 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + step)}>
-          Load more · {list.length - shown} left
+        <button type="button" className="btn-3d mx-auto mt-4 block rounded-md px-5 py-2 text-[11px] font-extrabold tracking-[0.18em]" onClick={() => setShown((n) => n + step)}>
+          NEXT
         </button>
       ) : null}
     </section>
@@ -221,7 +221,7 @@ export function DontMissGrid({ posts, exclude, onOpen }: { posts: Post[]; exclud
   const list = posts.filter((p) => p.id !== exclude && p.status !== "draft");
   if (!list.length) return null;
   return (
-    <section className="mt-6">
+    <section className="mt-10">
       <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">DON'T MISS</div>
       <div className="grid grid-cols-4 gap-1">
         {list.slice(0, shown).map((p) => (
@@ -232,8 +232,8 @@ export function DontMissGrid({ posts, exclude, onOpen }: { posts: Post[]; exclud
         ))}
       </div>
       {shown < list.length ? (
-        <button type="button" className="btn-3d mx-auto mt-2 block rounded-md px-4 py-1.5 text-[11px] font-semibold" onClick={() => setShown((n) => n + 8)}>
-          Load more · {list.length - shown} left
+        <button type="button" className="btn-3d mx-auto mt-4 block rounded-md px-5 py-2 text-[11px] font-extrabold tracking-[0.18em]" onClick={() => setShown((n) => n + 8)}>
+          NEXT
         </button>
       ) : null}
     </section>
@@ -250,7 +250,7 @@ export function CategoryArchive({ posts, onPick }: { posts: Post[]; onPick?: (ca
   const rows = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   if (!rows.length) return null;
   return (
-    <section className="mt-6">
+    <section className="mt-10">
       <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">CATEGORIES ARCHIVE</div>
       <ul className="overflow-hidden rounded-xl border border-line">
         {rows.map(([c, n], i) => (
@@ -281,7 +281,7 @@ export function TagArchive({ posts, onOpen }: { posts: Post[]; onOpen: (id: stri
   const rows = [...tags.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 24);
   if (!rows.length) return null;
   return (
-    <section className="mt-6">
+    <section className="mt-10">
       <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">TAGS</div>
       <div className="flex flex-wrap gap-1.5">
         {rows.map(([t, list]) => (

@@ -1,0 +1,319 @@
+import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { AdSlot, useAdSlots } from "@/components/ad-slot";
+import { listAdCatalog, type AdCatalog } from "@/lib/ad-catalog-server";
+import { isAdUnit, isPubId } from "@/lib/ad-slots";
+import { fmtCount, youtubeId, type Campaign, type Post } from "@/lib/qonvo-data";
+
+type Slide =
+  | { k: "post"; post: Post }
+  | { k: "paid"; ad: Campaign }
+  | { k: "slot"; id: string; image: string; video: string; link: string; label: string }
+  | { k: "google"; id: string }
+  | { k: "rent" };
+
+const FALLBACK: AdCatalog = {
+  dailyCap: 40,
+  pageSize: 12,
+  featuredN: 8,
+  prices: {},
+  heroPosts: true,
+  heroPaid: true,
+  heroGoogle: true,
+  heroVideo: true,
+  heroMs: 7000,
+};
+
+function isVideoAd(ad: Campaign) {
+  return Boolean(ad.video) || ad.kind === "video" || ad.kind === "video-text";
+}
+
+export function FeedsHero({
+  posts,
+  ads,
+  onOpen,
+  onViewAd,
+}: {
+  posts: Post[];
+  ads: Campaign[];
+  onOpen: (id: string) => void;
+  onViewAd?: (id: string) => void;
+}) {
+  const slots = useAdSlots();
+  const [cat, setCat] = useState<AdCatalog>(FALLBACK);
+  const [i, setI] = useState(0);
+  const [hover, setHover] = useState(false);
+  const [play, setPlay] = useState<string | null>(null);
+
+  useEffect(() => {
+    void listAdCatalog()
+      .then(setCat)
+      .catch(() => undefined);
+  }, []);
+
+  const slides = useMemo(() => {
+    const out: Slide[] = [];
+    if (cat.heroPosts) {
+      const live = posts.filter((p) => p.status !== "draft" && p.title);
+      const trending = [...live].sort((a, b) => (b.views ?? 0) - (a.views ?? 0) || b.ts - a.ts).slice(0, 5);
+      const newest = [...live].sort((a, b) => b.ts - a.ts).slice(0, 3);
+      const seen = new Set<string>();
+      for (const p of [...trending, ...newest]) {
+        if (seen.has(p.id)) continue;
+        seen.add(p.id);
+        out.push({ k: "post", post: p });
+      }
+    }
+    if (cat.heroPaid) {
+      for (const ad of ads) {
+        if (ad.status !== "approved") continue;
+        if (ad.placement !== "feeds-hero" && ad.placement !== "hero") continue;
+        if (!cat.heroVideo && isVideoAd(ad)) continue;
+        out.push({ k: "paid", ad });
+      }
+    }
+    const superSlot = slots.find((s) => s.id === "feeds_hero" && s.enabled);
+    if (superSlot && (superSlot.image || superSlot.video)) {
+      if (!superSlot.video || cat.heroVideo) {
+        out.push({
+          k: "slot",
+          id: superSlot.id,
+          image: superSlot.image || "",
+          video: superSlot.video || "",
+          link: superSlot.link || "",
+          label: superSlot.label || "Premium",
+        });
+      }
+    }
+    if (cat.heroGoogle) {
+      const g = slots.find((s) => s.id === "feeds_hero_google" && s.enabled);
+      if (g && isPubId(g.pubId) && isAdUnit(g.adUnit)) out.push({ k: "google", id: g.id });
+    }
+    return out.length ? out : ([{ k: "rent" }] as Slide[]);
+  }, [ads, cat.heroGoogle, cat.heroPaid, cat.heroPosts, cat.heroVideo, posts, slots]);
+
+  useEffect(() => {
+    setI(0);
+    setPlay(null);
+  }, [slides.length]);
+
+  useEffect(() => {
+    if (hover || play || slides.length < 2) return;
+    const t = window.setInterval(() => setI((n) => (n + 1) % slides.length), cat.heroMs);
+    return () => window.clearInterval(t);
+  }, [cat.heroMs, hover, play, slides.length]);
+
+  const slide = slides[i] ?? slides[0];
+  if (!slide) return null;
+
+  function go(n: number) {
+    setPlay(null);
+    setI((n + slides.length) % slides.length);
+  }
+
+  return (
+    <section
+      className="hero-flag mb-8 overflow-hidden rounded-2xl border border-line"
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
+    >
+      <div className="flex items-center justify-between px-3 py-1.5">
+        <span className="text-[10px] font-medium tracking-[0.16em] text-lime-2">FLAGSHIP</span>
+        <a href="/advertise" className="btn-join rounded-md px-2.5 py-1 text-[9px] font-extrabold tracking-[0.16em]">
+          RENT
+        </a>
+      </div>
+      <div className="relative aspect-[16/9] w-full overflow-hidden bg-black">
+        <HeroSlide slide={slide} play={play} onPlay={setPlay} onOpen={onOpen} onViewAd={onViewAd} />
+        {slides.length > 1 ? (
+          <>
+            <button
+              type="button"
+              aria-label="Previous"
+              className="absolute top-1/2 left-2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white"
+              onClick={() => go(i - 1)}
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Next"
+              className="absolute top-1/2 right-2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white"
+              onClick={() => go(i + 1)}
+            >
+              <ChevronRight className="size-4" />
+            </button>
+            <div className="absolute bottom-2 left-0 right-0 z-10 flex justify-center gap-1">
+              {slides.map((_, n) => (
+                <button
+                  key={n}
+                  type="button"
+                  aria-label={`Slide ${n + 1}`}
+                  className={`h-1.5 rounded-full ${n === i ? "w-4 bg-lime-2" : "w-1.5 bg-white/40"}`}
+                  onClick={() => go(n)}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function HeroSlide({
+  slide,
+  play,
+  onPlay,
+  onOpen,
+  onViewAd,
+}: {
+  slide: Slide;
+  play: string | null;
+  onPlay: (id: string | null) => void;
+  onOpen: (id: string) => void;
+  onViewAd?: (id: string) => void;
+}) {
+  if (slide.k === "google") {
+    return (
+      <div className="grid h-full w-full place-items-center bg-panel-2">
+        <AdSlot id={slide.id} className="w-full border-0 bg-transparent" />
+      </div>
+    );
+  }
+  if (slide.k === "rent") {
+    return (
+      <a href="/advertise" className="grid h-full w-full place-items-center px-6 text-center">
+        <div>
+          <div className="text-[11px] font-medium tracking-[0.18em] text-lime-2">PLACE ADS HERE · FLAGSHIP</div>
+          <p className="mt-2 text-[12px] font-normal leading-snug text-white/80">16:9 image, click-to-play video, or AdSense. Super prices this slot high.</p>
+        </div>
+      </a>
+    );
+  }
+  if (slide.k === "post") {
+    const p = slide.post;
+    return (
+      <button type="button" className="relative block h-full w-full text-left" onClick={() => onOpen(p.id)}>
+        {p.image ? <img src={p.image} alt="" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-panel-3" />}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-3 pt-12 pb-4">
+          <div className="text-[9px] font-medium tracking-[0.16em] text-lime-2">
+            {(p.category || "TRENDING").toUpperCase()}
+            <span className="ml-2 font-normal tracking-normal text-white/70">{fmtCount(p.views ?? 0)}</span>
+          </div>
+          <div className="mt-0.5 line-clamp-2 text-[13px] font-medium leading-snug text-white">{p.title}</div>
+        </div>
+      </button>
+    );
+  }
+  if (slide.k === "paid") {
+    const ad = slide.ad;
+    const yt = ad.video ? youtubeId(ad.video) || ad.video : "";
+    const key = `paid:${ad.id}`;
+    const playing = play === key;
+    const thumb = ad.image || (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : "");
+    return (
+      <HeroMedia
+        title={ad.name}
+        note={ad.note}
+        badge="AD"
+        thumb={thumb}
+        yt={yt}
+        playing={playing}
+        onPlay={() => onPlay(key)}
+        href={ad.link}
+        onClick={() => onViewAd?.(ad.id)}
+      />
+    );
+  }
+  const yt = slide.video ? youtubeId(slide.video) || slide.video : "";
+  const key = `slot:${slide.id}`;
+  return (
+    <HeroMedia
+      title={slide.label}
+      note=""
+      badge="AD"
+      thumb={slide.image || (yt ? `https://i.ytimg.com/vi/${yt}/hqdefault.jpg` : "")}
+      yt={yt}
+      playing={play === key}
+      onPlay={() => onPlay(key)}
+      href={slide.link || "/advertise"}
+    />
+  );
+}
+
+function HeroMedia({
+  title,
+  note,
+  badge,
+  thumb,
+  yt,
+  playing,
+  onPlay,
+  href,
+  onClick,
+}: {
+  title: string;
+  note: string;
+  badge: string;
+  thumb: string;
+  yt: string;
+  playing: boolean;
+  onPlay: () => void;
+  href?: string;
+  onClick?: () => void;
+}) {
+  if (playing && yt) {
+    return (
+      <iframe
+        title={title}
+        src={`https://www.youtube.com/embed/${yt}?rel=0&autoplay=1`}
+        className="h-full w-full border-0"
+        allow="encrypted-media; fullscreen; autoplay"
+      />
+    );
+  }
+  const body = (
+    <>
+      {thumb ? <img src={thumb} alt="" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-panel-3" />}
+      {yt ? (
+        <span className="absolute inset-0 grid place-items-center">
+          <span className="grid size-12 place-items-center rounded-full bg-white/90 text-black shadow-lg">
+            <Play className="ml-0.5 size-5 fill-current" />
+          </span>
+        </span>
+      ) : null}
+      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-3 pt-10 pb-4 text-left">
+        <span className="text-[9px] font-medium tracking-[0.16em] text-lime-2">{badge}</span>
+        <span className="mt-0.5 block line-clamp-2 text-[13px] font-medium leading-snug text-white">{title}</span>
+        {note ? <span className="mt-0.5 block line-clamp-1 text-[11px] font-normal text-white/70">{note}</span> : null}
+      </span>
+    </>
+  );
+  if (yt) {
+    return (
+      <button
+        type="button"
+        className="relative block h-full w-full"
+        onClick={() => {
+          onClick?.();
+          onPlay();
+        }}
+      >
+        {body}
+      </button>
+    );
+  }
+  if (href) {
+    return (
+      <a href={href} target={href.startsWith("/") ? undefined : "_blank"} rel="noreferrer" className="relative block h-full w-full" onClick={onClick}>
+        {body}
+      </a>
+    );
+  }
+  return (
+    <button type="button" className="relative block h-full w-full" onClick={onClick}>
+      {body}
+    </button>
+  );
+}

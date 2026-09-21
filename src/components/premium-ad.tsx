@@ -15,14 +15,22 @@ export function ContactCta({ className = "" }: { className?: string }) {
   );
 }
 
-function PremiumShell({ children, compact }: { children: ReactNode; compact?: boolean }) {
+export function RentCta({ className = "" }: { className?: string }) {
+  return (
+    <a href="/advertise" className={`btn-join inline-flex items-center justify-center rounded-md px-2.5 py-1 text-[9px] font-extrabold tracking-[0.16em] ${className}`}>
+      RENT
+    </a>
+  );
+}
+
+function PremiumShell({ children, compact, rent }: { children: ReactNode; compact?: boolean; rent?: boolean }) {
   return (
     <aside className="overflow-hidden rounded-2xl border border-line bg-panel">
-      <div className="flex items-center justify-between gap-2 px-3 py-1.5">
+      <div className="flex items-center justify-between gap-2 px-3 py-2">
         <span className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PREMIUM ADS</span>
-        {compact ? null : <ContactCta />}
+        {compact ? null : rent ? <RentCta /> : <ContactCta />}
       </div>
-      {children}
+      <div className="px-2 pb-2">{children}</div>
     </aside>
   );
 }
@@ -32,16 +40,19 @@ export function PremiumStoryAd({ compact }: { compact?: boolean }) {
   const slot = slots.find((s) => s.id === "premium_story" && s.enabled);
   const yt = slot?.video ? youtubeId(slot.video) : "";
   const body = slot && yt ? (
-    <div className="w-full bg-black">
+    <div className="w-full overflow-hidden rounded-xl bg-black">
       <iframe title="Premium ad" src={`https://www.youtube.com/embed/${yt}?rel=0`} className="mx-auto aspect-[9/16] max-h-[280px] w-auto border-0 bg-black" allow="encrypted-media; fullscreen" loading="lazy" />
     </div>
   ) : slot?.image ? (
-    <a href={slot.link || "/advertise"} target={slot.link ? "_blank" : undefined} rel="noreferrer" className="block w-full bg-black">
+    <a href={slot.link || "/advertise"} target={slot.link ? "_blank" : undefined} rel="noreferrer" className="block w-full overflow-hidden rounded-xl bg-black">
       <img src={slot.image} alt="" className="mx-auto max-h-[280px] w-full object-contain" />
     </a>
   ) : (
-    <div className={`grid w-full place-items-center bg-black px-4 text-center ${compact ? "h-[120px]" : "h-[160px]"}`}>
-      <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</div>
+    <div className={`grid w-full place-items-center rounded-xl bg-black px-4 text-center ${compact ? "h-[132px]" : "h-[176px]"}`}>
+      <div>
+        <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</div>
+        <p className="mt-1 text-[10px] font-normal text-white/55">Image or YouTube. Super fills this slot.</p>
+      </div>
     </div>
   );
   return <PremiumShell compact={compact}>{body}</PremiumShell>;
@@ -52,16 +63,19 @@ export function PremiumSquareAd() {
   const slot = slots.find((s) => s.id === "ads_square" && s.enabled);
   if (slot && (slot.image || slot.video || slot.html || slot.pubId)) {
     return (
-      <PremiumShell>
+      <PremiumShell rent>
         <AdSlot id="ads_square" />
       </PremiumShell>
     );
   }
   return (
-    <PremiumShell>
-      <div className="grid h-[148px] w-full place-items-center bg-black px-4 text-center">
-        <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</div>
-      </div>
+    <PremiumShell rent>
+      <a href="/advertise" className="grid h-[188px] w-full place-items-center rounded-xl bg-black px-4 text-center">
+        <div>
+          <div className="text-[11px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</div>
+          <p className="mt-2 text-[11px] font-normal text-white/60">Rent this square for your brand. Crypto + staff approve.</p>
+        </div>
+      </a>
     </PremiumShell>
   );
 }
@@ -69,12 +83,14 @@ export function PremiumSquareAd() {
 export function MenuPremiumAd() {
   return (
     <aside className="overflow-hidden rounded-2xl border border-line bg-panel">
-      <div className="flex items-center justify-between gap-2 px-2.5 py-1.5">
+      <div className="flex items-center justify-between gap-2 px-2.5 py-2">
         <span className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PREMIUM ADS</span>
-        <ContactCta />
+        <RentCta />
       </div>
-      <div className="grid h-[88px] w-full place-items-center bg-black px-3 text-center">
-        <p className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</p>
+      <div className="px-2 pb-2">
+        <a href="/advertise" className="grid h-[96px] w-full place-items-center rounded-xl bg-black px-3 text-center">
+          <p className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</p>
+        </a>
       </div>
     </aside>
   );
@@ -84,8 +100,8 @@ export function PortraitAd({ id }: { id: string }) {
   const slots = useAdSlots();
   const slot = slots.find((s) => s.id === id && s.enabled);
   const frame = (child: ReactNode) => (
-    <aside className="my-3 overflow-hidden rounded-2xl border border-line bg-panel">
-      <div className="flex items-center justify-between px-3 py-1.5">
+    <aside className="my-6 overflow-hidden rounded-2xl border border-line bg-panel">
+      <div className="flex items-center justify-between px-3 py-2">
         <span className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PORTRAIT ADS</span>
         <ContactCta />
       </div>

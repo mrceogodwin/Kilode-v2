@@ -9,6 +9,11 @@ export type AdCatalog = {
   pageSize: number;
   featuredN: number;
   prices: Record<string, number>;
+  heroPosts: boolean;
+  heroPaid: boolean;
+  heroGoogle: boolean;
+  heroVideo: boolean;
+  heroMs: number;
 };
 
 const DEFAULTS: AdCatalog = {
@@ -16,6 +21,11 @@ const DEFAULTS: AdCatalog = {
   pageSize: 12,
   featuredN: 8,
   prices: Object.fromEntries(AD_PLACEMENTS.map((p) => [p.id, p.usd])),
+  heroPosts: true,
+  heroPaid: true,
+  heroGoogle: true,
+  heroVideo: true,
+  heroMs: 7000,
 };
 
 async function table() {
@@ -44,6 +54,11 @@ export async function loadAdCatalog(): Promise<AdCatalog> {
       pageSize: Math.min(48, num(map.page_size, DEFAULTS.pageSize)),
       featuredN: Math.min(24, num(map.featured_n, DEFAULTS.featuredN)),
       prices,
+      heroPosts: map.hero_posts !== "0",
+      heroPaid: map.hero_paid !== "0",
+      heroGoogle: map.hero_google !== "0",
+      heroVideo: map.hero_video !== "0",
+      heroMs: Math.min(15000, Math.max(4000, num(map.hero_ms, DEFAULTS.heroMs))),
     };
   } catch {
     return DEFAULTS;
@@ -54,7 +69,7 @@ export const listAdCatalog = createServerFn({ method: "GET" }).handler(async () 
 
 export const saveAdCatalog = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { dailyCap?: number; pageSize?: number; featuredN?: number; prices?: Record<string, number> }) => d)
+  .validator((d: { dailyCap?: number; pageSize?: number; featuredN?: number; prices?: Record<string, number>; heroPosts?: boolean; heroPaid?: boolean; heroGoogle?: boolean; heroVideo?: boolean; heroMs?: number }) => d)
   .handler(async ({ context, data }) => {
     await assertStaff(context.userId, "super");
     const sql = await table();
@@ -62,6 +77,11 @@ export const saveAdCatalog = createServerFn({ method: "POST" })
     if (data.dailyCap) pairs.push(["daily_cap", String(Math.max(1, Math.min(200, Math.round(data.dailyCap))))]);
     if (data.pageSize) pairs.push(["page_size", String(Math.max(6, Math.min(48, Math.round(data.pageSize))))]);
     if (data.featuredN) pairs.push(["featured_n", String(Math.max(3, Math.min(24, Math.round(data.featuredN))))]);
+    if (typeof data.heroPosts === "boolean") pairs.push(["hero_posts", data.heroPosts ? "1" : "0"]);
+    if (typeof data.heroPaid === "boolean") pairs.push(["hero_paid", data.heroPaid ? "1" : "0"]);
+    if (typeof data.heroGoogle === "boolean") pairs.push(["hero_google", data.heroGoogle ? "1" : "0"]);
+    if (typeof data.heroVideo === "boolean") pairs.push(["hero_video", data.heroVideo ? "1" : "0"]);
+    if (data.heroMs) pairs.push(["hero_ms", String(Math.max(4000, Math.min(15000, Math.round(data.heroMs))))]);
     if (data.prices) {
       for (const p of AD_PLACEMENTS) {
         const n = Number(data.prices[p.id]);

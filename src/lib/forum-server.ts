@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
-import { asAccountKind, type AccountKind } from "@/lib/qonvo-data";
+import { asAccountKind, type AccountKind, type AdPlacement } from "@/lib/qonvo-data";
 import { canKind, kindActionHint, type KindAction } from "@/lib/permissions";
 import { gateText } from "@/lib/mod-cache";
 import { pushNote, userIdByHandle } from "@/lib/social-server";
@@ -339,7 +339,7 @@ function mapAd(r: {
   };
 }
 
-type CampaignPlacement = "sidebar" | "hero" | "chat" | "board" | "chat-pin";
+type CampaignPlacement = AdPlacement | "sidebar" | "hero";
 type Campaign = { kind?: "image" | "video" | "image-text" | "video-text" | "text" };
 
 export const listMyAds = createServerFn({ method: "GET" })

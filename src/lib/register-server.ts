@@ -11,13 +11,18 @@ function fail(reason: string) {
 }
 
 export const registerAccount = createServerFn({ method: "POST" })
-  .validator((d: { name: string; password: string; kind: string; agree: boolean; face?: string }) => d)
+  .validator((d: { name: string; password: string; kind: string; agree: boolean; face?: string; yearBorn?: number }) => d)
   .handler(async ({ data }) => {
     if (!allowWrite(`reg:${(data.name || "").toLowerCase()}`, 5, 10 * 60_000)) return fail(RATE_BLOCKED);
     if (!data.agree) return fail("Tick the box to accept the Terms.");
     const handle = publicUsername(data.name);
     if (handle.length < 3) return fail("Username needs 3+ letters or numbers.");
     if ((data.password ?? "").length < 8) return fail("Password needs 8+ characters.");
+    const year = Number(data.yearBorn);
+    const age = new Date().getUTCFullYear() - year;
+    if (!Number.isInteger(year) || year < 1900 || age < 15 || age > 120) {
+      return fail("You must be 15 or older to join Kilode.");
+    }
     const kind = asAccountKind(data.kind);
     const email = accountEmail(handle);
 
@@ -34,7 +39,7 @@ export const registerAccount = createServerFn({ method: "POST" })
 
     const made = await insertCredentialUser(handle, email, data.password);
     if (!made.ok) return made;
-    await saveKind(handle, email, kind, data.face).catch(() => undefined);
+    await saveKind(handle, email, kind, data.face, age).catch(() => undefined);
     return { ok: true as const, handle };
   });
 
@@ -68,24 +73,30 @@ async function insertCredentialUser(handle: string, email: string, password: str
   return { ok: true as const };
 }
 
-async function saveKind(handle: string, email: string, kind: AccountKind, face?: string) {
+async function saveKind(handle: string, email: string, kind: AccountKind, face?: string, age?: number) {
   const sql = await getSql();
+  try {
+    await sql`alter table nf_profiles add column if not exists age integer`;
+  } catch {
+    /* exists */
+  }
   const u = await sql<{ id: string }>`select id from "user" where email = ${email} limit 1`;
   const userId = u[0]?.id;
   if (!userId) return;
   const existing = await sql<{ user_id: string }>`select user_id from nf_profiles where user_id = ${userId} limit 1`;
   const f = (face ?? "").slice(0, 32);
+  const years = Number.isInteger(age) ? age! : null;
   if (existing[0]) {
     try {
-      await sql`update nf_profiles set handle = ${handle}, face = ${f}, ts = ${Date.now()} where user_id = ${userId}`;
+      await sql`update nf_profiles set handle = ${handle}, face = ${f}, age = ${years}, ts = ${Date.now()} where user_id = ${userId}`;
     } catch {
       await sql`update nf_profiles set handle = ${handle}, ts = ${Date.now()} where user_id = ${userId}`;
     }
   } else {
     try {
-      await sql`insert into nf_profiles (user_id, handle, bio, city, kind, face, ts) values (${userId}, ${handle}, ${""}, ${""}, ${kind}, ${f}, ${Date.now()})`;
+      await sql`insert into nf_profiles (user_id, handle, bio, city, kind, face, age, ts) values (${userId}, ${handle}, ${""}, ${""}, ${kind}, ${f}, ${years}, ${Date.now()})`;
     } catch {
-      await sql`insert into nf_profiles (user_id, handle, bio, city, ts) values (${userId}, ${handle}, ${""}, ${""}, ${Date.now()})`;
+      await sql`insert into nf_profiles (user_id, handle, bio, city, kind, face, ts) values (${userId}, ${handle}, ${""}, ${""}, ${kind}, ${f}, ${Date.now()})`;
     }
   }
 }

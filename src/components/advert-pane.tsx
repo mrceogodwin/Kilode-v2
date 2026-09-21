@@ -71,8 +71,8 @@ function FeaturedRail({ ads, onView }: { ads: Campaign[]; onView: (id: string) =
   }, [ads.length]);
   if (!ads.length) return null;
   return (
-    <section className="mb-3">
-      <div className="mb-1 text-[10px] font-medium tracking-[0.16em] text-lime-2">FEATURED ADS</div>
+    <section className="mb-6">
+      <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">FEATURED ADS</div>
       <div
         ref={track}
         className="flex gap-1.5 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -118,14 +118,22 @@ function FeaturedRail({ ads, onView }: { ads: Campaign[]; onView: (id: string) =
   );
 }
 
+function matches(a: Campaign, q: string) {
+  if (!q) return true;
+  const blob = `${a.name} ${a.note || ""} ${a.status} ${a.placement} ${a.coin || ""}`.toLowerCase();
+  return blob.includes(q);
+}
+
 export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreate: () => void; onView: (id: string) => void }) {
   const [shown, setShown] = useState<Record<number, number>>({ 30: 12, 14: 12, 7: 12, 1: 12 });
   const [pageSize, setPageSize] = useState(12);
   const [featuredN, setFeaturedN] = useState(8);
   const [vert, setVert] = useState<string>("All");
+  const [q, setQ] = useState("");
+  const needle = q.trim().toLowerCase();
   const liveAll = ads.filter((a) => a.status === "approved");
-  const live = vert === "All" ? liveAll : liveAll.filter((a) => adVertical(a.name, a.note) === vert);
-  const mine = ads.filter((a) => a.status !== "approved");
+  const live = (vert === "All" ? liveAll : liveAll.filter((a) => adVertical(a.name, a.note) === vert)).filter((a) => matches(a, needle));
+  const mine = ads.filter((a) => a.status !== "approved").filter((a) => matches(a, needle));
   const buckets: { days: number; label: string }[] = [
     { days: 30, label: "30-day ads" },
     { days: 14, label: "14-day ads" },
@@ -176,6 +184,14 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
           Place ad
         </button>
       </div>
+      <div className="border-b border-line px-2 py-2">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search ads — brand, yours, pending…"
+          className="min-h-9 w-full rounded-lg border border-line bg-panel px-3 text-[12px]"
+        />
+      </div>
       <div className="flex shrink-0 flex-nowrap gap-1 overflow-x-auto overscroll-x-contain border-b border-line px-2 py-1.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {AD_VERTICALS.map((v) => (
           <button
@@ -190,9 +206,9 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-3">
         <PremiumSquareAd />
-        <AdReserve id="ads_leader" className="mb-3" />
+        <AdReserve id="ads_leader" className="mt-6 mb-6" />
         <FeaturedRail ads={featured} onView={onView} />
-        <div className="mb-3 grid grid-cols-2 gap-2">
+        <div className="mb-6 grid grid-cols-2 gap-2">
           <AdReserve id="ads_split_a" minH="min-h-[90px]" />
           <AdReserve id="ads_g1" minH="min-h-[90px]" />
         </div>
@@ -201,7 +217,7 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
           if (!pack.length) return null;
           const n = shown[days] ?? pageSize;
           return (
-            <section key={days} className="mb-5">
+            <section key={days} className="mb-8">
               <div className="mb-1.5">
                 <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{label.toUpperCase()}</div>
                 <div className="text-[10px] text-muted">{pack.length} live</div>
@@ -214,24 +230,24 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
               {n < pack.length ? (
                 <button
                   type="button"
-                  className="btn-3d mx-auto mt-2 block rounded-md px-4 py-1.5 text-[11px] font-semibold"
+                  className="btn-3d mx-auto mt-4 block rounded-md px-5 py-2 text-[11px] font-extrabold tracking-[0.18em]"
                   onClick={() => setShown((s) => ({ ...s, [days]: n + pageSize }))}
                 >
-                  Load more · {pack.length - n} left
+                  NEXT
                 </button>
               ) : null}
             </section>
           );
         })}
         <div ref={sentinel} className="h-2" />
-        <AdReserve id="ads_g2" className="mb-3" />
+        <AdReserve id="ads_g2" className="mb-6 mt-4" />
         {vert === "All"
           ? AD_VERTICALS.filter((v) => v !== "All")
               .map((v) => {
-                const pack = liveAll.filter((a) => adVertical(a.name, a.note) === v);
+                const pack = liveAll.filter((a) => adVertical(a.name, a.note) === v && matches(a, needle));
                 if (!pack.length) return null;
                 return (
-                  <section key={v} className="mb-5">
+                  <section key={v} className="mb-8">
                     <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">{v.toUpperCase()}</div>
                     <div className="grid grid-cols-3 gap-1.5">
                       {pack.slice(0, 6).map((a) => (
@@ -242,11 +258,11 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
                 );
               })
               .filter(Boolean)
-              .flatMap((node, i) => (i === 3 ? [node, <AdReserve key="g3" id="ads_g3" className="mb-3" />] : [node]))
+              .flatMap((node, i) => (i === 3 ? [node, <AdReserve key="g3" id="ads_g3" className="mb-6" />] : [node]))
           : null}
-        {live.length === 0 ? <EmptyHero title="No ads live" body="Place an ad after crypto payment — Nigeria is watching." cta="Place an ad" onClick={onCreate} /> : null}
-        <AdReserve id="ads_footer" className="mt-3" />
-        {mine.length ? <div className="mt-3 text-[10px] font-medium tracking-normal text-muted">Your queue</div> : null}
+        {live.length === 0 && !mine.length ? <EmptyHero title="No ads live" body="Place an ad after crypto payment — Nigeria is watching." cta="Place an ad" onClick={onCreate} /> : null}
+        <AdReserve id="ads_footer" className="mt-6" />
+        {mine.length ? <div className="mt-6 text-[10px] font-medium tracking-normal text-muted">Your queue{needle ? " · matches" : ""}</div> : null}
         {mine.map((a) => (
           <div key={a.id} className="mt-1 rounded-md border border-line px-2 py-1.5 text-[11px] text-muted">
             {a.name} · {a.status} · {a.kind} · {a.days ?? 7}d · {(a.coin || "").toUpperCase()} {a.amount || ""} · {fmtCount(a.views ?? 0)} views

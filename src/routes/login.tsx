@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { authEnabled } from "@/lib/auth/client";
-import { AccountKindPicker, AvatarPicker } from "@/components/account-kind";
+import { AccountKindPicker, AvatarPicker, YearBornSelect } from "@/components/account-kind";
 import { ACCOUNT_KINDS, KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 
@@ -24,6 +24,7 @@ function Login() {
   const [agreeRules, setAgreeRules] = useState(false);
   const [kind, setKind] = useState<AccountKind>("member");
   const [face, setFace] = useState(KIND_FACE.member);
+  const [yearBorn, setYearBorn] = useState<number | "">("");
   const [mode, setMode] = useState<"in" | "up">(staff ? "in" : search.mode === "up" ? "up" : "in");
   const [busy, setBusy] = useState(false);
 
@@ -34,12 +35,12 @@ function Login() {
 
   async function up() {
     setErr("");
-    if (!agree || !agreeRules) {
+    if (!agree || (!staff && !agreeRules)) {
       setErr(staff ? "Confirm you are creating the owner account." : "Tick both boxes. Read the Terms and the Rules first.");
       return;
     }
     setBusy(true);
-    const r = await kilodeSignUp(name, password, staff ? "member" : kind, staff ? "👑" : face);
+    const r = await kilodeSignUp(name, password, staff ? "member" : kind, staff ? "👑" : face, typeof yearBorn === "number" ? yearBorn : undefined);
     setBusy(false);
     if (!r.ok) setErr(r.reason);
     else go();
@@ -89,6 +90,7 @@ function Login() {
                   <div className="mb-1 text-[11px] font-medium text-muted">Your avatar</div>
                   <AvatarPicker value={face} handle={name} onChange={setFace} />
                 </div>
+                <YearBornSelect value={yearBorn} onChange={setYearBorn} />
                 <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] leading-snug text-muted">
                   <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
                   <span>
@@ -119,10 +121,13 @@ function Login() {
               </>
             ) : null}
             {mode === "up" && staff ? (
-              <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">
-                <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-                <span>I am creating the owner account for this site.</span>
-              </label>
+              <>
+                <YearBornSelect value={yearBorn} onChange={setYearBorn} />
+                <label className="flex items-start gap-2 rounded-lg border border-line p-2 text-[11px] text-muted">
+                  <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+                  <span>I am creating the owner account for this site.</span>
+                </label>
+              </>
             ) : null}
             {err ? <p className="text-sm text-danger">{err}</p> : null}
             {mode === "up" ? (

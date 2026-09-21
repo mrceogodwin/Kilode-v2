@@ -8,6 +8,8 @@ export const AD_SLOT_DEFS = [
   { id: "article_before_top10", label: "Article · before Top 10", kind: "image" as const, hint: "Company banner. Duration in days." },
   { id: "article_after_top10", label: "Article · after Top 10", kind: "image" as const, hint: "Second company placement. Different brand from the one above." },
   { id: "article_top", label: "Feeds · short strip above grids", kind: "image" as const, hint: "Not tall. Image or video." },
+  { id: "feeds_hero", label: "Feeds · FLAGSHIP hero slide", kind: "image" as const, hint: "16:9 image or YouTube in the Feeds hero. This is the expensive premium unit. Enable to include Super creative in the slider." },
+  { id: "feeds_hero_google", label: "Feeds · hero AdSense slide", kind: "google" as const, hint: "Optional Google unit as one slide inside the Feeds hero. Paste ca-pub + unit." },
   { id: "feeds_before_top10", label: "Feeds listing · before Top 10", kind: "image" as const, hint: "Flat banner after the grid, before Top 10." },
   { id: "feeds_google", label: "Feeds listing · Google banner", kind: "google" as const, hint: "ca-pub + unit between Top 10 and the next block." },
   { id: "feeds_after_top10", label: "Feeds listing · after Top 10", kind: "image" as const, hint: "Banner under Top 10, above the tab bar." },
