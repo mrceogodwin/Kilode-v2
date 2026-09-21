@@ -416,7 +416,7 @@ export function QonvoApp() {
         </div>
         {/* Rooms/Live/Videos folded into Chat & Me — keep tab bar clear on mobile */}
         <div className="h-6 overflow-hidden border-t border-line/60 bg-panel-2">
-          <div className="ticker-track px-4 text-[10px] leading-6 text-muted">
+          <div className="ticker-track px-8 text-[10px] leading-6 text-muted">
             {[...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10), ...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10)].map((r, i) => (
               <button key={r.id + i} type="button" aria-label={`Open room ${r.name}`} className="shrink-0 hover:text-fg" onClick={() => goHome(r.id)}>
                 {r.name} · {fmt(r.online)}

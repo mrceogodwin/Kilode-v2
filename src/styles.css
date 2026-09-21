@@ -394,9 +394,9 @@ html[data-skin="ivory"] .app-tab {
 }
 html[data-skin="ivory"] .logo-night {
   display: block;
-  background: #070b08;
-  border-radius: 10px;
-  padding: 2px 6px;
+  background: #141a16;
+  border-radius: 7px;
+  padding: 1px 4px;
 }
 html[data-skin="ivory"] .logo-day {
   display: none;
@@ -748,8 +748,17 @@ html[data-skin="ivory"] .store-3d {
   }
 }
 
-.ad-box {
-  min-height: 72px;
+.ad-void {
+  background: #0c0c0c;
+}
+.ad-void-empty {
+  background: #0a0a0a;
+}
+html[data-skin="ivory"] .ad-void {
+  background: #161c18;
+}
+html[data-skin="ivory"] .ad-void-empty {
+  background: #e8f0ea;
 }
 
 
