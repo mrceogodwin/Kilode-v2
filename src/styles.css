@@ -187,6 +187,13 @@
   .hero-flag:hover .flash-stack {
     animation-play-state: paused;
   }
+  .menu-install {
+    background: linear-gradient(180deg, rgba(107, 158, 120, 0.14) 0%, rgba(107, 158, 120, 0.04) 100%);
+    border: 1px solid rgba(107, 158, 120, 0.32);
+  }
+  .menu-dock {
+    background: linear-gradient(180deg, rgba(107, 158, 120, 0.06) 0%, transparent 100%);
+  }
   @keyframes flash-down {
     0%, 22% { transform: translateY(0); }
     28%, 50% { transform: translateY(-18px); }
@@ -354,6 +361,13 @@ html[data-skin="ivory"] .flash-bar {
 }
 html[data-skin="ivory"] .flash-stack span {
   color: #3f4741;
+}
+html[data-skin="ivory"] .menu-install {
+  background: linear-gradient(180deg, #e7f3ea 0%, #f7fbf8 100%);
+  border-color: #c5d4c8;
+}
+html[data-skin="ivory"] .menu-dock {
+  background: #f7fbf8;
 }
 .logo-day {
   display: none;

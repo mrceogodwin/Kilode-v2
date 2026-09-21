@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 
 const SCENES = [
@@ -9,13 +9,13 @@ const SCENES = [
   { src: "/howto/join.jpg", title: "Join", body: "Username + password. Pick a type at register. That type stays unless Super changes it." },
 ];
 
-export function HowKilode({ className = "" }: { className?: string }) {
+export function HowKilode({ className = "", children }: { className?: string; children?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [failed, setFailed] = useState(false);
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={className || "btn-3d rounded-md py-1.5 text-center text-[10px] font-semibold tracking-wide"}>
-        HOW KILODE WORKS
+        {children ?? "How Kilode works"}
       </button>
       {open ? (
         <div className="fixed inset-0 z-[60] grid place-items-end bg-black/70 p-3 sm:place-items-center" onClick={() => setOpen(false)}>
@@ -53,7 +53,7 @@ export function HowKilode({ className = "" }: { className?: string }) {
                 onError={() => setFailed(true)}
               />
             )}
-            <p className="px-3 py-2 text-[11px] leading-snug text-muted">Feeds, Forum, Cinema, Ads, Join — screens from the live app.</p>
+            <p className="px-3 py-2 text-[11px] leading-snug text-muted">Feeds, Chat, Cinema, Ads, Join — from the live app.</p>
           </div>
         </div>
       ) : null}

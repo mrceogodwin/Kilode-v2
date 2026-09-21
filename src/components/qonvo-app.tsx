@@ -46,7 +46,7 @@ import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
 import { CinemaPane } from "@/components/cinema-pane";
 import { ChatTermsBar, ForumClock, ForumWhy } from "@/components/forum-why";
-import { PremiumSquareAd, PremiumStoryAd, MenuPremiumAd, PortraitAd, ContactCta } from "@/components/premium-ad";
+import { PremiumSquareAd, PremiumStoryAd, MenuPremiumAd, PortraitAd } from "@/components/premium-ad";
 import { AdvertPane } from "@/components/advert-pane";
 import { RoomList } from "@/components/rooms-list";
 import { listRoomOverlay } from "@/lib/rooms-server";
@@ -96,13 +96,7 @@ const ICONS: Record<MenuId, typeof Home> = {
 const MENU_GROUPS: { label: string; ids: MenuId[] }[] = [
   { label: "Me", ids: ["profile", "dashboard", "bookmarks", "inbox", "notifications", "teams"] },
   { label: "Discover", ids: ["trending", "community", "search", "leaderboard", "badges"] },
-  { label: "Create", ids: ["create", "ads", "jobs", "market", "rent"] },
-  { label: "Account", ids: ["settings", "contact", "help"] },
-];
-
-const GUEST_GROUPS: { label: string; ids: MenuId[] }[] = [
-  { label: "Browse", ids: ["trending", "community", "search", "jobs", "market", "rent"] },
-  { label: "Account", ids: ["help", "contact"] },
+  { label: "Create", ids: ["create", "ads"] },
 ];
 
 function fmt(n: number) {
@@ -851,15 +845,9 @@ export function QonvoApp() {
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-5">
               {!(signedIn) ? (
-                <div className="mb-3 space-y-2">
+                <div className="mb-4 space-y-2">
                   <MenuPremiumAd />
-                  <div className="grid grid-cols-3 gap-1">
-                    <HowKilode className="flex min-h-[34px] w-full items-center justify-center rounded-md border border-line bg-transparent px-1 text-center text-[8px] font-semibold uppercase tracking-[0.04em]" />
-                    <ContactCta className="min-h-[34px] w-full px-1" />
-                    <a href="/login?mode=up" className="flex min-h-[34px] items-center justify-center rounded-md border border-line bg-transparent px-1 text-center text-[8px] font-semibold uppercase tracking-[0.04em]">
-                      JOIN KILODE
-                    </a>
-                  </div>
+                  <JoinCta className="w-full py-2.5 text-[12px]" />
                 </div>
               ) : (
               <div className="mb-4 grid grid-cols-3 gap-2 px-0.5">
@@ -910,19 +898,23 @@ export function QonvoApp() {
                   })}
                 </div>
               </div>
-              ) : (
-              <div className="mb-4 px-0.5">
-                <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Quick</div>
-                <button
-                  type="button"
-                  className="raised flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left"
-                  onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }}
-                >
-                  <MessageSquare className="size-4 shrink-0 text-lime-2" />
-                  <span className="text-[12px] font-semibold">Chat rooms</span>
-                </button>
-              </div>
-              )}
+              ) : null}
+
+              <DrawerGroup label="Kilode">
+                <DrawerRow icon={Home} label="Feeds" hint="News for Nigeria" onClick={() => { store.setOpenPost(null); setScreen("home"); setHomeTab("feeds"); setMenuOpen(false); }} on={homeTab === "feeds" && screen === "home"} />
+                <DrawerRow icon={MessageSquare} label="Chat" hint="Live rooms · 36 states" onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }} on={homeTab === "chat" && screen === "home"} />
+                <DrawerRow icon={Radio} label="Music" hint="Artist links. We embed." onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
+                <DrawerRow icon={Film} label="Cinema" hint="Vote and watch together" onClick={() => { setScreen("home"); setHomeTab("cinema"); setMenuOpen(false); }} on={homeTab === "cinema" && screen === "home"} />
+                <DrawerRow icon={Play} label="Videos" hint="Clips on Kilode" onClick={() => { setScreen("home"); setHomeTab("videos"); setMenuOpen(false); }} on={homeTab === "videos" && screen === "home"} />
+                <DrawerRow icon={Megaphone} label="Ads" hint="Live brand campaigns" onClick={() => { setScreen("home"); setHomeTab("advert"); setMenuOpen(false); }} on={homeTab === "advert" && screen === "home"} />
+              </DrawerGroup>
+
+              <DrawerGroup label="Listings">
+                <DrawerRow icon={Briefcase} label="Jobs" hint="Roles and applications" onClick={() => { setScreen("jobs"); setMenuOpen(false); }} on={screen === "jobs"} />
+                <DrawerRow icon={Store} label="Marketplace" hint="Showcase. No checkout" onClick={() => { setScreen("market"); setMenuOpen(false); }} on={screen === "market"} />
+                <DrawerRow icon={Building2} label="Rent" hint="Spaces and contact" onClick={() => { setScreen("rent"); setMenuOpen(false); }} on={screen === "rent"} />
+                <DrawerRow icon={Megaphone} label="Advertise" hint="Rent a 16:9 or a tile" href="/advertise" />
+              </DrawerGroup>
 
               {store.campaigns.filter((c) => c.status === "approved").slice(0, 2).length ? (
                 <div className="mb-4 px-0.5">
@@ -973,14 +965,14 @@ export function QonvoApp() {
                 </div>
               </div>
 
-              {(signedIn ? MENU_GROUPS : GUEST_GROUPS).map((group) => (
+              {(signedIn ? MENU_GROUPS : []).map((group) => (
                 <div key={group.label} className="mb-4">
                   <div className="px-1 py-1.5 text-[10px] font-medium tracking-normal text-muted">{group.label}</div>
                   <div className="space-y-0.5">
                     {group.ids
                       .filter((id) => {
                         if (id === "create") return canKind(store.kind, "feeds.post") || canKind(store.kind, "music.submit");
-                        if (id === "ads") return canKind(store.kind, "ads.submit") || group.label === "Browse";
+                        if (id === "ads") return canKind(store.kind, "ads.submit");
                         return true;
                       })
                       .map((id) => {
@@ -1014,33 +1006,21 @@ export function QonvoApp() {
                 </div>
               ))}
 
-              <div className="px-2 py-1 text-[10px] font-medium tracking-normal text-muted">Also</div>
-              <div className="space-y-0.5">
-                <button
-                  type="button"
-                  onClick={() => { setScreen("home"); setHomeTab("videos"); setMenuOpen(false); }}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-panel-2"
-                >
-                  <Play className="size-4 shrink-0 text-lime-2" />
-                  Videos
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-panel-2"
-                >
-                  <Radio className="size-4 shrink-0 text-lime-2" />
-                  Music
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setScreen("home"); setHomeTab("cinema"); setMenuOpen(false); }}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-panel-2"
-                >
-                  <Film className="size-4 shrink-0 text-lime-2" />
-                  Cinema
-                </button>
-              </div>
+              <DrawerGroup label="Help">
+                <HowKilode className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-panel-2">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-lime-2/10">
+                    <Play className="size-4 text-lime-2" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold">How Kilode works</span>
+                    <span className="block text-[10px] font-normal text-muted">Walkthrough · one minute</span>
+                  </span>
+                  <ChevronRight className="size-3.5 shrink-0 text-muted" />
+                </HowKilode>
+                <DrawerRow icon={HelpCircle} label="Help & FAQ" hint="Terms, rules, how to use" onClick={() => { setScreen("help"); setMenuOpen(false); }} on={screen === "help"} />
+                <DrawerRow icon={Mail} label="Contact" hint="Talk to Kilode" onClick={() => { setScreen("contact"); setMenuOpen(false); }} on={screen === "contact"} />
+                {signedIn ? <DrawerRow icon={Settings} label="Settings" onClick={() => { setScreen("settings"); setMenuOpen(false); }} on={screen === "settings"} /> : null}
+              </DrawerGroup>
             </div>
             <MenuPin />
             <MenuLegal onDonate={() => { setDonateOpen(true); setMenuOpen(false); }} />
@@ -1240,6 +1220,57 @@ function Tab({
     <button type="button" onClick={onClick} className={`app-tab flex min-h-11 flex-col items-center justify-center gap-0.5 text-[9px] font-semibold ${on ? "on" : ""}`}>
       {icon}
       {label}
+    </button>
+  );
+}
+
+function DrawerGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-4">
+      <div className="px-1 py-1.5 text-[10px] font-medium tracking-normal text-muted">{label}</div>
+      <div className="space-y-0.5">{children}</div>
+    </div>
+  );
+}
+
+function DrawerRow({
+  icon: Icon,
+  label,
+  hint,
+  onClick,
+  href,
+  on,
+}: {
+  icon: typeof Home;
+  label: string;
+  hint?: string;
+  onClick?: () => void;
+  href?: string;
+  on?: boolean;
+}) {
+  const inner = (
+    <>
+      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-lime-2/10">
+        <Icon className="size-4 text-lime-2" />
+      </span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block truncate font-semibold">{label}</span>
+        {hint ? <span className="block truncate text-[10px] font-normal text-muted">{hint}</span> : null}
+      </span>
+      <ChevronRight className="size-3.5 shrink-0 text-muted" />
+    </>
+  );
+  const cls = `flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm ${on ? "bg-panel-2 text-lime-2" : "hover:bg-panel-2"}`;
+  if (href) {
+    return (
+      <a href={href} className={cls}>
+        {inner}
+      </a>
+    );
+  }
+  return (
+    <button type="button" className={cls} onClick={onClick}>
+      {inner}
     </button>
   );
 }
