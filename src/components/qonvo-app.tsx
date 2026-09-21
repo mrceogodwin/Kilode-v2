@@ -1895,13 +1895,13 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
             ))}
           </ul>
         ) : null}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2 lg:grid-cols-4">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
               {p.image ? <img src={p.image} alt="" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
-              <div className="px-1.5 py-1.5 sm:px-1.5">
+              <div className="px-1 py-1 sm:px-1.5">
                 <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
-                <div className="mt-0.5 line-clamp-4 text-[12px] font-normal leading-tight text-fg sm:text-[12px] md:text-[13px]">{p.title}</div>
+                <div className="mt-0.5 line-clamp-4 text-[10px] font-normal leading-tight text-fg sm:text-[11px] md:text-[12px]">{p.title}</div>
                 <div className="mt-0.5 flex items-center gap-1.5 text-[8px] tabular-nums text-muted">
                   <span className="inline-flex items-center gap-0.5">
                     <Eye className="size-2.5" />
