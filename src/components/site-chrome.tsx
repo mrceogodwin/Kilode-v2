@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Share2, X } from "lucide-react";
 import { fmtCount, type Post } from "@/lib/qonvo-data";
-import { DigestBox, GetAppRow, JoinCta, TelegramLink } from "@/components/get-app";
+import { DigestBox, GetAppRow, TelegramLink } from "@/components/get-app";
 import { getPublicSite, pingShare, pingVisit, saveSiteFlags, type PublicSite, type ShareKey } from "@/lib/site-server";
 
 const GONE_KEY = "kilode-install-toast";
@@ -11,6 +11,8 @@ const EMPTY: PublicSite = {
   visitorsToday: 0,
   visitorsAll: 0,
   members: 0,
+  digest: 0,
+  subscribers: 0,
   shares: { x: 0, wa: 0, tg: 0, fb: 0, copy: 0 },
 };
 
@@ -107,12 +109,21 @@ export function SiteFooter() {
       .catch(() => undefined);
   }
   const n = site.shares ?? EMPTY.shares;
+  const subs = site.subscribers || 0;
+  const subLine =
+    subs > 0
+      ? `JOIN ${subs.toLocaleString("en-US")} SUBSCRIBER${subs === 1 ? "" : "S"} FOR INSTANT UPDATES`
+      : "JOIN FOR INSTANT UPDATES";
   return (
-    <footer className="site-foot mt-8 overflow-hidden rounded-2xl px-3 py-4">
-      <div className="flex justify-end">
-        <JoinCta className="min-w-[108px]" />
+    <footer className="site-foot mt-8 overflow-hidden rounded-2xl px-4 py-6">
+      <a href="/login?mode=up" className="block px-1 text-center">
+        <h2 className="text-[22px] font-extrabold leading-[1.15] tracking-[-0.03em] sm:text-[26px]">{subLine}</h2>
+      </a>
+      <p className="mt-2 text-center text-[11px] text-muted">Talk Nigeria. Live. Real people on this site — not an estimate.</p>
+      <div className="mt-4">
+        <DigestBox />
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] tabular-nums text-muted">
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[10px] tabular-nums text-muted">
         <span className="inline-flex items-center gap-1 rounded-full border border-lime-2/30 bg-lime-2/10 px-2 py-0.5 text-lime-2">
           <span className="size-1.5 animate-pulse rounded-full bg-lime-2" />
           {fmtCount(site.visitorsToday)} today
@@ -120,13 +131,11 @@ export function SiteFooter() {
         <span>{fmtCount(site.visitorsAll)} visitors</span>
         <span>{fmtCount(site.members)} joined</span>
       </div>
-      <p className="mt-1 text-[9px] text-muted">Counts unique browsers per day on this site. Not an estimate.</p>
-      <div className="mt-3">
+      <div className="mt-4">
         <GetAppRow />
       </div>
-      <DigestBox />
-      <div className="mt-3">
-        <div className="mb-1.5 text-[10px] font-bold tracking-[0.14em] text-muted">SHARE</div>
+      <div className="mt-4">
+        <div className="mb-1.5 text-center text-[10px] font-bold tracking-[0.14em] text-muted">SHARE</div>
         <div className="grid grid-cols-5 gap-1">
           <ShareChip label="X" count={n.x} className="bg-black text-white ring-1 ring-white/20" onClick={() => share("x")}>
             <IconX />

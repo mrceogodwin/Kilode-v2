@@ -13,7 +13,7 @@ export function JoinCta({ className = "" }: { className?: string }) {
 export function GetAppRow() {
   return (
     <a href="/install" className="menu-install flex items-center gap-3 rounded-xl px-3 py-2.5">
-      <img src="/kilode-bang-icon.png" alt="" className="size-9 shrink-0 rounded-[10px] object-contain" />
+      <img src="/kilode-bang-icon.png" alt="" className="size-10 shrink-0 rounded-[11px] object-contain" />
       <span className="min-w-0 flex-1 text-left">
         <span className="block text-[13px] font-bold leading-tight">Install Kilode</span>
         <span className="block text-[10px] text-muted">Home screen · iPhone and Android</span>
@@ -53,7 +53,7 @@ export function DigestBox() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email digest · optional"
+          placeholder="Email for instant updates"
           className="min-h-9 flex-1 rounded-lg border border-line bg-bg px-2.5 text-[12px]"
         />
         <button type="submit" className="btn-join rounded-lg px-3 py-2 text-[11px] font-bold">

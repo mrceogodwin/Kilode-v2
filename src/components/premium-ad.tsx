@@ -103,9 +103,8 @@ export function PortraitAd({ id }: { id: string }) {
   const slot = slots.find((s) => s.id === id && s.enabled);
   const frame = (child: ReactNode) => (
     <aside className="my-6 overflow-hidden rounded-2xl border border-line bg-panel">
-      <div className="flex items-center justify-between px-3 py-2">
+      <div className="px-3 py-2">
         <span className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PORTRAIT ADS</span>
-        <ContactCta />
       </div>
       <div className="flex w-full justify-center bg-black">{child}</div>
     </aside>
@@ -128,11 +127,11 @@ export function PortraitAd({ id }: { id: string }) {
     );
   }
   return frame(
-    <div className="grid h-52 w-full place-items-center px-4 text-center">
+    <a href="/advertise" className="grid h-52 w-full place-items-center px-4 text-center">
       <div>
         <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · 9:16</div>
         <div className="mt-1 text-[9px] text-muted">Company portrait</div>
       </div>
-    </div>,
+    </a>,
   );
 }

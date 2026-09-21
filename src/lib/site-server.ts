@@ -12,6 +12,8 @@ export type PublicSite = {
   visitorsToday: number;
   visitorsAll: number;
   members: number;
+  digest: number;
+  subscribers: number;
   shares: Record<ShareKey, number>;
 };
 
@@ -31,6 +33,7 @@ async function ensure() {
   await sql`create table if not exists nf_visits (day text primary key, n integer not null default 0)`;
   await sql`create table if not exists nf_visit_seen (k text primary key, day text not null, ts bigint not null)`;
   await sql`create table if not exists nf_shares (k text primary key, n integer not null default 0)`;
+  await sql`create table if not exists nf_digest (email text primary key, ts bigint not null)`;
   return sql;
 }
 
@@ -42,21 +45,26 @@ async function loadPublic(): Promise<PublicSite> {
     const dayRows = await sql<{ n: string | number }>`select n from nf_visits where day = ${today} limit 1`;
     const allRows = await sql<{ n: string | number }>`select coalesce(sum(n), 0) as n from nf_visits`;
     const members = await sql<{ n: string | number }>`select count(*) as n from "user"`;
+    const digestRows = await sql<{ n: string | number }>`select count(*) as n from nf_digest`;
     const installToast = flag[0]?.install_toast !== 0 && flag[0]?.install_toast !== false && flag[0]?.install_toast !== "0";
     const shareRows = await sql<{ k: string; n: string | number }>`select k, n from nf_shares`;
     const shares = { ...ZERO_SHARES };
     for (const r of shareRows) {
       if (r.k in shares) shares[r.k as ShareKey] = Number(r.n ?? 0);
     }
+    const membersN = Number(members[0]?.n ?? 0);
+    const digestN = Number(digestRows[0]?.n ?? 0);
     return {
       installToast,
       visitorsToday: Number(dayRows[0]?.n ?? 0),
       visitorsAll: Number(allRows[0]?.n ?? 0),
-      members: Number(members[0]?.n ?? 0),
+      members: membersN,
+      digest: digestN,
+      subscribers: membersN + digestN,
       shares,
     };
   } catch {
-    return { installToast: true, visitorsToday: 0, visitorsAll: 0, members: 0, shares: { ...ZERO_SHARES } };
+    return { installToast: true, visitorsToday: 0, visitorsAll: 0, members: 0, digest: 0, subscribers: 0, shares: { ...ZERO_SHARES } };
   }
 }
 
