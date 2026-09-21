@@ -141,14 +141,13 @@ const EMPTY_TECH: TechPayload = { ts: Date.now(), stories: [] };
 export function MarketsDesk({ desk, onDesk, onBack }: { desk: MarketDesk; onDesk: (d: MarketDesk) => void; onBack: () => void }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b border-line px-3 py-2">
-        <button type="button" aria-label="Back" className="grid size-8 place-items-center rounded-md border border-line" onClick={onBack}>
+      <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-2 py-1.5">
+        <button type="button" aria-label="Back" className="grid size-8 shrink-0 place-items-center rounded-md border border-line" onClick={onBack}>
           <ChevronLeft className="size-4" />
         </button>
-        <div className="news-flash">{DESKS.find((d) => d.id === desk)?.label}</div>
-        <div className="ml-auto flex min-w-0 gap-1 overflow-x-auto">
+        <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
           {DESKS.map((d) => (
-            <button key={d.id} type="button" className={`desk-pill shrink-0 px-2 ${desk === d.id ? "on" : ""}`} onClick={() => onDesk(d.id)}>
+            <button key={d.id} type="button" className={`desk-pill ${desk === d.id ? "on" : ""}`} onClick={() => onDesk(d.id)}>
               {d.label}
             </button>
           ))}
@@ -475,8 +474,8 @@ function Match({ e }: { e: SportEvent }) {
   return (
     <div className="raised rounded-2xl px-3 py-3">
       <div className="flex items-center justify-between text-[10px] tracking-[0.12em] text-muted">
-        <span>{e.league}</span>
-        <span className={e.state === "in" ? "desk-live text-lime-2" : ""}>{e.state === "in" ? "LIVE" : e.clock}</span>
+        <span className="truncate pr-2">{e.league}</span>
+        <span className={e.state === "in" ? "desk-live shrink-0 text-lime-2" : "shrink-0"}>{e.state === "in" ? "LIVE" : e.clock}</span>
       </div>
       <div className={`mt-2 items-center gap-2 ${e.away ? "grid grid-cols-[1fr_auto_1fr]" : ""}`}>
         <div className={`${e.away ? "text-right" : ""} text-[13px] font-semibold leading-tight`}>{e.home}</div>
@@ -496,6 +495,35 @@ function Match({ e }: { e: SportEvent }) {
   );
 }
 
+const FLAG_LEAGUES = [
+  "premier league",
+  "la liga",
+  "serie a",
+  "bundesliga",
+  "ligue 1",
+  "champions",
+  "europa",
+  "nba",
+  "nfl",
+  "nhl",
+  "mlb",
+  "mls",
+  "eredivisie",
+  "liga mx",
+  "brasileir",
+  "npfl",
+  "afcon",
+  "world cup",
+  "formula",
+  "f1",
+];
+
+function leagueRank(name: string) {
+  const s = name.toLowerCase();
+  const i = FLAG_LEAGUES.findIndex((k) => s.includes(k));
+  return i === -1 ? 80 + name.length : i;
+}
+
 function SportsDesk() {
   const d = useDesk("sports", EMPTY_SPORTS);
   const upcoming = useMemo(() => (d ? d.slate.filter((e) => e.state === "pre") : []), [d]);
@@ -508,14 +536,18 @@ function SportsDesk() {
   }, [d, tab, upcoming.length]);
   const leagues = useMemo(() => {
     if (!d) return [];
-    return [...new Set([...d.live, ...d.slate].map((e) => e.league))];
+    return [...new Set([...d.live, ...d.slate].map((e) => e.league))].sort((a, b) => leagueRank(a) - leagueRank(b) || a.localeCompare(b));
   }, [d]);
   if (!d) return <Wait />;
-  const flash = [...d.live, ...upcoming, ...finals];
-  const pool = (tab === "flash" ? flash : tab === "live" ? d.live : tab === "up" ? upcoming : finals).filter((e) => lg === "All" || e.league === lg);
+  const flash = [...d.live, ...upcoming, ...finals].sort((a, b) => leagueRank(a.league) - leagueRank(b.league));
+  const pool = (tab === "flash" ? flash : tab === "live" ? d.live : tab === "up" ? upcoming : finals)
+    .filter((e) => lg === "All" || e.league === lg)
+    .slice()
+    .sort((a, b) => leagueRank(a.league) - leagueRank(b.league));
   const groups = [...new Set(pool.map((e) => e.league))];
-  const ticker = d.live.length
-    ? d.live.map((e) => `${e.home} ${e.hs ?? ""}–${e.as ?? ""} ${e.away}`.trim())
+  const tickerSrc = [...d.live].sort((a, b) => leagueRank(a.league) - leagueRank(b.league));
+  const ticker = tickerSrc.length
+    ? tickerSrc.map((e) => `${e.home} ${e.hs ?? ""}–${e.as ?? ""} ${e.away}`.trim())
     : upcoming.slice(0, 8).map((e) => `${e.home} vs ${e.away} · ${e.clock}`);
   return (
     <div className="space-y-4">
@@ -526,9 +558,7 @@ function SportsDesk() {
       {ticker.length ? (
         <div className="overflow-hidden rounded-xl border border-lime-2/25 bg-lime-2/5 px-3 py-2">
           <div className="mb-1 text-[9px] tracking-[0.16em] text-lime-2">{d.live.length ? "SCORE FLASH" : "UP NEXT"}</div>
-          <div className="whitespace-nowrap text-[12px] font-semibold">
-            {ticker.join("   ·   ")}
-          </div>
+          <div className="overflow-x-auto whitespace-nowrap text-[12px] font-semibold">{ticker.join("   ·   ")}</div>
         </div>
       ) : null}
       <div className="flex gap-1 overflow-x-auto">
@@ -540,18 +570,18 @@ function SportsDesk() {
             ["final", "FINAL"],
           ] as const
         ).map(([id, label]) => (
-          <button key={id} type="button" className={`desk-pill shrink-0 ${tab === id ? "on" : ""}`} onClick={() => setTab(id)}>
+          <button key={id} type="button" className={`desk-pill ${tab === id ? "on" : ""}`} onClick={() => setTab(id)}>
             {label}
           </button>
         ))}
       </div>
       {leagues.length > 1 ? (
         <div className="flex gap-1 overflow-x-auto pb-1">
-          <button type="button" className={`desk-pill shrink-0 px-2 ${lg === "All" ? "on" : ""}`} onClick={() => setLg("All")}>
+          <button type="button" className={`desk-pill ${lg === "All" ? "on" : ""}`} onClick={() => setLg("All")}>
             ALL
           </button>
           {leagues.map((name) => (
-            <button key={name} type="button" className={`desk-pill shrink-0 px-2 ${lg === name ? "on" : ""}`} onClick={() => setLg(name)}>
+            <button key={name} type="button" className={`desk-pill ${lg === name ? "on" : ""}`} onClick={() => setLg(name)}>
               {name.toUpperCase()}
             </button>
           ))}
