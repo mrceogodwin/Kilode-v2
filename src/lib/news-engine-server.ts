@@ -864,60 +864,58 @@ export const approveNewsDraft = createServerFn({ method: "POST" })
     return { ok: true as const, postId, post };
   });
 
-export const publishNewsWeek = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }) => {
-    await requireSuper(context.userId);
-    const filters: NewsFilters = { maxAgeHours: 168 };
-    const sources = memSources().filter((s) => s.enabled);
-    const seenLinks = new Set<string>();
-    const seenTitles = new Set<string>();
-    try {
-      const sql = await getSql();
-      const rows = await sql<{ link: string | null; title: string }>`select link, title from nf_posts order by ts desc limit 2000`;
-      for (const r of rows) {
-        if (r.link) seenLinks.add(r.link);
-        seenTitles.add(normTitle(r.title));
-      }
-    } catch {
-      /* empty db */
+async function ingestWeek(opts: { userId: string; limit: number; og: boolean }) {
+  const filters: NewsFilters = { maxAgeHours: 168 };
+  const sources = memSources().filter((s) => s.enabled);
+  const seenLinks = new Set<string>();
+  const seenTitles = new Set<string>();
+  try {
+    const sql = await getSql();
+    const rows = await sql<{ link: string | null; title: string }>`select link, title from nf_posts order by ts desc limit 2000`;
+    for (const r of rows) {
+      if (r.link) seenLinks.add(r.link);
+      seenTitles.add(normTitle(r.title));
     }
+  } catch {
+    /* empty db */
+  }
 
-    const packs = await Promise.allSettled(
-      sources.map(async (src) => {
-        const res = await fetch(src.url, {
-          headers: {
-            "User-Agent": "KilodeNewsEngine/1.0 (+https://kilode.ng; RSS reader)",
-            Accept: "application/rss+xml, application/xml, text/xml, */*",
-          },
-          signal: AbortSignal.timeout(12_000),
-        });
-        if (!res.ok) throw new Error(`${src.name}: HTTP ${res.status}`);
-        const xml = await res.text();
-        return { src, items: parseRss(xml, src.name).slice(0, 80) };
-      }),
-    );
+  const packs = await Promise.allSettled(
+    sources.map(async (src) => {
+      const res = await fetch(src.url, {
+        headers: {
+          "User-Agent": "KilodeNewsEngine/1.0 (+https://kilode.ng; RSS reader)",
+          Accept: "application/rss+xml, application/xml, text/xml, */*",
+        },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!res.ok) throw new Error(`${src.name}: HTTP ${res.status}`);
+      const xml = await res.text();
+      return { src, items: parseRss(xml, src.name).slice(0, 80) };
+    }),
+  );
 
-    type Row = { src: NewsSource; item: RssItem };
-    const pool: Row[] = [];
-    const errors: string[] = [];
-    for (const p of packs) {
-      if (p.status === "rejected") {
-        errors.push(p.reason instanceof Error ? p.reason.message : "feed failed");
-        continue;
-      }
-      for (const item of p.value.items) {
-        if (!passesFilters(item, filters)) continue;
-        if (seenLinks.has(item.link)) continue;
-        const nt = normTitle(item.title);
-        if (seenTitles.has(nt)) continue;
-        seenLinks.add(item.link);
-        seenTitles.add(nt);
-        pool.push({ src: p.value.src, item });
-      }
+  type Row = { src: NewsSource; item: RssItem };
+  const pool: Row[] = [];
+  const errors: string[] = [];
+  for (const p of packs) {
+    if (p.status === "rejected") {
+      errors.push(p.reason instanceof Error ? p.reason.message : "feed failed");
+      continue;
     }
+    for (const item of p.value.items) {
+      if (!passesFilters(item, filters)) continue;
+      if (seenLinks.has(item.link)) continue;
+      const nt = normTitle(item.title);
+      if (seenTitles.has(nt)) continue;
+      seenLinks.add(item.link);
+      seenTitles.add(nt);
+      pool.push({ src: p.value.src, item });
+    }
+  }
 
-    const needPhoto = pool.filter((x) => !x.item.image).slice(0, 60);
+  if (opts.og) {
+    const needPhoto = pool.filter((x) => !x.item.image).slice(0, 40);
     for (let i = 0; i < needPhoto.length; i += 8) {
       const batch = needPhoto.slice(i, i + 8);
       const photos = await Promise.all(batch.map((x) => ogImage(x.item.link)));
@@ -925,51 +923,79 @@ export const publishNewsWeek = createServerFn({ method: "POST" })
         if (img) batch[j]!.item.image = img;
       });
     }
+  }
 
-    const ready = pool.filter((x) => x.item.image).slice(0, 500);
-    let published = 0;
-    const sql = await getSql();
-    for (const { src, item } of ready) {
-      const rewritten = humanizeDeterministic(item, src.name);
-      const postId = `news-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-      const ts = item.pubDate && item.pubDate > Date.now() - 8 * 24 * 3_600_000 ? item.pubDate : Date.now();
-      const slug = slugify(rewritten.title) || postId;
-      const image = item.image || "";
-      const excerpt = rewritten.meta || rewritten.title.slice(0, 140);
+  const ready = pool.filter((x) => x.item.image).slice(0, opts.limit);
+  let published = 0;
+  const sql = await getSql();
+  for (const { src, item } of ready) {
+    const rewritten = humanizeDeterministic(item, src.name);
+    const postId = `news-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    const ts = item.pubDate && item.pubDate > Date.now() - 8 * 24 * 3_600_000 ? item.pubDate : Date.now();
+    const slug = slugify(rewritten.title) || postId;
+    const image = item.image || "";
+    const excerpt = rewritten.meta || rewritten.title.slice(0, 140);
+    try {
+      await sql`
+        insert into nf_posts (id, user_id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, source_name)
+        values (
+          ${postId}, ${opts.userId}, ${rewritten.title}, ${rewritten.body}, ${excerpt},
+          ${rewritten.category}, ${rewritten.tags}, ${item.link}, ${image}, ${slug},
+          ${"publish"}, ${"KilodeDesk#01"}, ${ts}, ${src.name}
+        )
+      `;
+      published += 1;
+    } catch {
       try {
         await sql`
-          insert into nf_posts (id, user_id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, source_name)
+          insert into nf_posts (id, user_id, title, body, excerpt, category, tags, link, image, slug, status, author, ts)
           values (
-            ${postId}, ${context.userId}, ${rewritten.title}, ${rewritten.body}, ${excerpt},
+            ${postId}, ${opts.userId}, ${rewritten.title}, ${rewritten.body}, ${excerpt},
             ${rewritten.category}, ${rewritten.tags}, ${item.link}, ${image}, ${slug},
-            ${"publish"}, ${"KilodeDesk#01"}, ${ts}, ${src.name}
+            ${"publish"}, ${"KilodeDesk#01"}, ${ts}
           )
         `;
         published += 1;
       } catch {
-        try {
-          await sql`
-            insert into nf_posts (id, user_id, title, body, excerpt, category, tags, link, image, slug, status, author, ts)
-            values (
-              ${postId}, ${context.userId}, ${rewritten.title}, ${rewritten.body}, ${excerpt},
-              ${rewritten.category}, ${rewritten.tags}, ${item.link}, ${image}, ${slug},
-              ${"publish"}, ${"KilodeDesk#01"}, ${ts}
-            )
-          `;
-          published += 1;
-        } catch {
-          /* skip dup */
-        }
+        /* skip dup */
       }
     }
+  }
 
-    return {
-      ok: true as const,
-      feeds: packs.filter((p) => p.status === "fulfilled").length,
-      candidates: pool.length,
-      withPhoto: ready.length,
-      published,
-      errors: errors.slice(0, 8),
-    };
+  return {
+    ok: true as const,
+    feeds: packs.filter((p) => p.status === "fulfilled").length,
+    candidates: pool.length,
+    withPhoto: ready.length,
+    published,
+    errors: errors.slice(0, 8),
+  };
+}
+
+export const publishNewsWeek = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    await requireSuper(context.userId);
+    return ingestWeek({ userId: context.userId, limit: 500, og: true });
   });
+
+export const warmNewsWeek = createServerFn({ method: "GET" }).handler(async () => {
+  const sql = await getSql();
+  try {
+    await sql`create table if not exists nf_market_cache (k text primary key, v text not null, ts bigint not null)`;
+    const n = await sql<{ n: string | number }>`select count(*) as n from nf_posts where status = ${"publish"}`;
+    const count = Number(n[0]?.n ?? 0);
+    if (count >= 140) return { ok: true as const, skipped: true as const, published: 0, n: count };
+    const lock = await sql<{ ts: string | number }>`select ts from nf_market_cache where k = ${"news-warm"} limit 1`;
+    if (lock[0] && Date.now() - Number(lock[0].ts) < 12 * 60_000) {
+      return { ok: true as const, skipped: true as const, published: 0, n: count };
+    }
+    await sql`insert into nf_market_cache (k, v, ts) values (${"news-warm"}, ${"1"}, ${Date.now()}) on conflict (k) do update set ts = ${Date.now()}`;
+    const r = await ingestWeek({ userId: "kilode-desk", limit: 120, og: false });
+    return { ...r, skipped: false as const, n: count + r.published };
+  } catch {
+    const r = await ingestWeek({ userId: "kilode-desk", limit: 80, og: false });
+    return { ...r, skipped: false as const, n: r.published };
+  }
+});
 

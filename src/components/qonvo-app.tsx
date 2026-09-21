@@ -355,8 +355,8 @@ export function QonvoApp() {
               goHome();
             }}
           >
-            <img src="/kilode-logo-green.png" alt="Kilode" className="logo-night h-9 w-auto max-w-[156px] object-contain object-left sm:h-10 sm:max-w-[176px]" />
-            <img src="/kilode-logo-light.svg" alt="Kilode" className="logo-day hidden h-9 w-auto max-w-[156px] object-contain object-left sm:h-10 sm:max-w-[176px]" />
+            <img src="/kilode-logo-green.png" alt="Kilode" className="logo-night h-7 w-auto max-w-[128px] object-contain object-left sm:h-8 sm:max-w-[148px]" />
+            <img src="/kilode-logo-light.svg" alt="Kilode" className="logo-day hidden h-7 w-auto max-w-[128px] object-contain object-left sm:h-8 sm:max-w-[148px]" />
           </button>
           <nav className="mx-auto hidden min-w-0 items-center justify-center gap-1 md:flex">
             <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home" && !marketDesk} onClick={() => { store.setOpenPost(null); setMarketDesk(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />

@@ -20,6 +20,7 @@ import {
 } from "@/lib/qonvo-data";
 import { DEMO_ADS, DEMO_JOINS, DEMO_NOTES, DEMO_POSTS, DEMO_TRACKS, MORE_DEMO_ADS } from "@/lib/qonvo-seed";
 import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, savePin, savePost, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
+import { warmNewsWeek } from "@/lib/news-engine-server";
 import { listNotes } from "@/lib/social-server";
 import { hidePost as hidePostRow, setAdPlacement, setAdStatus, setAdWindow } from "@/lib/staff-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -172,7 +173,8 @@ export function useQonvo() {
     setReady(true);
     void Promise.all([listPosts(), listTracks(), listAds()])
       .then(([dbPosts, dbTracks, dbAds]) => {
-        if (dbPosts.length) {
+        const applyPosts = (dbPosts: Awaited<ReturnType<typeof listPosts>>) => {
+          if (!dbPosts.length) return;
           const mapped = dbPosts
             .filter((p): p is NonNullable<typeof p> => !!p && typeof (p as { id?: string }).id === "string")
             .map((p) => ({
@@ -191,6 +193,14 @@ export function useQonvo() {
             ...DEMO_POSTS.filter((d) => !!d?.id && !mapped.some((p) => p.id === d.id)),
             ...mapped,
           ]);
+        };
+        applyPosts(dbPosts);
+        if (dbPosts.length < 100) {
+          void warmNewsWeek()
+            .then((r) => {
+              if (r.published) return listPosts().then(applyPosts);
+            })
+            .catch(() => undefined);
         }
         if (dbTracks.length) {
           const mapped = dbTracks
