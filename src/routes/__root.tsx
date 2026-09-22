@@ -63,16 +63,16 @@ export const Route = createRootRoute({
     />
   ),
   component: () => (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-skin="ivory" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var s=localStorage.getItem("kilode-skin");if(s==="ivory"||s==="night")document.documentElement.setAttribute("data-skin",s)}catch(e){}`,
+            __html: `try{var s=localStorage.getItem("kilode-skin");document.documentElement.setAttribute("data-skin",s==="night"?"night":"ivory")}catch(e){document.documentElement.setAttribute("data-skin","ivory")}`,
           }}
         />
       </head>
-      <body className="bg-bg font-sans text-fg antialiased" style={{ background: "#0a0a0a", color: "#eeeeec", minHeight: "100dvh" }}>
+      <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh" }}>
         <PreviewHostBridge />
         <AuthProvider>
           <Outlet />

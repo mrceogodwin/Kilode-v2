@@ -21,6 +21,7 @@ import {
   Plus,
   PlusSquare,
   Radio,
+  Repeat2,
   Play,
   Search,
   Send,
@@ -1169,14 +1170,15 @@ export function QonvoApp() {
 }
 
 function SkinToggle() {
-  const [skin, setSkin] = useState<"night" | "ivory">("night");
+  const [skin, setSkin] = useState<"night" | "ivory">("ivory");
   useEffect(() => {
     try {
-      const s = localStorage.getItem("kilode-skin") === "ivory" ? "ivory" : "night";
+      const raw = localStorage.getItem("kilode-skin");
+      const s = raw === "night" ? "night" : "ivory";
       setSkin(s);
       document.documentElement.setAttribute("data-skin", s);
     } catch {
-      /* ignore */
+      document.documentElement.setAttribute("data-skin", "ivory");
     }
   }, []);
   return (
@@ -1250,7 +1252,7 @@ function Tab({
   onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} className={`app-tab flex min-h-11 flex-col items-center justify-center gap-0.5 px-0.5 text-[8px] font-semibold leading-tight ${on ? "on" : ""}`}>
+    <button type="button" onClick={onClick} className={`app-tab flex min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-semibold leading-tight ${on ? "on" : ""}`}>
       {icon}
       {label}
     </button>
@@ -1830,6 +1832,8 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(48);
   const [catsOpen, setCatsOpen] = useState(false);
+  const [repost, setRepost] = useState<(typeof store.posts)[number] | null>(null);
+  const [cap, setCap] = useState("");
   const open = store.posts.find((p) => p.id === store.openPost);
   const needle = q.trim().toLowerCase();
   const live = store.posts
@@ -1926,16 +1930,19 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
                   </span>
                   <span
                     role="button"
-                    className="ml-auto inline-flex items-center"
+                    aria-label="Repost to chat"
+                    className="ml-auto inline-flex items-center text-lime-2"
                     onClick={(e) => {
                       e.stopPropagation();
-                      store.sharePost(p.id);
-                      const url = `${window.location.origin}/p/${encodeURIComponent(p.slug || p.id)}`;
-                      if (navigator.share) void navigator.share({ title: p.title, url });
-                      else void navigator.clipboard?.writeText(url);
+                      if (!store.authed) {
+                        window.location.href = "/login?mode=up";
+                        return;
+                      }
+                      setRepost(p);
+                      setCap("");
                     }}
                   >
-                    <Share2 className="size-2.5" />
+                    <Repeat2 className="size-3.5" strokeWidth={2.4} />
                   </span>
                 </div>
               </div>
@@ -1955,6 +1962,44 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
         ) : (
           <EmptyHero title="No posts yet" body="Be first — share a take for Nigeria." cta="Create a post" onClick={() => { window.dispatchEvent(new CustomEvent("kilode:create")); }} />
         )}
+        {repost ? (
+          <div className="fixed inset-0 z-50 grid place-items-end bg-black/50 p-3 sm:place-items-center" onClick={() => setRepost(null)}>
+            <div className="w-full max-w-md overflow-hidden rounded-2xl border border-line bg-panel p-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-2 text-lime-2">
+                <Repeat2 className="size-4" />
+                <span className="text-[11px] font-bold tracking-[0.14em]">REPOST TO CHAT</span>
+              </div>
+              <p className="mt-2 line-clamp-3 text-[14px] font-semibold leading-snug">{repost.title}</p>
+              <p className="mt-1 text-[11px] text-muted">Goes to the chat room you are in. People see “{store.handle || "You"} reposted”.</p>
+              <textarea
+                value={cap}
+                onChange={(e) => setCap(e.target.value)}
+                placeholder="Add a caption (optional)"
+                className="mt-3 min-h-20 w-full rounded-lg border border-line bg-bg px-3 py-2 text-[13px]"
+              />
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  className="btn-join flex-1 rounded-lg py-2 text-[12px] font-bold"
+                  onClick={() => {
+                    const who = store.handle || "Someone";
+                    const extra = cap.trim();
+                    const path = `/p/${encodeURIComponent(repost.slug || repost.id)}`;
+                    store.send(`${who} reposted: ${repost.title}${extra ? `\n${extra}` : ""}\n${path}`);
+                    store.sharePost(repost.id);
+                    setRepost(null);
+                    setCap("");
+                  }}
+                >
+                  Send to chat
+                </button>
+                <button type="button" className="rounded-lg border border-line px-3 text-[12px]" onClick={() => setRepost(null)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
         <PortraitAd id="feeds_portrait_before" />
         <AdReserve id="feeds_before_top10" className="mt-8 mb-8" />
         <TopTen posts={store.posts} exclude="" onOpen={(id) => store.setOpenPost(id)} />
@@ -2078,14 +2123,34 @@ function ChatLine({
         <span className="text-[10px] text-muted">{timeLabel(m.ts)}</span>
       </div>
       <div className="text-sm">
-        {mentionParts(m.t, handle).map((p, i) =>
-          p.on ? (
-            <span key={i} className="rounded-sm bg-lime-2/15 px-0.5 font-semibold text-lime-2">
-              {p.t}
+        {/^(.+?\s)?reposted:\s/i.test(m.t) ? (
+          <span>
+            <span className="inline-flex items-center gap-1 font-semibold text-lime-2">
+              <Repeat2 className="size-3.5" />
+              {m.t.split("\n")[0]}
             </span>
-          ) : (
-            <span key={i}>{p.t}</span>
-          ),
+            {m.t.split("\n").slice(1).map((line, i) =>
+              line.startsWith("/p/") ? (
+                <a key={i} href={line} className="mt-1 block text-[12px] text-lime-2 underline">
+                  Open story
+                </a>
+              ) : (
+                <span key={i} className="mt-1 block text-[13px]">
+                  {line}
+                </span>
+              ),
+            )}
+          </span>
+        ) : (
+          mentionParts(m.t, handle).map((p, i) =>
+            p.on ? (
+              <span key={i} className="rounded-sm bg-lime-2/15 px-0.5 font-semibold text-lime-2">
+                {p.t}
+              </span>
+            ) : (
+              <span key={i}>{p.t}</span>
+            ),
+          )
         )}
       </div>
       <TranslateBtn text={m.t} />

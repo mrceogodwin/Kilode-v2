@@ -126,13 +126,13 @@ export function RelatedGrid({ posts, exclude, category, onOpen }: { posts: Post[
   return (
     <div className="mt-8">
       <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">RELATED</div>
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-4 gap-1.5">
         {list.slice(0, shown).map((p) => (
           <button key={p.id} type="button" className="raised overflow-hidden rounded-lg text-left" onClick={() => onOpen(p.id)}>
             {p.image ? <img src={p.image} alt="" className="aspect-[16/10] w-full object-cover" /> : <div className="aspect-[16/10] bg-panel-3" />}
             <div className="p-1.5">
               <div className="text-[9px] text-lime-2">{p.category || "General"}</div>
-              <div className="mt-0.5 line-clamp-3 text-[11px] font-normal leading-snug">{p.title}</div>
+              <div className="mt-0.5 line-clamp-3 text-[10px] font-normal leading-snug sm:text-[11px]">{p.title}</div>
             </div>
           </button>
         ))}
@@ -217,22 +217,25 @@ export function LandscapeGrid({
 }
 
 export function DontMissGrid({ posts, exclude, onOpen }: { posts: Post[]; exclude?: string; onOpen: (id: string) => void }) {
-  const [shown, setShown] = useState(16);
+  const [shown, setShown] = useState(12);
   const list = posts.filter((p) => p.id !== exclude && p.status !== "draft");
   if (!list.length) return null;
   return (
     <section className="mt-10">
       <div className="mb-2 text-[10px] font-medium tracking-[0.16em] text-lime-2">DON'T MISS</div>
-      <div className="grid grid-cols-4 gap-1">
+      <div className="space-y-1">
         {list.slice(0, shown).map((p) => (
-          <button key={p.id} type="button" className="raised overflow-hidden rounded text-left" onClick={() => onOpen(p.id)}>
-            {p.image ? <img src={p.image} alt="" className="aspect-square w-full object-cover" /> : <div className="aspect-square bg-panel-3" />}
-            <div className="line-clamp-2 px-0.5 py-0.5 text-[9px] leading-tight">{p.title}</div>
+          <button key={p.id} type="button" className="raised flex w-full items-center gap-2 rounded-lg p-1.5 text-left" onClick={() => onOpen(p.id)}>
+            {p.image ? <img src={p.image} alt="" className="h-11 w-14 shrink-0 rounded-md object-cover" /> : <div className="h-11 w-14 shrink-0 rounded-md bg-panel-3" />}
+            <span className="min-w-0 flex-1">
+              <span className="block text-[9px] text-lime-2">{p.category || "General"}</span>
+              <span className="mt-0.5 line-clamp-2 text-[12px] font-normal leading-snug">{p.title}</span>
+            </span>
           </button>
         ))}
       </div>
       {shown < list.length ? (
-        <button type="button" className="btn-3d mx-auto mt-4 block rounded-md px-5 py-2 text-[11px] font-extrabold tracking-[0.18em]" onClick={() => setShown((n) => n + 16)}>
+        <button type="button" className="btn-3d mx-auto mt-4 block rounded-md px-5 py-2 text-[11px] font-extrabold tracking-[0.18em]" onClick={() => setShown((n) => n + 12)}>
           NEXT
         </button>
       ) : null}

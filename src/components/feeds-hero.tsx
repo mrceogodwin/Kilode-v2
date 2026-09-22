@@ -87,6 +87,7 @@ export function FeedsHero({
 
     COMPANY_IDS.forEach((id, idx) => {
       const s = slots.find((r) => r.id === id);
+      if (!s?.image && !s?.video) return;
       banners.push({
         k: "company",
         n: idx + 1,
@@ -166,6 +167,7 @@ export function FeedsHero({
             >
               <ChevronRight className="size-4" />
             </button>
+            {slides.length > 1 && slides.length <= 8 ? (
             <div className="absolute bottom-2 left-0 right-0 z-10 flex justify-center gap-1">
               {slides.map((_, n) => (
                 <button
@@ -177,6 +179,13 @@ export function FeedsHero({
                 />
               ))}
             </div>
+            ) : slides.length > 8 ? (
+            <div className="absolute bottom-2 left-0 right-0 z-10 flex justify-center">
+              <span className="rounded-full bg-black/50 px-2 py-0.5 text-[9px] font-semibold tabular-nums text-white/90">
+                {i + 1} / {slides.length}
+              </span>
+            </div>
+            ) : null}
           </>
         ) : null}
       </div>

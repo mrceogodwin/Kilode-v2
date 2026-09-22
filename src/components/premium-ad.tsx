@@ -25,12 +25,12 @@ export function RentCta({ className = "" }: { className?: string }) {
 
 function PremiumShell({ children, compact, rent }: { children: ReactNode; compact?: boolean; rent?: boolean }) {
   return (
-    <aside className="overflow-hidden rounded-2xl border border-line bg-panel">
-      <div className="flex items-center justify-between gap-2 px-3 py-2">
-        <span className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PREMIUM ADS</span>
+    <aside className="overflow-hidden rounded-xl border border-line bg-panel">
+      <div className="flex items-center justify-between gap-2 px-2.5 py-1">
+        <span className="text-[9px] font-medium tracking-[0.16em] text-lime-2">PREMIUM ADS</span>
         {compact ? null : rent ? <RentCta /> : <ContactCta />}
       </div>
-      <div className="px-2 pb-2">{children}</div>
+      <div>{children}</div>
     </aside>
   );
 }
@@ -48,7 +48,7 @@ export function PremiumStoryAd({ compact }: { compact?: boolean }) {
       <img src={slot.image} alt="" className="mx-auto max-h-[280px] w-full object-contain" />
     </a>
   ) : (
-    <div className={`grid w-full place-items-center rounded-xl ad-void-empty px-4 text-center ${compact ? "h-[132px]" : "h-[176px]"}`}>
+    <div className={`grid w-full place-items-center ad-void-empty px-4 text-center ${compact ? "h-[100px]" : "h-[128px]"}`}>
       <div>
         <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</div>
         <p className="mt-1 text-[10px] font-normal text-muted">Image or YouTube. Super fills this slot.</p>
@@ -70,7 +70,7 @@ export function PremiumSquareAd() {
   }
   return (
     <PremiumShell rent>
-      <a href="/advertise" className="grid h-[188px] w-full place-items-center rounded-xl ad-void-empty px-4 text-center">
+      <a href="/advertise" className="grid h-[140px] w-full place-items-center ad-void-empty px-4 text-center">
         <div>
           <div className="text-[11px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</div>
           <p className="mt-2 text-[11px] font-normal text-muted">Rent this square for your brand. Crypto + staff approve.</p>
@@ -82,15 +82,15 @@ export function PremiumSquareAd() {
 
 export function MenuPremiumAd() {
   return (
-    <aside className="overflow-hidden rounded-2xl border border-line bg-panel">
-      <div className="flex items-center justify-between gap-2 px-2.5 py-2">
-        <span className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PREMIUM ADS</span>
+    <aside className="overflow-hidden rounded-xl border border-line bg-panel">
+      <div className="flex items-center justify-between gap-2 px-2.5 py-1">
+        <span className="text-[9px] font-medium tracking-[0.16em] text-lime-2">PREMIUM ADS</span>
         <a href="/advertise" className="text-[10px] font-medium tracking-[0.16em] text-lime-2">
           RENT
         </a>
       </div>
-      <div className="px-2 pb-2">
-        <a href="/advertise" className="grid h-[96px] w-full place-items-center rounded-xl ad-void-empty px-3 text-center">
+      <div>
+        <a href="/advertise" className="grid h-[72px] w-full place-items-center ad-void-empty px-3 text-center">
           <p className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</p>
         </a>
       </div>

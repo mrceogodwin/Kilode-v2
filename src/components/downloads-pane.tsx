@@ -38,7 +38,7 @@ export function DownloadsPane() {
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-8">
       <section className="shop-hero mb-4 overflow-hidden rounded-2xl border border-line px-4 py-6">
         <div className="text-[10px] font-medium tracking-[0.2em] text-lime-2">KILODE DOWNLOADS</div>
-        <h1 className="brand-word mt-1 text-[28px] sm:text-[34px]">Your products. One tap.</h1>
+        <h1 className="mt-1 text-[26px] font-bold leading-tight text-fg sm:text-[32px]">Your products. One tap.</h1>
         <p className="mt-2 max-w-md text-[13px] leading-relaxed text-muted">
           Apps, zips, videos, music, and links from Kilode. Tap BUY NOW, drop your email, get the file.
         </p>
