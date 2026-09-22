@@ -5,8 +5,8 @@ export function BrandLockup({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
     <span className="brand-lockup inline-flex items-center gap-1.5">
       <img src="/kilode-bang-icon.png" alt="" className={`${icon} shrink-0 object-cover`} />
       <span className="min-w-0 leading-none">
-        <span className={`brand-word ${word}`}>Kilode.ng</span>
-        <span className="brand-url">A MULTI-APP</span>
+        <span className={`brand-word ${word}`}>Kilode</span>
+        <span className="brand-url">THE PREMIUM MEDIA APP</span>
       </span>
     </span>
   );

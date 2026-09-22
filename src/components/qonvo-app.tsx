@@ -45,6 +45,7 @@ import {
   X,
   Sun,
   Moon,
+  Tv,
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { canKind } from "@/lib/permissions";
@@ -74,6 +75,7 @@ import { InstallToast, SiteFooter, TrendingTicker } from "@/components/site-chro
 import { FeedsHero } from "@/components/feeds-hero";
 import { BrandLockup } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
+import { TvPane } from "@/components/tv-pane";
 import { MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
@@ -93,6 +95,7 @@ const ICONS: Record<MenuId, typeof Home> = {
   badges: Award,
   leaderboard: Trophy,
   trending: Hash,
+  tv: Tv,
   ads: Megaphone,
   jobs: Briefcase,
   market: Store,
@@ -105,7 +108,7 @@ const ICONS: Record<MenuId, typeof Home> = {
 
 const MENU_GROUPS: { label: string; ids: MenuId[] }[] = [
   { label: "Me", ids: ["profile", "dashboard", "bookmarks", "inbox", "notifications", "teams"] },
-  { label: "Discover", ids: ["trending", "community", "search", "leaderboard", "badges"] },
+  { label: "Discover", ids: ["trending", "tv", "community", "search", "leaderboard", "badges"] },
   { label: "Create", ids: ["create", "ads"] },
 ];
 
@@ -389,6 +392,18 @@ export function QonvoApp() {
               }}
             />
             <SkinToggle />
+            <button
+              type="button"
+              className="grid size-9 place-items-center rounded-lg border border-line bg-panel-2"
+              aria-label="Kilode TV and socials"
+              title="Kilode TV"
+              onClick={() => {
+                setScreen("tv");
+                setMenuOpen(false);
+              }}
+            >
+              <Tv className="size-4 text-lime-2" />
+            </button>
             <button
               type="button"
               className="grid size-9 place-items-center rounded-lg border border-line bg-panel-2"
@@ -929,6 +944,7 @@ export function QonvoApp() {
                 <DrawerRow icon={MessageSquare} label="Chat" hint="Live rooms · 36 states" onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }} on={homeTab === "chat" && screen === "home"} />
                 <DrawerRow icon={Radio} label="Music" hint="Artist links. We embed." onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
                 <DrawerRow icon={Film} label="Cinema" hint="Vote and watch together" onClick={() => { setScreen("home"); setHomeTab("cinema"); setMenuOpen(false); }} on={homeTab === "cinema" && screen === "home"} />
+                <DrawerRow icon={Tv} label="Kilode TV" hint="Socials · follow in one place" onClick={() => { setScreen("tv"); setMenuOpen(false); }} on={screen === "tv"} />
                 <DrawerRow icon={Play} label="Videos" hint="Clips on Kilode" onClick={() => { setScreen("home"); setHomeTab("videos"); setMenuOpen(false); }} on={homeTab === "videos" && screen === "home"} />
                 <DrawerRow icon={Megaphone} label="Ads" hint="Live brand campaigns" onClick={() => { setScreen("home"); setHomeTab("advert"); setMenuOpen(false); }} on={homeTab === "advert" && screen === "home"} />
                 <DrawerRow icon={Download} label="Downloads" hint="Kilode products · buy with email" onClick={() => { setScreen("home"); setHomeTab("downloads"); setMenuOpen(false); }} on={homeTab === "downloads" && screen === "home"} />
@@ -1256,6 +1272,61 @@ function Tab({
       {icon}
       {label}
     </button>
+  );
+}
+
+function RepostFab({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Repost to chat"
+      className="absolute top-2 right-2 z-20 grid size-9 place-items-center rounded-full border border-white/25 bg-black/55 text-white shadow-[0_6px_16px_rgba(0,0,0,0.45)] backdrop-blur-sm"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      <Repeat2 className="size-4" strokeWidth={2.5} />
+    </button>
+  );
+}
+
+function RepostModal({
+  post,
+  handle,
+  cap,
+  onCap,
+  onSend,
+  onClose,
+}: {
+  post: { id: string; title: string; slug?: string };
+  handle: string;
+  cap: string;
+  onCap: (v: string) => void;
+  onSend: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-end bg-black/50 p-3 sm:place-items-center" onClick={onClose}>
+      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-line bg-panel p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 text-lime-2">
+          <Repeat2 className="size-4" />
+          <span className="text-[11px] font-bold tracking-[0.14em]">REPOST TO CHAT</span>
+        </div>
+        <p className="mt-2 line-clamp-3 text-[14px] font-semibold leading-snug">{post.title}</p>
+        <p className="mt-1 text-[11px] text-muted">Goes to the chat you are in. People see “{handle || "You"} reposted”.</p>
+        <textarea value={cap} onChange={(e) => onCap(e.target.value)} placeholder="Add a caption (optional)" className="mt-3 min-h-20 w-full rounded-lg border border-line bg-bg px-3 py-2 text-[13px]" />
+        <div className="mt-3 flex gap-2">
+          <button type="button" className="btn-join flex-1 rounded-lg py-2 text-[12px] font-bold" onClick={onSend}>
+            Send to chat
+          </button>
+          <button type="button" className="rounded-lg border border-line px-3 text-[12px]" onClick={onClose}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1593,7 +1664,7 @@ function HomeTab({ label, on, onClick }: { label: string; on: boolean; onClick: 
   );
 }
 
-function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; store: ReturnType<typeof useQonvo> }) {
+function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data").Post; store: ReturnType<typeof useQonvo>; onRepost?: () => void }) {
   const session = useCurrentUserState();
   const [note, setNote] = useState("");
   const [reason, setReason] = useState("");
@@ -1634,21 +1705,24 @@ function ArticleRead({ post, store }: { post: import("@/lib/qonvo-data").Post; s
           ← Feeds
         </button>
         <div className="raised mt-3 overflow-hidden rounded-2xl">
-          <div className="flex flex-col gap-4 p-4 sm:flex-row">
-            {post.image ? <img src={post.image} alt="" className="h-44 w-full shrink-0 rounded-xl object-cover sm:h-48 sm:w-60" /> : null}
-            <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{post.category || "General"}</div>
-              <h1 className="mt-1 text-2xl font-extrabold leading-tight">{post.title}</h1>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
-                <AvatarImg handle={post.author} size={22} />
-                <span className="font-semibold tracking-wide text-muted">POSTED BY:</span>
-                <HandleLink handle={post.author} className="text-[11px] font-semibold" />
-                <span>· {timeLabel(post.ts)}</span>
-                <span>· {mins} min read</span>
-                {post.tags ? <span>· {post.tags}</span> : null}
-              </div>
-              {post.excerpt && !isDupExcerpt(post.title, post.excerpt) ? <p className="mt-2 text-[13px] leading-5 text-muted">{post.excerpt}</p> : null}
+          {post.image ? (
+            <div className="relative">
+              <img src={post.image} alt="" className="aspect-[16/9] w-full object-cover" />
+              {onRepost ? <RepostFab onClick={onRepost} /> : null}
             </div>
+          ) : null}
+          <div className="p-4">
+            <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{post.category || "General"}</div>
+            <h1 className="mt-1 text-2xl font-extrabold leading-tight">{post.title}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+              <AvatarImg handle={post.author} size={22} />
+              <span className="font-semibold tracking-wide text-muted">POSTED BY:</span>
+              <HandleLink handle={post.author} className="text-[11px] font-semibold" />
+              <span>· {timeLabel(post.ts)}</span>
+              <span>· {mins} min read</span>
+              {post.tags ? <span>· {post.tags}</span> : null}
+            </div>
+            {post.excerpt && !isDupExcerpt(post.title, post.excerpt) ? <p className="mt-2 text-[13px] leading-5 text-muted">{post.excerpt}</p> : null}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-white/5 px-3 py-2 text-[11px]">
             {[
@@ -1855,7 +1929,40 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
     return m;
   }, [store.posts]);
   if (open) {
-    return <ArticleRead post={open} store={store} />;
+    return (
+      <>
+        <ArticleRead
+          post={open}
+          store={store}
+          onRepost={() => {
+            if (!store.authed) {
+              window.location.href = "/login?mode=up";
+              return;
+            }
+            setRepost(open);
+            setCap("");
+          }}
+        />
+        {repost ? (
+          <RepostModal
+            post={repost}
+            handle={store.handle}
+            cap={cap}
+            onCap={setCap}
+            onClose={() => setRepost(null)}
+            onSend={() => {
+              const who = store.handle || "Someone";
+              const extra = cap.trim();
+              const path = `/p/${encodeURIComponent(repost.slug || repost.id)}`;
+              store.send(`${who} reposted: ${repost.title}${extra ? `\n${extra}` : ""}\n${path}`);
+              store.sharePost(repost.id);
+              setRepost(null);
+              setCap("");
+            }}
+          />
+        ) : null}
+      </>
+    );
   }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -1865,6 +1972,14 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           ads={store.campaigns}
           onOpen={(id) => store.setOpenPost(id)}
           onViewAd={(id) => store.see("ads", id)}
+          onRepost={(p) => {
+            if (!store.authed) {
+              window.location.href = "/login?mode=up";
+              return;
+            }
+            setRepost(p);
+            setCap("");
+          }}
         />
         <MarketRail onPick={onDesk} />
         <div className="mb-2 flex items-center justify-between gap-2">
@@ -1930,19 +2045,17 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
                   </span>
                   <span
                     role="button"
-                    aria-label="Repost to chat"
-                    className="ml-auto inline-flex items-center text-lime-2"
+                    aria-label="Share"
+                    className="ml-auto inline-flex items-center"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!store.authed) {
-                        window.location.href = "/login?mode=up";
-                        return;
-                      }
-                      setRepost(p);
-                      setCap("");
+                      store.sharePost(p.id);
+                      const url = `${window.location.origin}/p/${encodeURIComponent(p.slug || p.id)}`;
+                      if (navigator.share) void navigator.share({ title: p.title, url });
+                      else void navigator.clipboard?.writeText(url);
                     }}
                   >
-                    <Repeat2 className="size-3.5" strokeWidth={2.4} />
+                    <Share2 className="size-2.5" />
                   </span>
                 </div>
               </div>
@@ -1963,42 +2076,22 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           <EmptyHero title="No posts yet" body="Be first — share a take for Nigeria." cta="Create a post" onClick={() => { window.dispatchEvent(new CustomEvent("kilode:create")); }} />
         )}
         {repost ? (
-          <div className="fixed inset-0 z-50 grid place-items-end bg-black/50 p-3 sm:place-items-center" onClick={() => setRepost(null)}>
-            <div className="w-full max-w-md overflow-hidden rounded-2xl border border-line bg-panel p-4" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-2 text-lime-2">
-                <Repeat2 className="size-4" />
-                <span className="text-[11px] font-bold tracking-[0.14em]">REPOST TO CHAT</span>
-              </div>
-              <p className="mt-2 line-clamp-3 text-[14px] font-semibold leading-snug">{repost.title}</p>
-              <p className="mt-1 text-[11px] text-muted">Goes to the chat room you are in. People see “{store.handle || "You"} reposted”.</p>
-              <textarea
-                value={cap}
-                onChange={(e) => setCap(e.target.value)}
-                placeholder="Add a caption (optional)"
-                className="mt-3 min-h-20 w-full rounded-lg border border-line bg-bg px-3 py-2 text-[13px]"
-              />
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  className="btn-join flex-1 rounded-lg py-2 text-[12px] font-bold"
-                  onClick={() => {
-                    const who = store.handle || "Someone";
-                    const extra = cap.trim();
-                    const path = `/p/${encodeURIComponent(repost.slug || repost.id)}`;
-                    store.send(`${who} reposted: ${repost.title}${extra ? `\n${extra}` : ""}\n${path}`);
-                    store.sharePost(repost.id);
-                    setRepost(null);
-                    setCap("");
-                  }}
-                >
-                  Send to chat
-                </button>
-                <button type="button" className="rounded-lg border border-line px-3 text-[12px]" onClick={() => setRepost(null)}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
+          <RepostModal
+            post={repost}
+            handle={store.handle}
+            cap={cap}
+            onCap={setCap}
+            onClose={() => setRepost(null)}
+            onSend={() => {
+              const who = store.handle || "Someone";
+              const extra = cap.trim();
+              const path = `/p/${encodeURIComponent(repost.slug || repost.id)}`;
+              store.send(`${who} reposted: ${repost.title}${extra ? `\n${extra}` : ""}\n${path}`);
+              store.sharePost(repost.id);
+              setRepost(null);
+              setCap("");
+            }}
+          />
         ) : null}
         <PortraitAd id="feeds_portrait_before" />
         <AdReserve id="feeds_before_top10" className="mt-8 mb-8" />

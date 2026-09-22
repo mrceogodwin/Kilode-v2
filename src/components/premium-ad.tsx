@@ -25,7 +25,7 @@ export function RentCta({ className = "" }: { className?: string }) {
 
 function PremiumShell({ children, compact, rent }: { children: ReactNode; compact?: boolean; rent?: boolean }) {
   return (
-    <aside className="overflow-hidden rounded-xl border border-line bg-panel">
+    <aside className="overflow-hidden rounded-xl bg-panel-2">
       <div className="flex items-center justify-between gap-2 px-2.5 py-1">
         <span className="text-[9px] font-medium tracking-[0.16em] text-lime-2">PREMIUM ADS</span>
         {compact ? null : rent ? <RentCta /> : <ContactCta />}
@@ -82,7 +82,7 @@ export function PremiumSquareAd() {
 
 export function MenuPremiumAd() {
   return (
-    <aside className="overflow-hidden rounded-xl border border-line bg-panel">
+    <aside className="overflow-hidden rounded-xl bg-panel-2">
       <div className="flex items-center justify-between gap-2 px-2.5 py-1">
         <span className="text-[9px] font-medium tracking-[0.16em] text-lime-2">PREMIUM ADS</span>
         <a href="/advertise" className="text-[10px] font-medium tracking-[0.16em] text-lime-2">

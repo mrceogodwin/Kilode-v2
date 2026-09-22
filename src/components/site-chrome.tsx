@@ -233,12 +233,13 @@ export function InstallToast() {
   }, []);
   if (!ready || !on) return null;
   return (
-    <div className="pointer-events-none fixed bottom-[calc(3.6rem+env(safe-area-inset-bottom))] left-2 z-40 w-[min(280px,calc(100vw-5.5rem))] md:bottom-4">
-      <div className="pointer-events-auto relative overflow-hidden rounded-xl border border-line bg-panel/95 pr-8 shadow-[0_12px_28px_rgba(0,0,0,0.45)] backdrop-blur">
+    <div className="pointer-events-none fixed bottom-[calc(3.6rem+env(safe-area-inset-bottom))] left-2 z-40 w-[min(300px,calc(100vw-5.5rem))] md:bottom-4">
+      <div className="pointer-events-auto flex overflow-hidden rounded-2xl border border-line bg-panel shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
+        <GetAppRow />
         <button
           type="button"
           aria-label="Dismiss"
-          className="absolute top-1.5 right-1.5 grid size-7 place-items-center rounded-md border border-line bg-panel-2"
+          className="grid w-11 shrink-0 place-items-center border-l border-line text-muted"
           onClick={() => {
             try {
               localStorage.setItem(GONE_KEY, "1");
@@ -248,9 +249,8 @@ export function InstallToast() {
             setOn(false);
           }}
         >
-          <X className="size-3.5" />
+          <X className="size-4" />
         </button>
-        <GetAppRow />
       </div>
     </div>
   );

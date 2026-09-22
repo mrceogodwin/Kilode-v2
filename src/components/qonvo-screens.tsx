@@ -26,6 +26,7 @@ import { canKind } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
 import { ShopAdminPanel } from "@/components/downloads-pane";
+import { SocialsAdminPanel, TvPane } from "@/components/tv-pane";
 import { JoinCta, TelegramLink } from "@/components/get-app";
 import { AdCatalogPanel, AdSlotsPanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { SiteFlagsPanel } from "@/components/site-chrome";
@@ -66,6 +67,7 @@ export function QonvoScreen({
   else if (id === "help") view = <Help />;
   else if (id === "dashboard") view = <Dash store={store} onHome={onHome} onForum={onForum} />;
   else if (id === "trending") view = <Trending onHome={onHome} />;
+  else if (id === "tv") view = <TvPane />;
   else if (id === "contact") view = <Contact store={store} />;
   else if (id === "admin") view = <Admin store={store} />;
   return <div className="h-full overflow-y-auto pb-20 md:pb-4">{view}</div>;
@@ -1442,6 +1444,7 @@ function Admin({ store }: { store: Store }) {
       </div>
       <FeedsDeskPanel store={store} />
       {role === "super" ? <ShopAdminPanel /> : null}
+      {role === "super" ? <SocialsAdminPanel /> : null}
       {role === "super" ? <ChatTtlPanel /> : null}
       {role === "super" ? <NewsEnginePanel store={store} /> : null}
       {role === "super" || role === "admin" ? <CinemaAdminPanel /> : null}

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
 import { saveDigest } from "@/lib/ad-slots-server";
 
 export function JoinCta({ className = "" }: { className?: string }) {
@@ -12,13 +11,12 @@ export function JoinCta({ className = "" }: { className?: string }) {
 
 export function GetAppRow() {
   return (
-    <a href="/install" className="menu-install flex items-center gap-3 rounded-xl px-3 py-2.5">
-      <img src="/kilode-bang-icon.png" alt="" className="size-10 shrink-0 rounded-[12px] object-cover" />
+    <a href="/install" className="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2">
+      <img src="/kilode-bang-icon.png" alt="" className="size-9 shrink-0 rounded-[10px] object-cover" />
       <span className="min-w-0 flex-1 text-left">
         <span className="block text-[13px] font-bold leading-tight">Install Kilode</span>
         <span className="block text-[10px] text-muted">Home screen · iPhone and Android</span>
       </span>
-      <ChevronRight className="size-3.5 shrink-0 text-muted" />
     </a>
   );
 }
@@ -68,7 +66,9 @@ export function DigestBox() {
 export function MenuPin() {
   return (
     <div className="menu-dock shrink-0 border-t border-line px-3 py-2.5">
-      <GetAppRow />
+      <div className="menu-install overflow-hidden rounded-xl">
+        <GetAppRow />
+      </div>
       <DigestBox />
     </div>
   );

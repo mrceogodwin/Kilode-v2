@@ -197,6 +197,7 @@ export const MENU = [
   ["badges", "Badges"],
   ["leaderboard", "Leaderboard"],
   ["trending", "Trending tags"],
+  ["tv", "Kilode TV"],
   ["ads", "Ads"],
   ["jobs", "Jobs"],
   ["market", "Marketplace"],

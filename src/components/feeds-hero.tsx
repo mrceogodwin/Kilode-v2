@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Repeat2 } from "lucide-react";
 import { AdSlot, useAdSlots } from "@/components/ad-slot";
 import { listAdCatalog, type AdCatalog } from "@/lib/ad-catalog-server";
 import { isAdUnit, isPubId } from "@/lib/ad-slots";
@@ -47,11 +47,13 @@ export function FeedsHero({
   ads,
   onOpen,
   onViewAd,
+  onRepost,
 }: {
   posts: Post[];
   ads: Campaign[];
   onOpen: (id: string) => void;
   onViewAd?: (id: string) => void;
+  onRepost?: (post: Post) => void;
 }) {
   const slots = useAdSlots();
   const [cat, setCat] = useState<AdCatalog>(FALLBACK);
@@ -148,7 +150,7 @@ export function FeedsHero({
       onPointerLeave={() => setHover(false)}
     >
       <div className="hero-stage relative aspect-[16/9] w-full overflow-hidden">
-        <HeroSlide slide={slide} play={play} onPlay={setPlay} onOpen={onOpen} onViewAd={onViewAd} />
+        <HeroSlide slide={slide} play={play} onPlay={setPlay} onOpen={onOpen} onViewAd={onViewAd} onRepost={onRepost} />
         {slides.length > 1 ? (
           <>
             <button
@@ -199,12 +201,14 @@ function HeroSlide({
   onPlay,
   onOpen,
   onViewAd,
+  onRepost,
 }: {
   slide: Slide;
   play: string | null;
   onPlay: (id: string | null) => void;
   onOpen: (id: string) => void;
   onViewAd?: (id: string) => void;
+  onRepost?: (post: Post) => void;
 }) {
   const slots = useAdSlots();
   if (slide.k === "google") {
@@ -264,6 +268,20 @@ function HeroSlide({
     return (
       <button type="button" className="relative block h-full w-full text-left" onClick={() => onOpen(p.id)}>
         {p.image ? <img src={p.image} alt="" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-panel-3" />}
+        {onRepost ? (
+          <button
+            type="button"
+            aria-label="Repost to chat"
+            className="absolute top-2 right-2 z-20 grid size-9 place-items-center rounded-full border border-white/25 bg-black/55 text-white shadow-[0_6px_16px_rgba(0,0,0,0.45)] backdrop-blur-sm"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onRepost(p);
+            }}
+          >
+            <Repeat2 className="size-4" strokeWidth={2.5} />
+          </button>
+        ) : null}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-3 pt-12 pb-4">
           <div className="text-[9px] font-medium tracking-[0.16em] text-lime-2">
             {(p.category || "TRENDING").toUpperCase()}
