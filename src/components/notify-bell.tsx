@@ -55,7 +55,7 @@ export function NotifyBell({
     <div className="relative">
       <button
         type="button"
-        className="relative grid size-9 place-items-center rounded-lg border border-line bg-panel-2"
+        className="relative grid size-8 place-items-center rounded-lg border border-line bg-panel-2"
         aria-label="Notifications"
         onClick={() => setOpen((v) => !v)}
       >

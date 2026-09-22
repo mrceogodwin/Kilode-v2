@@ -275,7 +275,7 @@
   }
   .app-tab {
     position: relative;
-    margin: 3px 2px 4px;
+    margin: 2px 2px 0;
     min-height: 48px;
     border-radius: 12px;
     color: var(--color-muted);
@@ -490,13 +490,21 @@ html[data-skin="ivory"] .menu-dock {
   background: #f7fbf8;
 }
 .brand-lockup {
-  max-width: 168px;
+  max-width: 178px;
+}
+.brand-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+  text-align: left;
 }
 .brand-word {
   display: block;
-  font-weight: 700;
+  font-weight: 800;
   font-style: normal;
-  letter-spacing: -0.03em;
+  letter-spacing: 0.04em;
   line-height: 1;
   color: #f2f3f4;
   -webkit-text-fill-color: #f2f3f4;
@@ -504,15 +512,46 @@ html[data-skin="ivory"] .menu-dock {
 .brand-url {
   display: block;
   margin-top: 3px;
-  font-size: 6.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
+  max-width: 118px;
+  font-size: 7px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
   color: var(--color-lime-2);
 }
 html[data-skin="ivory"] .brand-word {
   color: #171b18;
   -webkit-text-fill-color: #171b18;
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  color: #86b792;
+  background: linear-gradient(180deg, #2a302c 0%, #121614 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 1px 2px rgba(0, 0, 0, 0.45);
+}
+html[data-skin="ivory"] .brand-mark {
+  color: #f6faf6;
+  background: linear-gradient(180deg, #4d8a5a 0%, #2f5a3a 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 1px 2px rgba(31, 80, 42, 0.18);
+}
+.dock {
+  background: linear-gradient(180deg, rgba(10, 10, 10, 0) 0%, rgba(10, 10, 10, 0.72) 42%, rgba(10, 10, 10, 0.94) 100%);
+}
+html[data-skin="ivory"] .dock {
+  background: linear-gradient(180deg, rgba(230, 235, 230, 0) 0%, rgba(230, 235, 230, 0.7) 42%, rgba(232, 236, 232, 0.94) 100%);
+}
+.dock-pad {
+  padding-bottom: calc(4.6rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .dock-pad {
+    padding-bottom: 1.5rem;
+  }
 }
 .shop-hero {
   background: linear-gradient(180deg, rgba(107, 158, 120, 0.14) 0%, transparent 70%);

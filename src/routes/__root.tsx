@@ -63,12 +63,12 @@ export const Route = createRootRoute({
     />
   ),
   component: () => (
-    <html lang="en" data-skin="ivory" suppressHydrationWarning>
+    <html lang="en" data-skin="night" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var s=localStorage.getItem("kilode-skin");document.documentElement.setAttribute("data-skin",s==="night"?"night":"ivory")}catch(e){document.documentElement.setAttribute("data-skin","ivory")}`,
+            __html: `try{var s=localStorage.getItem("kilode-skin-v2");document.documentElement.setAttribute("data-skin",s==="ivory"?"ivory":"night")}catch(e){document.documentElement.setAttribute("data-skin","night")}`,
           }}
         />
       </head>

@@ -20,7 +20,7 @@ export function TvPane() {
       .catch(() => setRows([]));
   }, []);
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-8">
+    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
       <section className="shop-hero mb-4 overflow-hidden rounded-2xl border border-line px-4 py-6">
         <div className="flex items-center gap-2 text-lime-2">
           <Tv className="size-5" />

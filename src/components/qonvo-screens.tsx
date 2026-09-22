@@ -70,7 +70,7 @@ export function QonvoScreen({
   else if (id === "tv") view = <TvPane />;
   else if (id === "contact") view = <Contact store={store} />;
   else if (id === "admin") view = <Admin store={store} />;
-  return <div className="h-full overflow-y-auto pb-20 md:pb-4">{view}</div>;
+  return <div className="h-full overflow-y-auto dock-pad md:pb-4">{view}</div>;
 }
 
 function JoinWall() {

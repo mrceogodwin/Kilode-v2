@@ -342,9 +342,9 @@ export function QonvoApp() {
   }
 
   return (
-    <div className="kilode-shell flex h-full min-h-dvh flex-col bg-bg text-fg md:h-dvh md:max-h-dvh md:overflow-hidden">
+    <div className="kilode-shell relative flex h-full min-h-dvh flex-col bg-bg text-fg md:h-dvh md:max-h-dvh md:overflow-hidden">
       <header className="z-20 shrink-0 border-b border-line/80 bg-panel/90 backdrop-blur-md">
-        <div className="flex h-12 min-w-0 items-center gap-1.5 px-2 sm:h-14 sm:gap-3 sm:px-3">
+        <div className="flex h-10 min-w-0 items-center gap-1 px-2 sm:h-12 sm:gap-3 sm:px-3">
           <button
             type="button"
             className="shrink-0"
@@ -394,7 +394,7 @@ export function QonvoApp() {
             <SkinToggle />
             <button
               type="button"
-              className="grid size-9 place-items-center rounded-lg border border-line bg-panel-2"
+              className="grid size-8 place-items-center rounded-lg border border-line bg-panel-2"
               aria-label="Kilode TV and socials"
               title="Kilode TV"
               onClick={() => {
@@ -402,15 +402,15 @@ export function QonvoApp() {
                 setMenuOpen(false);
               }}
             >
-              <Tv className="size-4 text-lime-2" />
+              <Tv className="size-3.5 text-lime-2" />
             </button>
             <button
               type="button"
-              className="grid size-9 place-items-center rounded-lg border border-line bg-panel-2"
+              className="grid size-8 place-items-center rounded-lg border border-line bg-panel-2"
               aria-label="Menu"
               onClick={() => setMenuOpen((v) => !v)}
             >
-              <Menu className="size-4" />
+              <Menu className="size-3.5" />
             </button>
             <span className="hidden items-center gap-1.5 text-[11px] font-medium text-lime-2 sm:flex">
               <span className="size-1.5 animate-pulse rounded-full bg-lime-2" />
@@ -424,7 +424,7 @@ export function QonvoApp() {
                   <UserButton />
                 </SignedIn>
                 <SignedOut>
-                  <Link to="/login" search={{ mode: "up" }} className="btn-join rounded-lg px-2.5 py-1.5 text-[11px] font-bold sm:px-3 sm:text-xs">
+                  <Link to="/login" search={{ mode: "up" }} className="btn-join rounded-lg px-2 py-1 text-[10px] font-bold sm:px-3 sm:text-xs">
                     Join
                   </Link>
                 </SignedOut>
@@ -434,8 +434,8 @@ export function QonvoApp() {
           </div>
         </div>
         {/* Rooms/Live/Videos folded into Chat & Me — keep tab bar clear on mobile */}
-        <div className="h-6 overflow-hidden border-t border-line/60 bg-panel-2">
-          <div className="ticker-track px-8 text-[10px] leading-6 text-muted">
+        <div className="h-5 overflow-hidden border-t border-line/60 bg-panel-2">
+          <div className="ticker-track px-8 text-[10px] leading-5 text-muted">
             {[...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10), ...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10)].map((r, i) => (
               <button key={r.id + i} type="button" aria-label={`Open room ${r.name}`} className="shrink-0 hover:text-fg" onClick={() => goHome(r.id)}>
                 {r.name} · {fmt(r.online)}
@@ -663,7 +663,7 @@ export function QonvoApp() {
                 }}
               />
               <form
-                className="relative flex shrink-0 gap-2 border-t border-line bg-panel/90 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur"
+                className="relative flex shrink-0 gap-2 border-t border-line bg-panel/90 p-2 pb-2 mb-[calc(3.35rem+env(safe-area-inset-bottom))] backdrop-blur md:mb-0"
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!(store.authed || session.user)) {
@@ -792,7 +792,7 @@ export function QonvoApp() {
       )}
 
       <InstallToast />
-      <nav className="z-20 grid shrink-0 grid-cols-7 border-t border-line bg-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      <nav className="dock pointer-events-none absolute inset-x-0 bottom-0 z-30 grid grid-cols-7 px-1 pt-3 pb-[max(2px,env(safe-area-inset-bottom))] md:hidden">
         <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
         <Tab icon={<MessageSquare className="size-3.5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
         <Tab icon={<Radio className="size-3.5" />} label="Music" on={screen === "home" && homeTab === "music"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("music"); }} />
@@ -1186,21 +1186,21 @@ export function QonvoApp() {
 }
 
 function SkinToggle() {
-  const [skin, setSkin] = useState<"night" | "ivory">("ivory");
+  const [skin, setSkin] = useState<"night" | "ivory">("night");
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("kilode-skin");
-      const s = raw === "night" ? "night" : "ivory";
+      const raw = localStorage.getItem("kilode-skin-v2");
+      const s = raw === "ivory" ? "ivory" : "night";
       setSkin(s);
       document.documentElement.setAttribute("data-skin", s);
     } catch {
-      document.documentElement.setAttribute("data-skin", "ivory");
+      document.documentElement.setAttribute("data-skin", "night");
     }
   }, []);
   return (
     <button
       type="button"
-      className="grid size-9 place-items-center rounded-lg border border-line bg-panel-2"
+      className="grid size-8 place-items-center rounded-lg border border-line bg-panel-2"
       aria-label={skin === "night" ? "Switch to light skin" : "Switch to night skin"}
       title={skin === "night" ? "Light" : "Night"}
       onClick={() => {
@@ -1208,7 +1208,7 @@ function SkinToggle() {
         setSkin(next);
         document.documentElement.setAttribute("data-skin", next);
         try {
-          localStorage.setItem("kilode-skin", next);
+          localStorage.setItem("kilode-skin-v2", next);
         } catch {
           /* ignore */
         }
@@ -1268,7 +1268,7 @@ function Tab({
   onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} className={`app-tab flex min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-semibold leading-tight ${on ? "on" : ""}`}>
+    <button type="button" onClick={onClick} className={`app-tab pointer-events-auto flex min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-semibold leading-tight ${on ? "on" : ""}`}>
       {icon}
       {label}
     </button>
@@ -1518,7 +1518,7 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
         ))}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-6">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
         <section className="mb-3">
           <div className="mb-1.5 text-[11px] font-bold">Browse</div>
           <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -1624,7 +1624,7 @@ function VideoPane() {
       {play ? (
         <iframe title="video" src={`https://www.youtube.com/embed/${play}?rel=0`} className="h-40 w-full shrink-0 border-0 bg-black" allow="encrypted-media; fullscreen" loading="lazy" />
       ) : null}
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 pb-3">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 dock-pad">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6">
           {list.slice(0, shown).map((v) => (
             <button
@@ -1699,7 +1699,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
     if (kind === "native" && navigator.share) void navigator.share({ title: post.title, text: shareText, url });
   }
   return (
-    <article className="min-h-0 flex-1 overflow-y-auto">
+    <article className="min-h-0 flex-1 overflow-y-auto dock-pad">
       <div className="mx-auto max-w-3xl px-4 py-4">
         <button type="button" className="text-[11px] text-muted" onClick={() => store.setOpenPost(null)}>
           ← Feeds
@@ -1966,7 +1966,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
   }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-6">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
         <FeedsHero
           posts={store.posts}
           ads={store.campaigns}

@@ -153,7 +153,7 @@ export function MarketsDesk({ desk, onDesk, onBack }: { desk: MarketDesk; onDesk
           ))}
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 pb-8">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
         {desk === "stocks" ? <StocksDesk /> : null}
         {desk === "crypto" ? <CryptoDesk /> : null}
         {desk === "forex" ? <ForexDesk /> : null}
