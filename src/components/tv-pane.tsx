@@ -32,6 +32,7 @@ export function TvPane() {
         </p>
       </section>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {rows.length === 0 ? <p className="text-sm text-muted sm:col-span-2">No channels yet. Super adds them in ops.</p> : null}
         {rows.map((s) => (
           <article key={s.id} className="raised overflow-hidden rounded-2xl">
             {s.thumb ? (
@@ -46,14 +47,18 @@ export function TvPane() {
               <h2 className="mt-0.5 text-[15px] font-bold">{s.name}</h2>
               {s.handle ? <p className="text-[12px] text-muted">{s.handle}</p> : null}
               {s.blurb ? <p className="mt-1 text-[12px] leading-relaxed text-muted">{s.blurb}</p> : null}
-              <a
-                href={s.url || "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-join mt-3 inline-flex rounded-lg px-3 py-1.5 text-[10px] font-extrabold tracking-[0.12em]"
-              >
-                FOLLOW
-              </a>
+              {s.url ? (
+                <a
+                  href={s.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-join mt-3 inline-flex rounded-lg px-3 py-1.5 text-[10px] font-extrabold tracking-[0.12em]"
+                >
+                  FOLLOW
+                </a>
+              ) : (
+                <p className="mt-3 text-[11px] text-muted">Super pastes the live URL in ops.</p>
+              )}
             </div>
           </article>
         ))}

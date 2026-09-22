@@ -117,6 +117,7 @@ export const getChatTtl = createServerFn({ method: "GET" }).handler(async () => 
 });
 
 export const listPosts = createServerFn({ method: "GET" }).handler(async () => {
+  try {
   const sql = await getSql();
   const posts = await sql<{
     id: string;
@@ -148,6 +149,9 @@ export const listPosts = createServerFn({ method: "GET" }).handler(async () => {
       .filter((c) => c.post_id === p.id)
       .map((c) => ({ author: c.author, body: c.body, ts: Number(c.ts), parentTs: c.parent_ts ? Number(c.parent_ts) : undefined })),
   }));
+  } catch {
+    return [];
+  }
 });
 
 export const getPublicPost = createServerFn({ method: "GET" })
@@ -173,11 +177,22 @@ export const getPublicPost = createServerFn({ method: "GET" })
     }>`select id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, views from nf_posts where status = ${"publish"} and (id = ${key} or slug = ${key}) limit 1`;
     const p = posts[0];
     if (!p) return null;
+    const comments = await sql<{
+      author: string;
+      body: string;
+      ts: number | string;
+      parent_ts: number | string | null;
+    }>`select author, body, ts, parent_ts from nf_comments where post_id = ${p.id} order by ts asc`;
     return {
       ...p,
       ts: Number(p.ts),
       views: Number(p.views ?? 0),
-      comments: [] as { author: string; body: string; ts: number; parentTs?: number }[],
+      comments: comments.map((c) => ({
+        author: c.author,
+        body: c.body,
+        ts: Number(c.ts),
+        parentTs: c.parent_ts ? Number(c.parent_ts) : undefined,
+      })),
     };
   });
 

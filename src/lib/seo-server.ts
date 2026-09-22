@@ -96,7 +96,7 @@ export const boostSeo = createServerFn({ method: "POST" })
       await fetch("https://api.indexnow.org/indexnow", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ host: "kilode.ng", key: indexNow, keyLocation: `https://kilode.ng/${indexNow}.txt`, urlList: urls.slice(0, 100) }),
+        body: JSON.stringify({ host: "kilode.ng", key: indexNow, keyLocation: "https://kilode.ng/api/indexnow", urlList: urls.slice(0, 100) }),
       }).catch(() => undefined);
     }
     return { ok: true as const, n, pinged: Boolean(indexNow) };
@@ -109,6 +109,7 @@ export const sitemapXml = createServerFn({ method: "GET" }).handler(async () => 
     { loc: `${SITE.url}/`, lastmod: now, changefreq: "hourly", priority: "1.0" },
     { loc: `${SITE.url}/advertise`, lastmod: now, changefreq: "weekly", priority: "0.5" },
     { loc: `${SITE.url}/install`, lastmod: now, changefreq: "monthly", priority: "0.3" },
+    { loc: `${SITE.url}/terms`, lastmod: now, changefreq: "monthly", priority: "0.2" },
   ];
   if (sql) {
     try {

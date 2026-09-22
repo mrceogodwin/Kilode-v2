@@ -28,7 +28,7 @@ export function OpsKeysPanel() {
       <div>
         <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">API KEYS · 20 SLOTS</div>
         <h3 className="text-lg font-extrabold">Translate · news · SEO</h3>
-        <p className="text-[11px] text-muted">Paste keys here. They stay on the server. Empty slots are skipped. RSS news works without a key. Translate uses DeepL or Google if set, else the public MyMemory fallback. SEO Boost uses Grok/OpenAI/Groq if set, else writes titles from the post itself and pings IndexNow if that key is set.</p>
+        <p className="text-[11px] text-muted">Paste keys here. They stay on the server. Empty slots are skipped. RSS news works without a key. Translate uses DeepL or Google Cloud if you paste those, else MyMemory. SEO Boost uses Grok/OpenAI/Groq if set, else writes titles from the post itself. IndexNow pings Bing when that key is set (file served at /api/indexnow).</p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {rows.map((s) => (
@@ -264,7 +264,7 @@ export function AdSlotsPanel() {
         <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">AD SLOTS · GOOGLE · BANNERS · VIDEO</div>
         <h3 className="text-lg font-extrabold">Where ads appear</h3>
         <p className="text-[11px] text-muted">
-          Four kinds: Google (ca-pub + unit), image banner, YouTube video, HTML iframe. Empty slots show a dashed placeholder on the site — they do not load Google until you paste a real unit. Digest emails stored: {digest}. Sending mail waits for a mail API key.
+          Four kinds: Google (ca-pub + unit), image banner, YouTube video, HTML iframe. Empty slots show a dashed placeholder on the site — they do not load Google until you paste a real unit. Digest addresses stored: {digest}. We do not send email yet.
         </p>
       </div>
       <div className="space-y-2">

@@ -4,6 +4,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { asAccountKind } from "@/lib/qonvo-data";
 import { gateText } from "@/lib/mod-cache";
 import { LANGS, type LangId } from "@/lib/i18n";
+import { readAiKey } from "@/lib/keys-server";
 
 function nid() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
@@ -56,12 +57,34 @@ export const translateText = createServerFn({ method: "POST" })
     } catch {
       /* ignore */
     }
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${to}`;
+    const deepl = await readAiKey("deepl");
+    const gcloud = await readAiKey("google_translate");
+    let out = "";
     try {
-      const res = await fetch(url, { headers: { Accept: "application/json" } });
-      const json = (await res.json()) as { responseData?: { translatedText?: string }; responseStatus?: number };
-      const out = json.responseData?.translatedText?.trim();
-      if (!out || json.responseStatus === 403) return { ok: false as const, reason: "Translate is busy. Try again." };
+      if (deepl) {
+        const res = await fetch("https://api-free.deepl.com/v2/translate", {
+          method: "POST",
+          headers: { authorization: `DeepL-Auth-Key ${deepl}`, "content-type": "application/json" },
+          body: JSON.stringify({ text: [text], target_lang: to.toUpperCase() }),
+        });
+        const j = (await res.json()) as { translations?: { text?: string }[] };
+        out = j.translations?.[0]?.text?.trim() || "";
+      } else if (gcloud) {
+        const res = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(gcloud)}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ q: text, target: to, format: "text" }),
+        });
+        const j = (await res.json()) as { data?: { translations?: { translatedText?: string }[] } };
+        out = j.data?.translations?.[0]?.translatedText?.trim() || "";
+      } else {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${to}`;
+        const res = await fetch(url, { headers: { Accept: "application/json" } });
+        const json = (await res.json()) as { responseData?: { translatedText?: string }; responseStatus?: number };
+        out = json.responseData?.translatedText?.trim() || "";
+        if (json.responseStatus === 403) return { ok: false as const, reason: "Translate is busy. Try again." };
+      }
+      if (!out) return { ok: false as const, reason: "Translate is busy. Try again." };
       try {
         await sql`insert into nf_i18n (id, lang, src, out, ts) values (${id}, ${to}, ${text.slice(0, 800)}, ${out.slice(0, 2000)}, ${Date.now()})`;
       } catch {

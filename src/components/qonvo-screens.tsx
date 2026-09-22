@@ -1407,8 +1407,6 @@ function Admin({ store }: { store: Store }) {
           Role {role} · id {userId}
         </p>
       </div>
-      <Card title="Queue" body="Paid and pending ads wait here. Search + page — never load 5000 rows at once." />
-      <Card title="Live ads" body="Approved ads expire on the date you set when you hit Approve. Rejected stay in the log." />
       <OpsKeysPanel />
       <OpsSeoPanel />
       <AdsQueuePanel store={store} />

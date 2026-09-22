@@ -4,4 +4,4 @@ Disallow: /ops
 Disallow: /api/auth
 Disallow: /login
 
-Sitemap: https://kilode.ng/api/sitemap
+Sitemap: https://kilode.ng/sitemap.xml

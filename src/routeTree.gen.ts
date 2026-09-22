@@ -16,6 +16,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as OpsRouteImport } from './routes/ops'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiSitemapRouteImport } from './routes/api/sitemap'
+import { Route as ApiIndexnowRouteImport } from './routes/api/indexnow'
+import { Route as SitemapXmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PIdRouteImport } from './routes/p.$id'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -55,6 +57,16 @@ const ApiSitemapRoute = ApiSitemapRouteImport.update({
   path: '/api/sitemap',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiIndexnowRoute = ApiIndexnowRouteImport.update({
+  id: '/api/indexnow',
+  path: '/api/indexnow',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapXmlRoute = SitemapXmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PIdRoute = PIdRouteImport.update({
   id: '/p/$id',
   path: '/p/$id',
@@ -79,6 +91,8 @@ export interface FileRoutesByFullPath {
   '/ops': typeof OpsRoute
   '/terms': typeof TermsRoute
   '/api/sitemap': typeof ApiSitemapRoute
+  '/api/indexnow': typeof ApiIndexnowRoute
+  '/sitemap.xml': typeof SitemapXmlRoute
   '/p/$id': typeof PIdRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -91,6 +105,8 @@ export interface FileRoutesByTo {
   '/ops': typeof OpsRoute
   '/terms': typeof TermsRoute
   '/api/sitemap': typeof ApiSitemapRoute
+  '/api/indexnow': typeof ApiIndexnowRoute
+  '/sitemap.xml': typeof SitemapXmlRoute
   '/p/$id': typeof PIdRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -104,6 +120,8 @@ export interface FileRoutesById {
   '/ops': typeof OpsRoute
   '/terms': typeof TermsRoute
   '/api/sitemap': typeof ApiSitemapRoute
+  '/api/indexnow': typeof ApiIndexnowRoute
+  '/sitemap.xml': typeof SitemapXmlRoute
   '/p/$id': typeof PIdRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -118,6 +136,8 @@ export interface FileRouteTypes {
     | '/ops'
     | '/terms'
     | '/api/sitemap'
+    | '/api/indexnow'
+    | '/sitemap.xml'
     | '/p/$id'
     | '/u/$handle'
     | '/api/auth/$'
@@ -130,6 +150,8 @@ export interface FileRouteTypes {
     | '/ops'
     | '/terms'
     | '/api/sitemap'
+    | '/api/indexnow'
+    | '/sitemap.xml'
     | '/p/$id'
     | '/u/$handle'
     | '/api/auth/$'
@@ -142,6 +164,8 @@ export interface FileRouteTypes {
     | '/ops'
     | '/terms'
     | '/api/sitemap'
+    | '/api/indexnow'
+    | '/sitemap.xml'
     | '/p/$id'
     | '/u/$handle'
     | '/api/auth/$'
@@ -155,6 +179,8 @@ export interface RootRouteChildren {
   OpsRoute: typeof OpsRoute
   TermsRoute: typeof TermsRoute
   ApiSitemapRoute: typeof ApiSitemapRoute
+  ApiIndexnowRoute: typeof ApiIndexnowRoute
+  SitemapXmlRoute: typeof SitemapXmlRoute
   PIdRoute: typeof PIdRoute
   UHandleRoute: typeof UHandleRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -211,6 +237,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSitemapRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/indexnow': {
+      id: '/api/indexnow'
+      path: '/api/indexnow'
+      fullPath: '/api/indexnow'
+      preLoaderRoute: typeof ApiIndexnowRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapXmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/p/$id': {
       id: '/p/$id'
       path: '/p/$id'
@@ -243,6 +283,8 @@ const rootRouteChildren: RootRouteChildren = {
   OpsRoute: OpsRoute,
   TermsRoute: TermsRoute,
   ApiSitemapRoute: ApiSitemapRoute,
+  ApiIndexnowRoute: ApiIndexnowRoute,
+  SitemapXmlRoute: SitemapXmlRoute,
   PIdRoute: PIdRoute,
   UHandleRoute: UHandleRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

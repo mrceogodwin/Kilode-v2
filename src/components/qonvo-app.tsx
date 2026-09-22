@@ -951,7 +951,7 @@ export function QonvoApp() {
               </DrawerGroup>
 
               <DrawerGroup label="Desks">
-                <DrawerRow icon={LineChart} label="Stocks" hint="Indices, NGX, movers" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("stocks"); setMenuOpen(false); }} on={marketDesk === "stocks"} />
+                <DrawerRow icon={LineChart} label="Stocks" hint="Indices, movers, charts" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("stocks"); setMenuOpen(false); }} on={marketDesk === "stocks"} />
                 <DrawerRow icon={Coins} label="Crypto" hint="Coins, dominance, heat" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("crypto"); setMenuOpen(false); }} on={marketDesk === "crypto"} />
                 <DrawerRow icon={Banknote} label="Forex" hint="Naira and crosses" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("forex"); setMenuOpen(false); }} on={marketDesk === "forex"} />
                 <DrawerRow icon={Trophy} label="Sports" hint="Live scores and upcoming" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("sports"); setMenuOpen(false); }} on={marketDesk === "sports"} />
@@ -1674,9 +1674,10 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
     store.see("posts", post.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id]);
-  const roots = post.comments.filter((c) => !c.parentTs);
-  const kids = (ts: number) => post.comments.filter((c) => c.parentTs === ts);
-  const mins = Math.max(1, Math.round(post.body.split(/\s+/).length / 180));
+  const comments = post.comments ?? [];
+  const roots = comments.filter((c) => !c.parentTs);
+  const kids = (ts: number) => comments.filter((c) => c.parentTs === ts);
+  const mins = Math.max(1, Math.round((post.body || "").split(/\s+/).length / 180));
   const saved = store.savedPosts.includes(post.id);
   const likes = store.likes[post.id] ?? 0;
   const shares = store.shares[post.id] ?? 0;
@@ -2216,7 +2217,7 @@ function ChatLine({
         <span className="text-[10px] text-muted">{timeLabel(m.ts)}</span>
       </div>
       <div className="text-sm">
-        {/^(.+?\s)?reposted:\s/i.test(m.t) ? (
+        {/^(.+?\s)?reposted:\s/i.test(m.t || "") ? (
           <span>
             <span className="inline-flex items-center gap-1 font-semibold text-lime-2">
               <Repeat2 className="size-3.5" />

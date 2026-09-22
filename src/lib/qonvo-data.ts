@@ -148,13 +148,13 @@ export function asAccountKind(v: string | null | undefined): AccountKind {
 }
 
 export function isOfficialHandle(handle: string) {
-  return /^kilode(\.ng)?$/i.test(handle.replace(/^@/, "").trim());
+  return /^kilode(\.ng)?$/i.test((handle || "").replace(/^@/, "").trim());
 }
 
 export function handleLabel(handle: string) {
-  const h = handle.replace(/^@/, "").trim();
+  const h = (handle || "").replace(/^@/, "").trim();
   if (isOfficialHandle(h)) return "Kilode.ng";
-  return h;
+  return h || "user";
 }
 
 export const KIND_PURPOSE: Record<AccountKind, string> = {

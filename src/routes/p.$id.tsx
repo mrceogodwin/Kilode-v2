@@ -16,7 +16,7 @@ export const Route = createFileRoute("/p/$id")({
     if (!post) return seoHead({ title: "Post", path: "/p/" });
     return seoHead({
       title: post.title,
-      description: post.excerpt || post.body.slice(0, 160),
+      description: (post.excerpt || post.body || "").slice(0, 160),
       path: `/p/${post.slug || post.id}`,
       image: post.image ?? undefined,
       type: "article",
@@ -58,6 +58,20 @@ function PublicPost() {
         </p>
         {post.image ? <img src={post.image} alt={post.title} className="mt-4 w-full rounded-xl object-cover" /> : null}
         <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">{post.body}</p>
+        {post.comments?.length ? (
+          <section className="mt-8 border-t border-line pt-4">
+            <h2 className="text-sm font-bold">Comments</h2>
+            <ul className="mt-3 space-y-3">
+              {post.comments.map((c) => (
+                <li key={c.ts} className="text-sm">
+                  <span className="font-semibold" style={{ color: handleColor(c.author) }}>{c.author}</span>
+                  <span className="ml-2 text-[11px] text-muted">{timeLabel(c.ts)}</span>
+                  <p className="mt-1 whitespace-pre-wrap text-muted">{c.body}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </article>
     </main>
   );

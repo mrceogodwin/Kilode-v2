@@ -1,7 +1,7 @@
 export const SITE = {
   name: "Kilode",
   url: "https://kilode.ng",
-  description: "Kilode is Nigeria’s live feeds — chat rooms, music, cinema, and ads. Talk Nigeria. Live.",
+  description: "Kilode is Nigeria’s news and community hub — feeds, chat rooms, music, cinema, and ads.",
   locale: "en_NG",
 };
 
@@ -29,7 +29,7 @@ export function seoHead(opts?: {
         image,
         datePublished: opts?.published,
         author: { "@type": "Person", name: opts?.author || "Kilode" },
-        publisher: { "@type": "Organization", name: SITE.name, url: SITE.url, logo: `${SITE.url}/kilode-logo-green.png` },
+        publisher: { "@type": "Organization", name: SITE.name, url: SITE.url, logo: `${SITE.url}/kilode-bang-icon.png` },
         mainEntityOfPage: url,
         inLanguage: "en-NG",
       }

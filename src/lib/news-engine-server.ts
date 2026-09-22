@@ -12,6 +12,7 @@ import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { env } from "@/lib/env.server";
 import { slugify } from "@/lib/qonvo-data";
+import { readAiKey } from "@/lib/keys-server";
 
 export type NewsSource = {
   id: string;
@@ -142,6 +143,22 @@ function memDrafts(): NewsDraft[] {
 function memSources(): NewsSource[] {
   gMem.__nfNewsSources ??= DEFAULT_SOURCES.map((s) => ({ ...s }));
   return gMem.__nfNewsSources;
+}
+
+async function loadSources(): Promise<NewsSource[]> {
+  const base = DEFAULT_SOURCES.map((s) => ({ ...s }));
+  try {
+    const sql = await getSql();
+    await sql.query(`create table if not exists nf_news_sources (id text primary key, enabled integer not null default 1)`);
+    const rows = await sql<{ id: string; enabled: number | string | boolean }>`select id, enabled from nf_news_sources`;
+    if (!rows.length) return memSources();
+    const map = Object.fromEntries(rows.map((r) => [r.id, r.enabled !== 0 && r.enabled !== "0" && r.enabled !== false]));
+    const next = base.map((s) => (s.id in map ? { ...s, enabled: map[s.id] } : s));
+    gMem.__nfNewsSources = next;
+    return next;
+  } catch {
+    return memSources();
+  }
 }
 
 function nid() {
@@ -295,18 +312,28 @@ function humanizeDeterministic(item: RssItem, sourceName: string): {
 }
 
 async function humanizeWithLlm(item: RssItem, sourceName: string): Promise<ReturnType<typeof humanizeDeterministic> | null> {
-  const apiKey = env("OPENAI_API_KEY") || env("NEWS_AI_KEY");
-  const base = (env("NEWS_AI_URL") || "https://api.openai.com/v1").replace(/\/$/, "");
-  if (!apiKey) return null;
+  const grok = await readAiKey("grok");
+  const openai = env("OPENAI_API_KEY") || env("NEWS_AI_KEY") || (await readAiKey("openai"));
+  const groq = await readAiKey("groq");
+  const apiKey = grok || openai || groq;
+  const endpoint = grok
+    ? "https://api.x.ai/v1"
+    : openai
+      ? (env("NEWS_AI_URL") || "https://api.openai.com/v1").replace(/\/$/, "")
+      : groq
+        ? "https://api.groq.com/openai/v1"
+        : "";
+  const model = grok ? "grok-2-latest" : openai ? env("NEWS_AI_MODEL") || "gpt-4o-mini" : "llama-3.1-8b-instant";
+  if (!apiKey || !endpoint) return null;
   try {
-    const res = await fetch(`${base}/chat/completions`, {
+    const res = await fetch(`${endpoint}/chat/completions`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: env("NEWS_AI_MODEL") || "gpt-4o-mini",
+        model: model,
         temperature: 0.55,
         response_format: { type: "json_object" },
         messages: [
@@ -454,8 +481,8 @@ export const newsEngineInfo = createServerFn({ method: "GET" })
     await requireSuper(context.userId);
     return {
       label: "Sources: Google News RSS + publishers (not Google SERP scrape)",
-      llm: Boolean(env("OPENAI_API_KEY") || env("NEWS_AI_KEY") || env("NEWS_AI_URL")),
-      sources: memSources(),
+      llm: Boolean(env("OPENAI_API_KEY") || env("NEWS_AI_KEY") || (await readAiKey("openai")) || (await readAiKey("grok")) || (await readAiKey("groq"))),
+      sources: await loadSources(),
     };
   });
 
@@ -463,7 +490,7 @@ export const listNewsSources = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     await requireSuper(context.userId);
-    return memSources();
+    return loadSources();
   });
 
 export const setNewsSourceEnabled = createServerFn({ method: "POST" })
@@ -471,9 +498,13 @@ export const setNewsSourceEnabled = createServerFn({ method: "POST" })
   .validator((d: { id: string; enabled: boolean }) => d)
   .handler(async ({ context, data }) => {
     await requireSuper(context.userId);
+    const sql = await getSql();
+    await sql.query(`create table if not exists nf_news_sources (id text primary key, enabled integer not null default 1)`);
+    await sql`insert into nf_news_sources (id, enabled) values (${data.id}, ${data.enabled ? 1 : 0})
+      on conflict (id) do update set enabled = ${data.enabled ? 1 : 0}`;
     const src = memSources().find((s) => s.id === data.id);
     if (src) src.enabled = data.enabled;
-    return { ok: true as const, sources: memSources() };
+    return { ok: true as const, sources: await loadSources() };
   });
 
 export const fetchNewsLatest = createServerFn({ method: "POST" })
@@ -481,10 +512,11 @@ export const fetchNewsLatest = createServerFn({ method: "POST" })
   .validator((d: NewsFilters) => d)
   .handler(async ({ context, data: filters }) => {
     await requireSuper(context.userId);
+    const live = await loadSources();
     const wanted = new Set(
-      filters.sourceIds?.length ? filters.sourceIds : memSources().filter((s) => s.enabled).map((s) => s.id),
+      filters.sourceIds?.length ? filters.sourceIds : live.filter((s) => s.enabled).map((s) => s.id),
     );
-    const sources = memSources().filter((s) => wanted.has(s.id) && s.enabled);
+    const sources = live.filter((s) => wanted.has(s.id) && s.enabled);
     const seenLinks = new Set<string>();
     const seenTitles = new Set<string>();
     for (const d of memDrafts()) {
@@ -866,7 +898,7 @@ export const approveNewsDraft = createServerFn({ method: "POST" })
 
 async function ingestWeek(opts: { userId: string; limit: number; og: boolean }) {
   const filters: NewsFilters = { maxAgeHours: 168 };
-  const sources = memSources().filter((s) => s.enabled);
+  const sources = (await loadSources()).filter((s) => s.enabled);
   const seenLinks = new Set<string>();
   const seenTitles = new Set<string>();
   try {
@@ -979,7 +1011,10 @@ export const publishNewsWeek = createServerFn({ method: "POST" })
     return ingestWeek({ userId: context.userId, limit: 500, og: true });
   });
 
-export const warmNewsWeek = createServerFn({ method: "GET" }).handler(async () => {
+export const warmNewsWeek = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+  await requireSuper(context.userId);
   const sql = await getSql();
   try {
     await sql`create table if not exists nf_market_cache (k text primary key, v text not null, ts bigint not null)`;

@@ -5,7 +5,6 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getProfile } from "@/lib/forum-server";
 import { daysLeft, fmtCount, timeLabel, type AccountKind } from "@/lib/qonvo-data";
 import { canKind, kindActionHint } from "@/lib/permissions";
-import { DEMO_LISTINGS } from "@/lib/qonvo-seed";
 import { AdReserve } from "@/components/ad-slot";
 import { JoinCta } from "@/components/get-app";
 import { PortraitAd } from "@/components/premium-ad";
@@ -60,14 +59,7 @@ const ACTION = { job: "jobs.post", market: "market.list", rent: "rent.list" } as
 type Card = Listing & { image?: string };
 
 function cover(r: Card) {
-  return r.image || `https://picsum.photos/seed/${encodeURIComponent(r.id)}/640/400`;
-}
-
-function mergeRows(kind: ListingKind, live: Listing[]): Card[] {
-  const demo = DEMO_LISTINGS.filter((d) => d.kind === kind);
-  const seen = new Set(live.map((r) => r.title.toLowerCase()));
-  const extra = demo.filter((d) => !seen.has(d.title.toLowerCase()));
-  return [...live, ...extra];
+  return r.image || "";
 }
 
 function SlimRail({ rows, onOpen }: { rows: Card[]; onOpen: (r: Card) => void }) {
@@ -100,7 +92,7 @@ function SlimRail({ rows, onOpen }: { rows: Card[]; onOpen: (r: Card) => void })
         {rows.map((r) => (
           <button key={r.id} type="button" className="w-[168px] shrink-0 overflow-hidden rounded-md border border-line bg-panel text-left" onClick={() => onOpen(r)}>
             <div className="flex">
-              <img src={cover(r)} alt="" className="h-12 w-[72px] shrink-0 object-cover" />
+              {cover(r) ? <img src={cover(r)} alt="" className="h-12 w-[72px] shrink-0 object-cover" /> : <div className="grid h-12 w-[72px] shrink-0 place-items-center bg-panel-3 text-[8px] text-lime-2">{r.kind.toUpperCase()}</div>}
               <div className="min-w-0 flex-1 px-1.5 py-1">
                 <div className="truncate text-[10px] text-lime-2">{r.city || r.kind}</div>
                 <div className="line-clamp-2 text-[11px] font-semibold leading-tight">{r.title}</div>
@@ -116,7 +108,7 @@ function SlimRail({ rows, onOpen }: { rows: Card[]; onOpen: (r: Card) => void })
 function Tile({ r, kind, onOpen }: { r: Card; kind: ListingKind; onOpen: (r: Card) => void }) {
   return (
     <button type="button" className="raised overflow-hidden rounded-lg text-left" onClick={() => onOpen(r)}>
-      <img src={cover(r)} alt="" className="aspect-[16/9] w-full object-cover" />
+      {cover(r) ? <img src={cover(r)} alt="" className="aspect-[16/9] w-full object-cover" /> : <div className="grid aspect-[16/9] w-full place-items-center bg-panel-3 text-[10px] font-bold tracking-[0.16em] text-lime-2">{kind.toUpperCase()}</div>}
       <div className="px-1.5 py-1">
         <div className="flex items-center gap-1 text-[9px] uppercase text-lime-2">
           <MapPin className="size-2.5" />
@@ -136,7 +128,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const session = useCurrentUserState();
   const copy = COPY[kind];
   const Icon = copy.icon;
-  const [rows, setRows] = useState<Card[]>(() => mergeRows(kind, []));
+  const [rows, setRows] = useState<Card[]>([]);
   const [meKind, setMeKind] = useState<AccountKind>("member");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -155,8 +147,8 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
 
   function load() {
     void listListings({ data: { kind } })
-      .then((live) => setRows(mergeRows(kind, live)))
-      .catch(() => setRows(mergeRows(kind, [])));
+      .then((live) => setRows(live))
+      .catch(() => setRows([]));
   }
   useEffect(() => {
     load();

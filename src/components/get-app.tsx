@@ -41,7 +41,7 @@ export function DigestBox() {
       onSubmit={(e) => {
         e.preventDefault();
         void saveDigest({ data: { email } }).then((r) => {
-          setMsg(r.ok ? "Saved. We send when mail is live." : r.reason);
+          setMsg(r.ok ? "Saved. We keep the address. Email send is not live yet." : r.reason);
           if (r.ok) setEmail("");
         });
       }}

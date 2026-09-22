@@ -20,7 +20,6 @@ import {
 } from "@/lib/qonvo-data";
 import { DEMO_ADS, DEMO_JOINS, DEMO_NOTES, DEMO_POSTS, DEMO_TRACKS, MORE_DEMO_ADS } from "@/lib/qonvo-seed";
 import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, savePin, savePost, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
-import { warmNewsWeek } from "@/lib/news-engine-server";
 import { listNotes } from "@/lib/social-server";
 import { hidePost as hidePostRow, setAdPlacement, setAdStatus, setAdWindow } from "@/lib/staff-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -195,13 +194,6 @@ export function useQonvo() {
           ]);
         };
         applyPosts(dbPosts);
-        if (dbPosts.length < 100) {
-          void warmNewsWeek()
-            .then((r) => {
-              if (r.published) return listPosts().then(applyPosts);
-            })
-            .catch(() => undefined);
-        }
         if (dbTracks.length) {
           const mapped = dbTracks
             .filter((t): t is NonNullable<typeof t> => !!t && typeof (t as { id?: string }).id === "string")
@@ -644,13 +636,21 @@ export function useQonvo() {
   }, [note, roomId]);
 
   const pinRoom = useCallback(() => {
-    setPins((prev) => [roomId, ...prev.filter((p) => p !== roomId)].slice(0, 30));
+    setPins((prev) => {
+      const next = [roomId, ...prev.filter((p) => p !== roomId)].slice(0, 30);
+      saveJson("pins", next);
+      return next;
+    });
     void savePin({ data: { roomId, on: true } }).catch(() => undefined);
     note(`Bookmarked ${ROOMS.find((r) => r.id === roomId)?.name ?? roomId}`);
   }, [note, roomId]);
 
   const unpin = useCallback((id: string) => {
-    setPins((prev) => prev.filter((p) => p !== id));
+    setPins((prev) => {
+      const next = prev.filter((p) => p !== id);
+      saveJson("pins", next);
+      return next;
+    });
     void savePin({ data: { roomId: id, on: false } }).catch(() => undefined);
   }, []);
 
@@ -714,6 +714,12 @@ export function useQonvo() {
         if (r && "ok" in r && r.ok === false) {
           setPosts((prev) => prev.filter((p) => p?.id !== item.id));
           note(r.reason);
+          return;
+        }
+        if (r && "id" in r && r.id) {
+          const real = String(r.id);
+          setPosts((prev) => prev.map((p) => (p.id === item.id ? { ...p, id: real } : p)));
+          setOpenPost((cur) => (cur === item.id ? real : cur));
         }
       }).catch(() => undefined);
       if (item.status === "publish") {
@@ -735,13 +741,13 @@ export function useQonvo() {
       const ts = Date.now();
       setPosts((prev) =>
         prev.map((p) =>
-          p.id === postId ? { ...p, comments: [...p.comments, { author: who, body: text, ts, parentTs }] } : p,
+          p.id === postId ? { ...p, comments: [...(p.comments ?? []), { author: who, body: text, ts, parentTs }] } : p,
         ),
       );
       void saveComment({ data: { postId, body: text, parentTs } }).then((r) => {
         if (r && "ok" in r && r.ok === false) {
           setPosts((prev) =>
-            prev.map((p) => (p.id === postId ? { ...p, comments: p.comments.filter((c) => c.ts !== ts) } : p)),
+            prev.map((p) => (p.id === postId ? { ...p, comments: (p.comments ?? []).filter((c) => c.ts !== ts) } : p)),
           );
           note(r.reason);
         }

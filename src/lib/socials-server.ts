@@ -16,13 +16,13 @@ export type SocialRow = {
 };
 
 const SEED: SocialRow[] = [
-  { id: "youtube", name: "YouTube", handle: "@KilodeTV", url: "https://www.youtube.com/@KilodeTV", blurb: "Shows, news clips, live.", thumb: "", followers: "TV", sort: 1 },
-  { id: "tiktok", name: "TikTok", handle: "@kilode.ng", url: "https://www.tiktok.com/@kilode.ng", blurb: "Shorts from the desk.", thumb: "", followers: "Clips", sort: 2 },
-  { id: "instagram", name: "Instagram", handle: "@kilode.ng", url: "https://www.instagram.com/kilode.ng", blurb: "Stills and stories.", thumb: "", followers: "Grid", sort: 3 },
-  { id: "x", name: "X", handle: "@kilode_ng", url: "https://x.com/kilode_ng", blurb: "Breaking and replies.", thumb: "", followers: "Feed", sort: 4 },
-  { id: "facebook", name: "Facebook", handle: "Kilode", url: "https://www.facebook.com/kilode.ng", blurb: "Longer posts and live.", thumb: "", followers: "Page", sort: 5 },
+  { id: "youtube", name: "YouTube", handle: "", url: "", blurb: "Shows, news clips, live.", thumb: "", followers: "TV", sort: 1 },
+  { id: "tiktok", name: "TikTok", handle: "", url: "", blurb: "Shorts from the desk.", thumb: "", followers: "Clips", sort: 2 },
+  { id: "instagram", name: "Instagram", handle: "", url: "", blurb: "Stills and stories.", thumb: "", followers: "Grid", sort: 3 },
+  { id: "x", name: "X", handle: "", url: "", blurb: "Breaking and replies.", thumb: "", followers: "Feed", sort: 4 },
+  { id: "facebook", name: "Facebook", handle: "", url: "", blurb: "Longer posts and live.", thumb: "", followers: "Page", sort: 5 },
   { id: "telegram", name: "Telegram", handle: "@Builtbystacks", url: "https://t.me/Builtbystacks", blurb: "Alerts in your pocket.", thumb: "", followers: "Channel", sort: 6 },
-  { id: "whatsapp", name: "WhatsApp", handle: "Kilode channel", url: "https://whatsapp.com/channel", blurb: "Status and channel drops.", thumb: "", followers: "Chat", sort: 7 },
+  { id: "whatsapp", name: "WhatsApp", handle: "", url: "", blurb: "Status and channel drops.", thumb: "", followers: "Chat", sort: 7 },
 ];
 
 async function ensure() {
@@ -38,6 +38,14 @@ async function ensure() {
         values (${s.id}, ${s.name}, ${s.handle}, ${s.url}, ${s.blurb}, ${s.thumb}, ${s.followers}, ${s.sort})`;
     }
   }
+  await sql.query(`update nf_socials set url = '', handle = '' where url in (
+    'https://www.youtube.com/@KilodeTV',
+    'https://www.tiktok.com/@kilode.ng',
+    'https://www.instagram.com/kilode.ng',
+    'https://x.com/kilode_ng',
+    'https://www.facebook.com/kilode.ng',
+    'https://whatsapp.com/channel'
+  )`);
 }
 
 function row(r: SocialRow): SocialRow {

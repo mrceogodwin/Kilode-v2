@@ -211,6 +211,9 @@ export function InstallToast() {
     } catch {
       /* ignore */
     }
+    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    const nav = window.navigator as Navigator & { standalone?: boolean };
+    if (nav.standalone) return;
     const t = window.setTimeout(() => {
       void getPublicSite()
         .then((s) => {
