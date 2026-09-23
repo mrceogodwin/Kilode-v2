@@ -1,9 +1,9 @@
 function BangMark({ className }: { className: string }) {
   return (
     <span className={`brand-mark ${className}`} aria-hidden>
-      {/* Glossy brand-lime bang on transparent (v3) — btn-join forest plate provides contrast. */}
+      {/* Glossy white bang on transparent — Create-a-post (btn-join) green plate provides contrast. */}
       <img
-        src="/kilode-bang-mark-v3.png"
+        src="/kilode-bang-mark-white.png"
         alt=""
         className="h-full w-full object-contain p-[12%]"
         draggable={false}

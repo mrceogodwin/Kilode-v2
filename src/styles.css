@@ -661,7 +661,7 @@ html[data-skin="ivory"] .brand-word {
   display: grid;
   place-items: center;
   overflow: hidden;
-  /* btn-join plate — lime bang on Create-a-post green (small square tile) */
+  /* btn-join plate — white bang on Create-a-post green (small square tile) */
   background: linear-gradient(180deg, #5f8f6c 0%, #3f6a4c 100%);
   border: 1px solid #355a40;
   box-shadow:
@@ -676,7 +676,7 @@ html[data-skin="ivory"] .brand-word {
   height: 100%;
   object-fit: contain;
 }
-/* Ivory: same btn-join forest plate as night — lime bang on Create-a-post green */
+/* Ivory: same btn-join forest plate as night — white bang on Create-a-post green */
 html[data-skin="ivory"] .brand-mark {
   background: linear-gradient(180deg, #5f8f6c 0%, #3f6a4c 100%);
   border: 1px solid #355a40;
