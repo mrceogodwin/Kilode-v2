@@ -5,6 +5,7 @@ import { assertStaff } from "@/lib/staff-server";
 import { AD_SLOT_DEFS, isAdUnit, isPubId, type AdSlotKind, type AdSlotRow } from "@/lib/ad-slots";
 import { safeHttpUrl, youtubeId } from "@/lib/qonvo-data";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
+import { env } from "@/lib/env.server";
 
 async function ensure() {
   const sql = await getSql();
@@ -117,6 +118,11 @@ export const saveAdSlot = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/** True when a real outbound mail provider is configured. Digest never fakes sends. */
+function digestMailReady() {
+  return Boolean(env("RESEND_API_KEY") || env("SMTP_URL") || (env("SMTP_HOST") && env("SMTP_USER")));
+}
+
 export const saveDigest = createServerFn({ method: "POST" })
   .validator((d: { email: string }) => d)
   .handler(async ({ data }) => {
@@ -126,7 +132,9 @@ export const saveDigest = createServerFn({ method: "POST" })
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false as const, reason: "That does not look like an email." };
     const sql = await ensure();
     await sql`insert into nf_digest (email, ts) values (${email}, ${Date.now()}) on conflict (email) do update set ts = ${Date.now()}`;
-    return { ok: true as const };
+    // Save-only today: no post-publish cron / Resend / SMTP sender is wired yet.
+    // When adding sends, use RESEND_API_KEY (or SMTP_URL / SMTP_HOST+SMTP_USER+SMTP_PASS) and fan out one-by-one from nf_digest.
+    return { ok: true as const, mailReady: digestMailReady() };
   });
 
 export const listDigestCount = createServerFn({ method: "GET" })

@@ -177,8 +177,9 @@ export function SiteFooter() {
         </div>
       </div>
 
-      <div className="mt-3 border-t border-white/5 pt-2.5">
-        <DigestBox quiet />
+      <div className="mt-3 border-t border-white/10 pt-3">
+        <div className="mb-2 text-center text-[10px] font-semibold tracking-[0.14em] text-muted uppercase">Email updates</div>
+        <DigestBox quiet defaultOpen />
       </div>
 
       <a

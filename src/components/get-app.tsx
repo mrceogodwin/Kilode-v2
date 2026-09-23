@@ -32,10 +32,11 @@ export function TelegramLink({ className = "" }: { className?: string }) {
   );
 }
 
-export function DigestBox({ quiet = false }: { quiet?: boolean }) {
+export function DigestBox({ quiet = false, defaultOpen = true }: { quiet?: boolean; defaultOpen?: boolean }) {
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
-  const [open, setOpen] = useState(!quiet);
+  const [open, setOpen] = useState(defaultOpen);
+  const [mailReady, setMailReady] = useState(false);
   return (
     <div className={quiet ? "" : "mt-2"}>
       {quiet && !open ? (
@@ -54,34 +55,51 @@ export function DigestBox({ quiet = false }: { quiet?: boolean }) {
           onSubmit={(e) => {
             e.preventDefault();
             void saveDigest({ data: { email } }).then((r) => {
-              setMsg(r.ok ? "Saved. We keep the address. Email send is not live yet." : r.reason);
-              if (r.ok) setEmail("");
+              if (!r.ok) {
+                setMsg(r.reason);
+                return;
+              }
+              setMailReady(Boolean(r.mailReady));
+              setMsg(
+                r.mailReady
+                  ? "Saved. You will get each new post by email, one at a time."
+                  : "Saved. We keep your address — email delivery is not configured yet (needs a mail API key)."
+              );
+              setEmail("");
             });
           }}
         >
-          {quiet ? (
-            <p className="mb-1 text-center text-[10px] text-muted">Optional — account signup still uses username + password.</p>
-          ) : null}
+          <p className="mb-1.5 text-center text-[11px] leading-snug text-muted">
+            Get each new post by email · one at a time · no spam.
+          </p>
           <div className="flex items-center gap-1.5">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={quiet ? "Email for updates" : "Email for instant updates"}
-              className={`flex-1 rounded-lg border border-line bg-bg px-2.5 text-[12px] ${quiet ? "min-h-8" : "min-h-9"}`}
+              placeholder="you@email.com"
+              autoComplete="email"
+              required
+              aria-label="Email for post updates"
+              className={`flex-1 rounded-lg border border-line bg-bg px-2.5 text-[12px] ${quiet ? "min-h-9" : "min-h-9"}`}
             />
             <button
               type="submit"
               className={
                 quiet
-                  ? "rounded-lg border border-line bg-panel-2 px-2.5 py-1.5 text-[11px] font-semibold text-fg"
+                  ? "rounded-lg border border-lime-2/40 bg-lime-2/15 px-3 py-2 text-[11px] font-bold text-lime-2"
                   : "btn-join rounded-lg px-3 py-2 text-[11px] font-bold"
               }
             >
-              {quiet ? "Save" : "Add"}
+              Subscribe
             </button>
           </div>
-          {msg ? <p className="mt-1 text-[10px] text-lime-2">{msg}</p> : null}
+          {!mailReady ? (
+            <p className="mt-1.5 text-center text-[10px] leading-snug text-muted/90">
+              We store your email for when sending goes live. No mail provider key is set yet — we never fake a send.
+            </p>
+          ) : null}
+          {msg ? <p className="mt-1 text-center text-[10px] text-lime-2">{msg}</p> : null}
         </form>
       ) : null}
     </div>
