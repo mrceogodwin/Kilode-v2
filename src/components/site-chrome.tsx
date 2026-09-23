@@ -109,7 +109,6 @@ export function SiteFooter() {
       .catch(() => undefined);
   }
   const n = site.shares ?? EMPTY.shares;
-  const shareTotal = (n.x || 0) + (n.wa || 0) + (n.tg || 0) + (n.fb || 0) + (n.copy || 0);
   const members = site.members || 0;
   const joinHint =
     members <= 0
@@ -117,6 +116,12 @@ export function SiteFooter() {
       : members === 1
         ? "1 member already here — pick a username and join."
         : `${members.toLocaleString("en-US")} members — pick a username and join.`;
+  const stats: { key: string; label: string; value: number; live?: boolean }[] = [
+    { key: "today", label: "Today", value: site.visitorsToday, live: true },
+    { key: "visitors", label: "Visitors", value: site.visitorsAll },
+    { key: "joined", label: "Joined", value: site.members },
+    { key: "subs", label: "Subscribers", value: site.subscribers || site.digest || 0 },
+  ];
   return (
     <footer className="site-foot mt-6 overflow-hidden rounded-2xl px-3.5 py-4 sm:px-4 sm:py-5">
       <div className="text-center">
@@ -139,15 +144,37 @@ export function SiteFooter() {
         </a>
       </p>
 
-      <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-[10px] tabular-nums text-muted">
-        <span className="inline-flex items-center gap-1 text-lime-2">
-          <span className="size-1.5 animate-pulse rounded-full bg-lime-2" />
-          {fmtCount(site.visitorsToday)} today
-        </span>
-        <span aria-hidden className="opacity-40">·</span>
-        <span>{fmtCount(site.visitorsAll)} visitors</span>
-        <span aria-hidden className="opacity-40">·</span>
-        <span>{fmtCount(site.members)} joined</span>
+      <div className="mt-3.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4" aria-label="Site stats">
+        {stats.map((s) => (
+          <div key={s.key} className="foot-stat rounded-xl px-2 py-2 text-center">
+            <div className="flex items-center justify-center gap-1">
+              {s.live ? <span className="size-1.5 animate-pulse rounded-full bg-lime-2" /> : null}
+              <span className="text-[15px] font-bold tabular-nums leading-none text-fg sm:text-[16px]">{fmtCount(s.value)}</span>
+            </div>
+            <div className="mt-1 text-[9px] font-semibold tracking-[0.12em] text-lime-2/90 uppercase">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3.5 border-t border-white/10 pt-3">
+        <div className="mb-2 text-center text-[10px] font-semibold tracking-[0.14em] text-muted uppercase">Share Kilode</div>
+        <div className="grid grid-cols-5 gap-1.5">
+          <ShareChip label="X" count={n.x} className="bg-black text-white ring-1 ring-white/25" onClick={() => share("x")}>
+            <IconX />
+          </ShareChip>
+          <ShareChip label="WA" count={n.wa} className="bg-[#25D366] text-white" onClick={() => share("wa")}>
+            <IconWa />
+          </ShareChip>
+          <ShareChip label="TG" count={n.tg} className="bg-[#229ED9] text-white" onClick={() => share("tg")}>
+            <IconTg />
+          </ShareChip>
+          <ShareChip label="FB" count={n.fb} className="bg-[#1877F2] text-white" onClick={() => share("fb")}>
+            <IconFb />
+          </ShareChip>
+          <ShareChip label="Share" count={n.copy} className="bg-lime-2 text-white" onClick={() => share("copy")}>
+            <Share2 className="size-3.5" />
+          </ShareChip>
+        </div>
       </div>
 
       <div className="mt-3 border-t border-white/5 pt-2.5">
@@ -156,34 +183,11 @@ export function SiteFooter() {
 
       <a
         href="/install"
-        className="mt-2 flex items-center justify-center gap-1.5 py-1 text-[11px] text-muted hover:text-fg"
+        className="mt-1.5 flex items-center justify-center gap-1.5 py-1 text-[11px] text-muted/80 hover:text-fg"
       >
-        <img src="/kilode-bang-icon.png" alt="" className="size-4 rounded-[4px] object-cover opacity-80" />
+        <img src="/kilode-bang-icon.png" alt="" className="size-4 rounded-[4px] object-cover opacity-70" />
         Install Kilode on your home screen
       </a>
-
-      {shareTotal > 0 ? (
-        <div className="mt-3 border-t border-white/5 pt-3">
-          <div className="mb-1.5 text-center text-[10px] font-medium tracking-[0.1em] text-muted">Share Kilode</div>
-          <div className="grid grid-cols-5 gap-1">
-            <ShareChip label="X" count={n.x} className="bg-black text-white ring-1 ring-white/20" onClick={() => share("x")}>
-              <IconX />
-            </ShareChip>
-            <ShareChip label="WhatsApp" count={n.wa} className="bg-[#25D366] text-white" onClick={() => share("wa")}>
-              <IconWa />
-            </ShareChip>
-            <ShareChip label="Telegram" count={n.tg} className="bg-[#229ED9] text-white" onClick={() => share("tg")}>
-              <IconTg />
-            </ShareChip>
-            <ShareChip label="Facebook" count={n.fb} className="bg-[#1877F2] text-white" onClick={() => share("fb")}>
-              <IconFb />
-            </ShareChip>
-            <ShareChip label="Copy" count={n.copy} className="bg-lime-2 text-white" onClick={() => share("copy")}>
-              <Share2 className="size-3.5" />
-            </ShareChip>
-          </div>
-        </div>
-      ) : null}
 
       <p className="mt-3 text-center text-[10px] leading-snug text-muted">
         <a href="/terms" className="underline">
@@ -223,8 +227,14 @@ function ShareChip({
   children: ReactNode;
 }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} className="flex flex-col items-center gap-1">
-      <span className={`grid size-10 place-items-center rounded-full shadow-[0_2px_0_rgba(0,0,0,0.25)] ${className}`}>{children}</span>
+    <button
+      type="button"
+      aria-label={`${label}${count ? `, ${fmtCount(count)} shares` : ""}`}
+      onClick={onClick}
+      className="foot-share flex flex-col items-center gap-1 rounded-xl px-0.5 py-1.5 transition hover:bg-white/5"
+    >
+      <span className={`grid size-10 place-items-center rounded-full shadow-[0_2px_0_rgba(0,0,0,0.28)] ${className}`}>{children}</span>
+      <span className="text-[9px] font-semibold leading-none tracking-wide text-fg/90">{label}</span>
       <span className="text-[9px] tabular-nums text-muted">{fmtCount(count)}</span>
     </button>
   );
