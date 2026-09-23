@@ -554,8 +554,8 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   const visibleTabs = tabs.filter((t) => {
     if (!t.show) return false;
     if (t.id === "post" && primary !== "post" && !canPost) return false;
-    // job_seeker: no post music — only apply. Hide feeds for seeker unless they want browse.
-    if (ak === "job_seeker" && t.id === "post") return false;
+    // job_seeker: Apply is primary; Feeds post is a secondary tab (canKind feeds.post).
+    if (ak === "job_seeker" && t.id === "post") return canPost;
     if (ak === "artist" && t.id === "post") return canPost; // secondary
     if ((ak === "advertiser" || ak === "cinema") && t.id === "post") return false;
     if (ak === "job_poster" && t.id === "post") return canPost;
@@ -614,7 +614,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     pane === "music" ? "Lists live on Music — no staff approval, no payment. Kilode embeds the platform player — never hosts audio."
     : pane === "cinema" ? "Submit a YouTube trailer URL for staff approval."
     : pane === "job" ? "Post a role with type, pay band, company and contact. Applicants land on Me."
-    : pane === "apply" ? "Browse and apply to jobs. You cannot post jobs or music."
+    : pane === "apply" ? "Browse and apply to jobs. You can also post in Feeds from the Feeds tab."
     : pane === "market" ? "Showcase a product with photo, price and condition. No in-app checkout."
     : pane === "rent" ? "List a space with photo, type and rent band. No in-app booking."
     : pane === "ads" ? "Place an ad after crypto payment."

@@ -46,6 +46,10 @@ function openCreate() {
   window.dispatchEvent(new Event("kilode:create"));
 }
 
+function openCreatePost() {
+  window.dispatchEvent(new CustomEvent("kilode:create", { detail: { pane: "post" } }));
+}
+
 function Section({
   kicker,
   title,
@@ -330,11 +334,17 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
     ];
   }
   if (kind === "job_seeker") {
-    return withApply(
-      voteCinema,
+    return [
+      applyJobs ?? {
+        icon: Briefcase,
+        label: "Browse jobs",
+        hint: "Open roles",
+        onClick: () => goto({ screen: "jobs" }),
+      },
+      { icon: Plus, label: "New post", hint: "Feeds rich editor", onClick: openCreatePost },
       chat,
       { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
-    );
+    ];
   }
   // member — Normal user flagship quick grid
   return [
@@ -488,8 +498,8 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   if (!signed) return <GuestDash />;
 
   const quick = quickActionsFor(kind);
-  /** Only member / job_seeker keep Feeds "New post" as a primary activity CTA. */
-  const feedsPostPrimary = kind === "member" || kind === "job_seeker";
+  /** Member keeps Feeds "New post" as a primary activity CTA (seeker has its own Feeds desk). */
+  const feedsPostPrimary = kind === "member";
 
   const rooms = store.pins.length ? store.pins : ["global"];
   const CtaIcon = cta.icon;
@@ -548,8 +558,8 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                     ? [
                         { n: myApps.length, l: "Apps" },
                         { n: openJobs.length, l: "Open" },
+                        { n: mine.length, l: "Posts" },
                         { n: store.savedPosts.length, l: "Saved" },
-                        { n: store.pins.length, l: "Rooms" },
                       ]
                     : [
                         { n: mine.length, l: "Posts" },
@@ -1034,53 +1044,135 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       ) : null}
 
       {kind === "job_seeker" ? (
-        <Section kicker="JOB SEEKER" title="Applications & open roles" action="Browse jobs" onAction={() => goto({ screen: "jobs" })}>
-          {myApps.length === 0 ? (
-            <EmptyBlock
-              body="You have not applied yet. Open a live job, leave a short note, and the poster sees your @handle. Keep your profile bio + city sharp."
-              cta="Browse jobs"
-              onClick={() => goto({ screen: "jobs" })}
-            />
-          ) : (
-            <div className="mb-3 space-y-2">
-              {myApps.slice(0, 8).map((a) => (
-                <div key={a.id} className="rounded-xl border border-line bg-panel px-3 py-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="truncate text-sm font-semibold">{a.title}</div>
-                    <StatusPill status={a.status} />
-                  </div>
-                  <div className="text-[10px] text-muted">
-                    {a.company || "Company"} · {a.city || "Nigeria"} · {timeAgo(a.ts)}
-                  </div>
-                  {a.note ? <div className="mt-1 line-clamp-2 text-[11px] text-muted">{a.note}</div> : null}
-                </div>
-              ))}
+        <>
+          <Section kicker="CAREERS" title="How Job Seeker works">
+            <div className="raised space-y-2 rounded-2xl border border-lime-2/25 p-3 text-[12px] leading-snug text-muted">
+              <p>
+                <span className="font-bold text-lime-2">1.</span> Browse live roles on Jobs or Create · Apply — leave a short note with your @handle.
+              </p>
+              <p>
+                <span className="font-bold text-lime-2">2.</span> Track every application here. Posters see you; keep bio + city sharp.
+              </p>
+              <p>
+                <span className="font-bold text-lime-2">3.</span> You can still post in Feeds, chat rooms, and vote Cinema — same rich editor as Normal.
+              </p>
             </div>
-          )}
-          <div className="mb-2 text-[10px] font-bold tracking-[0.14em] text-muted">OPEN ROLES</div>
-          {openJobs.length === 0 ? (
-            <EmptyBlock body="No approved jobs live right now. Check back soon or polish your profile." cta="Edit profile" onClick={() => goto({ screen: "profile" })} />
-          ) : (
-            <div className="space-y-2">
-              {openJobs.slice(0, 5).map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-left"
-                  onClick={() => goto({ screen: "jobs" })}
-                >
-                  <div className="truncate text-sm font-semibold">{r.title}</div>
-                  <div className="text-[10px] text-muted">
-                    {r.company || "Hiring"} · {r.city || "Remote"} · {timeAgo(r.ts)}
+          </Section>
+
+          <Section kicker="APPLICATIONS" title="Your applications" action="Browse jobs" onAction={() => goto({ screen: "jobs" })}>
+            <div id="me-apps" />
+            {myApps.length === 0 ? (
+              <EmptyBlock
+                body="You have not applied yet. Open a live job, leave a short note, and the poster sees your @handle."
+                cta="Browse jobs"
+                onClick={() => goto({ screen: "jobs" })}
+              />
+            ) : (
+              <div className="space-y-2">
+                <p className="text-[11px] text-muted">
+                  {myApps.length} application{myApps.length === 1 ? "" : "s"} · {openJobs.length} open role{openJobs.length === 1 ? "" : "s"} live
+                </p>
+                {myApps.slice(0, 12).map((a) => (
+                  <div key={a.id} className="rounded-xl border border-line bg-panel px-3 py-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold">{a.title}</div>
+                        <div className="text-[10px] text-muted">
+                          {a.company || "Company"} · {a.city || "Nigeria"} · applied {timeAgo(a.ts)}
+                        </div>
+                      </div>
+                      <StatusPill status={a.status} />
+                    </div>
+                    {a.note ? <p className="mt-1.5 line-clamp-3 text-[11px] leading-snug text-muted">{a.note}</p> : (
+                      <p className="mt-1.5 text-[11px] italic text-muted">No note sent with this application.</p>
+                    )}
+                    <button type="button" className="btn-3d mt-2 w-full rounded-lg py-1.5 text-[11px] font-bold" onClick={() => goto({ screen: "jobs" })}>
+                      Open Jobs board
+                    </button>
                   </div>
+                ))}
+              </div>
+            )}
+          </Section>
+
+          <Section kicker="OPEN ROLES" title="Hiring now" action="All jobs" onAction={() => goto({ screen: "jobs" })}>
+            {openJobs.length === 0 ? (
+              <EmptyBlock body="No approved jobs live right now. Polish your profile and check back." cta="Edit profile" onClick={() => goto({ screen: "profile" })} />
+            ) : (
+              <div className="space-y-2">
+                {openJobs.slice(0, 6).map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-left"
+                    onClick={() => goto({ screen: "jobs" })}
+                  >
+                    <div className="truncate text-sm font-semibold">{r.title}</div>
+                    <div className="text-[10px] text-muted">
+                      {r.company || "Hiring"} · {r.city || "Remote"} · {timeAgo(r.ts)}
+                    </div>
+                  </button>
+                ))}
+                <button type="button" className="btn-join w-full rounded-lg py-2 text-[12px] font-bold" onClick={() => goto({ screen: "jobs" })}>
+                  Apply from Jobs
                 </button>
-              ))}
-              <button type="button" className="btn-join w-full rounded-lg py-2 text-[12px] font-bold" onClick={() => goto({ screen: "jobs" })}>
-                Apply from Jobs
-              </button>
+              </div>
+            )}
+          </Section>
+
+          <Section kicker="FEEDS" title="Your posts" action="New post" onAction={openCreatePost}>
+            {mine.length === 0 && drafts.length === 0 ? (
+              <EmptyBlock
+                body="Job Seeker focus is applications — you can still publish in Feeds with the rich editor when you have something to share."
+                cta="New post"
+                onClick={openCreatePost}
+              />
+            ) : (
+              <div className="space-y-2">
+                {drafts.length ? (
+                  <p className="text-[11px] text-muted">
+                    {drafts.length} draft{drafts.length === 1 ? "" : "s"} on this device — finish from Create · Feeds.
+                  </p>
+                ) : null}
+                {mine.slice(0, 8).map((p) => (
+                  <PostRow
+                    key={p.id}
+                    p={p}
+                    onOpen={() => {
+                      store.setOpenPost(p.id);
+                      onForum?.();
+                    }}
+                  />
+                ))}
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" className="btn-join rounded-lg py-2 text-[12px] font-bold" onClick={openCreatePost}>
+                    New post
+                  </button>
+                  <button type="button" className="btn-3d rounded-lg py-2 text-[12px] font-bold" onClick={() => goto({ tab: "feeds" })}>
+                    Open Feeds
+                  </button>
+                </div>
+              </div>
+            )}
+          </Section>
+
+          <Section kicker="DO MORE" title="Alongside job hunt">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <ActionTile icon={Briefcase} label="Browse jobs" hint="Apply with note" onClick={() => goto({ screen: "jobs" })} />
+              <ActionTile icon={Plus} label="New post" hint="Feeds editor" onClick={openCreatePost} />
+              <ActionTile icon={Film} label="Vote cinema" hint="One vote / day" onClick={() => goto({ tab: "cinema" })} />
+              <ActionTile icon={MessageSquare} label="Chat" hint="36 states + global" onClick={() => goto({ tab: "chat" })} />
             </div>
-          )}
-        </Section>
+            {profileGaps.length ? (
+              <div className="mt-3 rounded-xl border border-dashed border-line bg-panel/60 px-3 py-2.5 text-[11px] text-muted">
+                Profile tip: add your {profileGaps.join(" and ")} so posters recognise you.{" "}
+                <button type="button" className="font-bold text-lime-2" onClick={() => goto({ screen: "profile" })}>
+                  Edit profile
+                </button>
+              </div>
+            ) : null}
+          </Section>
+        </>
       ) : null}
 
       {kind === "member" ? (
@@ -1168,7 +1260,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       ) : null}
 
       {/* Feeds activity for job_seeker (and other kinds with leftover posts). Member has its own posts desk above. */}
-      {kind !== "writer" && kind !== "member" && (feedsPostPrimary || mine.length > 0) ? (
+      {kind !== "writer" && kind !== "member" && kind !== "job_seeker" && (feedsPostPrimary || mine.length > 0) ? (
         <Section
           kicker="ACTIVITY"
           title={feedsPostPrimary ? "Your posts" : "Your feed posts"}
