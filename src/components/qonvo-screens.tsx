@@ -28,6 +28,7 @@ import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
 import { ShopAdminPanel } from "@/components/downloads-pane";
 import { SocialsAdminPanel, TvPane } from "@/components/tv-pane";
 import { JoinCta, TelegramLink } from "@/components/get-app";
+import { MeDashboard } from "@/components/me-dashboard";
 import { AdCatalogPanel, AdSlotsPanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { SiteFlagsPanel } from "@/components/site-chrome";
 import { matchAdPayments, matchOneAd } from "@/lib/pay-match-server";
@@ -66,7 +67,7 @@ export function QonvoScreen({
   else if (id === "market") view = <ListingsPane kind="market" />;
   else if (id === "rent") view = <ListingsPane kind="rent" />;
   else if (id === "help") view = <Help />;
-  else if (id === "dashboard") view = <Dash store={store} onHome={onHome} onForum={onForum} />;
+  else if (id === "dashboard") view = <MeDashboard store={store} onForum={onForum} />;
   else if (id === "trending") view = <Trending onHome={onHome} />;
   else if (id === "tv") view = <TvPane />;
   else if (id === "contact") view = <Contact store={store} />;
@@ -864,10 +865,16 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
     );
   }
   const mine = store.posts.filter((p) => !!p?.id && p.author === store.handle);
-  const songs = store.tracks.filter((t) => !!t?.id && (t.author === store.handle || t.artist === store.handle));
   const kindLabel = ACCOUNT_KINDS.find((k) => k.id === kind)?.label ?? "Member";
   return (
-    <Screen kicker="YOU" title="Profile" sub="Face + handle. Type is locked from join.">
+    <Screen kicker="ME · EDIT" title="Edit profile" sub="Face, handle, city, bio. Account type stays locked from join.">
+      <button
+        type="button"
+        className="mb-3 text-[12px] font-semibold text-lime-2"
+        onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "dashboard" } }))}
+      >
+        ← Back to dashboard
+      </button>
       <div className="raised mb-3 flex items-center gap-3 rounded-2xl p-4">
         <AvatarImg handle={store.handle || "Guest"} face={face} size={56} />
         <div>
@@ -926,15 +933,7 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
       {kind === "cinema" ? (
         <p className="text-[11px] text-muted">Submit movie YouTube URLs from Cinema. Staff approve before votes.</p>
       ) : null}
-      {mine.map((p) => (
-        <button key={p.id} type="button" className="mt-2 flex w-full gap-2 overflow-hidden rounded-xl border border-line bg-panel text-left" onClick={() => { store.setOpenPost(p.id); onHome?.(); }}>
-          {p.image ? <img src={p.image} alt="" className="h-14 w-14 shrink-0 object-cover" /> : <div className="h-14 w-14 shrink-0 bg-panel-3" />}
-          <div className="min-w-0 py-2 pr-2">
-            <div className="truncate text-sm font-semibold">{p.title}</div>
-            <div className="text-[10px] text-muted">{p.category}</div>
-          </div>
-        </button>
-      ))}
+      <p className="mt-2 text-[11px] text-muted">Your posts, tracks, jobs and listings live on the Me dashboard.</p>
     </Screen>
   );
 }
@@ -2641,156 +2640,6 @@ function Help() {
       <p className="px-1 text-[10px] text-muted">
         Developer <TelegramLink className="text-[10px]" />
       </p>
-    </Screen>
-  );
-}
-
-function Dash({ store, onHome, onForum }: { store: Store; onHome: (id?: string) => void; onForum?: () => void }) {
-  const kindLabel = ACCOUNT_KINDS.find((k) => k.id === store.kind)?.label ?? "Member";
-  const mine = store.handle ? store.posts.filter((p) => !!p?.id && p.author === store.handle) : [];
-  const songs = store.handle ? store.tracks.filter((t) => !!t?.id && (t.author === store.handle || t.artist === store.handle)) : [];
-  const ads = store.campaigns.filter((c) => c.status !== "rejected").slice(0, 6);
-  const signed = Boolean(store.handle);
-  const purpose = KIND_PURPOSE[store.kind] ?? KIND_PURPOSE.member;
-
-  if (!signed) {
-    return (
-      <Screen kicker="KILODE" title="Your place on Kilode" sub="Browse Feeds, Chat, Music, Cinema and Ads as a guest. Join to post, vote, and keep a dashboard that matches the account type you pick — once.">
-        <div className="raised mb-4 rounded-2xl p-4">
-          <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">WHY JOIN</div>
-          <h3 className="mt-1 text-lg font-extrabold">One handle. One type. Your work lives here.</h3>
-          <ul className="mt-3 space-y-1.5 text-[12px] text-muted">
-            <li>Normal user — chat, feeds, cinema votes, apply to jobs.</li>
-            <li>Artist — list music URLs. We embed the player. No files on Kilode.</li>
-            <li>Writer — publish in Feeds.</li>
-            <li>Ads Poster / Brand — pay crypto, staff approve, ads go live.</li>
-            <li>Cinema Advertiser — submit a YouTube URL to Watching Now.</li>
-          </ul>
-        </div>
-        <a href="/login?mode=up" className="btn-join mb-4 block rounded-lg py-2 text-center text-[12px] font-bold">
-          Join Kilode
-        </a>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            ["Feeds", "News and posts"],
-            ["Chat", "Live rooms"],
-            ["Music", "Artist + digital"],
-            ["Cinema", "Watch + vote"],
-          ].map(([t, s]) => (
-            <div key={t} className="raised rounded-2xl px-3 py-3">
-              <div className="text-sm font-extrabold">{t}</div>
-              <div className="text-[10px] text-muted">{s}</div>
-            </div>
-          ))}
-        </div>
-      </Screen>
-    );
-  }
-
-  const stats =
-    store.kind === "artist"
-      ? [
-          { n: songs.length, l: "Tracks" },
-          { n: mine.length, l: "Topics" },
-          { n: store.savedPosts.length, l: "Saved" },
-        ]
-      : store.kind === "advertiser" || store.kind === "brand"
-        ? [
-            { n: ads.length, l: "Ads" },
-            { n: mine.length, l: "Topics" },
-            { n: store.savedPosts.length, l: "Saved" },
-          ]
-        : store.kind === "cinema"
-          ? [
-              { n: store.pins.length, l: "Rooms" },
-              { n: mine.length, l: "Topics" },
-              { n: store.savedPosts.length, l: "Saved" },
-            ]
-          : [
-              { n: mine.length, l: "Topics" },
-              { n: store.pins.length, l: "Rooms" },
-              { n: store.savedPosts.length, l: "Saved" },
-            ];
-
-  return (
-    <Screen kicker={kindLabel.toUpperCase()} title={`@${store.handle}`} sub={purpose}>
-      <div className="raised mb-4 flex items-center gap-3 rounded-2xl p-4">
-        <AvatarImg handle={store.handle} face={store.face} size={56} />
-        <div className="min-w-0">
-          <div className="truncate text-lg font-extrabold">{store.handle}</div>
-          <div className="text-[11px] text-lime-2">{kindLabel} · locked</div>
-        </div>
-      </div>
-      <div className="mb-4 grid grid-cols-3 gap-2">
-        {stats.map((s) => (
-          <div key={s.l} className="raised rounded-2xl px-2 py-3 text-center">
-            <div className="text-lg font-extrabold text-lime-2">{s.n}</div>
-            <div className="text-[10px] text-muted">{s.l}</div>
-          </div>
-        ))}
-      </div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {canKind(store.kind, "feeds.post") ? (
-          <button type="button" className="btn-join rounded-lg px-3 py-2 text-[11px] font-bold" onClick={() => window.dispatchEvent(new Event("kilode:create"))}>
-            New post
-          </button>
-        ) : null}
-        {canKind(store.kind, "music.submit") ? (
-          <button type="button" className="btn-3d rounded-lg px-3 py-2 text-[11px] font-bold" onClick={() => window.dispatchEvent(new Event("kilode:create"))}>
-            Add track
-          </button>
-        ) : null}
-        {canKind(store.kind, "ads.submit") ? (
-          <a href="/" className="btn-3d rounded-lg px-3 py-2 text-[11px] font-bold" onClick={(e) => { e.preventDefault(); onHome(); }}>
-            Place ad
-          </a>
-        ) : null}
-      </div>
-      {store.kind === "artist" ? (
-        <>
-          <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">YOUR TRACKS</div>
-          {songs.length === 0 ? <p className="mb-3 text-sm text-muted">Add a Spotify / SoundCloud / Audiomack URL from Music. Kilode embeds their player.</p> : null}
-          {songs.slice(0, 6).map((t) => (
-            <div key={t.id} className="mb-2 flex items-center gap-2 rounded-xl border border-line bg-panel p-2">
-              {t.cover ? <img src={t.cover} alt="" className="size-10 rounded object-cover" /> : <div className="size-10 rounded bg-panel-3" />}
-              <div className="min-w-0">
-                <div className="truncate text-sm font-semibold">{t.title}</div>
-                <div className="text-[10px] text-muted">{t.artist} · {t.platform}</div>
-              </div>
-            </div>
-          ))}
-        </>
-      ) : null}
-      <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">{store.kind === "writer" ? "YOUR STORIES" : "YOUR TOPICS"}</div>
-      {mine.length === 0 ? (
-        <p className="text-sm text-muted">{canKind(store.kind, "feeds.post") ? "Nothing published yet. New post puts you in Feeds." : "This account type does not publish Feeds."}</p>
-      ) : (
-        mine.slice(0, 8).map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            className="mb-2 flex w-full gap-2 overflow-hidden rounded-xl border border-line bg-panel text-left"
-            onClick={() => {
-              store.setOpenPost(p.id);
-              onForum?.();
-            }}
-          >
-            {p.image ? <img src={p.image} alt="" className="h-14 w-14 shrink-0 object-cover" /> : <div className="h-14 w-14 bg-panel-3" />}
-            <div className="min-w-0 py-2 pr-2">
-              <div className="truncate text-sm font-semibold">{p.title}</div>
-              <div className="text-[10px] text-muted">{p.category} · {p.comments?.length ?? 0} comments</div>
-            </div>
-          </button>
-        ))
-      )}
-      <div className="mt-4 mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">ROOMS</div>
-      <div className="flex flex-wrap gap-2">
-        {(store.pins.length ? store.pins : ["global"]).map((id) => (
-          <button key={id} type="button" className="rounded-full border border-line px-3 py-1 text-xs" onClick={() => onHome(id)}>
-            {roomName(id)}
-          </button>
-        ))}
-      </div>
     </Screen>
   );
 }

@@ -107,7 +107,7 @@ const ICONS: Record<MenuId, typeof Home> = {
 };
 
 const MENU_GROUPS: { label: string; ids: MenuId[] }[] = [
-  { label: "Me", ids: ["profile", "dashboard", "bookmarks", "inbox", "notifications", "teams"] },
+  { label: "Me", ids: ["dashboard", "profile", "bookmarks", "inbox", "notifications", "teams"] },
   { label: "Discover", ids: ["trending", "tv", "community", "search", "leaderboard", "badges"] },
   { label: "Create", ids: ["create", "ads"] },
 ];
@@ -388,7 +388,7 @@ export function QonvoApp() {
             <HomeTab label="Ads" on={homeTab === "advert" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("advert"); setScreen("home"); setMenuOpen(false); }} />
             <HomeTab label="Downloads" on={homeTab === "downloads" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("downloads"); setScreen("home"); setMenuOpen(false); }} />
             {signedIn ? (
-              <HomeTab label="Me" on={screen === "profile"} onClick={() => { setScreen("profile"); setMenuOpen(false); }} />
+              <HomeTab label="Me" on={screen === "dashboard" || screen === "profile"} onClick={() => { setScreen("dashboard"); setMenuOpen(false); }} />
             ) : (
               <HomeTab label="Me" on={false} onClick={() => { window.location.href = "/login?mode=up"; }} />
             )}
@@ -850,7 +850,7 @@ export function QonvoApp() {
         <Tab icon={<Film className="size-3.5" />} label="Cinema" on={screen === "home" && homeTab === "cinema"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("cinema"); }} />
         <Tab icon={<Megaphone className="size-3.5" />} label="Ads" on={screen === "home" && homeTab === "advert"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("advert"); }} />
         <Tab icon={<Download className="size-3.5" />} label="Downloads" on={screen === "home" && homeTab === "downloads"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("downloads"); }} />
-        <Tab icon={<User className="size-3.5" />} label="Me" on={screen === "profile"} onClick={() => { setMenuOpen(false); if (signedIn) setScreen("profile"); else window.location.href = "/login?mode=up"; }} />
+        <Tab icon={<User className="size-3.5" />} label="Me" on={screen === "dashboard" || screen === "profile"} onClick={() => { setMenuOpen(false); if (signedIn) setScreen("dashboard"); else window.location.href = "/login?mode=up"; }} />
       </nav>
 
       {roomsOpen ? (
