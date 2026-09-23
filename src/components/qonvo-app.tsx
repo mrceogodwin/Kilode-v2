@@ -646,7 +646,11 @@ function QonvoAppInner() {
                 }}
               >
                 <div className="mt-auto flex flex-col gap-1.5 px-2 py-2 sm:px-3">
-                {store.msgs.length === 0 ? (
+                {store.msgsLoading && store.msgs.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-line/80 bg-panel/40 px-3 py-4 text-center text-[11px] text-muted">
+                    Loading this room…
+                  </p>
+                ) : store.msgs.length === 0 ? (
                   <p className="rounded-xl border border-dashed border-line/80 bg-panel/40 px-3 py-4 text-center text-[11px] text-muted">
                     No messages in this room yet.
                     <br />
