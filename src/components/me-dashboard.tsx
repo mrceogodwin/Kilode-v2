@@ -25,7 +25,6 @@ import {
   type AccountKind,
 } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
-import { canKind } from "@/lib/permissions";
 import { AvatarImg } from "@/components/account-kind";
 import { AdSlot } from "@/components/ad-slot";
 import { listMyCinema, type CinemaMovie } from "@/lib/cinema-server";
@@ -172,10 +171,11 @@ function GuestDash() {
   );
 }
 
+/** Hero primary CTA — kind-specific. Never show generic "New post" for specialist kinds. */
 function primaryCta(kind: AccountKind): { label: string; icon: typeof Plus; onClick: () => void } {
   if (kind === "artist") {
     return {
-      label: "Add first track",
+      label: "Add music",
       icon: Radio,
       onClick: () => {
         goto({ tab: "music" });
@@ -183,13 +183,13 @@ function primaryCta(kind: AccountKind): { label: string; icon: typeof Plus; onCl
       },
     };
   }
-  if (kind === "writer") return { label: "Write a story", icon: Plus, onClick: openCreate };
+  if (kind === "writer") return { label: "Write story", icon: Plus, onClick: openCreate };
   if (kind === "advertiser" || kind === "brand") {
     return { label: "Place ad", icon: Megaphone, onClick: () => goto({ screen: "ads" }) };
   }
   if (kind === "cinema") {
     return {
-      label: "Submit cinema",
+      label: "Submit title",
       icon: Film,
       onClick: () => {
         goto({ tab: "cinema" });
@@ -197,11 +197,127 @@ function primaryCta(kind: AccountKind): { label: string; icon: typeof Plus; onCl
       },
     };
   }
-  if (kind === "job_poster") return { label: "Post first job", icon: Briefcase, onClick: openCreate };
+  if (kind === "job_poster") return { label: "Post a job", icon: Briefcase, onClick: openCreate };
   if (kind === "vendor") return { label: "List product", icon: Store, onClick: openCreate };
   if (kind === "renter") return { label: "List space", icon: Building2, onClick: openCreate };
-  if (kind === "job_seeker") return { label: "Browse jobs", icon: Briefcase, onClick: () => goto({ screen: "jobs" }) };
+  if (kind === "job_seeker") return { label: "Apply jobs", icon: Briefcase, onClick: () => goto({ screen: "jobs" }) };
   return { label: "New post", icon: Plus, onClick: openCreate };
+}
+
+type QuickTile = { icon: typeof Plus; label: string; hint: string; onClick: () => void };
+
+/** Quick-action grid — matches account kind. Specialist kinds omit primary "New post". */
+function quickActionsFor(kind: AccountKind): QuickTile[] {
+  const chat: QuickTile = {
+    icon: MessageSquare,
+    label: "Chat rooms",
+    hint: "36 states + global",
+    onClick: () => goto({ tab: "chat" }),
+  };
+  const voteCinema: QuickTile = {
+    icon: Film,
+    label: "Vote cinema",
+    hint: "Watch + vote",
+    onClick: () => goto({ tab: "cinema" }),
+  };
+  const applyJobs: QuickTile = {
+    icon: Briefcase,
+    label: "Apply jobs",
+    hint: "Browse + apply",
+    onClick: () => goto({ screen: "jobs" }),
+  };
+  const newPost: QuickTile = {
+    icon: Plus,
+    label: "New post",
+    hint: "Publish in Feeds",
+    onClick: openCreate,
+  };
+
+  if (kind === "writer") {
+    return [
+      { icon: Plus, label: "Write story", hint: "New article in Feeds", onClick: openCreate },
+      chat,
+      voteCinema,
+      applyJobs,
+    ];
+  }
+  if (kind === "artist") {
+    return [
+      {
+        icon: Radio,
+        label: "Add music",
+        hint: "New track · URL embed",
+        onClick: () => {
+          goto({ tab: "music" });
+          window.setTimeout(openCreate, 80);
+        },
+      },
+      chat,
+      voteCinema,
+      applyJobs,
+    ];
+  }
+  if (kind === "advertiser") {
+    return [
+      { icon: Megaphone, label: "Place ad", hint: "Crypto · staff approve", onClick: () => goto({ screen: "ads" }) },
+      chat,
+      voteCinema,
+      applyJobs,
+    ];
+  }
+  if (kind === "brand") {
+    return [
+      { icon: Megaphone, label: "Place ad", hint: "Crypto · staff approve", onClick: () => goto({ screen: "ads" }) },
+      { icon: Store, label: "List product", hint: "Showcase · contact", onClick: openCreate },
+      chat,
+      voteCinema,
+    ];
+  }
+  if (kind === "cinema") {
+    return [
+      {
+        icon: Film,
+        label: "Submit title",
+        hint: "YouTube · staff approve",
+        onClick: () => {
+          goto({ tab: "cinema" });
+          window.setTimeout(openCreate, 80);
+        },
+      },
+      { icon: Vote, label: "Vote cinema", hint: "One vote / title / day", onClick: () => goto({ tab: "cinema" }) },
+      chat,
+      applyJobs,
+    ];
+  }
+  if (kind === "job_poster") {
+    return [
+      { icon: Briefcase, label: "Post a job", hint: "Staff approve first", onClick: openCreate },
+      chat,
+      voteCinema,
+      applyJobs,
+    ];
+  }
+  if (kind === "vendor") {
+    return [
+      { icon: Store, label: "List product", hint: "Showcase · contact", onClick: openCreate },
+      chat,
+      voteCinema,
+      applyJobs,
+    ];
+  }
+  if (kind === "renter") {
+    return [
+      { icon: Building2, label: "List space", hint: "Rent · contact link", onClick: openCreate },
+      chat,
+      voteCinema,
+      applyJobs,
+    ];
+  }
+  if (kind === "job_seeker") {
+    return [applyJobs, voteCinema, chat, newPost];
+  }
+  // member
+  return [newPost, applyJobs, voteCinema, chat];
 }
 
 export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForum?: () => void; onLogout?: () => void | Promise<void> }) {
@@ -281,73 +397,9 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
 
   if (!signed) return <GuestDash />;
 
-  const quick: { icon: typeof Plus; label: string; hint: string; onClick: () => void }[] = [];
-  if (canKind(kind, "feeds.post") && kind !== "job_seeker") {
-    quick.push({
-      icon: Plus,
-      label: kind === "writer" ? "Write story" : "New post",
-      hint: "Publish in Feeds",
-      onClick: openCreate,
-    });
-  }
-  quick.push({
-    icon: MessageSquare,
-    label: "Chat rooms",
-    hint: "36 states + global",
-    onClick: () => goto({ tab: "chat" }),
-  });
-  quick.push({
-    icon: Film,
-    label: "Cinema",
-    hint: kind === "cinema" ? "Submit + vote" : "Watch + vote",
-    onClick: () => goto({ tab: "cinema" }),
-  });
-  if (canKind(kind, "music.submit")) {
-    quick.push({
-      icon: Radio,
-      label: "Add music",
-      hint: "URL + cover",
-      onClick: () => {
-        goto({ tab: "music" });
-        window.setTimeout(openCreate, 80);
-      },
-    });
-  } else if (canKind(kind, "ads.submit")) {
-    quick.push({
-      icon: Megaphone,
-      label: "Place ad",
-      hint: "Crypto · staff approve",
-      onClick: () => goto({ screen: "ads" }),
-    });
-  } else if (canKind(kind, "jobs.post")) {
-    quick.push({
-      icon: Briefcase,
-      label: "Post a job",
-      hint: "Staff approve first",
-      onClick: openCreate,
-    });
-  } else if (canKind(kind, "market.list")) {
-    quick.push({
-      icon: Store,
-      label: "List product",
-      hint: "Showcase · contact",
-      onClick: openCreate,
-    });
-  } else if (canKind(kind, "rent.list")) {
-    quick.push({
-      icon: Building2,
-      label: "List space",
-      hint: "Rent · contact link",
-      onClick: openCreate,
-    });
-  } else {
-    quick.push({
-      icon: Briefcase,
-      label: "Jobs",
-      hint: "Browse + apply",
-      onClick: () => goto({ screen: "jobs" }),
-    });
-  }
+  const quick = quickActionsFor(kind);
+  /** Only member / job_seeker keep Feeds "New post" as a primary activity CTA. */
+  const feedsPostPrimary = kind === "member" || kind === "job_seeker";
 
   const rooms = store.pins.length ? store.pins : ["global"];
   const CtaIcon = cta.icon;
@@ -498,7 +550,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           {songs.length === 0 ? (
             <EmptyBlock
               body="No tracks yet. Add a Spotify / SoundCloud / Audiomack / Apple / Deezer URL and optional cover — Kilode embeds their player, never hosts audio."
-              cta="Add first track"
+              cta="Add music"
               onClick={() => {
                 goto({ tab: "music" });
                 window.setTimeout(openCreate, 80);
@@ -574,7 +626,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           {myCinema.length === 0 ? (
             <EmptyBlock
               body="No submissions yet. Submit a YouTube trailer URL from Create or Cinema — staff approve, then votes push it to Watching Now."
-              cta="Submit cinema"
+              cta="Submit title"
               onClick={() => {
                 goto({ tab: "cinema" });
                 window.setTimeout(openCreate, 80);
@@ -814,21 +866,21 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       {kind !== "writer" ? (
         <Section
           kicker="ACTIVITY"
-          title={canKind(kind, "feeds.post") ? "Your posts" : "Your feed activity"}
-          action={canKind(kind, "feeds.post") && kind !== "job_seeker" ? "New post" : undefined}
-          onAction={canKind(kind, "feeds.post") && kind !== "job_seeker" ? openCreate : undefined}
+          title={feedsPostPrimary ? "Your posts" : "Your feed activity"}
+          action={feedsPostPrimary ? "New post" : undefined}
+          onAction={feedsPostPrimary ? openCreate : undefined}
         >
           {mine.length === 0 ? (
             <EmptyBlock
               body={
-                canKind(kind, "feeds.post") && kind !== "job_seeker"
+                feedsPostPrimary
                   ? "Nothing published yet. A new post puts you in Feeds for Nigeria."
                   : kind === "job_seeker"
                     ? "Job Seeker focus is applications — explore Feeds anytime."
                     : "This account type focuses elsewhere — explore Feeds anytime."
               }
-              cta={canKind(kind, "feeds.post") && kind !== "job_seeker" ? "New post" : "Open Feeds"}
-              onClick={() => (canKind(kind, "feeds.post") && kind !== "job_seeker" ? openCreate() : goto({ tab: "feeds" }))}
+              cta={feedsPostPrimary ? "New post" : "Open Feeds"}
+              onClick={() => (feedsPostPrimary ? openCreate() : goto({ tab: "feeds" }))}
             />
           ) : (
             <div className="space-y-2">
