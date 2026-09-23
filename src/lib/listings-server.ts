@@ -79,6 +79,7 @@ async function ensure() {
   try {
     await sql.query(`ALTER TABLE nf_listings ADD COLUMN IF NOT EXISTS days INT NOT NULL DEFAULT 30`);
     await sql.query(`ALTER TABLE nf_listings ADD COLUMN IF NOT EXISTS expires_at BIGINT`);
+    await sql.query(`ALTER TABLE nf_listings ADD COLUMN IF NOT EXISTS image TEXT`);
   } catch {
     /* exists */
   }
@@ -99,6 +100,7 @@ type ListingRow = {
   views: number | string | null;
   days?: number | string | null;
   expires_at?: number | string | null;
+  image?: string | null;
 };
 
 function map(r: ListingRow): Listing {
@@ -117,7 +119,19 @@ function map(r: ListingRow): Listing {
     views: Number(r.views ?? 0),
     days: Number(r.days ?? 30),
     expiresAt: r.expires_at ? Number(r.expires_at) : undefined,
+    image: r.image || undefined,
   };
+}
+
+/** Accept https URL or compressed data:image (same pattern as Feeds / Ads). */
+function normalizeListingImage(raw?: string): string {
+  const v = (raw ?? "").trim();
+  if (!v) return "";
+  if (v.startsWith("data:image/") && v.includes(";base64,")) {
+    if (v.length > 900_000) return "";
+    return v;
+  }
+  return safeHttpUrl(v) ?? "";
 }
 
 export const listListings = createServerFn({ method: "GET" })
@@ -131,13 +145,13 @@ export const listListings = createServerFn({ method: "GET" })
     }
     const kind = asKind(data.kind);
     const now = Date.now();
-    const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings where kind = ${kind} and status = 'approved' and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
+    const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at, image from nf_listings where kind = ${kind} and status = 'approved' and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
     return rows.map(map);
   });
 
 export const saveListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { kind: string; title: string; body?: string; city?: string; contact?: string; link?: string; company?: string; days?: number }) => d)
+  .validator((d: { kind: string; title: string; body?: string; city?: string; contact?: string; link?: string; company?: string; days?: number; image?: string }) => d)
   .handler(async ({ context, data }) => {
     const kind = asKind(data.kind);
     const ak = await kindOf(context.userId);
@@ -156,8 +170,12 @@ export const saveListing = createServerFn({ method: "POST" })
     const id = nid();
     const link = safeHttpUrl(data.link ?? "") ?? "";
     const days = [7, 14, 30].includes(Number(data.days)) ? Number(data.days) : 30;
-    await sql`insert into nf_listings (id, kind, title, body, city, contact, link, company, status, submitter, user_id, ts, views, days)
-      values (${id}, ${kind}, ${title}, ${(data.body ?? "").slice(0, 2000)}, ${(data.city ?? "").slice(0, 80)}, ${(data.contact ?? "").slice(0, 120)}, ${link}, ${(data.company ?? "").slice(0, 80)}, ${"pending"}, ${submitter}, ${context.userId}, ${Date.now()}, ${0}, ${days})`;
+    const image = normalizeListingImage(data.image);
+    if ((data.image ?? "").trim() && !image) {
+      return { ok: false as const, reason: "Photo must be https://… or a compressed image under ~900KB." };
+    }
+    await sql`insert into nf_listings (id, kind, title, body, city, contact, link, company, status, submitter, user_id, ts, views, days, image)
+      values (${id}, ${kind}, ${title}, ${(data.body ?? "").slice(0, 2000)}, ${(data.city ?? "").slice(0, 80)}, ${(data.contact ?? "").slice(0, 120)}, ${link}, ${(data.company ?? "").slice(0, 80)}, ${"pending"}, ${submitter}, ${context.userId}, ${Date.now()}, ${0}, ${days}, ${image})`;
     return { ok: true as const, id };
   });
 
@@ -216,7 +234,7 @@ export const listListingQueue = createServerFn({ method: "GET" })
     } catch {
       return [];
     }
-    const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings order by ts desc limit 80`;
+    const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at, image from nf_listings order by ts desc limit 80`;
     return rows.map(map);
   });
 
@@ -232,8 +250,8 @@ export const listMyListings = createServerFn({ method: "GET" })
     }
     const kindFilter = data.kind ? asKind(data.kind) : null;
     const rows = kindFilter
-      ? await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings where user_id = ${context.userId} and kind = ${kindFilter} order by ts desc limit 40`
-      : await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings where user_id = ${context.userId} order by ts desc limit 80`;
+      ? await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at, image from nf_listings where user_id = ${context.userId} and kind = ${kindFilter} order by ts desc limit 40`
+      : await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at, image from nf_listings where user_id = ${context.userId} order by ts desc limit 80`;
     return rows.map(map);
   });
 

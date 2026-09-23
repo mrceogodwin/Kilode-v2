@@ -304,6 +304,10 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   const [busy, setBusy] = useState(false);
   const [empType, setEmpType] = useState("Full-time");
   const [payBand, setPayBand] = useState("");
+  const [listPrice, setListPrice] = useState("");
+  const [marketCond, setMarketCond] = useState("Good");
+  const [rentType, setRentType] = useState("Flat");
+  const [listingImageUrl, setListingImageUrl] = useState("");
 
   function onUrl(v: string) {
     setLink(v);
@@ -452,8 +456,13 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     const meta =
       kind === "job"
         ? [empType.trim() || null, payBand.trim() ? `Pay: ${payBand.trim()}` : null].filter(Boolean).join(" · ")
-        : "";
+        : kind === "market"
+          ? [marketCond.trim() || null, listPrice.trim() ? `Price: ${listPrice.trim()}` : null].filter(Boolean).join(" · ")
+          : kind === "rent"
+            ? [rentType.trim() || null, listPrice.trim() ? `Rent: ${listPrice.trim()}` : null].filter(Boolean).join(" · ")
+            : "";
     const composedBody = meta ? `${meta}\n\n${body}`.trim() : body;
+    const photo = image || (safeHttpUrl(listingImageUrl) ?? "");
     setBusy(true);
     void saveListing({
       data: {
@@ -465,6 +474,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
         link,
         company,
         days,
+        image: photo || undefined,
       },
     }).then((r) => {
       setBusy(false);
@@ -474,8 +484,8 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           kind === "job"
             ? "Job submitted. Staff approve before seekers see it — check Me → Hiring desk."
             : kind === "market"
-              ? "Product submitted for staff approval — check Me → Market."
-              : "Space submitted for staff approval — check Me → Rent.",
+              ? "Product submitted for staff approval — check Me → Market desk."
+              : "Space submitted for staff approval — check Me → Rent desk.",
         );
         setTitle("");
         setBody("");
@@ -483,10 +493,15 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
         setContact("");
         setLink("");
         setCompany("");
+        setImage("");
+        setListingImageUrl("");
+        setListPrice("");
         if (kind === "job") {
           setEmpType("Full-time");
           setPayBand("");
         }
+        if (kind === "market") setMarketCond("Good");
+        if (kind === "rent") setRentType("Flat");
       }
     }).catch(() => {
       setBusy(false);
@@ -600,8 +615,8 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     : pane === "cinema" ? "Submit a YouTube trailer URL for staff approval."
     : pane === "job" ? "Post a role with type, pay band, company and contact. Applicants land on Me."
     : pane === "apply" ? "Browse and apply to jobs. You cannot post jobs or music."
-    : pane === "market" ? "Showcase a product. No in-app checkout."
-    : pane === "rent" ? "List a space with contact. No in-app booking."
+    : pane === "market" ? "Showcase a product with photo, price and condition. No in-app checkout."
+    : pane === "rent" ? "List a space with photo, type and rent band. No in-app booking."
     : pane === "ads" ? "Place an ad after crypto payment."
     : pane === "post" && ak === "writer" ? "Write a story with the rich Feeds editor."
     : pane === "post" ? "Publish a topic to Feeds with the rich editor."
@@ -788,6 +803,24 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
                 <li>Review applicants on Me · Hiring desk — contact them yourself.</li>
               </ol>
             </div>
+          ) : pane === "market" ? (
+            <div className="rounded-xl border border-lime-2/20 bg-lime-2/5 px-3 py-2.5 text-[11px] leading-snug text-muted">
+              <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-lime-2">FLAGSHIP MARKET FLOW</div>
+              <ol className="list-decimal space-y-0.5 pl-4">
+                <li>Add a clear photo, price hint and condition — staff approve first.</li>
+                <li>Buyers see it on Marketplace and contact you off-platform.</li>
+                <li>Track live / pending / views on Me · Market desk. No in-app checkout.</li>
+              </ol>
+            </div>
+          ) : pane === "rent" ? (
+            <div className="rounded-xl border border-lime-2/20 bg-lime-2/5 px-3 py-2.5 text-[11px] leading-snug text-muted">
+              <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-lime-2">FLAGSHIP RENT FLOW</div>
+              <ol className="list-decimal space-y-0.5 pl-4">
+                <li>Photo + property type + rent band — staff approve before it goes live.</li>
+                <li>Seekers contact you via the public phone / email / @handle.</li>
+                <li>Manage spaces on Me · Rent desk. No in-app booking or deposits.</li>
+              </ol>
+            </div>
           ) : null}
           <label className="block text-[11px] font-medium text-muted">
             {pane === "job" ? "Role title" : pane === "market" ? "Product name" : "Space title"} <span className="text-danger">*</span>
@@ -821,8 +854,40 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
               <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Name or agency" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
             </>
           )}
+          {pane === "market" ? (
+            <>
+              <div>
+                <div className="mb-1 text-[11px] font-medium text-muted">Condition</div>
+                <div className="flex flex-wrap gap-1">
+                  {["New", "Like new", "Good", "Fair"].map((t) => (
+                    <button key={t} type="button" onClick={() => setMarketCond(t)} className={`rounded-full px-2.5 py-1 text-[11px] ${marketCond === t ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="block text-[11px] font-medium text-muted">Price (optional)</label>
+              <input value={listPrice} onChange={(e) => setListPrice(e.target.value)} placeholder="e.g. ₦15,000 · ONO · Swap" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            </>
+          ) : null}
+          {pane === "rent" ? (
+            <>
+              <div>
+                <div className="mb-1 text-[11px] font-medium text-muted">Property type</div>
+                <div className="flex flex-wrap gap-1">
+                  {["Flat", "Room", "Shop", "Land", "Office"].map((t) => (
+                    <button key={t} type="button" onClick={() => setRentType(t)} className={`rounded-full px-2.5 py-1 text-[11px] ${rentType === t ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="block text-[11px] font-medium text-muted">Rent band (optional)</label>
+              <input value={listPrice} onChange={(e) => setListPrice(e.target.value)} placeholder="e.g. ₦1.2m / yr · ₦80k / mo" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            </>
+          ) : null}
           <label className="block text-[11px] font-medium text-muted">Description</label>
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} placeholder={pane === "job" ? "Responsibilities, pay band, how to apply…" : pane === "market" ? "Condition, size, price hint, delivery…" : "Beds, rent band, area, viewing hours…"} className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} placeholder={pane === "job" ? "Responsibilities, pay band, how to apply…" : pane === "market" ? "Size, delivery, extras…" : "Beds, area, viewing hours…"} className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           <div className="grid gap-2 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-[11px] font-medium text-muted">City</label>
@@ -835,6 +900,27 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           </div>
           <label className="block text-[11px] font-medium text-muted">{pane === "job" ? "Apply link (optional)" : "External link (optional)"}</label>
           <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          {pane === "market" || pane === "rent" ? (
+            <div className="inset-well rounded-xl p-3">
+              <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-lime-2">PHOTO</div>
+              <p className="mb-2 text-[11px] text-muted">
+                Same as Feeds / Writer — upload under 2MB (we compress) or paste https://…. Shows on Marketplace / Rent tiles after approval.
+              </p>
+              <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
+              <input
+                value={listingImageUrl}
+                onChange={(e) => {
+                  setListingImageUrl(e.target.value);
+                  if (e.target.value.trim()) setImage("");
+                }}
+                placeholder="Or paste image URL https://…"
+                className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base"
+              />
+              {image || listingImageUrl ? (
+                <img src={image || listingImageUrl} alt="" className="mt-2 max-h-40 w-full rounded-lg object-cover" />
+              ) : null}
+            </div>
+          ) : null}
           <div>
             <div className="mb-1 text-[11px] font-medium text-muted">Live for</div>
             <div className="flex flex-wrap gap-1">

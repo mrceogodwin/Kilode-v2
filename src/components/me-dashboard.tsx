@@ -301,18 +301,30 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
     ];
   }
   if (kind === "vendor") {
-    return withApply(
-      { icon: Store, label: "List product", hint: "Showcase · contact", onClick: openCreate },
+    return [
+      { icon: Store, label: "List product", hint: "Photo · price · contact", onClick: openCreate },
+      {
+        icon: Store,
+        label: "My listings",
+        hint: "Scroll to products",
+        onClick: () => document.getElementById("me-market")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      },
       chat,
-      voteCinema,
-    );
+      { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
+    ];
   }
   if (kind === "renter") {
-    return withApply(
-      { icon: Building2, label: "List space", hint: "Rent · contact link", onClick: openCreate },
+    return [
+      { icon: Building2, label: "List space", hint: "Photo · type · rent", onClick: openCreate },
+      {
+        icon: Building2,
+        label: "My spaces",
+        hint: "Scroll to rent desk",
+        onClick: () => document.getElementById("me-rent")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      },
       chat,
-      voteCinema,
-    );
+      { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
+    ];
   }
   if (kind === "job_seeker") {
     return withApply(
@@ -425,6 +437,12 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   const cinemaVotes = useMemo(() => myCinema.reduce((a, m) => a + (m.votes || 0), 0), [myCinema]);
   const pendingCinema = useMemo(() => myCinema.filter((m) => m.status === "pending").length, [myCinema]);
   const pendingJobs = useMemo(() => myJobs.filter((r) => r.status === "pending").length, [myJobs]);
+  const pendingMarket = useMemo(() => myMarket.filter((r) => r.status === "pending").length, [myMarket]);
+  const pendingRent = useMemo(() => myRent.filter((r) => r.status === "pending").length, [myRent]);
+  const liveMarket = useMemo(() => myMarket.filter((r) => r.status === "approved").length, [myMarket]);
+  const liveRent = useMemo(() => myRent.filter((r) => r.status === "approved").length, [myRent]);
+  const withPhotoMarket = useMemo(() => myMarket.filter((r) => !!r.image).length, [myMarket]);
+  const withPhotoRent = useMemo(() => myRent.filter((r) => !!r.image).length, [myRent]);
   const postVotes = useMemo(() => {
     let n = 0;
     for (const p of mine) n += store.likes[p.id] ?? 0;
@@ -479,16 +497,16 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
               : kind === "vendor"
                 ? [
                     { n: myMarket.length, l: "Products" },
+                    { n: liveMarket, l: "Live" },
+                    { n: pendingMarket, l: "Pending" },
                     { n: listingViews, l: "Views" },
-                    { n: store.pins.length, l: "Rooms" },
-                    { n: store.savedPosts.length, l: "Saved" },
                   ]
                 : kind === "renter"
                   ? [
                       { n: myRent.length, l: "Spaces" },
+                      { n: liveRent, l: "Live" },
+                      { n: pendingRent, l: "Pending" },
                       { n: listingViews, l: "Views" },
-                      { n: store.pins.length, l: "Rooms" },
-                      { n: store.savedPosts.length, l: "Saved" },
                     ]
                   : kind === "job_seeker"
                     ? [
@@ -888,45 +906,95 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       ) : null}
 
       {kind === "vendor" ? (
-        <Section kicker="MARKET" title="Your products" action="Add product" onAction={openCreate}>
-          {myMarket.length === 0 ? (
-            <EmptyBlock
-              body="No products live yet. Showcase with title, city, contact link — no in-app checkout. Staff approve first."
-              cta="List product"
-              onClick={openCreate}
-            />
-          ) : (
-            <div className="space-y-2">
-              {myMarket.slice(0, 10).map((r) => (
-                <ListingRow key={r.id} r={r} />
-              ))}
-              <button type="button" className="btn-3d w-full rounded-lg py-2 text-[12px] font-bold" onClick={() => goto({ screen: "market" })}>
-                Open Marketplace
-              </button>
+        <>
+          <Section kicker="SELLING" title="How Marketplace works">
+            <div className="raised space-y-2 rounded-2xl border border-lime-2/25 p-3 text-[12px] leading-snug text-muted">
+              <p>
+                <span className="font-bold text-lime-2">1.</span> List a product from Create — photo, price hint, condition, city, contact.
+              </p>
+              <p>
+                <span className="font-bold text-lime-2">2.</span> Staff approve → it goes live on Marketplace. Buyers message you off-platform.
+              </p>
+              <p>
+                <span className="font-bold text-lime-2">3.</span> Track pending / live / views here. Kilode never takes payment or escrow.
+              </p>
             </div>
-          )}
-        </Section>
+          </Section>
+
+          <Section kicker="MARKET" title="Your products" action="List product" onAction={openCreate}>
+            <div id="me-market" />
+            {myMarket.length === 0 ? (
+              <EmptyBlock
+                body="No products yet. Add a photo + price + contact from Create — staff approve before buyers see it."
+                cta="List product"
+                onClick={openCreate}
+              />
+            ) : (
+              <div className="space-y-2">
+                <p className="text-[11px] text-muted">
+                  {liveMarket} live · {pendingMarket} pending · {withPhotoMarket}/{myMarket.length} with photo · {fmtCount(listingViews)} total views
+                </p>
+                {myMarket.slice(0, 12).map((r) => (
+                  <ListingRow key={r.id} r={r} />
+                ))}
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" className="btn-join rounded-lg py-2 text-[12px] font-bold" onClick={openCreate}>
+                    List another
+                  </button>
+                  <button type="button" className="btn-3d rounded-lg py-2 text-[12px] font-bold" onClick={() => goto({ screen: "market" })}>
+                    Open Marketplace
+                  </button>
+                </div>
+              </div>
+            )}
+          </Section>
+        </>
       ) : null}
 
       {kind === "renter" ? (
-        <Section kicker="RENT" title="Your spaces" action="Add space" onAction={openCreate}>
-          {myRent.length === 0 ? (
-            <EmptyBlock
-              body="No spaces live yet. List with title, city, contact — no in-app booking. Staff approve first."
-              cta="List space"
-              onClick={openCreate}
-            />
-          ) : (
-            <div className="space-y-2">
-              {myRent.slice(0, 10).map((r) => (
-                <ListingRow key={r.id} r={r} />
-              ))}
-              <button type="button" className="btn-3d w-full rounded-lg py-2 text-[12px] font-bold" onClick={() => goto({ screen: "rent" })}>
-                Open Rent
-              </button>
+        <>
+          <Section kicker="LETTING" title="How Rent works">
+            <div className="raised space-y-2 rounded-2xl border border-lime-2/25 p-3 text-[12px] leading-snug text-muted">
+              <p>
+                <span className="font-bold text-lime-2">1.</span> List a space from Create — photo, property type, rent band, city, contact.
+              </p>
+              <p>
+                <span className="font-bold text-lime-2">2.</span> Staff approve → seekers see it on Rent and reach you directly.
+              </p>
+              <p>
+                <span className="font-bold text-lime-2">3.</span> Manage live / pending / views here. No in-app booking or deposits.
+              </p>
             </div>
-          )}
-        </Section>
+          </Section>
+
+          <Section kicker="RENT" title="Your spaces" action="List space" onAction={openCreate}>
+            <div id="me-rent" />
+            {myRent.length === 0 ? (
+              <EmptyBlock
+                body="No spaces yet. Add a photo + type + rent band from Create — staff approve before it goes live."
+                cta="List space"
+                onClick={openCreate}
+              />
+            ) : (
+              <div className="space-y-2">
+                <p className="text-[11px] text-muted">
+                  {liveRent} live · {pendingRent} pending · {withPhotoRent}/{myRent.length} with photo · {fmtCount(listingViews)} total views
+                </p>
+                {myRent.slice(0, 12).map((r) => (
+                  <ListingRow key={r.id} r={r} />
+                ))}
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" className="btn-join rounded-lg py-2 text-[12px] font-bold" onClick={openCreate}>
+                    List another
+                  </button>
+                  <button type="button" className="btn-3d rounded-lg py-2 text-[12px] font-bold" onClick={() => goto({ screen: "rent" })}>
+                    Open Rent
+                  </button>
+                </div>
+              </div>
+            )}
+          </Section>
+        </>
       ) : null}
 
       {kind === "job_seeker" ? (
@@ -1092,14 +1160,24 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
 
 function ListingRow({ r }: { r: Listing }) {
   return (
-    <div className="rounded-xl border border-line bg-panel px-3 py-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="truncate text-sm font-semibold">{r.title}</div>
-        <StatusPill status={r.status} />
-      </div>
-      <div className="text-[10px] text-muted">
-        {r.company ? `${r.company} · ` : ""}
-        {r.city || "Nigeria"} · {fmtCount(r.views)} views · {timeAgo(r.ts)}
+    <div className="flex gap-2 overflow-hidden rounded-xl border border-line bg-panel p-2">
+      {r.image ? (
+        <img src={r.image} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+      ) : (
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-panel-3 text-[8px] font-bold uppercase tracking-wide text-lime-2">
+          {r.kind}
+        </div>
+      )}
+      <div className="min-w-0 flex-1 py-0.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="truncate text-sm font-semibold">{r.title}</div>
+          <StatusPill status={r.status} />
+        </div>
+        <div className="text-[10px] text-muted">
+          {r.company ? `${r.company} · ` : ""}
+          {r.city || "Nigeria"} · {fmtCount(r.views)} views · {timeAgo(r.ts)}
+        </div>
+        {r.body ? <div className="mt-0.5 line-clamp-1 text-[10px] text-muted">{r.body.split("\n")[0]}</div> : null}
       </div>
     </div>
   );
