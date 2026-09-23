@@ -21,7 +21,7 @@ import { listAdCatalog } from "@/lib/ad-catalog-server";
 import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { authClient, signOut } from "@/lib/auth/client";
-import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
+import { AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { canKind, createSheetTitle } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
@@ -584,7 +584,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     : createSheetTitle(ak);
 
   const sheetSub =
-    pane === "music" ? "List a track URL. Kilode embeds the platform player — never hosts audio."
+    pane === "music" ? "Lists live on Music — no staff approval, no payment. Kilode embeds the platform player — never hosts audio."
     : pane === "cinema" ? "Submit a YouTube trailer URL for staff approval."
     : pane === "job" ? "Post a job listing (title, company, contact, link)."
     : pane === "apply" ? "Browse and apply to jobs. You cannot post jobs or music."
@@ -2845,12 +2845,12 @@ function Help() {
   return (
     <Screen kicker="KILODE" title="Help & terms" sub="How accounts, ads, cinema, and listings work.">
       <Card title="Accounts" body="Username + password. Tick Terms and Rules. One account type at register — you cannot switch it. The operator may correct a wrong type. No public email. Full legal: /terms" />
-      <Card title="What each type can do" body="Normal user: chat, feeds, vote, apply to jobs. Artist: music URLs only. Writer: feeds. Ads Poster: business ads. Cinema Advertiser: movie YouTube URLs. Job Poster / Seeker, Marketplace seller, Rent lister: their module only." />
+      <Card title="What each type can do" body="Normal user: chat, feeds, vote, apply to jobs. Artist: music URLs only. Writer: feeds. Ads Poster: business ads. Cinema Poster: movie YouTube URLs. Job Poster / Seeker, Marketplace seller, Rent lister: their module only." />
       <Card title="Chat" body="Signed-in messages save on the server and expire. Use ‹ › to page older/newer chat. Use Show in … at the top right of a room to translate the thread into Yoruba, Igbo, Hausa, French, or Spanish." />
       <Card title="Feeds & music" body="Create post after you sign in. Only Artist lists music. Paste a Spotify / SoundCloud / Audiomack / Apple / Boomplay / Deezer URL. We embed their player — nothing streams from Kilode. Spotify iframe is a 30-second preview unless the visitor is logged into Spotify. SoundCloud and Audiomack play the full track if the artist allowed streaming. Artwork is fetched once via oEmbed when you submit." />
       <Card title="Teams" body="Signed-in members create up to 3 teams. Anyone signed in can join (max 40). Open chat is a Kilode room, same engine as Global Chat. Not a second WhatsApp. Abuse can be hidden." />
       <Card title="Ads" body="Pick a slot, creative type, and 1 / 7 / 14 / 30 days. Copy the wallet from this app, pay crypto, paste the tx hash. Ads go live after review. Never send funds to an address from a DM." />
-      <Card title="Cinema" body="Anyone can watch Watching Now — it is a YouTube embed, not a file on Kilode. Signed-in users vote once per title per day. Advertiser (Cinema) submits a YouTube URL. Chat under the player uses the same engine as rooms." />
+      <Card title="Cinema" body="Anyone can watch Watching Now — it is a YouTube embed, not a file on Kilode. Signed-in users vote once per title per day. Cinema Poster submits a YouTube URL. Chat under the player uses the same engine as rooms." />
       <Card title="Jobs, Marketplace, Rent" body="Job Poster lists jobs. Job Seekers apply. Marketplace and Rent are showcase + contact only — no selling or renting inside the app. Listings are reviewed before they go public." />
       <Card title="Verification" body="Public handles may show a Kilode Verified mark. The operator can correct an account type if you registered as the wrong one. There is no public staff directory." />
       <Card title="Scale" body="Chat refreshes while the tab is open. Video and music play from YouTube / Spotify / SoundCloud — not from Kilode servers." />

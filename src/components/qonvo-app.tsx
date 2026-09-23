@@ -1223,7 +1223,9 @@ function QonvoAppInner() {
             {joinErr ? <p className="mb-1.5 text-sm text-danger">{joinErr}</p> : null}
             {store.authErr ? <p className="mb-1.5 text-sm text-danger">{store.authErr}</p> : null}
             <div className="mb-1.5">
+              {/* One picker per Join open — kinds from uniqueAccountKinds(). */}
               <AccountKindPicker
+                key="join-account-kind"
                 compact
                 value={joinKind}
                 onChange={(k) => {

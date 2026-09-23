@@ -25,6 +25,7 @@ import {
   type AccountKind,
 } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
+import { canKind } from "@/lib/permissions";
 import { AvatarImg } from "@/components/account-kind";
 import { AdSlot } from "@/components/ad-slot";
 import { SiteFooter } from "@/components/site-chrome";
@@ -148,7 +149,7 @@ function GuestDash() {
           <li>Artist — list music URLs. We embed the player.</li>
           <li>Writer — publish in Feeds with the rich editor.</li>
           <li>Ads / Brand — pay crypto, staff approve.</li>
-          <li>Cinema advertiser — submit YouTube URLs to Watching Now.</li>
+          <li>Cinema Poster — submit YouTube URLs to Watching Now.</li>
           <li>Jobs / Market / Rent — showcase listings with contact.</li>
         </ul>
       </div>
@@ -205,7 +206,7 @@ function primaryCta(kind: AccountKind): { label: string; icon: typeof Plus; onCl
 
 type QuickTile = { icon: typeof Plus; label: string; hint: string; onClick: () => void };
 
-/** Quick-action grid — matches account kind. Specialist kinds omit primary "New post". */
+/** Quick-action grid — matches account kind. Never offer Apply without jobs.apply. */
 function quickActionsFor(kind: AccountKind): QuickTile[] {
   const chat: QuickTile = {
     icon: MessageSquare,
@@ -219,33 +220,35 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
     hint: "Watch + vote",
     onClick: () => goto({ tab: "cinema" }),
   };
-  const applyJobs: QuickTile = {
-    icon: Briefcase,
-    label: "Apply jobs",
-    hint: "Browse + apply",
-    onClick: () => goto({ screen: "jobs" }),
-  };
+  const applyJobs: QuickTile | null = canKind(kind, "jobs.apply")
+    ? {
+        icon: Briefcase,
+        label: "Apply jobs",
+        hint: "Browse + apply",
+        onClick: () => goto({ screen: "jobs" }),
+      }
+    : null;
   const newPost: QuickTile = {
     icon: Plus,
     label: "New post",
     hint: "Publish in Feeds",
     onClick: openCreate,
   };
+  const withApply = (...tiles: QuickTile[]) => (applyJobs ? [...tiles, applyJobs] : tiles);
 
   if (kind === "writer") {
-    return [
+    return withApply(
       { icon: Plus, label: "Write story", hint: "New article in Feeds", onClick: openCreate },
       chat,
       voteCinema,
-      applyJobs,
-    ];
+    );
   }
   if (kind === "artist") {
-    return [
+    return withApply(
       {
         icon: Radio,
         label: "Add music",
-        hint: "New track · URL embed",
+        hint: "New track · URL embed · live, no pay",
         onClick: () => {
           goto({ tab: "music" });
           window.setTimeout(openCreate, 80);
@@ -253,16 +256,14 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
       },
       chat,
       voteCinema,
-      applyJobs,
-    ];
+    );
   }
   if (kind === "advertiser") {
-    return [
+    return withApply(
       { icon: Megaphone, label: "Place ad", hint: "Crypto · staff approve", onClick: () => goto({ screen: "ads" }) },
       chat,
       voteCinema,
-      applyJobs,
-    ];
+    );
   }
   if (kind === "brand") {
     return [
@@ -273,7 +274,7 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
     ];
   }
   if (kind === "cinema") {
-    return [
+    return withApply(
       {
         icon: Film,
         label: "Submit title",
@@ -285,43 +286,67 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
       },
       { icon: Vote, label: "Vote cinema", hint: "One vote / title / day", onClick: () => goto({ tab: "cinema" }) },
       chat,
-      applyJobs,
-    ];
+    );
   }
   if (kind === "job_poster") {
+    // job_poster has jobs.post only — never "Apply jobs"
     return [
       { icon: Briefcase, label: "Post a job", hint: "Staff approve first", onClick: openCreate },
       chat,
       voteCinema,
-      applyJobs,
-    ];
-  }
-  if (kind === "vendor") {
-    return [
-      { icon: Store, label: "List product", hint: "Showcase · contact", onClick: openCreate },
-      chat,
-      voteCinema,
-      applyJobs,
-    ];
-  }
-  if (kind === "renter") {
-    return [
-      { icon: Building2, label: "List space", hint: "Rent · contact link", onClick: openCreate },
-      chat,
-      voteCinema,
-      applyJobs,
-    ];
-  }
-  if (kind === "job_seeker") {
-    return [
-      applyJobs,
-      voteCinema,
-      chat,
       { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
     ];
   }
+  if (kind === "vendor") {
+    return withApply(
+      { icon: Store, label: "List product", hint: "Showcase · contact", onClick: openCreate },
+      chat,
+      voteCinema,
+    );
+  }
+  if (kind === "renter") {
+    return withApply(
+      { icon: Building2, label: "List space", hint: "Rent · contact link", onClick: openCreate },
+      chat,
+      voteCinema,
+    );
+  }
+  if (kind === "job_seeker") {
+    return withApply(
+      voteCinema,
+      chat,
+      { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
+    );
+  }
   // member
-  return [newPost, applyJobs, voteCinema, chat];
+  return withApply(newPost, voteCinema, chat);
+}
+
+
+/** Me page H2 — kind-aware, without repeating the kind badge (e.g. not "Artist hub" + "Artist"). */
+function hubTitleFor(kind: AccountKind): string {
+  switch (kind) {
+    case "artist":
+      return "Music desk";
+    case "writer":
+      return "Stories desk";
+    case "advertiser":
+      return "Ads desk";
+    case "cinema":
+      return "Cinema desk";
+    case "job_poster":
+      return "Hiring desk";
+    case "job_seeker":
+      return "Careers desk";
+    case "vendor":
+      return "Market desk";
+    case "renter":
+      return "Rent desk";
+    case "brand":
+      return "Brand desk";
+    default:
+      return "Your desk";
+  }
 }
 
 export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForum?: () => void; onLogout?: () => void | Promise<void> }) {
@@ -476,7 +501,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
     <div className="mx-auto max-w-2xl p-4 pb-24">
       <div className="mb-4">
         <div className="text-[10px] font-bold tracking-[0.2em] text-lime-2">ME · DASHBOARD</div>
-        <h2 className="text-2xl font-extrabold tracking-tight">{kindLabel} hub</h2>
+        <h2 className="text-2xl font-extrabold tracking-tight">{hubTitleFor(kind)}</h2>
         <p className="mt-1 text-sm text-muted">{purpose}</p>
       </div>
 
@@ -557,7 +582,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         >
           {songs.length === 0 ? (
             <EmptyBlock
-              body="No tracks yet. Add a Spotify / SoundCloud / Audiomack / Apple / Deezer URL and optional cover — Kilode embeds their player, never hosts audio."
+              body="No tracks yet. Add a Spotify / SoundCloud / Audiomack / Apple / Deezer URL — lists live on Music with no staff approval and no payment. Kilode embeds their player, never hosts audio."
               cta="Add music"
               onClick={() => {
                 goto({ tab: "music" });

@@ -39,7 +39,7 @@ export const HOWTO = [
   },
   {
     id: "cinema",
-    title: "Advertiser (Cinema)",
+    title: "Cinema Poster",
     body: "Submit a YouTube watch URL and title. Staff approve. Signed-in users vote. The top title (or a staff pin) becomes Watching Now — a YouTube embed on Kilode, not a file we host.",
   },
   {

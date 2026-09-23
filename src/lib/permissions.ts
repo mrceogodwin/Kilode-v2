@@ -37,7 +37,7 @@ export function kindActionHint(action: KindAction): string {
     case "ads.submit":
       return "Only Ads Poster / Advertiser / Brand accounts can place ads.";
     case "cinema.submit":
-      return "Only Cinema Advertiser accounts can submit movie YouTube URLs.";
+      return "Only Cinema Poster accounts can submit movie YouTube URLs.";
     case "jobs.post":
       return "Only Job Poster accounts can list jobs.";
     case "jobs.apply":

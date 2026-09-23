@@ -18,7 +18,7 @@ Register picker in `ACCOUNT_KINDS` (`src/lib/qonvo-data.ts`). After first save, 
 | artist | Artist | + music URLs only (no audio files) |
 | writer | Writer | feeds |
 | advertiser | Ads Poster | + business ads (legacy id — keep) |
-| cinema | Advertiser (Cinema) | + movie YouTube URLs |
+| cinema | Cinema Poster | + movie YouTube URLs |
 | job_poster | Job Poster | + jobs |
 | job_seeker | Job Seeker | apply jobs |
 | vendor | Marketplace seller | showcase, no in-app checkout |

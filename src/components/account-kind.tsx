@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { ACCOUNT_KINDS, AVATAR_SEEDS, KIND_FACE, avatarUrl, type AccountKind } from "@/lib/qonvo-data";
+import { ACCOUNT_KINDS, AVATAR_SEEDS, KIND_FACE, avatarUrl, uniqueAccountKinds, type AccountKind } from "@/lib/qonvo-data";
 
 export function AccountKindPicker({
   value,
@@ -28,7 +28,7 @@ export function AccountKindPicker({
         </button>
         {open ? (
           <div className="absolute z-40 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-line bg-panel-2 p-1 shadow-xl">
-            {ACCOUNT_KINDS.map((k) => (
+            {uniqueAccountKinds().map((k) => (
               <button
                 key={k.id}
                 type="button"
@@ -49,7 +49,7 @@ export function AccountKindPicker({
   }
   return (
     <div className="grid grid-cols-2 gap-1.5">
-      {ACCOUNT_KINDS.map((k) => (
+      {uniqueAccountKinds().map((k) => (
         <button
           key={k.id}
           type="button"

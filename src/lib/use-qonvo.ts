@@ -1186,6 +1186,7 @@ export function useQonvo() {
     posts,
     pins,
     notes,
+    note,
     teams,
     campaigns,
     joins,

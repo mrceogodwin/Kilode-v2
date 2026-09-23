@@ -109,7 +109,7 @@ export function CinemaPane() {
             <ul className="mt-3 space-y-2 text-[12px] leading-snug text-muted">
               <li>YouTube embed only. Trailer or official clip.</li>
               <li>Join to vote once a day, rate 1–5 stars, and take the A–E quiz Super sets.</li>
-              <li>Cinema Advertisers submit URLs. Staff approve. Votes can send it to Watching Now.</li>
+              <li>Cinema Posters submit URLs. Staff approve. Votes can send it to Watching Now.</li>
               <li>Live talk beside the player is a watch-party chat — join this hour's discussion while it plays.</li>
             </ul>
           </div>
@@ -178,7 +178,7 @@ export function CinemaPane() {
 
         {canKind(kind, "cinema.submit") ? (
         <div className="mb-3 rounded-xl border border-line bg-panel p-2">
-          <div className="text-[11px] font-medium text-muted">Cinema Advertiser — submit a YouTube URL</div>
+          <div className="text-[11px] font-medium text-muted">Cinema Poster — submit a YouTube URL</div>
           <p className="mb-2 text-[10px] text-muted">Staff approve. Votes send it to Watching Now. No video files on Kilode.</p>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Movie title" className="mb-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/watch?v=…" className="mb-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
@@ -216,7 +216,7 @@ export function CinemaPane() {
         </div>
         ) : (
           <p className="mb-3 rounded-xl border border-line px-3 py-2 text-[11px] text-muted">
-            Watch free. Vote after you join. To submit a title, register as <strong>Advertiser (Cinema)</strong>.
+            Watch free. Vote after you join. To submit a title, register as <strong>Cinema Poster</strong>.
           </p>
         )}
         {err && !canKind(kind, "cinema.submit") ? <p className="mb-2 text-[11px] text-danger">{err}</p> : null}

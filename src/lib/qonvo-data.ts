@@ -84,16 +84,26 @@ export const REGIONS = ["All", ...ROOM_SECTION_ORDER];
 
 export const ACCOUNT_KINDS = [
   { id: "member", label: "Normal user", hint: "Chat, feeds, vote, apply to jobs" },
-  { id: "artist", label: "Artist", hint: "List music URLs. We embed the player." },
+  { id: "artist", label: "Artist", hint: "List music URLs live — no pay, no staff approval" },
   { id: "writer", label: "Writer", hint: "News, blogs, reviews" },
-  { id: "advertiser", label: "Ads Poster", hint: "Pay to place business ads" },
-  { id: "cinema", label: "Advertiser (Cinema)", hint: "Pay to submit movie YouTube URLs" },
+  { id: "advertiser", label: "Ads Poster", hint: "Pay to place business ads (not cinema)" },
+  { id: "cinema", label: "Cinema Poster", hint: "Pay to submit movie YouTube URLs (not business ads)" },
   { id: "job_poster", label: "Job Poster", hint: "Post jobs and manage applicants" },
   { id: "job_seeker", label: "Job Seeker", hint: "Resume + apply to jobs" },
   { id: "vendor", label: "Marketplace seller", hint: "Showcase products. No in-app checkout" },
   { id: "renter", label: "Rent / space lister", hint: "List properties with contact links" },
   { id: "brand", label: "Brand / business", hint: "Company page and ads" },
 ] as const;
+
+/** Deduped kinds for UI pickers — never render the same id twice. */
+export function uniqueAccountKinds() {
+  const seen = new Set<string>();
+  return ACCOUNT_KINDS.filter((k) => {
+    if (seen.has(k.id)) return false;
+    seen.add(k.id);
+    return true;
+  });
+}
 
 export type AccountKind = (typeof ACCOUNT_KINDS)[number]["id"];
 
@@ -579,7 +589,7 @@ By creating an account or using post, music, video, cinema, ads, jobs, marketpla
 1. You pick one account type at register. You cannot switch it yourself. Super admin may override.
 2. You are responsible for what you publish. Do not post illegal content, scams, hate, or anyone’s private data.
 3. Music is link-only (YouTube, Audiomack, SoundCloud, Spotify, Boomplay, Apple). We do not host audio files.
-4. Movies are YouTube URLs submitted by Cinema Advertisers, then approved. We do not host video files.
+4. Movies are YouTube URLs submitted by Cinema Posters, then approved. We do not host video files.
 5. Ads, jobs, marketplace, and rent listings may be refused. Crypto tx hashes are a record until staff checks them.
 6. Send crypto only to addresses shown in Kilode after you tap Copy. Verify the first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet.
 7. Handles and public posts can be seen by others. This is not a bank or a lawyer.

@@ -103,6 +103,7 @@ function Login() {
             {mode === "up" && !staff ? (
               <>
                 <AccountKindPicker
+                  key="login-account-kind"
                   compact
                   value={kind}
                   onChange={(k) => {
