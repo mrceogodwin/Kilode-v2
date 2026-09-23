@@ -542,61 +542,55 @@ export function QonvoApp() {
                 <DownloadsPane />
               ) : (
                 <>
-              <div className="border-b border-white/5 bg-panel px-3 py-1.5">
-                <div className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[9px] font-medium tracking-[0.16em] text-lime-2">KILODE FORUM</div>
-                    <div className="truncate text-sm font-bold leading-tight">{room.name}</div>
-                  </div>
-                  <ThreadTranslateBar
-                    items={store.msgs.map((m) => ({ key: String(m.ts), text: m.t }))}
-                    onTranslated={setChatXlate}
-                  />
-                  <ForumClock label={purge === "kept" ? "kept" : purge} onOpen={() => setForumWhy(true)} />
-                </div>
-                <div className="mt-1.5 flex items-center gap-1">
-                  <span className="shrink-0 text-[10px] font-bold text-lime-2">{store.online.length} online</span>
-                  <span className="min-w-0 truncate text-[10px] text-muted">· {store.handle || "guest"}</span>
-                  <div className="ml-auto flex shrink-0 items-center gap-1">
-                    <button
-                      type="button"
-                      aria-label="Older messages"
-                      disabled={!store.hasOlder}
-                      onClick={() => store.olderChat()}
-                      className={`grid size-7 place-items-center rounded-md border text-sm ${store.hasOlder ? "border-line text-fg" : "border-white/5 text-muted/40"}`}
-                    >
-                      <ChevronLeft className="size-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Newer messages"
-                      disabled={!store.hasNewer}
-                      onClick={() => store.newerChat()}
-                      className={`grid size-7 place-items-center rounded-md border text-sm ${store.hasNewer ? "border-line text-fg" : "border-white/5 text-muted/40"}`}
-                    >
-                      <ChevronRight className="size-3.5" />
-                    </button>
-                    <button type="button" onClick={() => setRoomsOpen(true)} className="btn-3d rounded-full px-2.5 py-1 text-[10px] md:hidden">
-                      Rooms
-                    </button>
-                    <button type="button" onClick={store.pinRoom} className="btn-3d rounded-full px-2.5 py-1 text-[10px]">
-                      Bookmark
-                    </button>
+              <div className="flex shrink-0 items-center gap-1.5 border-b border-white/5 bg-panel px-2 py-1">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="truncate text-[12px] font-extrabold leading-none text-fg">{room.name}</span>
+                    <span className="shrink-0 text-[9px] font-bold leading-none text-lime-2">{store.online.length} online</span>
+                    <span className="hidden min-w-0 truncate text-[9px] leading-none text-muted sm:inline">· {store.handle || "guest"}</span>
                   </div>
                 </div>
+                <ThreadTranslateBar
+                  items={store.msgs.map((m) => ({ key: String(m.ts), text: m.t }))}
+                  onTranslated={setChatXlate}
+                />
+                <ForumClock label={purge === "kept" ? "kept" : purge} onOpen={() => setForumWhy(true)} />
+                <button
+                  type="button"
+                  aria-label="Older messages"
+                  disabled={!store.hasOlder}
+                  onClick={() => store.olderChat()}
+                  className={`grid size-6 place-items-center rounded-md border text-sm ${store.hasOlder ? "border-line text-fg" : "border-white/5 text-muted/40"}`}
+                >
+                  <ChevronLeft className="size-3" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Newer messages"
+                  disabled={!store.hasNewer}
+                  onClick={() => store.newerChat()}
+                  className={`grid size-6 place-items-center rounded-md border text-sm ${store.hasNewer ? "border-line text-fg" : "border-white/5 text-muted/40"}`}
+                >
+                  <ChevronRight className="size-3" />
+                </button>
+                <button type="button" onClick={() => setRoomsOpen(true)} className="btn-3d rounded-full px-2 py-0.5 text-[9px] md:hidden">
+                  Rooms
+                </button>
+                <button type="button" onClick={store.pinRoom} className="btn-3d rounded-full px-2 py-0.5 text-[9px]">
+                  Pin
+                </button>
               </div>
-              <div className="flex items-center gap-2 overflow-x-auto border-b border-white/5 px-3 py-1.5">
-                <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-lime-2" />
-                <span className="shrink-0 text-[10px] font-bold text-lime-2">{store.online.length} online</span>
+              <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-white/5 px-2 py-1">
+                <span className="size-1.5 shrink-0 animate-pulse rounded-full bg-lime-2" aria-hidden />
                 {store.online.slice(0, 12).map((u) => (
                   <span key={u.handle} className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line bg-panel-2 py-0.5 pr-1.5 pl-0.5" title={u.handle}>
-                    <AvatarImg handle={u.handle} size={16} />
-                    <span className="max-w-[72px] truncate text-[10px]" style={{ color: handleColor(u.handle) }}>{u.handle}</span>
+                    <AvatarImg handle={u.handle} size={14} />
+                    <span className="max-w-[64px] truncate text-[9px]" style={{ color: handleColor(u.handle) }}>{u.handle}</span>
                   </span>
                 ))}
-                {store.online.length === 0 ? <span className="text-[10px] text-muted">Be first in this room</span> : null}
+                {store.online.length === 0 ? <span className="text-[9px] text-muted">Be first in this room</span> : null}
                 {store.typing.filter((n) => n !== store.handle).length ? (
-                  <span className="ml-1 shrink-0 text-[10px] text-lime-2">
+                  <span className="ml-1 shrink-0 text-[9px] text-lime-2">
                     {store.typing.filter((n) => n !== store.handle).slice(0, 2).join(", ")} typing
                     <span className="typing-dots" />
                   </span>
@@ -608,10 +602,10 @@ export function QonvoApp() {
                 .map((c) => (
                   <ChatAdCard key={c.id} ad={c} pinned onView={() => store.see("ads", c.id)} />
                 ))}
-              <div className="relative min-h-0 flex-1">
+              <div className="relative flex min-h-0 flex-1 flex-col">
               <div
                 ref={scroller}
-                className="h-full space-y-3 overflow-y-auto overscroll-contain p-3 sm:p-4"
+                className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain"
                 onScroll={() => {
                   const el = scroller.current;
                   if (!el) return;
@@ -620,22 +614,23 @@ export function QonvoApp() {
                   if (atBottom) setNewCount(0);
                 }}
               >
+                <div className="mt-auto flex flex-col gap-1.5 px-2 py-2 sm:px-3">
                 {store.msgs.length === 0 ? (
-                  <p className="px-2 py-8 text-center text-[12px] text-muted">
+                  <p className="rounded-xl border border-dashed border-line/80 bg-panel/40 px-3 py-4 text-center text-[11px] text-muted">
                     No messages in this room yet.
                     <br />
-                    <span className="text-[11px]">Each room keeps its own chat.</span>
+                    <span className="text-[10px]">Each room keeps its own chat.</span>
                     {!signedIn ? (
                       <>
                         <br />
-                        <Link to="/login" search={{}} className="mt-2 inline-block text-[12px] font-semibold text-lime-2 underline">
+                        <Link to="/login" search={{}} className="mt-1.5 inline-block text-[11px] font-semibold text-lime-2 underline">
                           Sign in to start the thread
                         </Link>
                       </>
                     ) : (
                       <>
                         <br />
-                        <span className="text-[11px]">Say something to start the thread.</span>
+                        <span className="text-[10px]">Say something to start the thread.</span>
                       </>
                     )}
                   </p>
@@ -657,7 +652,7 @@ export function QonvoApp() {
                   if (row.kind === "fold") {
                     const open = openFolds[row.key];
                     return (
-                      <div key={row.key}>
+                      <div key={row.key} className="flex flex-col gap-1.5">
                         <button
                           type="button"
                           className="text-[11px] text-lime-2"
@@ -675,6 +670,7 @@ export function QonvoApp() {
                   }
                   return <ChatLine key={row.key} m={row.m} handle={store.handle} xlate={chatXlate[String(row.m.ts)]} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} />;
                 })}
+                </div>
               </div>
               {newCount > 0 ? (
                 <button
@@ -2286,19 +2282,26 @@ function ChatLine({
   onReact: (ts: number, kind: "up" | "fire") => void;
   onReply: (m: ChatMsg) => void;
 }) {
-  const mine = handle && m.n === handle;
+  const mine = Boolean(handle && m.n === handle);
   return (
-    <div className={mine ? "rounded-lg bg-white/[0.03] px-1 py-0.5" : undefined}>
+    <div
+      className={`rounded-xl border px-2.5 py-1.5 ${
+        mine
+          ? "border-lime-2/35 bg-lime-2/[0.07]"
+          : "border-white/10 bg-panel/70"
+      }`}
+    >
       {m.parentN && m.parentT ? (
-        <button type="button" className="mb-1 block w-full truncate rounded-md border-l-2 border-lime-2/50 bg-white/[0.03] px-2 py-1 text-left text-[11px] text-muted" onClick={() => onReply(m)}>
+        <button type="button" className="mb-1 block w-full truncate rounded-md border-l-2 border-lime-2/50 bg-black/25 px-2 py-1 text-left text-[11px] text-muted" onClick={() => onReply(m)}>
           <span style={{ color: handleColor(m.parentN) }}>{m.parentN}</span> · {m.parentT}
         </button>
       ) : null}
       <div className="flex items-baseline gap-2">
         <HandleLink handle={m.n} />
         <span className="text-[10px] text-muted">{timeLabel(m.ts)}</span>
+        {mine ? <span className="text-[9px] font-semibold text-lime-2">you</span> : null}
       </div>
-      <div className="text-sm">
+      <div className="text-[13px] leading-snug">
         {/^(.+?\s)?reposted:\s/i.test(m.t || "") ? (
           <span>
             <span className="inline-flex items-center gap-1 font-semibold text-lime-2">
