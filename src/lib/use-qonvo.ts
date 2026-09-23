@@ -47,10 +47,24 @@ type MsgPack = {
   hours?: number;
   online?: PresenceUser[];
   typing?: string[];
+  error?: string;
 };
 
 function asPack(r: MsgPack | ChatMsg[]): MsgPack {
   return Array.isArray(r) ? { msgs: r, older: false, newer: false, hours: 24, online: [], typing: [] } : r;
+}
+
+/** Timed-out / failed listMsgs returns empty msgs + online — must not wipe UI or advance cursors. */
+function packFailed(pack: MsgPack): boolean {
+  return typeof pack.error === "string" && pack.error.length > 0;
+}
+
+/** Union by ts (server row wins), keep chronological tip window. */
+function mergeByTs(prev: ChatMsg[], incoming: ChatMsg[], cap = 80): ChatMsg[] {
+  const map = new Map<number, ChatMsg>();
+  for (const m of prev) map.set(m.ts, m);
+  for (const m of incoming) map.set(m.ts, m);
+  return [...map.values()].sort((a, b) => a.ts - b.ts).slice(-cap);
 }
 
 function passKey(name: string, pass: string) {
@@ -96,6 +110,8 @@ export function useQonvo() {
   const [typing, setTyping] = useState<string[]>([]);
   const msgsRef = useRef<ChatMsg[]>([]);
   const hasNewerRef = useRef(false);
+  /** Max server-confirmed ts per room — never use optimistic Date.now() as after: cursor. */
+  const tipTsByRoomRef = useRef<Record<string, number>>({});
   const lastPing = useRef(0);
   const [chatLive, setChatLive] = useState(false);
   const [chatErr, setChatErr] = useState("");
@@ -251,6 +267,11 @@ export function useQonvo() {
     saveJson(`msgs.${id}`, next);
   }, []);
 
+  const noteServerTip = useCallback((id: string, ts: number) => {
+    if (!ts || ts <= 0) return;
+    tipTsByRoomRef.current[id] = Math.max(tipTsByRoomRef.current[id] ?? 0, ts);
+  }, []);
+
   useEffect(() => {
     if (!ready) return;
     let on = true;
@@ -261,6 +282,7 @@ export function useQonvo() {
     const cached = msgsByRoomRef.current[want] ?? loadJson<ChatMsg[]>(`msgs.${want}`, []);
     msgsRef.current = cached;
     setMsgs(cached);
+    // Do not seed tip from local cache — it may hold optimistic Date.now() ahead of Neon.
     setHasOlder(false);
     setHasNewer(false);
     setOnline([]);
@@ -272,10 +294,18 @@ export function useQonvo() {
         // Stale-response guard: ignore if user already left this room.
         if (!on || roomIdRef.current !== want) return;
         const pack = asPack(r);
+        // Timeout/error packs are empty — keep cache, do not wipe presence or thread.
+        if (packFailed(pack)) {
+          const fallback = msgsByRoomRef.current[want] ?? loadJson<ChatMsg[]>(`msgs.${want}`, []);
+          msgsRef.current = fallback;
+          setMsgs(fallback);
+          return;
+        }
         const next = pack.msgs ?? [];
         msgsRef.current = next;
         setMsgs(next);
         cacheRoomMsgs(want, next);
+        for (const m of next) noteServerTip(want, m.ts);
         setHasOlder(!!pack.older);
         setHasNewer(!!pack.newer);
         if (typeof pack.hours === "number") setChatHours(pack.hours);
@@ -295,7 +325,7 @@ export function useQonvo() {
       on = false;
       ac.abort(); // drop in-flight listMsgs on room switch
     };
-  }, [roomId, ready, cacheRoomMsgs]);
+  }, [roomId, ready, cacheRoomMsgs, noteServerTip]);
 
   useEffect(() => {
     msgsRef.current = msgs;
@@ -312,6 +342,7 @@ export function useQonvo() {
     let ac: AbortController | null = null;
     let timer: number | undefined;
     let lastActivity = Date.now();
+    let pollN = 0;
     const want = roomId;
 
     const markActivity = () => {
@@ -333,8 +364,15 @@ export function useQonvo() {
         return;
       }
       if (roomIdRef.current !== want) return;
-      const last = msgsRef.current[msgsRef.current.length - 1];
-      const payload = hasNewerRef.current || !last ? { roomId: want } : { roomId: want, after: last.ts };
+      pollN += 1;
+      // Full reconcile every 4th poll so after: gaps (optimistic cursor / missed rows) heal.
+      const reconcile = pollN % 4 === 0;
+      // Server-confirmed tip only — never after: an optimistic Date.now() still in the list.
+      const afterTs = tipTsByRoomRef.current[want] ?? 0;
+      const payload =
+        hasNewerRef.current || !afterTs || reconcile
+          ? { roomId: want }
+          : { roomId: want, after: afterTs };
       ac?.abort();
       ac = new AbortController();
       const signal = ac.signal;
@@ -344,27 +382,32 @@ export function useQonvo() {
           // Classic A→B→A race: drop responses for a room we already left.
           if (dead || signal.aborted || roomIdRef.current !== want) return;
           const pack = asPack(r);
+          if (packFailed(pack)) return; // do not wipe online / msgs on Neon timeout
           if (pack.online) setOnline(pack.online);
           if (pack.typing) setTyping(pack.typing);
           if (typeof pack.hours === "number") setChatHours(pack.hours);
+          // Viewing older page: keep presence fresh, leave the history window alone.
           if (hasNewerRef.current) return;
-          if (!last) {
-            if (pack.msgs.length) {
-              const next = pack.msgs;
-              msgsRef.current = next;
-              setMsgs(next);
-              cacheRoomMsgs(want, next);
-              setHasOlder(!!pack.older);
-              setHasNewer(!!pack.newer);
-            }
+          if (!afterTs || reconcile || !("after" in payload)) {
+            if (!pack.msgs.length) return;
+            setMsgs((prev) => {
+              const merged = mergeByTs(prev, pack.msgs);
+              msgsRef.current = merged;
+              cacheRoomMsgs(want, merged);
+              return merged;
+            });
+            for (const m of pack.msgs) noteServerTip(want, m.ts);
+            setHasOlder(!!pack.older);
+            setHasNewer(!!pack.newer);
             return;
           }
           if (!pack.msgs.length) return;
           const known = new Set(msgsRef.current.map((m) => m.ts));
           const extra = pack.msgs.filter((m) => !known.has(m.ts));
+          for (const m of pack.msgs) noteServerTip(want, m.ts);
           if (!extra.length) return;
           setMsgs((prev) => {
-            const merged = [...prev, ...extra].slice(-80);
+            const merged = mergeByTs(prev, extra);
             msgsRef.current = merged;
             cacheRoomMsgs(want, merged);
             return merged;
@@ -399,7 +442,7 @@ export function useQonvo() {
       document.removeEventListener("visibilitychange", onVis);
       for (const ev of ACTIVITY_EVENTS) window.removeEventListener(ev, markActivity);
     };
-  }, [ready, roomId, chatLive, cacheRoomMsgs]);
+  }, [ready, roomId, chatLive, cacheRoomMsgs, noteServerTip]);
 
   useEffect(() => {
     if (session.isPending) return;
@@ -712,6 +755,7 @@ export function useQonvo() {
           parentN: row.parentN ?? parent?.n,
           parentT: row.parentT ?? parent?.t?.slice(0, 80),
         };
+        noteServerTip(sentRoom, confirmed.ts);
         if (stillHere()) {
           setMsgs((prev) => {
             const withoutOpt = prev.filter((m) => m.ts !== optimisticTs);
@@ -734,12 +778,11 @@ export function useQonvo() {
         void listMsgs({ data: { roomId: sentRoom } })
           .then((pack) => {
             const p = asPack(pack);
+            if (packFailed(p)) return;
             const server = p.msgs ?? [];
-            const serverTs = new Set(server.map((m) => m.ts));
-            const merged = serverTs.has(confirmed.ts)
-              ? server
-              : [...server.filter((m) => m.ts !== confirmed.ts), confirmed].sort((a, b) => a.ts - b.ts);
+            const merged = mergeByTs(server, [confirmed]);
             cacheRoomMsgs(sentRoom, merged);
+            for (const m of merged) noteServerTip(sentRoom, m.ts);
             // Never paint another room's list onto the active thread.
             if (!stillHere()) return;
             setHasOlder(!!p.older);
@@ -776,7 +819,7 @@ export function useQonvo() {
         return false;
       }
     },
-    [cacheRoomMsgs, handle, hasNewer, note, roomId, session.user],
+    [cacheRoomMsgs, handle, hasNewer, note, noteServerTip, roomId, session.user],
   );
 
   const bumpPresence = useCallback(
@@ -805,6 +848,7 @@ export function useQonvo() {
     void listMsgs({ data: { roomId: want, before: first.ts } }).then((pack) => {
       if (roomIdRef.current !== want) return;
       const p = asPack(pack);
+      if (packFailed(p)) return;
       if (!p.msgs.length) {
         setHasOlder(false);
         return;
@@ -824,24 +868,30 @@ export function useQonvo() {
       void listMsgs({ data: { roomId: want } }).then((pack) => {
         if (roomIdRef.current !== want) return;
         const p = asPack(pack);
+        if (packFailed(p)) return;
         msgsRef.current = p.msgs;
         setMsgs(p.msgs);
         cacheRoomMsgs(want, p.msgs);
+        for (const m of p.msgs) noteServerTip(want, m.ts);
         setHasOlder(!!p.older);
         setHasNewer(!!p.newer);
       }).catch(() => undefined);
       return;
     }
-    void listMsgs({ data: { roomId: want, after: last.ts } }).then((pack) => {
+    const afterTs = tipTsByRoomRef.current[want] || last.ts;
+    void listMsgs({ data: { roomId: want, after: afterTs } }).then((pack) => {
       if (roomIdRef.current !== want) return;
       const p = asPack(pack);
+      if (packFailed(p)) return;
       if (!p.msgs.length || !p.newer) {
         void listMsgs({ data: { roomId: want } }).then((live) => {
           if (roomIdRef.current !== want) return;
           const l = asPack(live);
+          if (packFailed(l)) return;
           msgsRef.current = l.msgs;
           setMsgs(l.msgs);
           cacheRoomMsgs(want, l.msgs);
+          for (const m of l.msgs) noteServerTip(want, m.ts);
           setHasOlder(!!l.older);
           setHasNewer(false);
         }).catch(() => undefined);
@@ -850,10 +900,11 @@ export function useQonvo() {
       msgsRef.current = p.msgs;
       setMsgs(p.msgs);
       cacheRoomMsgs(want, p.msgs);
+      for (const m of p.msgs) noteServerTip(want, m.ts);
       setHasOlder(true);
       setHasNewer(!!p.newer);
     }).catch(() => undefined);
-  }, [cacheRoomMsgs, chatHours, hasNewer, msgs, roomId]);
+  }, [cacheRoomMsgs, chatHours, hasNewer, noteServerTip, msgs, roomId]);
 
   const react = useCallback(
     (ts: number, kind: string) => {

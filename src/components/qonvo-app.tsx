@@ -252,7 +252,10 @@ function QonvoAppInner() {
     return [...ROOMS.filter((r) => !paused.has(r.id)), ...roomOverlay.extra];
   }, [roomOverlay]);
 
-  const room = liveRooms.find((r) => r.id === store.roomId) ?? liveRooms[0] ?? ROOMS[0];
+  const room =
+    liveRooms.find((r) => r.id === store.roomId) ??
+    ROOMS.find((r) => r.id === store.roomId) ??
+    ({ id: store.roomId, name: roomName(store.roomId), region: "More rooms", online: 0 } as Room);
   const listed = useMemo(
     () =>
       liveRooms.filter(
