@@ -371,8 +371,8 @@ function CinemaVoteBtn({
         disabled={busy || voted || authPending}
         className={
           voted
-            ? `inline-flex items-center justify-center gap-1 rounded-lg border border-lime-2/50 bg-lime-2/15 font-bold text-lime-2 ${compact ? "w-full px-1 py-1 text-[9px]" : "w-full px-2.5 py-1.5 text-[10px]"}`
-            : `btn-join inline-flex items-center justify-center gap-1 rounded-lg font-extrabold tracking-wide text-white ${compact ? "w-full px-1 py-1 text-[9px]" : "w-full px-2.5 py-1.5 text-[10px]"}`
+            ? `inline-flex items-center justify-center gap-1 rounded-md border border-lime-2/50 bg-lime-2/15 font-bold leading-none text-lime-2 ${compact ? "w-full whitespace-nowrap px-1 py-0.5 text-[8px]" : "w-full px-2.5 py-1.5 text-[10px]"}`
+            : `btn-join inline-flex items-center justify-center gap-1 rounded-md font-extrabold leading-none text-white ${compact ? "w-full whitespace-nowrap px-1 py-0.5 text-[8px] tracking-wide" : "w-full px-2.5 py-1.5 text-[10px] tracking-wide"}`
         }
         onClick={() => {
           if (authPending) {
@@ -418,7 +418,7 @@ function CinemaVoteBtn({
       >
         {voted ? (
           <>
-            <Check className={compact ? "size-2.5" : "size-3"} />
+            <Check className={compact ? "size-2" : "size-3"} />
             Voted · {movie.votes}
           </>
         ) : busy ? (
