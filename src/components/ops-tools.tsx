@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AI_KEY_SLOTS, listAiKeys, saveAiKey } from "@/lib/keys-server";
 import { boostSeo, listSeoWeak, type SeoWeak } from "@/lib/seo-server";
 import { AD_SLOT_DEFS, type AdSlotKind, type AdSlotRow } from "@/lib/ad-slots";
-import { listAdSlots, listDigestCount, saveAdSlot } from "@/lib/ad-slots-server";
+import { listAdSlots, listDigestCount, runDigestNow, saveAdSlot } from "@/lib/ad-slots-server";
 import { listAdCatalog, saveAdCatalog, type AdCatalog } from "@/lib/ad-catalog-server";
 import { AD_PLACEMENTS } from "@/lib/qonvo-data";
 import { listRoomsAdmin, saveCustomRoom, setRoomPaused } from "@/lib/rooms-server";
@@ -247,13 +247,21 @@ export function AdSlotsPanel() {
   const [draft, setDraft] = useState<Record<string, Partial<AdSlotRow>>>({});
   const [msg, setMsg] = useState("");
   const [digest, setDigest] = useState(0);
+  const [mailReady, setMailReady] = useState(false);
+  const [digestBusy, setDigestBusy] = useState(false);
   function load() {
     void listAdSlots()
       .then(setRows)
       .catch(() => setRows([]));
     void listDigestCount()
-      .then((r) => setDigest(r.n))
-      .catch(() => setDigest(0));
+      .then((r) => {
+        setDigest(r.n);
+        setMailReady(Boolean(r.mailReady));
+      })
+      .catch(() => {
+        setDigest(0);
+        setMailReady(false);
+      });
   }
   useEffect(() => {
     load();
@@ -264,8 +272,59 @@ export function AdSlotsPanel() {
         <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">AD SLOTS · GOOGLE · BANNERS · VIDEO</div>
         <h3 className="text-lg font-extrabold">Where ads appear</h3>
         <p className="text-[11px] text-muted">
-          Four kinds: Google (ca-pub + unit), image banner, YouTube video, HTML iframe. Empty slots show a dashed placeholder on the site — they do not load Google until you paste a real unit. Digest addresses stored: {digest}. We do not send email yet.
+          Four kinds: Google (ca-pub + unit), image banner, YouTube video, HTML iframe. Empty slots show a dashed placeholder on the site — they do not load Google until you paste a real unit. Digest subscribers: {digest}. Mail: {mailReady ? "provider ready (RESEND_API_KEY or SMTP_*)" : "set RESEND_API_KEY (or SMTP_*) + CRON_SECRET for daily send"}.
         </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={digestBusy}
+            className="btn-join rounded-lg px-3 py-1.5 text-[11px] font-bold disabled:cursor-wait"
+            onClick={() => {
+              setDigestBusy(true);
+              setMsg("");
+              void runDigestNow({ data: {} })
+                .then((r) => {
+                  setDigestBusy(false);
+                  setMsg(
+                    r.ok
+                      ? `Digest: ${r.sent} sent / ${r.recipients} recipients · ${r.posts} posts${r.failed ? ` · ${r.failed} failed` : ""}${r.reason ? ` · ${r.reason}` : ""}`
+                      : r.reason || "Digest failed",
+                  );
+                  load();
+                })
+                .catch(() => {
+                  setDigestBusy(false);
+                  setMsg("Digest run failed.");
+                });
+            }}
+          >
+            {digestBusy ? "Sending…" : "Send digest now"}
+          </button>
+          <button
+            type="button"
+            disabled={digestBusy}
+            className="btn-3d rounded-lg px-3 py-1.5 text-[11px] font-bold disabled:cursor-wait"
+            onClick={() => {
+              setDigestBusy(true);
+              setMsg("");
+              void runDigestNow({ data: { force: true } })
+                .then((r) => {
+                  setDigestBusy(false);
+                  setMsg(
+                    r.ok
+                      ? `Force digest: ${r.sent} sent / ${r.recipients} · ${r.posts} posts`
+                      : r.reason || "Force digest failed",
+                  );
+                })
+                .catch(() => {
+                  setDigestBusy(false);
+                  setMsg("Force digest failed.");
+                });
+            }}
+          >
+            Force (ignore cursor)
+          </button>
+        </div>
       </div>
       <div className="space-y-2">
         {AD_SLOT_DEFS.map((d) => {

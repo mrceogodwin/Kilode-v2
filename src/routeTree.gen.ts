@@ -22,6 +22,7 @@ import { Route as PIdRouteImport } from './routes/p.$id'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronCinemaRouteImport } from './routes/api/cron/cinema'
+import { Route as ApiCronDigestRouteImport } from './routes/api/cron/digest'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -88,6 +89,11 @@ const ApiCronCinemaRoute = ApiCronCinemaRouteImport.update({
   path: '/api/cron/cinema',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronDigestRoute = ApiCronDigestRouteImport.update({
+  id: '/api/cron/digest',
+  path: '/api/cron/digest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/cinema': typeof ApiCronCinemaRoute
+  '/api/cron/digest': typeof ApiCronDigestRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/cinema': typeof ApiCronCinemaRoute
+  '/api/cron/digest': typeof ApiCronDigestRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/cinema': typeof ApiCronCinemaRoute
+  '/api/cron/digest': typeof ApiCronDigestRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -151,6 +160,7 @@ export interface FileRouteTypes {
     | '/u/$handle'
     | '/api/auth/$'
     | '/api/cron/cinema'
+    | '/api/cron/digest'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/u/$handle'
     | '/api/auth/$'
     | '/api/cron/cinema'
+    | '/api/cron/digest'
   id:
     | '__root__'
     | '/'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/u/$handle'
     | '/api/auth/$'
     | '/api/cron/cinema'
+    | '/api/cron/digest'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -197,6 +209,7 @@ export interface RootRouteChildren {
   UHandleRoute: typeof UHandleRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronCinemaRoute: typeof ApiCronCinemaRoute
+  ApiCronDigestRoute: typeof ApiCronDigestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -292,6 +305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronCinemaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/digest': {
+      id: '/api/cron/digest'
+      path: '/api/cron/digest'
+      fullPath: '/api/cron/digest'
+      preLoaderRoute: typeof ApiCronDigestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -309,6 +329,7 @@ const rootRouteChildren: RootRouteChildren = {
   UHandleRoute: UHandleRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronCinemaRoute: ApiCronCinemaRoute,
+  ApiCronDigestRoute: ApiCronDigestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
