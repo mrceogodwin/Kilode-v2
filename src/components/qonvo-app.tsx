@@ -59,7 +59,7 @@ import { AdvertPane } from "@/components/advert-pane";
 import { RoomList } from "@/components/rooms-list";
 import { listRoomOverlay } from "@/lib/rooms-server";
 import { Link } from "@tanstack/react-router";
-import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
+import { SignedIn, SignedOut } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { listWallets } from "@/lib/forum-server";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
@@ -439,7 +439,28 @@ export function QonvoApp() {
             ) : (
               <>
                 <SignedIn>
-                  <UserButton />
+                  <button
+                    type="button"
+                    aria-label="Me"
+                    title="Me"
+                    className="shrink-0"
+                    onClick={() => {
+                      setScreen("dashboard");
+                      setMenuOpen(false);
+                    }}
+                  >
+                    {session.user?.profileImageUrl ? (
+                      <img
+                        src={session.user.profileImageUrl}
+                        alt=""
+                        className="h-8 w-8 shrink-0 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-lime-2 text-xs font-bold text-white">
+                        {(session.user?.displayName ?? session.user?.primaryEmail ?? "M").charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </button>
                 </SignedIn>
                 <SignedOut>
                   <Link to="/login" search={{ mode: "up" }} className="btn-join rounded-lg px-2 py-1 text-[10px] font-bold sm:px-3 sm:text-xs">
