@@ -710,19 +710,26 @@ export function QonvoApp() {
                     return;
                   }
                   const text = draft;
-                  void store.send(text, replyTo?.ts).then((ok) => {
-                    if (!ok) return;
-                    setDraft("");
-                    setReplyTo(null);
-                    setEmojiOpen(false);
-                    stickBottom.current = true;
-                    setNewCount(0);
-                    store.bumpPresence(false);
-                    inputRef.current?.focus();
-                    requestAnimationFrame(() => {
-                      const el = scroller.current;
-                      if (el) el.scrollTop = el.scrollHeight;
-                    });
+                  if (!text.trim()) return;
+                  const parentTs = replyTo?.ts;
+                  // Clear immediately on optimistic send so typed text does not linger.
+                  setDraft("");
+                  setReplyTo(null);
+                  setEmojiOpen(false);
+                  stickBottom.current = true;
+                  setNewCount(0);
+                  store.bumpPresence(false);
+                  inputRef.current?.focus();
+                  requestAnimationFrame(() => {
+                    const el = scroller.current;
+                    if (el) el.scrollTop = el.scrollHeight;
+                  });
+                  void store.send(text, parentTs).then((ok) => {
+                    if (!ok) {
+                      // Restore draft if server rejected / failed.
+                      setDraft(text);
+                      return;
+                    }
                   });
                 }}
               >
@@ -2024,10 +2031,9 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
             onCap={setCap}
             onClose={() => setRepost(null)}
             onSend={() => {
-              const who = store.handle || "Someone";
               const extra = cap.trim();
               const path = `/p/${encodeURIComponent(repost.slug || repost.id)}`;
-              store.send(`${who} reposted: ${repost.title}${extra ? `\n${extra}` : ""}\n${path}`);
+              store.send(`reposted: ${repost.title}${extra ? `\n${extra}` : ""}\n${path}`);
               store.sharePost(repost.id);
               setRepost(null);
               setCap("");
@@ -2156,10 +2162,9 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
             onCap={setCap}
             onClose={() => setRepost(null)}
             onSend={() => {
-              const who = store.handle || "Someone";
               const extra = cap.trim();
               const path = `/p/${encodeURIComponent(repost.slug || repost.id)}`;
-              store.send(`${who} reposted: ${repost.title}${extra ? `\n${extra}` : ""}\n${path}`);
+              store.send(`reposted: ${repost.title}${extra ? `\n${extra}` : ""}\n${path}`);
               store.sharePost(repost.id);
               setRepost(null);
               setCap("");
@@ -2265,6 +2270,16 @@ function ChatAdCard({ ad, pinned, onView }: { ad: Campaign; pinned?: boolean; on
   );
 }
 
+function parseRepost(text: string): { title: string; lines: string[] } | null {
+  const raw = text || "";
+  const lines = raw.split("\n");
+  const head = lines[0] || "";
+  const m = head.match(/^(?:(.+?)\s+)?reposted:\s*(.*)$/i);
+  if (!m) return null;
+  const title = (m[2] || "").trim();
+  return { title, lines: lines.slice(1) };
+}
+
 function ChatLine({
   m,
   handle,
@@ -2279,6 +2294,7 @@ function ChatLine({
   onReply: (m: ChatMsg) => void;
 }) {
   const mine = Boolean(handle && m.n === handle);
+  const repost = parseRepost(m.t || "");
   return (
     <div
       className={`rounded-xl border px-2.5 py-1.5 ${
@@ -2292,28 +2308,34 @@ function ChatLine({
           <span style={{ color: handleColor(m.parentN) }}>{m.parentN}</span> · {m.parentT}
         </button>
       ) : null}
-      <div className="flex items-baseline gap-2">
-        <HandleLink handle={m.n} />
-        <span className="text-[10px] text-muted">{timeLabel(m.ts)}</span>
-        {mine ? <span className="text-[9px] font-semibold text-lime-2">you</span> : null}
-      </div>
-      <div className="text-[13px] leading-snug">
-        {/^(.+?\s)?reposted:\s/i.test(m.t || "") ? (
-          <span>
-            <span className="inline-flex items-center gap-1 font-semibold text-lime-2">
-              <Repeat2 className="size-3.5" />
-              {m.t.split("\n")[0]}
+      <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+        <HandleLink handle={m.n} className="text-[11px] font-semibold" />
+        {repost ? (
+          <>
+            <span className="text-[11px] text-muted">·</span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted">
+              <Repeat2 className="size-3 text-lime-2/80" aria-hidden />
+              reposted
             </span>
-            {m.t.split("\n").slice(1).map((line, i) =>
+          </>
+        ) : null}
+        <span className="text-[11px] text-muted">{timeLabel(m.ts)}</span>
+        {mine ? <span className="text-[11px] font-semibold text-lime-2">you</span> : null}
+      </div>
+      <div className="mt-0.5 text-[12px] leading-snug text-fg">
+        {repost ? (
+          <span>
+            {repost.title ? <span className="font-medium text-fg/90">{repost.title}</span> : null}
+            {repost.lines.map((line, i) =>
               line.startsWith("/p/") ? (
-                <a key={i} href={line} className="mt-1 block text-[12px] text-lime-2 underline">
+                <a key={i} href={line} className="mt-1 block text-[12px] font-semibold text-lime-2 underline">
                   Open story
                 </a>
-              ) : (
-                <span key={i} className="mt-1 block text-[13px]">
+              ) : line.trim() ? (
+                <span key={i} className="mt-1 block text-[12px] text-fg/80">
                   {line}
                 </span>
-              ),
+              ) : null,
             )}
           </span>
         ) : (
