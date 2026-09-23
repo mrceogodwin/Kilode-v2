@@ -49,7 +49,7 @@ import {
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { canKind, canCreateMenu } from "@/lib/permissions";
-import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS, DEMO_CHAT } from "@/lib/qonvo-seed";
+import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
 import { CinemaPane } from "@/components/cinema-pane";
@@ -610,10 +610,14 @@ export function QonvoApp() {
                 }}
               >
                 {store.msgs.length === 0 ? (
-                  <p className="text-center text-[10px] font-medium tracking-[0.16em] text-lime-2">SAMPLE CONVERSATION</p>
+                  <p className="px-2 py-8 text-center text-[12px] text-muted">
+                    No messages in this room yet.
+                    <br />
+                    <span className="text-[11px]">Each room keeps its own chat. Sign in to start the thread.</span>
+                  </p>
                 ) : null}
                 {mixChatAds(
-                  chatRows(store.msgs.length ? store.msgs : DEMO_CHAT),
+                  chatRows(store.msgs),
                   store.campaigns.filter((c) => c.status === "approved" && c.placement === "chat"),
                 ).map((row) => {
                   if (row.kind === "chip") {

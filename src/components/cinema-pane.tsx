@@ -359,6 +359,8 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
 
   useEffect(() => {
     let on = true;
+    setMsgs([]);
+    setErr("");
     const pull = () => {
       if (typeof document !== "undefined" && document.hidden) return;
       void listMsgs({ data: { roomId } })
@@ -367,7 +369,9 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
           const pack = Array.isArray(r) ? { msgs: r } : r;
           setMsgs(pack.msgs ?? []);
         })
-        .catch(() => undefined);
+        .catch(() => {
+          if (on) setMsgs([]);
+        });
     };
     pull();
     const t = setInterval(pull, 8000);
@@ -380,7 +384,7 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
   return (
     <div className="border-t border-white/5 bg-bg">
       <div className="max-h-56 overflow-y-auto px-2 py-1.5">
-        {msgs.length === 0 ? <p className="text-[10px] text-muted">Talk this film. Sign in to send.</p> : null}
+        {msgs.length === 0 ? <p className="text-[10px] text-muted">No chat for this film yet. Each title has its own thread in the database. Sign in to send.</p> : null}
         {msgs.map((m) => (
           <div key={m.ts + m.n} className="py-0.5">
             <div className="flex items-baseline gap-1.5">
@@ -403,16 +407,25 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
           const text = draft.trim();
           if (!text) return;
           setErr("");
-          void saveMsg({ data: { roomId, text } }).then((r) => {
-            if (r && "ok" in r && r.ok === false) setErr(r.reason);
-            else {
+          void saveMsg({ data: { roomId, text } })
+            .then((r) => {
+              if (r && "ok" in r && r.ok === false) {
+                setErr(r.reason);
+                return;
+              }
               setDraft("");
+              if (r && "n" in r && "ts" in r) {
+                setMsgs((prev) => [
+                  ...prev,
+                  { n: String(r.n), t: ("t" in r && r.t ? String(r.t) : text), ts: Number(r.ts), rx: {} },
+                ]);
+              }
               void listMsgs({ data: { roomId } }).then((pack) => {
                 const p = Array.isArray(pack) ? { msgs: pack } : pack;
                 setMsgs(p.msgs ?? []);
               });
-            }
-          });
+            })
+            .catch(() => setErr("Could not save. Check you are signed in."));
         }}
       >
         <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={signed ? "Talk this scene…" : "Sign in to chat"} className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-base" />

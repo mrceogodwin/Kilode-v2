@@ -229,6 +229,12 @@ export function useQonvo() {
 
   useEffect(() => {
     if (!ready) return;
+    // Clear immediately so switching rooms never shows another room's history.
+    setMsgs([]);
+    setHasOlder(false);
+    setHasNewer(false);
+    setOnline([]);
+    setTyping([]);
     void listMsgs({ data: { roomId } })
       .then((r) => {
         const pack = asPack(r);

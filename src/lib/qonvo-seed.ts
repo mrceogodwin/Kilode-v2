@@ -931,20 +931,8 @@ function moreAd(id: string, name: string, note: string, days: 1 | 7 | 14 | 30, e
   };
 }
 
-export const DEMO_CHAT: ChatMsg[] = [
-  { n: "Amaka#2201", t: "Who saw that Chelsea news? Room dey hot.", ts: Date.now() - 820_000, rx: { up: 4, fire: 2 } },
-  { n: "Tunde#104", t: "I dey here. No links in chat — just talk 🔥", ts: Date.now() - 760_000, rx: { up: 3 } },
-  { n: "Kemi#0092", t: "Feeds grid looking clean today. That rain piece?", ts: Date.now() - 690_000 },
-  { n: "Chidi#4410", t: "King’s College story first. Then cinema vote later.", ts: Date.now() - 640_000, parentN: "Kemi#0092", parentT: "Feeds grid looking clean today. That rain piece?", parentTs: Date.now() - 690_000 },
-  { n: "Baba#12", t: "Naija never sleeps. Good morning the room.", ts: Date.now() - 510_000, rx: { up: 6 } },
-  { n: "Ife#830", t: "Anybody in Lagos room or we holding Hot Topics?", ts: Date.now() - 430_000 },
-  { n: "Amaka#2201", t: "Stay here first. Messages expire — say it now.", ts: Date.now() - 360_000, parentN: "Ife#830", parentT: "Anybody in Lagos room or we holding Hot Topics?", parentTs: Date.now() - 430_000 },
-  { n: "Tunde#104", t: "Amen. No phone numbers. Just gist.", ts: Date.now() - 280_000, rx: { fire: 1 } },
-  { n: "Zara#77", t: "Jobs page get roles now. Lagos UI and Abuja writer.", ts: Date.now() - 210_000, rx: { up: 2 } },
-  { n: "Sade#900", t: "Marketplace too. Ankara set from Aba.", ts: Date.now() - 160_000 },
-  { n: "Femi#331", t: "Cinema Watching Now — vote before it shifts.", ts: Date.now() - 110_000, rx: { fire: 3 } },
-  { n: "Ngozi#55", t: "How Kilode works is in the menu. Watch am.", ts: Date.now() - 70_000 },
-];
+/** Removed: shared demo chat polluted every Chat room. Per-room history comes from nf_msgs. */
+export const DEMO_CHAT: ChatMsg[] = [];
 
 export type DemoListing = {
   id: string;
