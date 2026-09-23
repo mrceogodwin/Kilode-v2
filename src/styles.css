@@ -636,12 +636,34 @@ html[data-skin="ivory"] .menu-dock {
 }
 .brand-word {
   display: block;
+  font-family: "Nunito", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   font-weight: 800;
   font-style: normal;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  color: #f2f3f4;
-  -webkit-text-fill-color: #f2f3f4;
+  letter-spacing: 0.045em;
+  line-height: 1.05;
+  /* Soft soft-edge plate: thin bevel, not fat extrusion */
+  color: #f4f6f5;
+  -webkit-text-fill-color: #f4f6f5;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.28),
+    0 -0.5px 0 rgba(0, 0, 0, 0.35),
+    0 1px 1px rgba(0, 0, 0, 0.22),
+    0 2px 3px rgba(0, 0, 0, 0.18);
+}
+.brand-word-k {
+  display: inline-block;
+  font-weight: 800;
+  letter-spacing: inherit;
+  /* Identity letter: taller K + Create-a-post green soft face */
+  transform: translateY(-0.04em) scaleY(1.1);
+  transform-origin: bottom center;
+  background: linear-gradient(180deg, #8fbf9a 0%, #5f8f6c 48%, #3f6a4c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.22)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.28));
 }
 .brand-url {
   display: block;
@@ -654,8 +676,21 @@ html[data-skin="ivory"] .menu-dock {
   color: var(--color-lime-2);
 }
 html[data-skin="ivory"] .brand-word {
-  color: #171b18;
-  -webkit-text-fill-color: #171b18;
+  color: #1a221c;
+  -webkit-text-fill-color: #1a221c;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95),
+    0 -0.5px 0 rgba(63, 106, 76, 0.12),
+    0 1px 1px rgba(36, 61, 44, 0.14),
+    0 2px 3px rgba(63, 106, 76, 0.12);
+}
+html[data-skin="ivory"] .brand-word-k {
+  background: linear-gradient(180deg, #6fa87c 0%, #4d7a5a 50%, #3f6a4c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.85)) drop-shadow(0 1px 1px rgba(36, 61, 44, 0.22));
 }
 .brand-mark {
   display: grid;

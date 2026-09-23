@@ -24,7 +24,9 @@ export function BrandLockup({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
     <span className="brand-lockup inline-flex items-center gap-2">
       <BangMark className={`${icon} shrink-0`} />
       <span className="brand-copy min-w-0">
-        <span className={`brand-word ${word}`}>KILODE</span>
+        <span className={`brand-word ${word}`}>
+          <span className="brand-word-k">K</span>ILODE
+        </span>
         <span className="brand-url">Talk Nigeria. Live!</span>
       </span>
     </span>
