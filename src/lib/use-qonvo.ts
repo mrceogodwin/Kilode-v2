@@ -392,7 +392,7 @@ export function useQonvo() {
       }
       if (roomIdRef.current !== want) return;
       pollN += 1;
-      // Full reconcile every 2nd poll (25s active → ≤50s heal) + on tab focus.
+      // Full reconcile every 2nd poll (50s active → ≤100s heal) + on tab focus.
       const reconcile = forceReconcile || pollN % 2 === 0;
       forceReconcile = false;
       // Server-confirmed tip only — never after: an optimistic Date.now() still in the list.
@@ -452,7 +452,7 @@ export function useQonvo() {
     };
 
     tick();
-    // Cost: active ~25s, idle ~90s, hidden stop. Only while Chat tab is live.
+    // Cost: active ~50s, idle ~120s, hidden stop. Only while Chat tab is live.
     const onVis = () => {
       if (document.hidden) {
         if (timer !== undefined) window.clearTimeout(timer);
@@ -858,8 +858,8 @@ export function useQonvo() {
       if (typeof document !== "undefined" && document.hidden) return;
       // Callers only invoke from Chat UI; do not gate on chatLive (races setChatLive).
       const now = Date.now();
-      // typing: 8s throttle; non-typing: min 30s between presence POSTs (invocation cut)
-      if (now - lastPing.current < (typingOn ? 8000 : 30_000)) return;
+      // typing: 14s throttle; non-typing: min 50s between presence POSTs (Hobby stretch)
+      if (now - lastPing.current < (typingOn ? 14_000 : 50_000)) return;
       lastPing.current = now;
       void pingPresence({ data: { roomId, typing: typingOn } })
         .then((p) => {

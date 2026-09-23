@@ -739,7 +739,7 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
         });
     };
     pull(true);
-    // Cost: active ~30s, idle ~90s, hidden stop. Abort in-flight on movie/room switch.
+    // Cost: active ~50s, idle ~120s, hidden stop. Abort in-flight on movie/room switch.
     const onVis = () => {
       if (document.hidden) {
         if (timer !== undefined) window.clearTimeout(timer);
@@ -767,7 +767,7 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
     const bump = () => {
       if (typeof document !== "undefined" && document.hidden) return;
       const now = Date.now();
-      if (now - lastPing.current < 45_000) return;
+      if (now - lastPing.current < 90_000) return;
       lastPing.current = now;
       ac?.abort();
       ac = new AbortController();
@@ -780,8 +780,8 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
         .catch(() => undefined);
     };
     bump();
-    // Cost hygiene: 60s; skip while tab hidden; abort on room switch.
-    const t = setInterval(bump, 60_000);
+    // Cost hygiene: 120s; skip while tab hidden; abort on room switch.
+    const t = setInterval(bump, 120_000);
     const onVis = () => {
       if (!document.hidden) bump();
     };
