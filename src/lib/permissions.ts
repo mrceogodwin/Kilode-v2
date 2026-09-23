@@ -50,3 +50,17 @@ export function kindActionHint(action: KindAction): string {
       return "This account type cannot do that.";
   }
 }
+
+/** True if Create menu should show for this account type. */
+export function canCreateMenu(kind: AccountKind): boolean {
+  return (
+    canKind(kind, "feeds.post") ||
+    canKind(kind, "music.submit") ||
+    canKind(kind, "ads.submit") ||
+    canKind(kind, "cinema.submit") ||
+    canKind(kind, "jobs.post") ||
+    canKind(kind, "jobs.apply") ||
+    canKind(kind, "market.list") ||
+    canKind(kind, "rent.list")
+  );
+}

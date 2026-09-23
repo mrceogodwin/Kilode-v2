@@ -48,7 +48,7 @@ import {
   Tv,
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
-import { canKind } from "@/lib/permissions";
+import { canKind, canCreateMenu } from "@/lib/permissions";
 import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS, DEMO_CHAT } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
@@ -272,7 +272,17 @@ export function QonvoApp() {
       else window.location.href = "/login";
     };
     window.addEventListener("kilode:create", go);
-    return () => window.removeEventListener("kilode:create", go);
+    const goto = (e: Event) => {
+      const d = (e as CustomEvent<{ screen?: string; tab?: string }>).detail || {};
+      if (d.tab) setHomeTab(d.tab as "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "downloads");
+      if (d.screen === "home" || d.tab) setScreen("home");
+      else if (d.screen) setScreen(d.screen as MenuId);
+    };
+    window.addEventListener("kilode:goto", goto);
+    return () => {
+      window.removeEventListener("kilode:create", go);
+      window.removeEventListener("kilode:goto", goto);
+    };
   }, [store.authed, session.user]);
 
 
@@ -909,7 +919,7 @@ export function QonvoApp() {
                 <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Quick</div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    ...(canKind(store.kind, "feeds.post") || canKind(store.kind, "music.submit")
+                    ...(canCreateMenu(store.kind)
                       ? [{ id: "create" as MenuId, label: "Create", tab: null as null | "feeds" | "music" | "chat" | "videos" }]
                       : []),
                     ...(canKind(store.kind, "ads.submit") ? [{ id: "ads" as MenuId, label: "Place ad", tab: null as null }] : []),
@@ -1022,7 +1032,7 @@ export function QonvoApp() {
                   <div className="space-y-0.5">
                     {group.ids
                       .filter((id) => {
-                        if (id === "create") return canKind(store.kind, "feeds.post") || canKind(store.kind, "music.submit");
+                        if (id === "create") return canCreateMenu(store.kind);
                         if (id === "ads") return canKind(store.kind, "ads.submit");
                         return true;
                       })

@@ -31,7 +31,8 @@ import { JoinCta, TelegramLink } from "@/components/get-app";
 import { AdCatalogPanel, AdSlotsPanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { SiteFlagsPanel } from "@/components/site-chrome";
 import { matchAdPayments, matchOneAd } from "@/lib/pay-match-server";
-import { listListings, type Listing } from "@/lib/listings-server";
+import { listListings, saveListing, type Listing } from "@/lib/listings-server";
+import { submitMovie } from "@/lib/cinema-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 
 type Store = ReturnType<typeof useQonvo>;
@@ -207,7 +208,30 @@ function PostDetail({ post, store }: { post: Post; store: Store }) {
 }
 
 function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
-  const [kind, setKind] = useState<"post" | "music">("post");
+  const ak = store.kind;
+  const canPost = canKind(ak, "feeds.post");
+  const canMusic = canKind(ak, "music.submit");
+  const canAds = canKind(ak, "ads.submit");
+  const canCinema = canKind(ak, "cinema.submit");
+  const canJobs = canKind(ak, "jobs.post");
+  const canApply = canKind(ak, "jobs.apply");
+  const canMarket = canKind(ak, "market.list");
+  const canRent = canKind(ak, "rent.list");
+
+  type Pane = "post" | "music" | "ads" | "cinema" | "job" | "apply" | "market" | "rent";
+  const primary: Pane =
+    ak === "artist" ? "music"
+    : ak === "advertiser" || ak === "brand" ? "ads"
+    : ak === "cinema" ? "cinema"
+    : ak === "job_poster" ? "job"
+    : ak === "job_seeker" ? "apply"
+    : ak === "vendor" ? "market"
+    : ak === "renter" ? "rent"
+    : "post";
+
+  const [pane, setPane] = useState<Pane>(primary);
+  useEffect(() => setPane(primary), [primary]);
+
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [excerpt, setExcerpt] = useState("");
@@ -216,6 +240,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   const [link, setLink] = useState("");
   const [image, setImage] = useState("");
   const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
   const [agree, setAgree] = useState(false);
   const [artist, setArtist] = useState("");
   const [album, setAlbum] = useState("");
@@ -228,8 +253,11 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   const [slug, setSlug] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [commentsOn, setCommentsOn] = useState(true);
-  const canPost = canKind(store.kind, "feeds.post");
-  const canMusic = canKind(store.kind, "music.submit");
+  const [company, setCompany] = useState("");
+  const [contact, setContact] = useState("");
+  const [city, setCity] = useState("");
+  const [days, setDays] = useState(30);
+  const [cinSec, setCinSec] = useState<"nigerian" | "global" | "coming">("nigerian");
 
   function onUrl(v: string) {
     setLink(v);
@@ -252,6 +280,10 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     setImage(data);
   }
 
+  function goto(screen: string, tab?: string) {
+    window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen, tab } }));
+  }
+
   function submit(status: "draft" | "publish") {
     setErr("");
     if (!agree) {
@@ -259,7 +291,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       return;
     }
     if (!canKind(store.kind, "feeds.post")) {
-      setErr("This account type cannot start a topic. Members and Writers post feeds. Artists list music. Advertisers place ads.");
+      setErr("This account type cannot start a topic.");
       return;
     }
     if (!title.trim() || !body.trim()) {
@@ -309,8 +341,12 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       setErr("Accept the Terms to list music.");
       return;
     }
+    if (!canKind(store.kind, "music.submit")) {
+      setErr("Only Artist accounts can list music URLs.");
+      return;
+    }
     if (!parseMusicUrl(link)) {
-      setErr("Paste a Spotify, Apple Music, SoundCloud, Audiomack or Deezer track URL. YouTube video is for VIDEOS.");
+      setErr("Paste a Spotify, Apple Music, SoundCloud, Audiomack or Deezer track URL. YouTube video is for Cinema / Videos.");
       return;
     }
     if (!title.trim() || !artist.trim()) {
@@ -338,40 +374,167 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     onForum?.();
   }
 
+  function submitListing(kind: "job" | "market" | "rent") {
+    setErr("");
+    setMsg("");
+    if (!agree) {
+      setErr("Accept the Terms to submit.");
+      return;
+    }
+    if (!title.trim()) {
+      setErr("Add a title.");
+      return;
+    }
+    void saveListing({
+      data: {
+        kind,
+        title,
+        body,
+        city,
+        contact,
+        link,
+        company,
+        days,
+      },
+    }).then((r) => {
+      if (!r.ok) setErr(r.reason);
+      else {
+        setMsg("Submitted for staff approval.");
+        setTitle("");
+        setBody("");
+        setCity("");
+        setContact("");
+        setLink("");
+        setCompany("");
+      }
+    });
+  }
+
+  function submitCinema() {
+    setErr("");
+    setMsg("");
+    if (!agree) {
+      setErr("Accept the Terms to submit.");
+      return;
+    }
+    void submitMovie({ data: { title, url: link, section: cinSec } }).then((r) => {
+      if (!r.ok) setErr(r.reason);
+      else {
+        setMsg("Submitted. Staff will approve before it enters the vote pool.");
+        setTitle("");
+        setLink("");
+      }
+    });
+  }
+
+  const tabs: { id: Pane; label: string; show: boolean }[] = [
+    { id: "music", label: "Music", show: canMusic },
+    { id: "ads", label: "Ads", show: canAds },
+    { id: "cinema", label: "Cinema", show: canCinema },
+    { id: "job", label: "Job", show: canJobs },
+    { id: "apply", label: "Jobs", show: canApply && !canJobs && ak === "job_seeker" },
+    { id: "market", label: "Market", show: canMarket },
+    { id: "rent", label: "Rent", show: canRent },
+    { id: "post", label: "Feeds", show: canPost && (canMusic || canJobs || canAds || canCinema || canMarket || canRent ? true : true) },
+  ];
+  // Secondary feeds only when primary is not post, and user can post
+  const showTabBar = tabs.filter((t) => t.show).length > 1;
+  const visibleTabs = tabs.filter((t) => {
+    if (!t.show) return false;
+    if (t.id === "post" && primary !== "post" && !canPost) return false;
+    // job_seeker: no post music — only apply. Hide feeds for seeker unless they want browse.
+    if (ak === "job_seeker" && t.id === "post") return false;
+    if (ak === "artist" && t.id === "post") return canPost; // secondary
+    if ((ak === "advertiser" || ak === "cinema") && t.id === "post") return false;
+    if (ak === "job_poster" && t.id === "post") return canPost;
+    if (ak === "brand" && t.id === "post") return false;
+    if ((ak === "vendor" || ak === "renter") && t.id === "post") return false;
+    return true;
+  });
+
+  const kindLabel = ACCOUNT_KINDS.find((k) => k.id === ak)?.label ?? ak;
+
+  if (pane === "ads" && canAds) {
+    return (
+      <div className="pb-8">
+        <div className="mx-auto max-w-2xl px-5 pt-5">
+          <h2 className="text-xl font-bold tracking-tight">Create · Ads</h2>
+          <p className="mt-1 text-sm text-muted">
+            {ak === "brand" ? "Brand ad creative + crypto pay. Staff approve." : "Ads Poster — place a campaign. Staff approve after payment."}
+          </p>
+          {ak === "brand" && canMarket ? (
+            <button type="button" className="btn-3d mt-2 rounded-lg px-3 py-1.5 text-[11px] font-semibold" onClick={() => setPane("market")}>
+              Also list on Marketplace
+            </button>
+          ) : null}
+          {showTabBar && visibleTabs.length > 1 ? (
+            <div className="raised mt-3 flex gap-1.5 rounded-xl p-1.5">
+              {visibleTabs.map((t) => (
+                <button key={t.id} type="button" className={`flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold ${pane === t.id ? "btn-join text-white" : "text-muted hover:bg-panel-2"}`} onClick={() => setPane(t.id)}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <Ads store={store} />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-5 pb-8">
       <div>
         <h2 className="text-xl font-bold tracking-tight">Create</h2>
         <p className="mt-1 text-sm text-muted">
-          {canMusic && !canPost ? "List a track URL. Kilode embeds the platform player." : canMusic ? "Publish to Feeds or list a track." : "Publish a topic to Feeds."}
+          {kindLabel}: {primary === "music" ? "List a track URL first. Kilode embeds the platform player."
+            : primary === "cinema" ? "Submit a YouTube trailer URL for staff approval."
+            : primary === "job" ? "Post a job listing (title, company, contact, link)."
+            : primary === "apply" ? "Browse and apply to jobs. You cannot post jobs or music."
+            : primary === "market" ? "Showcase a product. No in-app checkout."
+            : primary === "rent" ? "List a space with contact. No in-app booking."
+            : primary === "ads" ? "Place an ad after crypto payment."
+            : "Publish a topic to Feeds."}
         </p>
       </div>
-      {canMusic && canPost ? (
-      <div className="raised flex gap-1.5 rounded-xl p-1.5">
-        <button type="button" className={`flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold ${kind === "post" ? "btn-join text-white" : "text-muted hover:bg-panel-2"}`} onClick={() => setKind("post")}>
-          Post
-        </button>
-        <button type="button" className={`flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold ${kind === "music" ? "btn-join text-white" : "text-muted hover:bg-panel-2"}`} onClick={() => setKind("music")}>
-          Music
-        </button>
-      </div>
+
+      {showTabBar && visibleTabs.length > 1 ? (
+        <div className="raised flex flex-wrap gap-1.5 rounded-xl p-1.5">
+          {visibleTabs.map((t) => (
+            <button key={t.id} type="button" className={`min-w-[4.5rem] flex-1 rounded-lg px-3 py-2 text-[13px] font-semibold ${pane === t.id ? "btn-join text-white" : "text-muted hover:bg-panel-2"}`} onClick={() => setPane(t.id)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
       ) : null}
-      {!canPost && !canMusic ? (
-        <p className="rounded-xl border border-line p-3 text-sm text-muted">This account type cannot publish here. Place ads, list a job, or open Cinema from the menu that matches your type.</p>
-      ) : null}
-      {kind === "music" && canMusic ? (
+
+      {pane === "apply" ? (
         <div className="raised space-y-3 rounded-2xl p-4">
-          <p className="text-sm text-muted">Audio platforms only: Spotify, Apple Music, SoundCloud, Audiomack, Deezer. YouTube clips belong in Videos.</p>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Track title" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
-          <input value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="Artist name" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
-          <input value={album} onChange={(e) => setAlbum(e.target.value)} placeholder="Album / EP (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
-          <input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Genre" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <p className="text-sm text-muted">Job Seeker accounts apply to live roles. You cannot post jobs or list music.</p>
+          <button type="button" className="btn-join w-full rounded-xl px-3 py-3 text-sm font-bold" onClick={() => goto("jobs")}>
+            Browse jobs
+          </button>
+          <button type="button" className="btn-3d w-full rounded-xl px-3 py-3 text-sm font-semibold" onClick={() => goto("home", "feeds")}>
+            Back to Feeds
+          </button>
+        </div>
+      ) : null}
+
+      {pane === "music" && canMusic ? (
+        <div className="raised space-y-3 rounded-2xl border border-lime-2/30 p-4">
+          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">MUSIC · TRACK URL</div>
+          <p className="text-sm text-muted">Paste a Spotify, Apple Music, SoundCloud, Audiomack or Deezer link. No audio files. Cover is optional — we fetch art when we can.</p>
           <input value={link} onChange={(e) => onUrl(e.target.value)} placeholder="https://open.spotify.com/track/…" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           {preview ? <p className="text-xs text-lime-2">{preview}</p> : null}
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Notes / credits" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
-          <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Track title" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <input value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="Artist name" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input value={album} onChange={(e) => setAlbum(e.target.value)} placeholder="Album / EP (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            <input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Genre" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          </div>
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={2} placeholder="Notes / credits (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           <div className="inset-well rounded-xl p-3">
-            <div className="mb-2 text-[11px] font-medium text-muted">Cover image only (optional)</div>
+            <div className="mb-2 text-[11px] font-medium text-muted">Cover image (optional)</div>
             <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
           </div>
           {err ? <p className="text-sm text-danger">{err}</p> : null}
@@ -389,7 +552,81 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
             List on Music
           </button>
         </div>
-      ) : (
+      ) : null}
+
+      {pane === "cinema" && canCinema ? (
+        <div className="raised space-y-3 rounded-2xl p-4">
+          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">CINEMA · YOUTUBE URL</div>
+          <p className="text-sm text-muted">Trailer or official clip only. Staff approve → vote pool → Watching Now. Kilode never hosts the file.</p>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Movie title" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://youtube.com/watch?v=…" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <div className="flex flex-wrap gap-1">
+            {(["nigerian", "global", "coming"] as const).map((s) => (
+              <button key={s} type="button" onClick={() => setCinSec(s)} className={`rounded-full px-2.5 py-1 text-[11px] capitalize ${cinSec === s ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
+                {s}
+              </button>
+            ))}
+          </div>
+          {err ? <p className="text-sm text-danger">{err}</p> : null}
+          {msg ? <p className="text-sm text-lime-2">{msg}</p> : null}
+          <label className="flex items-start gap-2 text-[11px] text-muted">
+            <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+            <span>I agree to the Terms. This is an official / trailer YouTube link I may share.</span>
+          </label>
+          <button type="button" className="btn-join w-full rounded-xl px-3 py-3 text-sm font-bold" onClick={submitCinema}>
+            Submit for approval
+          </button>
+          <button type="button" className="btn-3d w-full rounded-xl px-3 py-2 text-sm font-semibold" onClick={() => goto("home", "cinema")}>
+            Open Cinema
+          </button>
+        </div>
+      ) : null}
+
+      {(pane === "job" && canJobs) || (pane === "market" && canMarket) || (pane === "rent" && canRent) ? (
+        <div className="raised space-y-3 rounded-2xl p-4">
+          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">
+            {pane === "job" ? "JOB LISTING" : pane === "market" ? "MARKETPLACE" : "RENT / SPACE"}
+          </div>
+          <p className="text-sm text-muted">
+            {pane === "job" ? "Title, company, contact, and optional link. Staff approve. Not music." : "Showcase only — contact off-platform. No checkout on Kilode."}
+          </p>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={pane === "job" ? "Role title" : pane === "market" ? "Product name" : "Space title"} className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          {pane === "job" ? (
+            <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Company" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          ) : null}
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} placeholder="Description" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Contact (phone / email / @handle)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          </div>
+          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Link (https://… optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <div className="flex flex-wrap gap-1">
+            {[7, 14, 30].map((d) => (
+              <button key={d} type="button" onClick={() => setDays(d)} className={`rounded-full px-2.5 py-1 text-[11px] ${days === d ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
+                {d} days
+              </button>
+            ))}
+          </div>
+          {err ? <p className="text-sm text-danger">{err}</p> : null}
+          {msg ? <p className="text-sm text-lime-2">{msg}</p> : null}
+          <label className="flex items-start gap-2 text-[11px] text-muted">
+            <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+            <span>I agree to the Terms. Contact details are public after approval.</span>
+          </label>
+          <button
+            type="button"
+            className="btn-join w-full rounded-xl px-3 py-3 text-sm font-bold"
+            onClick={() => submitListing(pane === "job" ? "job" : pane === "market" ? "market" : "rent")}
+          >
+            {pane === "job" ? "Submit job" : pane === "market" ? "List product" : "List space"}
+          </button>
+          <button type="button" className="btn-3d w-full rounded-xl px-3 py-2 text-sm font-semibold" onClick={() => goto(pane === "job" ? "jobs" : pane)}>
+            Open {pane === "job" ? "Jobs" : pane === "market" ? "Marketplace" : "Rent"}
+          </button>
+        </div>
+      ) : null}
+
+      {pane === "post" && canPost ? (
         <div className="raised space-y-4 rounded-2xl p-4">
           <section>
             <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">CONTENT</div>
@@ -459,7 +696,11 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
             </button>
           </div>
         </div>
-      )}
+      ) : null}
+
+      {!canPost && !canMusic && !canAds && !canCinema && !canJobs && !canMarket && !canRent && ak !== "job_seeker" ? (
+        <p className="rounded-xl border border-line p-3 text-sm text-muted">This account type cannot publish here.</p>
+      ) : null}
     </div>
   );
 }
@@ -1407,6 +1648,12 @@ function Admin({ store }: { store: Store }) {
           Role {role} · id {userId}
         </p>
       </div>
+      {role === "super" || role === "admin" ? (
+        <div className="md:col-span-2">
+          <div className="mb-1 text-[10px] font-bold tracking-[0.16em] text-lime-2">STAFF · ACCOUNT TYPE</div>
+          <VerifyKindPanel members={members} canKind={role === "super"} onReload={() => void listMembers().then(setMembers).catch(() => undefined)} />
+        </div>
+      ) : null}
       <OpsKeysPanel />
       <OpsSeoPanel />
       <AdsQueuePanel store={store} />
@@ -1449,7 +1696,6 @@ function Admin({ store }: { store: Store }) {
       {role === "super" || role === "admin" ? <ListingsAdminPanel /> : null}
       {role === "super" ? <DbPanel /> : null}
       {role ? <BanMutePanel members={members} /> : null}
-      {role === "super" || role === "admin" ? <VerifyKindPanel members={members} canKind={role === "super"} onReload={() => void listMembers().then(setMembers).catch(() => undefined)} /> : null}
       {role === "super" || role === "admin" ? <ModPanel /> : null}
       {role === "super" || role === "admin" ? <AdminPassword /> : null}
       {role === "super" || role === "admin" ? <AdminResetPassword members={members} /> : null}
@@ -1700,8 +1946,8 @@ function VerifyKindPanel({
   const picked = members.find((m) => m.handle.toLowerCase() === handle.trim().toLowerCase());
   return (
     <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
-      <div className="text-[11px] font-medium text-muted">Kilode Verified + account type</div>
-      <p className="text-xs text-muted">Badge appears next to @handle on posts and chat. Only you (super) can change account type. Users cannot switch themselves.</p>
+      <div className="text-[11px] font-medium text-muted">Verified badge + override account type</div>
+      <p className="text-xs text-muted">Pick a member below or type their username. Admin can verify. Only Super can change account type (immutable for users).</p>
       <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       {picked ? <p className="text-[11px] text-muted">{picked.handle} · {picked.kind} · {picked.verified ? "verified" : "not verified"}</p> : null}
       <div className="flex flex-wrap gap-2">

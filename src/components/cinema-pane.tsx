@@ -5,6 +5,7 @@ import { CINEMA_SECTIONS, CINEMA_SEED, listCinema, listCinemaQueue, setMovieStat
 import { listMsgs, saveMsg, getProfile } from "@/lib/forum-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { timeLabel, type AccountKind, type ChatMsg } from "@/lib/qonvo-data";
+import { canKind } from "@/lib/permissions";
 import { HandleLink } from "@/components/handle-link";
 import { TranslateBtn } from "@/components/translate-btn";
 import { AdSlot } from "@/components/ad-slot";
@@ -143,7 +144,7 @@ export function CinemaPane() {
           </div>
         ) : null}
 
-        {kind === "cinema" ? (
+        {canKind(kind, "cinema.submit") ? (
         <div className="mb-3 rounded-xl border border-line bg-panel p-2">
           <div className="text-[11px] font-medium text-muted">Cinema Advertiser — submit a YouTube URL</div>
           <p className="mb-2 text-[10px] text-muted">Staff approve. Votes send it to Watching Now. No video files on Kilode.</p>
@@ -186,7 +187,7 @@ export function CinemaPane() {
             Watch free. Vote after you join. To submit a title, register as <strong>Advertiser (Cinema)</strong>.
           </p>
         )}
-        {err && kind !== "cinema" ? <p className="mb-2 text-[11px] text-danger">{err}</p> : null}
+        {err && !canKind(kind, "cinema.submit") ? <p className="mb-2 text-[11px] text-danger">{err}</p> : null}
 
         <div className="mb-1 flex items-center gap-1 overflow-x-auto">
           {["All", "nigerian", "global", "coming"].map((t) => (
@@ -199,13 +200,17 @@ export function CinemaPane() {
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {also.map((m) => (
             <article key={m.id} className="raised overflow-hidden rounded-lg">
-              <img src={thumb(m.youtube_id)} alt="" className="aspect-video w-full object-cover" />
-              <div className="p-1.5">
-                <div className="line-clamp-2 text-[11px] font-semibold leading-tight">{m.title}</div>
-                <div className="mt-0.5 text-[9px] capitalize text-muted">{m.section} · {m.votes} votes</div>
+              <button type="button" className="block w-full text-left" onClick={() => { setWatching(m); setErr(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                <img src={thumb(m.youtube_id)} alt="" className="aspect-video w-full object-cover" />
+                <div className="p-1.5">
+                  <div className="line-clamp-2 text-[11px] font-semibold leading-tight">{m.title}</div>
+                  <div className="mt-0.5 text-[9px] capitalize text-muted">{m.section} · {m.votes} votes · tap to watch</div>
+                </div>
+              </button>
+              <div className="px-1.5 pb-1.5">
                 <button
                   type="button"
-                  className="mt-1 w-full rounded border border-line py-0.5 text-[10px] font-semibold"
+                  className="w-full rounded border border-line py-0.5 text-[10px] font-semibold"
                   onClick={() => {
                     if (!signed) {
                       window.location.href = "/login";
@@ -333,7 +338,7 @@ function CinemaQuizBox({ movieId, signed }: { movieId: string; signed: boolean }
 }
 
 function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
-  const roomId = `cin-${movieId}`;
+  const roomId = `cinema:${movieId}`;
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [draft, setDraft] = useState("");
   const [err, setErr] = useState("");
