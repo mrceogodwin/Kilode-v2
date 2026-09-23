@@ -29,6 +29,7 @@ import type { useQonvo } from "@/lib/use-qonvo";
 import { canKind } from "@/lib/permissions";
 import { AvatarImg } from "@/components/account-kind";
 import { AdSlot } from "@/components/ad-slot";
+import { DigestBox } from "@/components/get-app";
 import { SiteFooter } from "@/components/site-chrome";
 import { listMyCinema, type CinemaMovie } from "@/lib/cinema-server";
 import { listListings, listMyApps, listMyApplicants, listMyListings, type Listing, type MyApp, type MyApplicant } from "@/lib/listings-server";
@@ -333,8 +334,14 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
       { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
     );
   }
-  // member
-  return withApply(newPost, voteCinema, chat);
+  // member — Normal user flagship quick grid
+  return [
+    newPost,
+    { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
+    chat,
+    applyJobs
+      ?? { icon: Film, label: "Vote cinema", hint: "Watch + vote", onClick: () => goto({ tab: "cinema" }) },
+  ];
 }
 
 
@@ -359,6 +366,8 @@ function hubTitleFor(kind: AccountKind): string {
       return "Rent desk";
     case "brand":
       return "Brand desk";
+    case "member":
+      return "Member desk";
     default:
       return "Your desk";
   }
@@ -448,6 +457,20 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
     for (const p of mine) n += store.likes[p.id] ?? 0;
     return n;
   }, [mine, store.likes]);
+  const myComments = useMemo(
+    () => mine.reduce((a, p) => a + (p.comments?.length ?? 0), 0),
+    [mine],
+  );
+  const myPostViews = useMemo(
+    () => mine.reduce((a, p) => a + (p.views ?? 0), 0),
+    [mine],
+  );
+  const profileGaps = useMemo(() => {
+    const gaps: string[] = [];
+    if (!store.bio?.trim()) gaps.push("bio");
+    if (!store.city?.trim()) gaps.push("city");
+    return gaps;
+  }, [store.bio, store.city]);
 
   if (!signed) return <GuestDash />;
 
@@ -517,9 +540,9 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                       ]
                     : [
                         { n: mine.length, l: "Posts" },
+                        { n: drafts.length, l: "Drafts" },
+                        { n: myComments, l: "Comments" },
                         { n: postVotes, l: "Votes" },
-                        { n: store.savedPosts.length, l: "Saved" },
-                        { n: store.pins.length, l: "Rooms" },
                       ];
 
   return (
@@ -581,7 +604,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
               <LogOut className="size-3.5" />
               {signingOut ? "Signing out…" : "Sign out"}
             </button>
-            <p className="mt-1.5 text-center text-[10px] text-muted">Sign out lives here — not next to the header mark.</p>
+            <p className="mt-1.5 text-center text-[10px] text-muted">Sign out only on Me · Dashboard — never next to the header mark.</p>
           </div>
         ) : null}
       </div>
@@ -1048,37 +1071,102 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       ) : null}
 
       {kind === "member" ? (
-        <Section kicker="MEMBER" title="Made for your account">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <ActionTile icon={Plus} label="Post in Feeds" hint="Rich editor · publish" onClick={openCreate} />
-            <ActionTile icon={Briefcase} label="Apply to jobs" hint="Open roles near you" onClick={() => goto({ screen: "jobs" })} />
-            <ActionTile icon={Film} label="Vote cinema" hint="One vote / title / day" onClick={() => goto({ tab: "cinema" })} />
-          </div>
-          {drafts.length ? (
-            <p className="mt-3 text-[11px] text-muted">
-              {drafts.length} draft{drafts.length === 1 ? "" : "s"} waiting — open Create to finish.
-            </p>
-          ) : null}
-        </Section>
+        <>
+          <Section kicker="NORMAL" title="How Member works">
+            <div className="raised space-y-2 rounded-2xl border border-lime-2/25 p-3 text-[12px] leading-snug text-muted">
+              <p>
+                <span className="font-bold text-lime-2">1.</span> Post in Feeds with the rich editor — headline, toolbar body, featured image.
+              </p>
+              <p>
+                <span className="font-bold text-lime-2">2.</span> Chat in 36-state rooms, vote Cinema once per title per day, apply to live jobs.
+              </p>
+              <p>
+                <span className="font-bold text-lime-2">3.</span> Keep bio + city sharp so posters and rooms recognise you. Sign out only from this Me desk.
+              </p>
+            </div>
+          </Section>
+
+          <Section kicker="MEMBER" title="Your posts" action="New post" onAction={openCreate}>
+            <div id="me-posts" />
+            {mine.length === 0 && drafts.length === 0 ? (
+              <EmptyBlock
+                body="Nothing published yet. A Normal account uses the same Feeds rich editor as Writers — draft on this device, then publish under your @handle."
+                cta="New post"
+                onClick={openCreate}
+              />
+            ) : (
+              <div className="space-y-2">
+                <p className="text-[11px] text-muted">
+                  {mine.length} published · {drafts.length} draft{drafts.length === 1 ? "" : "s"} · {fmtCount(myComments)} comments · {fmtCount(myPostViews)} views · {fmtCount(postVotes)} votes
+                </p>
+                {drafts.length ? (
+                  <p className="text-[11px] text-muted">
+                    {drafts.length} draft{drafts.length === 1 ? "" : "s"} on this device — finish and publish from Create.
+                  </p>
+                ) : null}
+                {mine.slice(0, 10).map((p) => (
+                  <PostRow
+                    key={p.id}
+                    p={p}
+                    onOpen={() => {
+                      store.setOpenPost(p.id);
+                      onForum?.();
+                    }}
+                  />
+                ))}
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" className="btn-join rounded-lg py-2 text-[12px] font-bold" onClick={openCreate}>
+                    New post
+                  </button>
+                  <button type="button" className="btn-3d rounded-lg py-2 text-[12px] font-bold" onClick={() => goto({ tab: "feeds" })}>
+                    Open Feeds
+                  </button>
+                </div>
+              </div>
+            )}
+          </Section>
+
+          <Section kicker="DO MORE" title="Built into Normal">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <ActionTile icon={Plus} label="New post" hint="Rich Feeds editor" onClick={openCreate} />
+              <ActionTile icon={Briefcase} label="Apply jobs" hint="Open roles" onClick={() => goto({ screen: "jobs" })} />
+              <ActionTile icon={Film} label="Vote cinema" hint="One vote / day" onClick={() => goto({ tab: "cinema" })} />
+              <ActionTile icon={MessageSquare} label="Chat" hint="36 states + global" onClick={() => goto({ tab: "chat" })} />
+            </div>
+            {profileGaps.length ? (
+              <div className="mt-3 rounded-xl border border-dashed border-line bg-panel/60 px-3 py-2.5 text-[11px] text-muted">
+                Profile tip: add your {profileGaps.join(" and ")} so jobs and chat recognise you.{" "}
+                <button type="button" className="font-bold text-lime-2" onClick={() => goto({ screen: "profile" })}>
+                  Edit profile
+                </button>
+              </div>
+            ) : null}
+          </Section>
+
+          <Section kicker="UPDATES" title="Email digest">
+            <div className="raised rounded-2xl border border-line p-3">
+              <p className="mb-2 text-[12px] text-muted">
+                Same subscribe used in the footer — get new public posts by email, one at a time. No spam. We do not send until mail is wired; your address is stored.
+              </p>
+              <DigestBox quiet defaultOpen />
+            </div>
+          </Section>
+        </>
       ) : null}
 
-      {/* Feeds activity: members get New post; specialists only when they already have posts (no explore CTA). */}
-      {kind !== "writer" && (feedsPostPrimary || mine.length > 0) ? (
+      {/* Feeds activity for job_seeker (and other kinds with leftover posts). Member has its own posts desk above. */}
+      {kind !== "writer" && kind !== "member" && (feedsPostPrimary || mine.length > 0) ? (
         <Section
           kicker="ACTIVITY"
           title={feedsPostPrimary ? "Your posts" : "Your feed posts"}
-          action={kind === "member" ? "New post" : undefined}
-          onAction={kind === "member" ? openCreate : undefined}
+          action={undefined}
+          onAction={undefined}
         >
           {mine.length === 0 ? (
             <EmptyBlock
-              body={
-                kind === "member"
-                  ? "Nothing published yet. A new post puts you in Feeds for Nigeria."
-                  : "Job Seeker focus is applications. You can still post in Feeds from Create."
-              }
-              cta={kind === "member" ? "New post" : "Open Feeds"}
-              onClick={() => (kind === "member" ? openCreate() : goto({ tab: "feeds" }))}
+              body="Job Seeker focus is applications. You can still post in Feeds from Create."
+              cta="Open Feeds"
+              onClick={() => goto({ tab: "feeds" })}
             />
           ) : (
             <div className="space-y-2">
