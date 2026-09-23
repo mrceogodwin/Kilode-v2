@@ -2,7 +2,7 @@ import { useState } from "react";
 import { LANGS } from "@/lib/i18n";
 import { translateText } from "@/lib/social-server";
 
-/** Compact top-right control: pick a language, translate the whole visible thread. */
+/** Tiny top-right control: pick a language, translate the whole visible thread. */
 export function ThreadTranslateBar({
   items,
   onTranslated,
@@ -17,8 +17,8 @@ export function ThreadTranslateBar({
   const label = LANGS.find((l) => l.id === to)?.label ?? to;
 
   return (
-    <div className="flex shrink-0 flex-col items-end gap-0.5">
-      <div className="flex items-center gap-1">
+    <div className="flex shrink-0 flex-col items-end gap-0">
+      <div className="flex h-6 max-w-full flex-nowrap items-center gap-0.5 whitespace-nowrap">
         <select
           value={to}
           onChange={(e) => {
@@ -26,7 +26,7 @@ export function ThreadTranslateBar({
             setErr("");
             onTranslated({});
           }}
-          className="max-w-[5.5rem] rounded border border-line bg-panel px-1 py-0.5 text-[10px] text-muted"
+          className="h-6 min-h-[24px] max-w-[4.25rem] rounded border border-line bg-panel px-0.5 py-0 text-[10px] leading-none text-muted"
           aria-label="Show messages in"
         >
           {LANGS.filter((l) => l.id !== "en").map((l) => (
@@ -37,8 +37,10 @@ export function ThreadTranslateBar({
         </select>
         <button
           type="button"
-          className="rounded border border-lime-2/40 bg-lime-2/10 px-1.5 py-0.5 text-[10px] font-semibold text-lime-2 disabled:opacity-50"
+          className="h-6 min-h-[24px] rounded border border-lime-2/40 bg-lime-2/10 px-1.5 py-0 text-[10px] font-semibold leading-none text-lime-2 disabled:opacity-50"
           disabled={busy || items.length === 0}
+          aria-label={`Show in ${label}`}
+          title={`Show in ${label}`}
           onClick={() => {
             const pack = items.filter((i) => i.text.trim());
             if (!pack.length) {
@@ -65,10 +67,10 @@ export function ThreadTranslateBar({
             })().finally(() => setBusy(false));
           }}
         >
-          {busy ? "…" : `Show in ${label}`}
+          {busy ? "…" : "Show"}
         </button>
       </div>
-      {err ? <span className="max-w-[11rem] text-right text-[9px] text-danger">{err}</span> : null}
+      {err ? <span className="max-w-[8rem] text-right text-[8px] leading-tight text-danger">{err}</span> : null}
     </div>
   );
 }

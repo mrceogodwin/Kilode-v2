@@ -479,7 +479,7 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
             {online.length > 0 ? <span className="font-semibold text-lime-2">{online.length} in this room</span> : null}
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
+        <div className="flex shrink-0 flex-col items-end gap-0.5">
           <div className="flex rounded-full border border-line p-0.5" role="group" aria-label="Talk mode">
             <button
               type="button"
