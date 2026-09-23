@@ -23,7 +23,7 @@ export function BrandLockup({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   );
 }
 
-/** Compact TV bezel with Kilode bang on screen + soft green ping. Header Cinema entry. */
+/** Compact TV bezel with Kilode bang on screen + soft green ping. Header Kilode TV & Socials entry. */
 export function CinemaTvIcon({ className = "size-3.5" }: { className?: string }) {
   return (
     <span className={`cinema-tv-icon relative inline-grid place-items-center ${className}`} aria-hidden>

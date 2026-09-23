@@ -411,12 +411,10 @@ export function QonvoApp() {
             <button
               type="button"
               className="grid size-8 place-items-center rounded-lg border border-lime-2/35 bg-panel-2 shadow-[0_0_12px_rgba(107,158,120,0.12)]"
-              aria-label="Kilode Cinema"
-              title="Kilode Cinema"
+              aria-label="Kilode TV & Socials"
+              title="Kilode TV & Socials"
               onClick={() => {
-                store.setOpenPost(null);
-                setHomeTab("cinema");
-                setScreen("home");
+                setScreen("tv");
                 setMenuOpen(false);
               }}
             >
