@@ -13,6 +13,7 @@ import {
   Plus,
   Radio,
   Store,
+  Trash2,
   Tv,
   Users,
   Vote,
@@ -22,6 +23,7 @@ import {
   KIND_PURPOSE,
   fmtCount,
   roomName,
+  safeHttpUrl,
   timeAgo,
   type AccountKind,
 } from "@/lib/qonvo-data";
@@ -32,7 +34,7 @@ import { AdSlot } from "@/components/ad-slot";
 import { DigestBox } from "@/components/get-app";
 import { SiteFooter } from "@/components/site-chrome";
 import { listMyCinema, type CinemaMovie } from "@/lib/cinema-server";
-import { listListings, listMyApps, listMyApplicants, listMyListings, type Listing, type MyApp, type MyApplicant } from "@/lib/listings-server";
+import { deleteListing, listListings, listMyApps, listMyApplicants, listMyListings, updateListing, type Listing, type MyApp, type MyApplicant } from "@/lib/listings-server";
 
 type Store = ReturnType<typeof useQonvo>;
 
@@ -408,6 +410,17 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       .then((rows) => setMyApplicants(Array.isArray(rows) ? rows : []))
       .catch(() => setMyApplicants([]));
   }, [signed, store.handle]);
+
+  function refreshMyMarket() {
+    void listMyListings({ data: { kind: "market" } })
+      .then((rows) => setMyMarket(Array.isArray(rows) ? rows : []))
+      .catch(() => setMyMarket([]));
+  }
+  function refreshMyRent() {
+    void listMyListings({ data: { kind: "rent" } })
+      .then((rows) => setMyRent(Array.isArray(rows) ? rows : []))
+      .catch(() => setMyRent([]));
+  }
 
   const kind = store.kind as AccountKind;
   const kindLabel = ACCOUNT_KINDS.find((k) => k.id === kind)?.label ?? "Member";
@@ -802,7 +815,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           ) : (
             <div className="mb-3 space-y-2">
               {myMarket.slice(0, 6).map((r) => (
-                <ListingRow key={r.id} r={r} />
+                <ListingRow key={r.id} r={r} manage onChanged={refreshMyMarket} />
               ))}
             </div>
           )}
@@ -958,7 +971,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                   {liveMarket} live · {pendingMarket} pending · {withPhotoMarket}/{myMarket.length} with photo · {fmtCount(listingViews)} total views
                 </p>
                 {myMarket.slice(0, 12).map((r) => (
-                  <ListingRow key={r.id} r={r} />
+                  <ListingRow key={r.id} r={r} manage onChanged={refreshMyMarket} />
                 ))}
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" className="btn-join rounded-lg py-2 text-[12px] font-bold" onClick={openCreate}>
@@ -1004,7 +1017,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                   {liveRent} live · {pendingRent} pending · {withPhotoRent}/{myRent.length} with photo · {fmtCount(listingViews)} total views
                 </p>
                 {myRent.slice(0, 12).map((r) => (
-                  <ListingRow key={r.id} r={r} />
+                  <ListingRow key={r.id} r={r} manage onChanged={refreshMyRent} />
                 ))}
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" className="btn-join rounded-lg py-2 text-[12px] font-bold" onClick={openCreate}>
@@ -1246,29 +1259,234 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   );
 }
 
-function ListingRow({ r }: { r: Listing }) {
+function ListingRow({ r, manage, onChanged }: { r: Listing; manage?: boolean; onChanged?: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
+  const [title, setTitle] = useState(r.title);
+  const [body, setBody] = useState(r.body);
+  const [city, setCity] = useState(r.city);
+  const [contact, setContact] = useState(r.contact);
+  const [link, setLink] = useState(r.link);
+  const [company, setCompany] = useState(r.company);
+  const [imageUrl, setImageUrl] = useState(r.image?.startsWith("http") ? r.image : "");
+  const [imageData, setImageData] = useState(r.image?.startsWith("data:") ? r.image : "");
+  const [clearPhoto, setClearPhoto] = useState(false);
+
+  function syncFrom(row: Listing) {
+    setTitle(row.title);
+    setBody(row.body);
+    setCity(row.city);
+    setContact(row.contact);
+    setLink(row.link);
+    setCompany(row.company);
+    setImageUrl(row.image?.startsWith("http") ? row.image : "");
+    setImageData(row.image?.startsWith("data:") ? row.image : "");
+    setClearPhoto(false);
+    setErr("");
+    setMsg("");
+  }
+
+  async function onFile(file: File | undefined) {
+    setErr("");
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setErr("Images only.");
+      return;
+    }
+    if (file.size > 2_000_000) {
+      setErr("Keep the image under 2MB.");
+      return;
+    }
+    const data = await compressListingImage(file);
+    setImageData(data);
+    setImageUrl("");
+    setClearPhoto(false);
+  }
+
+  function save() {
+    setErr("");
+    setMsg("");
+    if (!title.trim() || title.trim().length < 3) {
+      setErr("Add a clear title.");
+      return;
+    }
+    if (!contact.trim()) {
+      setErr("Contact is required.");
+      return;
+    }
+    if (link.trim() && !safeHttpUrl(link)) {
+      setErr("Link must be http or https.");
+      return;
+    }
+    let image: string | undefined;
+    if (clearPhoto) image = "";
+    else if (imageData) image = imageData;
+    else if (imageUrl.trim()) image = imageUrl.trim();
+    else image = r.image; // keep
+    setBusy(true);
+    void updateListing({
+      data: {
+        id: r.id,
+        title,
+        body,
+        city,
+        contact,
+        link,
+        company,
+        days: r.days,
+        image,
+      },
+    })
+      .then((res) => {
+        setBusy(false);
+        if (!res.ok) {
+          setErr(res.reason);
+          return;
+        }
+        setMsg(res.status === "pending" ? "Saved — back in staff queue if it was live." : "Saved.");
+        setOpen(false);
+        onChanged?.();
+      })
+      .catch(() => {
+        setBusy(false);
+        setErr("Could not save. Try again.");
+      });
+  }
+
+  function remove() {
+    if (!window.confirm(`Delete “${r.title}”? This cannot be undone.`)) return;
+    setBusy(true);
+    setErr("");
+    void deleteListing({ data: { id: r.id } })
+      .then((res) => {
+        setBusy(false);
+        if (!res.ok) {
+          setErr(res.reason);
+          return;
+        }
+        onChanged?.();
+      })
+      .catch(() => {
+        setBusy(false);
+        setErr("Could not delete. Try again.");
+      });
+  }
+
+  const preview = clearPhoto ? "" : imageData || imageUrl || r.image || "";
+
   return (
-    <div className="flex gap-2 overflow-hidden rounded-xl border border-line bg-panel p-2">
-      {r.image ? (
-        <img src={r.image} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
-      ) : (
-        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-panel-3 text-[8px] font-bold uppercase tracking-wide text-lime-2">
-          {r.kind}
+    <div className="overflow-hidden rounded-xl border border-line bg-panel">
+      <div className="flex gap-2 p-2">
+        {r.image && !clearPhoto ? (
+          <img src={r.image} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+        ) : (
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-panel-3 text-[8px] font-bold uppercase tracking-wide text-lime-2">
+            {r.kind}
+          </div>
+        )}
+        <div className="min-w-0 flex-1 py-0.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="truncate text-sm font-semibold">{r.title}</div>
+            <StatusPill status={r.status} />
+          </div>
+          <div className="text-[10px] text-muted">
+            {r.company ? `${r.company} · ` : ""}
+            {r.city || "Nigeria"} · {fmtCount(r.views)} views · {timeAgo(r.ts)}
+          </div>
+          {r.body ? <div className="mt-0.5 line-clamp-1 text-[10px] text-muted">{r.body.split("\n")[0]}</div> : null}
+          {manage ? (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-0.5 text-[10px] font-semibold"
+                onClick={() => {
+                  syncFrom(r);
+                  setOpen((v) => !v);
+                }}
+              >
+                <Pencil className="size-3" />
+                {open ? "Close" : "Edit"}
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                className="inline-flex items-center gap-1 rounded-md border border-danger/30 px-2 py-0.5 text-[10px] font-semibold text-danger disabled:cursor-wait"
+                onClick={remove}
+              >
+                <Trash2 className="size-3" />
+                Delete
+              </button>
+            </div>
+          ) : null}
+          {err && !open ? <p className="mt-1 text-[10px] text-danger">{err}</p> : null}
+          {msg && !open ? <p className="mt-1 text-[10px] text-lime-2">{msg}</p> : null}
         </div>
-      )}
-      <div className="min-w-0 flex-1 py-0.5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="truncate text-sm font-semibold">{r.title}</div>
-          <StatusPill status={r.status} />
-        </div>
-        <div className="text-[10px] text-muted">
-          {r.company ? `${r.company} · ` : ""}
-          {r.city || "Nigeria"} · {fmtCount(r.views)} views · {timeAgo(r.ts)}
-        </div>
-        {r.body ? <div className="mt-0.5 line-clamp-1 text-[10px] text-muted">{r.body.split("\n")[0]}</div> : null}
       </div>
+      {manage && open ? (
+        <div className="space-y-2 border-t border-line bg-black/10 p-3">
+          <p className="text-[10px] text-muted">Editing a live listing sends it back to pending for staff. New drafts stay pending.</p>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-line bg-panel px-2.5 py-2 text-base" />
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Description" className="w-full rounded-lg border border-line bg-panel px-2.5 py-2 text-base" />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className="w-full rounded-lg border border-line bg-panel px-2.5 py-2 text-base" />
+            <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Contact *" className="w-full rounded-lg border border-line bg-panel px-2.5 py-2 text-base" />
+          </div>
+          <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder={r.kind === "rent" ? "Landlord / agent" : "Brand / shop"} className="w-full rounded-lg border border-line bg-panel px-2.5 py-2 text-base" />
+          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://… (optional)" className="w-full rounded-lg border border-line bg-panel px-2.5 py-2 text-base" />
+          <div className="inset-well rounded-lg p-2">
+            <div className="mb-1 text-[10px] font-bold tracking-[0.12em] text-lime-2">PHOTO</div>
+            <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
+            <input
+              value={imageUrl}
+              onChange={(e) => {
+                setImageUrl(e.target.value);
+                if (e.target.value.trim()) {
+                  setImageData("");
+                  setClearPhoto(false);
+                }
+              }}
+              placeholder="Or paste image URL https://…"
+              className="mt-1.5 w-full rounded-lg border border-line bg-panel px-2.5 py-1.5 text-base"
+            />
+            <label className="mt-1.5 flex items-center gap-1.5 text-[10px] text-muted">
+              <input type="checkbox" checked={clearPhoto} onChange={(e) => setClearPhoto(e.target.checked)} />
+              Remove photo
+            </label>
+            {preview ? <img src={preview} alt="" className="mt-2 max-h-32 w-full rounded-lg object-cover" /> : null}
+          </div>
+          {err ? <p className="text-[11px] text-danger">{err}</p> : null}
+          <button type="button" disabled={busy} className="btn-join w-full rounded-lg py-2 text-[12px] font-bold disabled:cursor-wait" onClick={save}>
+            {busy ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
+}
+
+function compressListingImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, 900 / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("canvas"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.72));
+    };
+    img.onerror = () => reject(new Error("image"));
+    img.src = url;
+  });
 }
 
 function PostRow({

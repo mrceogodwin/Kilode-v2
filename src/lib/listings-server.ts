@@ -347,3 +347,84 @@ export const listMyApplicants = createServerFn({ method: "GET" })
     );
   });
 
+
+/** Owner edit for market/rent (Vendor, Renter, Brand market). Approved → pending for staff re-check. */
+export const updateListing = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(
+    (d: {
+      id: string;
+      title: string;
+      body?: string;
+      city?: string;
+      contact?: string;
+      link?: string;
+      company?: string;
+      days?: number;
+      image?: string;
+    }) => d,
+  )
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    try {
+      await ensure();
+    } catch {
+      /* exists */
+    }
+    const rows = await sql<{
+      id: string;
+      kind: string;
+      user_id: string | null;
+      status: string;
+      image: string | null;
+    }>`select id, kind, user_id, status, image from nf_listings where id = ${data.id} limit 1`;
+    const row = rows[0];
+    if (!row) return { ok: false as const, reason: "Listing not found." };
+    if (row.user_id !== context.userId) return { ok: false as const, reason: "You can only edit your own listings." };
+    const kind = asKind(row.kind);
+    if (kind === "job") return { ok: false as const, reason: "Edit jobs from Create · Job or post a new role." };
+    const ak = await kindOf(context.userId);
+    if (!canKind(ak, ACTION[kind])) return { ok: false as const, reason: kindActionHint(ACTION[kind]) };
+    const title = data.title.trim().slice(0, 120);
+    if (title.length < 3) return { ok: false as const, reason: "Add a title." };
+    const submitter = await handleOf(context.userId);
+    const gate = await gateText("feeds", `${title} ${data.body ?? ""}`, { userId: context.userId, author: submitter });
+    if (!gate.ok) return { ok: false as const, reason: gate.reason };
+    const link = safeHttpUrl(data.link ?? "") ?? "";
+    const days = [7, 14, 30].includes(Number(data.days)) ? Number(data.days) : 30;
+    let image = row.image ?? "";
+    if (data.image !== undefined) {
+      const next = (data.image ?? "").trim();
+      if (!next) image = "";
+      else {
+        const norm = normalizeListingImage(next);
+        if (!norm) return { ok: false as const, reason: "Photo must be https://… or a compressed image under ~900KB." };
+        image = norm;
+      }
+    }
+    // Material edit of a live listing returns to staff queue
+    const status = row.status === "approved" ? "pending" : row.status === "rejected" ? "pending" : row.status;
+    await sql`update nf_listings set title = ${title}, body = ${(data.body ?? "").slice(0, 2000)}, city = ${(data.city ?? "").slice(0, 80)}, contact = ${(data.contact ?? "").slice(0, 120)}, link = ${link}, company = ${(data.company ?? "").slice(0, 80)}, days = ${days}, image = ${image}, status = ${status}, expires_at = null where id = ${data.id} and user_id = ${context.userId}`;
+    return { ok: true as const, status: status as "pending" | "approved" | "rejected" };
+  });
+
+/** Owner hard-delete for market/rent listings only. */
+export const deleteListing = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    try {
+      await ensure();
+    } catch {
+      /* exists */
+    }
+    const rows = await sql<{ id: string; kind: string; user_id: string | null }>`select id, kind, user_id from nf_listings where id = ${data.id} limit 1`;
+    const row = rows[0];
+    if (!row) return { ok: false as const, reason: "Listing not found." };
+    if (row.user_id !== context.userId) return { ok: false as const, reason: "You can only delete your own listings." };
+    const kind = asKind(row.kind);
+    if (kind === "job") return { ok: false as const, reason: "Job listings cannot be deleted here — ask staff if needed." };
+    await sql`delete from nf_listings where id = ${data.id} and user_id = ${context.userId}`;
+    return { ok: true as const };
+  });
