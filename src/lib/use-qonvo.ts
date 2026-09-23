@@ -268,10 +268,13 @@ export function useQonvo() {
   useEffect(() => {
     if (!ready || !chatLive) return;
     let dead = false;
+    let inFlight = false;
     const tick = () => {
       if (dead || (typeof document !== "undefined" && document.hidden)) return;
+      if (inFlight) return; // avoid duplicate parallel listMsgs for same room
       const last = msgsRef.current[msgsRef.current.length - 1];
       const payload = hasNewerRef.current || !last ? { roomId } : { roomId, after: last.ts };
+      inFlight = true;
       void listMsgs({ data: payload })
         .then((r) => {
           if (dead) return;
@@ -295,10 +298,14 @@ export function useQonvo() {
           setMsgs((prev) => [...prev, ...extra].slice(-80));
           setHasNewer(!!pack.newer);
         })
-        .catch(() => undefined);
+        .catch(() => undefined)
+        .finally(() => {
+          inFlight = false;
+        });
     };
     tick();
-    const id = window.setInterval(tick, 6500);
+    // Cost hygiene: 6.5s → 12s. Pauses when tab hidden; only while Chat tab is live.
+    const id = window.setInterval(tick, 12_000);
     const onVis = () => {
       if (!document.hidden) tick();
     };
@@ -626,8 +633,11 @@ export function useQonvo() {
   const bumpPresence = useCallback(
     (typingOn: boolean) => {
       if (!session.user && !authed) return;
+      if (typeof document !== "undefined" && document.hidden) return;
+      // Callers only invoke from Chat UI; do not gate on chatLive (races setChatLive).
       const now = Date.now();
-      if (typingOn && now - lastPing.current < 2500) return;
+      // typing: 2.5s → 4s throttle; non-typing: min 12s between presence POSTs
+      if (now - lastPing.current < (typingOn ? 4000 : 12_000)) return;
       lastPing.current = now;
       void pingPresence({ data: { roomId, typing: typingOn } })
         .then((p) => {

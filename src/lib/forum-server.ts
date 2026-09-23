@@ -135,20 +135,37 @@ export const listPosts = createServerFn({ method: "GET" }).handler(async () => {
     ts: number | string;
     views: number | string | null;
   }>`select id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, views from nf_posts where status = 'publish' order by ts desc limit 520`;
-  const comments = await sql<{
+  // Scope comments to the page of posts (was unbounded SELECT of all nf_comments).
+  const postIds = posts.map((row) => row.id);
+  let comments: {
     post_id: string;
     author: string;
     body: string;
     ts: number | string;
     parent_ts: number | string | null;
-  }>`select post_id, author, body, ts, parent_ts from nf_comments order by ts asc`;
+  }[] = [];
+  if (postIds.length) {
+    comments = await sql.query(
+      `select post_id, author, body, ts, parent_ts from nf_comments where post_id = any($1::text[]) order by ts asc`,
+      [postIds],
+    );
+  }
+  const byPost = new Map<string, { author: string; body: string; ts: number; parentTs?: number }[]>();
+  for (const c of comments) {
+    const list = byPost.get(c.post_id) ?? [];
+    list.push({
+      author: c.author,
+      body: c.body,
+      ts: Number(c.ts),
+      parentTs: c.parent_ts ? Number(c.parent_ts) : undefined,
+    });
+    byPost.set(c.post_id, list);
+  }
   return posts.map((p) => ({
     ...p,
     ts: Number(p.ts),
     views: Number(p.views ?? 0),
-    comments: comments
-      .filter((c) => c.post_id === p.id)
-      .map((c) => ({ author: c.author, body: c.body, ts: Number(c.ts), parentTs: c.parent_ts ? Number(c.parent_ts) : undefined })),
+    comments: byPost.get(p.id) ?? [],
   }));
   } catch {
     return [];
@@ -534,7 +551,14 @@ export const listMsgs = createServerFn({ method: "GET" })
     });
     if (msgs.length) {
       try {
-        const rx = await sql<{ ts: number | string; kind: string; n: number | string }>`select ts, kind, n from nf_rx where room_id = ${roomId}`;
+        // Cap: only reactions for the returned page (was unbounded per room).
+        const firstTs = msgs[0].ts;
+        const lastTs = msgs[msgs.length - 1].ts;
+        const lo = Math.min(firstTs, lastTs);
+        const hi = Math.max(firstTs, lastTs);
+        const rx = await sql<{ ts: number | string; kind: string; n: number | string }>`
+          select ts, kind, n from nf_rx
+          where room_id = ${roomId} and ts >= ${lo} and ts <= ${hi}`;
         const bag = new Map<number, Record<string, number>>();
         rx.forEach((x) => {
           const k = Number(x.ts);

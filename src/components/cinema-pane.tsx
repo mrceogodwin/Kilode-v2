@@ -630,9 +630,16 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
     }
   }
 
+  const msgsRef = useRef<ChatMsg[]>([]);
+  useEffect(() => {
+    msgsRef.current = allMsgs;
+  }, [allMsgs]);
+
   useEffect(() => {
     let on = true;
+    let inFlight = false;
     setAllMsgs([]);
+    msgsRef.current = [];
     setErr("");
     setXlate({});
     setOnline([]);
@@ -640,22 +647,47 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
     stickBottom.current = true;
     lastLen.current = 0;
     setMode("live");
-    const pull = () => {
+    const pull = (forceFull = false) => {
       if (typeof document !== "undefined" && document.hidden) return;
-      void listMsgs({ data: { roomId } })
+      if (inFlight) return;
+      const last = msgsRef.current[msgsRef.current.length - 1];
+      const payload =
+        forceFull || !last ? { roomId } : { roomId, after: last.ts };
+      inFlight = true;
+      void listMsgs({ data: payload })
         .then((r) => {
           if (!on) return;
-          applyPack(r);
+          if (forceFull || !last) {
+            applyPack(r);
+            return;
+          }
+          const p = Array.isArray(r)
+            ? { msgs: r as ChatMsg[] }
+            : (r as { msgs?: ChatMsg[]; hours?: number; online?: { handle: string; typing: boolean }[] });
+          if (typeof p.hours === "number") setChatHours(p.hours);
+          if (Array.isArray(p.online)) setOnline(p.online);
+          const extra = (p.msgs ?? []).filter((m) => !msgsRef.current.some((x) => x.ts === m.ts));
+          if (!extra.length) return;
+          setAllMsgs((prev) => [...prev, ...extra].slice(-80));
         })
         .catch(() => {
-          if (on && !pendingRef.current) setAllMsgs([]);
+          if (on && !pendingRef.current && !last) setAllMsgs([]);
+        })
+        .finally(() => {
+          inFlight = false;
         });
     };
-    pull();
-    const t = setInterval(pull, 8000);
+    pull(true);
+    // Cost hygiene: 8s full refetch → 14s incremental; pause when tab hidden.
+    const t = setInterval(() => pull(false), 14_000);
+    const onVis = () => {
+      if (!document.hidden) pull(false);
+    };
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       on = false;
       clearInterval(t);
+      document.removeEventListener("visibilitychange", onVis);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
@@ -664,8 +696,9 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
     if (!signed) return;
     let on = true;
     const bump = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       const now = Date.now();
-      if (now - lastPing.current < 12_000) return;
+      if (now - lastPing.current < 18_000) return;
       lastPing.current = now;
       void pingPresence({ data: { roomId, typing: false } })
         .then((p) => {
@@ -675,10 +708,16 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
         .catch(() => undefined);
     };
     bump();
-    const t = setInterval(bump, 20_000);
+    // Cost hygiene: 20s → 30s; skip while tab hidden.
+    const t = setInterval(bump, 30_000);
+    const onVis = () => {
+      if (!document.hidden) bump();
+    };
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       on = false;
       clearInterval(t);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, [roomId, signed]);
 

@@ -113,6 +113,7 @@ function useDesk<T>(desk: MarketDesk, empty: T): T | null {
     let on = true;
     setD(null);
     const load = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       void getMarketDesk({ data: { desk } })
         .then((r) => {
           if (on) setD(r as T);
@@ -122,10 +123,16 @@ function useDesk<T>(desk: MarketDesk, empty: T): T | null {
         });
     };
     load();
-    const t = window.setInterval(load, 50_000);
+    // Cost hygiene: 50s → 75s; pause when tab hidden (server still caches per desk).
+    const t = window.setInterval(load, 75_000);
+    const onVis = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       on = false;
       window.clearInterval(t);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, [desk]);
   return d;
