@@ -71,6 +71,8 @@ import { HowKilode } from "@/components/how-kilode";
 import { MenuLegal, MenuPin } from "@/components/get-app";
 import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
+import { PostBody } from "@/components/post-body";
+import { postBodyPlain } from "@/lib/post-body";
 import { InstallToast, SiteFooter, TrendingTicker } from "@/components/site-chrome";
 import { FeedsHero } from "@/components/feeds-hero";
 import { BrandLockup } from "@/components/brand-lockup";
@@ -1753,7 +1755,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
   const comments = post.comments ?? [];
   const roots = comments.filter((c) => !c.parentTs);
   const kids = (ts: number) => comments.filter((c) => c.parentTs === ts);
-  const mins = Math.max(1, Math.round((post.body || "").split(/\s+/).length / 180));
+  const mins = Math.max(1, Math.round(postBodyPlain(post.body || "").split(/\s+/).filter(Boolean).length / 180));
   const saved = store.savedPosts.includes(post.id);
   const likes = store.likes[post.id] ?? 0;
   const shares = store.shares[post.id] ?? 0;
@@ -1845,11 +1847,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
           </ShareIco>
         </div>
         <TrendingRail posts={store.posts} ads={store.campaigns} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
-        <div className="mt-5 space-y-3 text-[15px] leading-7 text-fg/90">
-          {post.body.split(/\n+/).map((para, i) => (
-            <p key={i}>{para}</p>
-          ))}
-        </div>
+        <PostBody body={post.body || ""} />
         {post.link ? (
           <a href={post.link} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-1 text-xs text-lime-2">
             <Link2 className="size-3" /> Source

@@ -3,6 +3,8 @@ import { DEMO_POSTS } from "@/lib/qonvo-seed";
 import { getPublicPost } from "@/lib/forum-server";
 import { seoHead } from "@/lib/seo";
 import { timeLabel, handleColor, type Post } from "@/lib/qonvo-data";
+import { PostBody } from "@/components/post-body";
+import { postBodyPlain } from "@/lib/post-body";
 
 export const Route = createFileRoute("/p/$id")({
   loader: async ({ params }): Promise<{ post: Post | null }> => {
@@ -16,7 +18,7 @@ export const Route = createFileRoute("/p/$id")({
     if (!post) return seoHead({ title: "Post", path: "/p/" });
     return seoHead({
       title: post.title,
-      description: (post.excerpt || post.body || "").slice(0, 160),
+      description: (post.excerpt || postBodyPlain(post.body || "")).slice(0, 160),
       path: `/p/${post.slug || post.id}`,
       image: post.image ?? undefined,
       type: "article",
@@ -57,7 +59,7 @@ function PublicPost() {
           <span style={{ color: handleColor(post.author) }}>{post.author}</span> · {timeLabel(post.ts)}
         </p>
         {post.image ? <img src={post.image} alt={post.title} className="mt-4 w-full rounded-xl object-cover" /> : null}
-        <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed">{post.body}</p>
+        <PostBody body={post.body || ""} className="mt-4 text-sm leading-relaxed text-fg/90 [&_a]:text-lime-2 [&_a]:underline [&_h2]:mt-4 [&_h2]:text-xl [&_h2]:font-bold [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_img]:my-3 [&_img]:max-h-80 [&_img]:w-full [&_img]:rounded-xl [&_img]:object-cover [&_p]:mb-2" />
         {post.comments?.length ? (
           <section className="mt-8 border-t border-line pt-4">
             <h2 className="text-sm font-bold">Comments</h2>

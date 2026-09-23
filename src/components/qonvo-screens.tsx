@@ -35,6 +35,8 @@ import { matchAdPayments, matchOneAd } from "@/lib/pay-match-server";
 import { listListings, saveListing, type Listing } from "@/lib/listings-server";
 import { submitMovie } from "@/lib/cinema-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
+import { PostRichEditor } from "@/components/post-rich-editor";
+import { postBodyPlain, sanitizePostHtml } from "@/lib/post-body";
 
 type Store = ReturnType<typeof useQonvo>;
 
@@ -295,7 +297,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       setErr("This account type cannot start a topic.");
       return;
     }
-    if (!title.trim() || !body.trim()) {
+    if (!title.trim() || !postBodyPlain(body)) {
       setErr("Title and post content are required.");
       return;
     }
@@ -307,7 +309,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     const feature = image || (safeHttpUrl(imageUrl) ?? "");
     store.publishPost({
       title,
-      body,
+      body: sanitizePostHtml(body),
       excerpt,
       category,
       tags,
@@ -632,7 +634,12 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           <section>
             <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">CONTENT</div>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Headline" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} placeholder="Write the full post…" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            <PostRichEditor
+              value={body}
+              onChange={setBody}
+              featuredSrc={image || (safeHttpUrl(imageUrl) ?? "") || undefined}
+              placeholder="Write the full post…"
+            />
             <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} placeholder="Excerpt — short summary for the tile (not the same as the title)" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           </section>
           <section>

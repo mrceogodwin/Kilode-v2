@@ -4,6 +4,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { asAccountKind, type AccountKind, type AdPlacement } from "@/lib/qonvo-data";
 import { canKind, kindActionHint, type KindAction } from "@/lib/permissions";
 import { gateText } from "@/lib/mod-cache";
+import { postBodyPlain, sanitizePostHtml } from "@/lib/post-body";
 import { pushNote, userIdByHandle } from "@/lib/social-server";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 import { applyMatch } from "@/lib/pay-match";
@@ -202,8 +203,8 @@ export const savePost = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     if (!allowWrite(`post:${context.userId}`, 8)) return { ok: false as const, reason: RATE_BLOCKED };
     const title = data.title.trim();
-    const body = data.body.trim();
-    if (!title || !body) return null;
+    const body = sanitizePostHtml(data.body.trim());
+    if (!title || !postBodyPlain(body)) return null;
     const sql = await getSql();
     const id = nid();
     const ts = Date.now();
@@ -213,7 +214,7 @@ export const savePost = createServerFn({ method: "POST" })
     if (blocked) return { ok: false as const, reason: blocked };
     const gate = await gateText("feeds", body, { userId: context.userId, author });
     if (!gate.ok) return { ok: false as const, reason: gate.reason };
-    const excerpt = data.excerpt ?? gate.text.slice(0, 140);
+    const excerpt = (data.excerpt?.trim() || postBodyPlain(gate.text)).slice(0, 140);
     const seoTitle = (data.seoTitle ?? "").trim().slice(0, 80);
     const seoDesc = (data.seoDesc ?? "").trim().slice(0, 180);
     const altText = (data.altText ?? "").trim().slice(0, 120);

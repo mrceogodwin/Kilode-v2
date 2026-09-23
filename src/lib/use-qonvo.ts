@@ -20,6 +20,7 @@ import {
 } from "@/lib/qonvo-data";
 import { DEMO_ADS, DEMO_JOINS, DEMO_NOTES, DEMO_POSTS, DEMO_TRACKS, MORE_DEMO_ADS } from "@/lib/qonvo-seed";
 import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, savePin, savePost, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
+import { postBodyPlain } from "@/lib/post-body";
 import { listNotes } from "@/lib/social-server";
 import { hidePost as hidePostRow, setAdPlacement, setAdStatus, setAdWindow } from "@/lib/staff-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -756,7 +757,7 @@ export function useQonvo() {
         id: uid(),
         title: t,
         body: b,
-        excerpt: draft.excerpt?.trim() || b.slice(0, 140),
+        excerpt: draft.excerpt?.trim() || postBodyPlain(b).slice(0, 140),
         author: who,
         ts: Date.now(),
         comments: [],
