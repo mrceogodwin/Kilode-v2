@@ -16,7 +16,7 @@ import {
   type CinemaSection,
 } from "@/lib/cinema-server";
 import { Film, HelpCircle, Send, Star, X } from "lucide-react";
-import { listMsgs, saveMsg, getProfile } from "@/lib/forum-server";
+import { listMsgs, saveMsg, getProfile, pingPresence } from "@/lib/forum-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { timeLabel, type AccountKind, type ChatMsg } from "@/lib/qonvo-data";
 import { canKind } from "@/lib/permissions";
@@ -102,7 +102,7 @@ export function CinemaPane() {
               <li>YouTube embed only. Trailer or official clip.</li>
               <li>Join to vote once a day, rate 1–5 stars, and take the A–E quiz Super sets.</li>
               <li>Cinema Advertisers submit URLs. Staff approve. Votes can send it to Watching Now.</li>
-              <li>On a computer the chat sits beside the player so you can talk while it plays.</li>
+              <li>Live talk beside the player is a watch-party chat — join this hour's discussion while it plays.</li>
             </ul>
           </div>
         </div>
@@ -152,7 +152,7 @@ export function CinemaPane() {
             <CinemaRate movieId={watching.id} signed={signed} />
             </div>
             <div className="mt-2 overflow-hidden rounded-xl border border-line bg-panel md:mt-0 md:max-h-[70vh] md:overflow-y-auto">
-              <CinemaChat movieId={watching.id} signed={signed} />
+              <CinemaChat movieId={watching.id} title={watching.title} signed={signed} />
               <CinemaQuizBox movieId={watching.id} signed={signed} />
             </div>
           </div>
@@ -351,44 +351,61 @@ function CinemaQuizBox({ movieId, signed }: { movieId: string; signed: boolean }
   );
 }
 
-function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
+function CinemaChat({ movieId, title, signed }: { movieId: string; title?: string; signed: boolean }) {
   const roomId = `cinema:${movieId}`;
-  const [msgs, setMsgs] = useState<ChatMsg[]>([]);
+  const [mode, setMode] = useState<"live" | "full">("live");
+  const [allMsgs, setAllMsgs] = useState<ChatMsg[]>([]);
   const [draft, setDraft] = useState("");
   const [err, setErr] = useState("");
   const [xlate, setXlate] = useState<Record<string, string>>({});
+  const [online, setOnline] = useState<{ handle: string; typing: boolean }[]>([]);
+  const [chatHours, setChatHours] = useState(24);
   const pendingRef = useRef<{ ts: number; t: string; n: string } | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const stickBottom = useRef(true);
   const lastLen = useRef(0);
+  const lastPing = useRef(0);
+
+  const LIVE_MS = 60 * 60_000;
+  const liveMs = chatHours > 0 ? Math.min(LIVE_MS, chatHours * 3600_000) : LIVE_MS;
+  const liveWindowNote =
+    liveMs >= 55 * 60_000 ? "last 60 min" : liveMs >= 3600_000 ? `last ${Math.round(liveMs / 3600_000)} h` : `last ${Math.max(1, Math.round(liveMs / 60_000))} min`;
+
+  function applyPack(pack: unknown) {
+    const p = Array.isArray(pack) ? { msgs: pack as ChatMsg[] } : (pack as { msgs?: ChatMsg[]; hours?: number; online?: { handle: string; typing: boolean }[] });
+    const server = p.msgs ?? [];
+    if (typeof p.hours === "number") setChatHours(p.hours);
+    if (Array.isArray(p.online)) setOnline(p.online);
+    const pending = pendingRef.current;
+    if (pending && !server.some((m) => m.ts === pending.ts || (m.t === pending.t && m.n === pending.n))) {
+      setAllMsgs([...server, { n: pending.n, t: pending.t, ts: pending.ts, rx: {} }]);
+    } else {
+      if (pending && server.some((m) => m.ts === pending.ts || (m.t === pending.t && m.n === pending.n))) {
+        pendingRef.current = null;
+      }
+      setAllMsgs(server);
+    }
+  }
 
   useEffect(() => {
     let on = true;
-    setMsgs([]);
+    setAllMsgs([]);
     setErr("");
     setXlate({});
+    setOnline([]);
     pendingRef.current = null;
     stickBottom.current = true;
     lastLen.current = 0;
+    setMode("live");
     const pull = () => {
       if (typeof document !== "undefined" && document.hidden) return;
       void listMsgs({ data: { roomId } })
         .then((r) => {
           if (!on) return;
-          const pack = Array.isArray(r) ? { msgs: r } : r;
-          const server = pack.msgs ?? [];
-          const pending = pendingRef.current;
-          if (pending && !server.some((m) => m.ts === pending.ts || (m.t === pending.t && m.n === pending.n))) {
-            setMsgs([...server, { n: pending.n, t: pending.t, ts: pending.ts, rx: {} }]);
-          } else {
-            if (pending && server.some((m) => m.ts === pending.ts || (m.t === pending.t && m.n === pending.n))) {
-              pendingRef.current = null;
-            }
-            setMsgs(server);
-          }
+          applyPack(r);
         })
         .catch(() => {
-          if (on && !pendingRef.current) setMsgs([]);
+          if (on && !pendingRef.current) setAllMsgs([]);
         });
     };
     pull();
@@ -397,7 +414,34 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
       on = false;
       clearInterval(t);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
+
+  useEffect(() => {
+    if (!signed) return;
+    let on = true;
+    const bump = () => {
+      const now = Date.now();
+      if (now - lastPing.current < 12_000) return;
+      lastPing.current = now;
+      void pingPresence({ data: { roomId, typing: false } })
+        .then((p) => {
+          if (!on) return;
+          if (p.online) setOnline(p.online);
+        })
+        .catch(() => undefined);
+    };
+    bump();
+    const t = setInterval(bump, 20_000);
+    return () => {
+      on = false;
+      clearInterval(t);
+    };
+  }, [roomId, signed]);
+
+  const cutoff = Date.now() - liveMs;
+  const msgs = mode === "live" ? allMsgs.filter((m) => m.ts >= cutoff) : allMsgs;
+  const shortTitle = (title || "this film").trim().slice(0, 28);
 
   useEffect(() => {
     const el = scroller.current;
@@ -410,19 +454,56 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
         el.scrollTop = el.scrollHeight;
       });
     }
-  }, [msgs]);
+  }, [msgs, mode]);
 
   return (
     <div className="border-t border-white/5 bg-bg">
-      <div className="flex items-center justify-between gap-2 border-b border-white/5 px-2 py-1.5">
-        <div className="min-w-0">
-          <div className="truncate text-[11px] font-semibold text-lime-2">Talk this film</div>
-          <div className="text-[9px] text-muted">Live chat for this title</div>
+      <div className="flex items-start justify-between gap-2 border-b border-white/5 px-2 py-1.5">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="truncate text-[11px] font-bold text-lime-2">Live talk</span>
+            <span className="truncate text-[10px] text-muted">· {shortTitle}</span>
+            {mode === "live" ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-lime-2/40 bg-lime-2/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-lime-2">
+                <span className="desk-live size-1.5 rounded-full bg-lime-2" aria-hidden />
+                Live · this hour
+              </span>
+            ) : (
+              <span className="rounded-full border border-line px-1.5 py-0.5 text-[9px] font-semibold text-muted">Full film</span>
+            )}
+          </div>
+          <p className="mt-0.5 text-[9px] leading-snug text-muted">People discussing this film as it plays. Jump in.</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] text-muted">
+            <span>Talk while it plays</span>
+            {mode === "live" ? <span>· Live window · {liveWindowNote}</span> : null}
+            {online.length > 0 ? <span className="font-semibold text-lime-2">{online.length} in this room</span> : null}
+          </div>
         </div>
-        <ThreadTranslateBar
-          items={msgs.map((m) => ({ key: String(m.ts), text: m.t }))}
-          onTranslated={setXlate}
-        />
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <div className="flex rounded-full border border-line p-0.5" role="group" aria-label="Talk mode">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("live");
+                stickBottom.current = true;
+              }}
+              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${mode === "live" ? "btn-3d text-lime-2" : "text-muted"}`}
+            >
+              Live
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("full");
+                stickBottom.current = true;
+              }}
+              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${mode === "full" ? "btn-3d" : "text-muted"}`}
+            >
+              Full
+            </button>
+          </div>
+          <ThreadTranslateBar items={msgs.map((m) => ({ key: String(m.ts), text: m.t }))} onTranslated={setXlate} />
+        </div>
       </div>
       <div
         ref={scroller}
@@ -435,7 +516,9 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
       >
         {msgs.length === 0 ? (
           <p className="text-[10px] text-muted">
-            No chat for this film yet. Each title has its own thread.
+            {mode === "live"
+              ? "No one in this hour yet — be first. Others watching now will see you."
+              : "No chat for this film yet. Each title has its own thread."}
             {!signed ? (
               <>
                 {" "}
@@ -472,13 +555,13 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
           const optimistic = { n: "You", t: text, ts: optimisticTs, rx: {} as Record<string, number> };
           pendingRef.current = { ts: optimisticTs, t: text, n: "You" };
           stickBottom.current = true;
-          setMsgs((prev) => [...prev, optimistic]);
+          setAllMsgs((prev) => [...prev, optimistic]);
           setDraft("");
           void saveMsg({ data: { roomId, text } })
             .then((r) => {
               if (r && "ok" in r && r.ok === false) {
                 setErr(r.reason);
-                setMsgs((prev) => prev.filter((m) => m.ts !== optimisticTs));
+                setAllMsgs((prev) => prev.filter((m) => m.ts !== optimisticTs));
                 pendingRef.current = null;
                 setDraft(text);
                 return;
@@ -491,26 +574,24 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
                   rx: {} as Record<string, number>,
                 };
                 pendingRef.current = { ts: confirmed.ts, t: confirmed.t, n: confirmed.n };
-                setMsgs((prev) => {
+                setAllMsgs((prev) => {
                   const without = prev.filter((m) => m.ts !== optimisticTs);
                   if (without.some((m) => m.ts === confirmed.ts)) return without;
                   return [...without, confirmed];
                 });
               }
-              void listMsgs({ data: { roomId } }).then((pack) => {
-                const p = Array.isArray(pack) ? { msgs: pack } : pack;
-                const server = p.msgs ?? [];
-                const pending = pendingRef.current;
-                if (pending && !server.some((m) => m.ts === pending.ts || (m.t === pending.t && m.n === pending.n))) {
-                  setMsgs([...server, { n: pending.n, t: pending.t, ts: pending.ts, rx: {} }]);
-                } else {
-                  if (pending) pendingRef.current = null;
-                  setMsgs(server);
-                }
-              });
+              void listMsgs({ data: { roomId } }).then((pack) => applyPack(pack));
+              if (signed) {
+                lastPing.current = 0;
+                void pingPresence({ data: { roomId, typing: false } })
+                  .then((p) => {
+                    if (p.online) setOnline(p.online);
+                  })
+                  .catch(() => undefined);
+              }
             })
             .catch((e: unknown) => {
-              setMsgs((prev) => prev.filter((m) => m.ts !== optimisticTs));
+              setAllMsgs((prev) => prev.filter((m) => m.ts !== optimisticTs));
               pendingRef.current = null;
               setDraft(text);
               const msg =
@@ -528,7 +609,7 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
             if (err) setErr("");
           }}
           readOnly={!signed}
-          placeholder={signed ? "Talk this scene…" : "Sign in to chat"}
+          placeholder={signed ? "Say something about this scene…" : "Sign in to join live talk"}
           className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-base"
         />
         {signed ? (
@@ -554,7 +635,6 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
     </div>
   );
 }
-
 
 export function CinemaAdminPanel() {
   const [rows, setRows] = useState<CinemaMovie[]>([]);
