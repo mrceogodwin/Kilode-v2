@@ -1317,15 +1317,16 @@ function QonvoAppInner() {
 }
 
 function SkinToggle() {
-  const [skin, setSkin] = useState<"night" | "ivory">("night");
+  const [skin, setSkin] = useState<"night" | "ivory">("ivory");
   useEffect(() => {
     try {
       const raw = localStorage.getItem("kilode-skin-v2");
-      const s = raw === "ivory" ? "ivory" : "night";
+      const s = raw === "night" ? "night" : "ivory";
       setSkin(s);
       document.documentElement.setAttribute("data-skin", s);
     } catch {
-      document.documentElement.setAttribute("data-skin", "night");
+      setSkin("ivory");
+      document.documentElement.setAttribute("data-skin", "ivory");
     }
   }, []);
   return (
