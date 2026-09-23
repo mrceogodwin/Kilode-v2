@@ -613,7 +613,20 @@ export function QonvoApp() {
                   <p className="px-2 py-8 text-center text-[12px] text-muted">
                     No messages in this room yet.
                     <br />
-                    <span className="text-[11px]">Each room keeps its own chat. Sign in to start the thread.</span>
+                    <span className="text-[11px]">Each room keeps its own chat.</span>
+                    {!signedIn ? (
+                      <>
+                        <br />
+                        <Link to="/login" search={{}} className="mt-2 inline-block text-[12px] font-semibold text-lime-2 underline">
+                          Sign in to start the thread
+                        </Link>
+                      </>
+                    ) : (
+                      <>
+                        <br />
+                        <span className="text-[11px]">Say something to start the thread.</span>
+                      </>
+                    )}
                   </p>
                 ) : null}
                 {mixChatAds(
@@ -681,7 +694,7 @@ export function QonvoApp() {
                 className="relative flex shrink-0 gap-2 border-t border-line bg-panel/90 p-2 pb-2 mb-[calc(3.35rem+env(safe-area-inset-bottom))] backdrop-blur md:mb-0"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (!(store.authed || session.user)) {
+                  if (!session.user) {
                     window.location.href = "/login";
                     return;
                   }
@@ -689,14 +702,17 @@ export function QonvoApp() {
                     setForumWhy(true);
                     return;
                   }
-                  store.send(draft, replyTo?.ts);
-                  setDraft("");
-                  setReplyTo(null);
-                  setEmojiOpen(false);
-                  stickBottom.current = true;
-                  setNewCount(0);
-                  store.bumpPresence(false);
-                  inputRef.current?.focus();
+                  const text = draft;
+                  void store.send(text, replyTo?.ts).then((ok) => {
+                    if (!ok) return;
+                    setDraft("");
+                    setReplyTo(null);
+                    setEmojiOpen(false);
+                    stickBottom.current = true;
+                    setNewCount(0);
+                    store.bumpPresence(false);
+                    inputRef.current?.focus();
+                  });
                 }}
               >
                 {replyTo ? (
@@ -719,7 +735,7 @@ export function QonvoApp() {
                     ))}
                   </div>
                 ) : null}
-                {store.authed || session.user ? (
+                {signedIn ? (
                   <button type="button" className="btn-3d grid size-11 place-items-center rounded-full" onClick={() => setEmojiOpen((o) => !o)} aria-label="Emoji">
                     <Smile className="size-4 text-lime-2" />
                   </button>
@@ -728,16 +744,17 @@ export function QonvoApp() {
                   ref={inputRef}
                   value={draft}
                   onChange={(e) => {
-                    if (!(store.authed || session.user)) return;
+                    if (!signedIn) return;
                     setDraft(e.target.value);
+                    store.clearChatErr();
                     store.bumpPresence(true);
                   }}
-                  readOnly={!(store.authed || session.user)}
-                  placeholder={store.authed || session.user ? "Message + emoji" : "Sign in to chat"}
+                  readOnly={!signedIn}
+                  placeholder={signedIn ? "Message + emoji" : "Sign in to chat"}
                   data-chat-input="1"
                   className="min-h-11 flex-1 rounded-full border border-line bg-panel-3 px-4 text-base outline-none"
                 />
-                {store.authed || session.user ? (
+                {signedIn ? (
                   <button type="submit" className="btn-join inline-flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-full px-3.5 text-xs font-bold">
                     <Send className="size-3.5" />
                     Send
@@ -748,6 +765,16 @@ export function QonvoApp() {
                   </Link>
                 )}
               </form>
+              {store.chatErr ? (
+                <p className="shrink-0 px-3 pb-2 text-[11px] text-danger">
+                  {store.chatErr}{" "}
+                  {/sign in/i.test(store.chatErr) ? (
+                    <Link to="/login" search={{}} className="font-semibold underline">
+                      Sign in
+                    </Link>
+                  ) : null}
+                </p>
+              ) : null}
                 </>
               )}
             </section>

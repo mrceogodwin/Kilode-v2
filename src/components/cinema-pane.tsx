@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CINEMA_SECTIONS,
   CINEMA_SEED,
@@ -356,21 +356,32 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [draft, setDraft] = useState("");
   const [err, setErr] = useState("");
+  const pendingRef = useRef<{ ts: number; t: string; n: string } | null>(null);
 
   useEffect(() => {
     let on = true;
     setMsgs([]);
     setErr("");
+    pendingRef.current = null;
     const pull = () => {
       if (typeof document !== "undefined" && document.hidden) return;
       void listMsgs({ data: { roomId } })
         .then((r) => {
           if (!on) return;
           const pack = Array.isArray(r) ? { msgs: r } : r;
-          setMsgs(pack.msgs ?? []);
+          const server = pack.msgs ?? [];
+          const pending = pendingRef.current;
+          if (pending && !server.some((m) => m.ts === pending.ts || (m.t === pending.t && m.n === pending.n))) {
+            setMsgs([...server, { n: pending.n, t: pending.t, ts: pending.ts, rx: {} }]);
+          } else {
+            if (pending && server.some((m) => m.ts === pending.ts || (m.t === pending.t && m.n === pending.n))) {
+              pendingRef.current = null;
+            }
+            setMsgs(server);
+          }
         })
         .catch(() => {
-          if (on) setMsgs([]);
+          if (on && !pendingRef.current) setMsgs([]);
         });
     };
     pull();
@@ -384,7 +395,19 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
   return (
     <div className="border-t border-white/5 bg-bg">
       <div className="max-h-56 overflow-y-auto px-2 py-1.5">
-        {msgs.length === 0 ? <p className="text-[10px] text-muted">No chat for this film yet. Each title has its own thread in the database. Sign in to send.</p> : null}
+        {msgs.length === 0 ? (
+          <p className="text-[10px] text-muted">
+            No chat for this film yet. Each title has its own thread.
+            {!signed ? (
+              <>
+                {" "}
+                <a href="/login" className="font-semibold text-lime-2 underline">
+                  Sign in to send
+                </a>
+              </>
+            ) : null}
+          </p>
+        ) : null}
         {msgs.map((m) => (
           <div key={m.ts + m.n} className="py-0.5">
             <div className="flex items-baseline gap-1.5">
@@ -407,33 +430,88 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
           const text = draft.trim();
           if (!text) return;
           setErr("");
+          const optimisticTs = Date.now();
+          const optimistic = { n: "You", t: text, ts: optimisticTs, rx: {} as Record<string, number> };
+          pendingRef.current = { ts: optimisticTs, t: text, n: "You" };
+          setMsgs((prev) => [...prev, optimistic]);
+          setDraft("");
           void saveMsg({ data: { roomId, text } })
             .then((r) => {
               if (r && "ok" in r && r.ok === false) {
                 setErr(r.reason);
+                setMsgs((prev) => prev.filter((m) => m.ts !== optimisticTs));
+                pendingRef.current = null;
+                setDraft(text);
                 return;
               }
-              setDraft("");
               if (r && "n" in r && "ts" in r) {
-                setMsgs((prev) => [
-                  ...prev,
-                  { n: String(r.n), t: ("t" in r && r.t ? String(r.t) : text), ts: Number(r.ts), rx: {} },
-                ]);
+                const confirmed = {
+                  n: String(r.n),
+                  t: "t" in r && r.t ? String(r.t) : text,
+                  ts: Number(r.ts),
+                  rx: {} as Record<string, number>,
+                };
+                pendingRef.current = { ts: confirmed.ts, t: confirmed.t, n: confirmed.n };
+                setMsgs((prev) => {
+                  const without = prev.filter((m) => m.ts !== optimisticTs);
+                  if (without.some((m) => m.ts === confirmed.ts)) return without;
+                  return [...without, confirmed];
+                });
               }
               void listMsgs({ data: { roomId } }).then((pack) => {
                 const p = Array.isArray(pack) ? { msgs: pack } : pack;
-                setMsgs(p.msgs ?? []);
+                const server = p.msgs ?? [];
+                const pending = pendingRef.current;
+                if (pending && !server.some((m) => m.ts === pending.ts || (m.t === pending.t && m.n === pending.n))) {
+                  setMsgs([...server, { n: pending.n, t: pending.t, ts: pending.ts, rx: {} }]);
+                } else {
+                  if (pending) pendingRef.current = null;
+                  setMsgs(server);
+                }
               });
             })
-            .catch(() => setErr("Could not save. Check you are signed in."));
+            .catch((e: unknown) => {
+              setMsgs((prev) => prev.filter((m) => m.ts !== optimisticTs));
+              pendingRef.current = null;
+              setDraft(text);
+              const msg =
+                e instanceof Error && (e.message === "Unauthorized" || e.name === "UnauthorizedError")
+                  ? "Sign in to chat."
+                  : "Could not save. Check you are signed in.";
+              setErr(msg);
+            });
         }}
       >
-        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={signed ? "Talk this scene…" : "Sign in to chat"} className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-base" />
-        <button type="submit" className="btn-join grid size-8 place-items-center rounded-lg" aria-label="Send">
-          <Send className="size-3.5" />
-        </button>
+        <input
+          value={draft}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            if (err) setErr("");
+          }}
+          readOnly={!signed}
+          placeholder={signed ? "Talk this scene…" : "Sign in to chat"}
+          className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-base"
+        />
+        {signed ? (
+          <button type="submit" className="btn-join grid size-8 place-items-center rounded-lg" aria-label="Send">
+            <Send className="size-3.5" />
+          </button>
+        ) : (
+          <a href="/login" className="btn-join inline-flex h-8 items-center rounded-lg px-2 text-[10px] font-bold">
+            Sign in
+          </a>
+        )}
       </form>
-      {err ? <p className="px-2 pb-1 text-[10px] text-danger">{err}</p> : null}
+      {err ? (
+        <p className="px-2 pb-1 text-[10px] text-danger">
+          {err}{" "}
+          {/sign in/i.test(err) ? (
+            <a href="/login" className="font-semibold underline">
+              Sign in
+            </a>
+          ) : null}
+        </p>
+      ) : null}
     </div>
   );
 }

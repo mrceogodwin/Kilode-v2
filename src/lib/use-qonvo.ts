@@ -88,6 +88,7 @@ export function useQonvo() {
   const hasNewerRef = useRef(false);
   const lastPing = useRef(0);
   const [chatLive, setChatLive] = useState(false);
+  const [chatErr, setChatErr] = useState("");
 
   const persistNotes = useCallback((next: Note[]) => {
     setNotes(next);
@@ -229,14 +230,17 @@ export function useQonvo() {
 
   useEffect(() => {
     if (!ready) return;
+    let on = true;
     // Clear immediately so switching rooms never shows another room's history.
     setMsgs([]);
     setHasOlder(false);
     setHasNewer(false);
     setOnline([]);
     setTyping([]);
+    setChatErr("");
     void listMsgs({ data: { roomId } })
       .then((r) => {
+        if (!on) return;
         const pack = asPack(r);
         setMsgs(pack.msgs);
         setHasOlder(!!pack.older);
@@ -245,7 +249,12 @@ export function useQonvo() {
         if (pack.online) setOnline(pack.online);
         if (pack.typing) setTyping(pack.typing);
       })
-      .catch(() => setMsgs(loadJson(`msgs.${roomId}`, [])));
+      .catch(() => {
+        if (on) setMsgs(loadJson(`msgs.${roomId}`, []));
+      });
+    return () => {
+      on = false;
+    };
   }, [roomId, ready]);
 
   useEffect(() => {
@@ -453,10 +462,12 @@ export function useQonvo() {
   }, []);
 
   const needAccount = useCallback(() => {
-    if (session.user || (authed && handle)) return true;
-    note("Register or sign in to do that.");
+    // saveMsg / other writes require authMiddleware — localStorage authed is not enough.
+    if (session.user) return true;
+    setChatErr("Sign in to chat.");
+    note("Sign in to do that.");
     return false;
-  }, [authed, handle, note, session.user]);
+  }, [note, session.user]);
 
   const rename = useCallback((name: string, extra?: { bio?: string; city?: string; kind?: AccountKind; stage?: string; genre?: string; website?: string; brand?: string; face?: string }) => {
     const next = name.trim().slice(0, 24);
@@ -512,44 +523,103 @@ export function useQonvo() {
   }, [note, openPost]);
 
   const send = useCallback(
-    (text: string, parentTs?: number) => {
+    async (text: string, parentTs?: number): Promise<boolean> => {
       const body = text.trim();
-      if (!body) return;
-      if (!needAccount()) return;
-      void saveMsg({ data: { roomId, text: body, parentTs } }).then((r) => {
+      if (!body) return false;
+      setChatErr("");
+      if (!session.user) {
+        setChatErr("Sign in to chat.");
+        note("Sign in to chat.");
+        return false;
+      }
+      const who =
+        handle ||
+        publicUsername(session.user.displayName || session.user.primaryEmail || session.user.id.slice(0, 16));
+      const optimisticTs = Date.now();
+      const parent = parentTs ? msgsRef.current.find((m) => m.ts === parentTs) : undefined;
+      const optimistic: ChatMsg = {
+        n: who,
+        t: body,
+        ts: optimisticTs,
+        rx: {},
+        parentTs,
+        parentN: parent?.n,
+        parentT: parent?.t?.slice(0, 80),
+      };
+      // Show immediately; replace with server row on success.
+      if (!hasNewer) {
+        setMsgs((prev) => [...prev, optimistic]);
+      }
+      try {
+        const r = await saveMsg({ data: { roomId, text: body, parentTs } });
         if (!r || ("ok" in r && r.ok === false)) {
-          note(("reason" in (r ?? {}) ? (r as { reason: string }).reason : null) || "Blocked by the moderator.");
-          return;
+          const reason =
+            r && "reason" in r && typeof (r as { reason: string }).reason === "string"
+              ? (r as { reason: string }).reason
+              : "Blocked by the moderator.";
+          setChatErr(reason);
+          note(reason);
+          setMsgs((prev) => prev.filter((m) => m.ts !== optimisticTs));
+          return false;
         }
-        const row = r as { n: string; t?: string; ts: number; parentTs?: number; parentN?: string; parentT?: string };
-        if (hasNewer) {
-          void listMsgs({ data: { roomId } }).then((pack) => {
+        const row = r as {
+          n: string;
+          t?: string;
+          ts: number;
+          parentTs?: number;
+          parentN?: string;
+          parentT?: string;
+        };
+        const confirmed: ChatMsg = {
+          n: row.n,
+          t: row.t ?? body,
+          ts: row.ts,
+          rx: {},
+          parentTs: row.parentTs ?? parentTs,
+          parentN: row.parentN ?? parent?.n,
+          parentT: row.parentT ?? parent?.t?.slice(0, 80),
+        };
+        setMsgs((prev) => {
+          const withoutOpt = prev.filter((m) => m.ts !== optimisticTs);
+          if (withoutOpt.some((m) => m.ts === confirmed.ts)) return withoutOpt;
+          return [...withoutOpt, confirmed];
+        });
+        // Re-fetch this room only; merge so a laggy list never drops the just-sent message.
+        void listMsgs({ data: { roomId } })
+          .then((pack) => {
             const p = asPack(pack);
-            setMsgs(p.msgs);
+            const server = p.msgs ?? [];
+            const serverTs = new Set(server.map((m) => m.ts));
             setHasOlder(!!p.older);
             setHasNewer(!!p.newer);
             if (p.online) setOnline(p.online);
             if (p.typing) setTyping(p.typing);
-          }).catch(() => undefined);
-        } else {
-          const parent = parentTs ? msgsRef.current.find((m) => m.ts === parentTs) : undefined;
-          setMsgs((prev) => [
-            ...prev,
-            {
-              n: row.n,
-              t: row.t ?? body,
-              ts: row.ts,
-              rx: {},
-              parentTs: row.parentTs ?? parentTs,
-              parentN: row.parentN ?? parent?.n,
-              parentT: row.parentT ?? parent?.t?.slice(0, 80),
-            },
-          ]);
-        }
+            if (serverTs.has(confirmed.ts)) {
+              setMsgs(server);
+              return;
+            }
+            // Keep confirmed local row if DB read raced ahead of write visibility.
+            setMsgs(
+              [...server.filter((m) => m.ts !== confirmed.ts), confirmed].sort((a, b) => a.ts - b.ts),
+            );
+          })
+          .catch(() => undefined);
         note(`Sent in ${ROOMS.find((x) => x.id === roomId)?.name ?? roomId}`);
-      }).catch(() => undefined);
+        return true;
+      } catch (e: unknown) {
+        setMsgs((prev) => prev.filter((m) => m.ts !== optimisticTs));
+        const msg =
+          e instanceof Error && (e.message === "Unauthorized" || e.name === "UnauthorizedError")
+            ? "Sign in to chat."
+            : e instanceof Error && e.message
+              ? e.message
+              : "Could not send. Try again.";
+        setChatErr(msg);
+        note(msg);
+        return false;
+      }
     },
-    [chatHours, hasNewer, needAccount, note, roomId],
+    [handle, hasNewer, note, roomId, session.user],
   );
 
   const bumpPresence = useCallback(
@@ -995,6 +1065,8 @@ export function useQonvo() {
     openRoom,
     rename,
     send,
+    chatErr,
+    clearChatErr: () => setChatErr(""),
     bumpPresence,
     setChatLive,
     online,
