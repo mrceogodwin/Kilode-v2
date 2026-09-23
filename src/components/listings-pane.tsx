@@ -193,7 +193,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
         <div className="min-w-0 flex-1">
           <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{copy.kicker}</div>
           <h2 className="text-2xl font-extrabold tracking-tight">{copy.title}</h2>
-          <p className="mt-1 text-[12px] leading-snug text-muted">{copy.who}</p>
+          <p className="mt-1 text-base leading-snug text-muted">{copy.who}</p>
         </div>
       </div>
 
@@ -223,12 +223,12 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
           {canPost ? (
             <>
               <div className="text-[11px] font-medium text-muted">Submit for staff approval · {days} days live</div>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-              <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder={copy.extra} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-              <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City / area" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-              <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder={copy.contact} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-              <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-              <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Short description" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+              <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder={copy.extra} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+              <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City / area" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+              <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder={copy.contact} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+              <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+              <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Short description" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
               <div className="flex flex-wrap gap-1">
                 {[7, 14, 30].map((d) => (
                   <button key={d} type="button" onClick={() => setDays(d)} className={`rounded-full px-2.5 py-1 text-[11px] ${days === d ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
@@ -240,7 +240,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
               {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
               <button
                 type="button"
-                className="btn-join rounded-lg px-3 py-2 text-[12px] font-bold"
+                className="btn-join rounded-lg px-3 py-2 text-base font-bold"
                 onClick={() => {
                   setErr("");
                   setMsg("");
@@ -263,7 +263,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             </>
           ) : (
             <div className="space-y-2 py-2 text-center">
-              <p className="text-[12px] text-muted">{session.user ? kindActionHint(ACTION[kind]) : copy.postHint}</p>
+              <p className="text-base text-muted">{session.user ? kindActionHint(ACTION[kind]) : copy.postHint}</p>
               <JoinCta className="mx-auto w-40" />
             </div>
           )}
@@ -286,7 +286,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             {kind === "job" ? (
               session.user && canApply ? (
                 <div className="mt-3 flex gap-1">
-                  <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Short apply note" className="min-w-0 flex-1 rounded border border-line bg-panel px-2 py-1.5 text-[12px]" />
+                  <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Short apply note" className="min-w-0 flex-1 rounded border border-line bg-panel px-2 py-1.5 text-base" />
                   <button
                     type="button"
                     className="btn-3d rounded-md px-3 text-[11px] font-semibold"
@@ -307,7 +307,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                 </div>
               )
             ) : open.contact ? (
-              <p className="mt-2 text-[12px] text-fg">Contact: {open.contact}</p>
+              <p className="mt-2 text-base text-fg">Contact: {open.contact}</p>
             ) : null}
             {open.link ? (
               <a href={open.link} target="_blank" rel="noreferrer" className="mt-2 inline-block text-[11px] text-lime-2">
@@ -361,7 +361,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
 
       {!session.user ? (
         <div className="mt-4 rounded-xl border border-line bg-panel-2 p-3 text-center">
-          <p className="text-[12px] text-muted">Guests can browse. Join as the matching member type to post or apply.</p>
+          <p className="text-base text-muted">Guests can browse. Join as the matching member type to post or apply.</p>
           <JoinCta className="mx-auto mt-2 w-40" />
         </div>
       ) : null}

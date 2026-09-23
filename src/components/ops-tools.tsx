@@ -88,7 +88,7 @@ export function OpsSeoPanel() {
         <button
           type="button"
           disabled={busy}
-          className="btn-join rounded-lg px-3 py-2 text-[12px] font-bold"
+          className="btn-join rounded-lg px-3 py-2 text-base font-bold"
           onClick={() => {
             setBusy(true);
             void boostSeo({ data: {} })
@@ -105,11 +105,11 @@ export function OpsSeoPanel() {
       </div>
       {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
       <div className="text-[10px] font-bold tracking-normal text-muted">WEAK POSTS</div>
-      {weak.length === 0 ? <p className="text-[12px] text-muted">No weak posts in the last 80.</p> : null}
+      {weak.length === 0 ? <p className="text-base text-muted">No weak posts in the last 80.</p> : null}
       {weak.slice(0, 12).map((w) => (
         <div key={w.id} className="flex items-center justify-between gap-2 rounded-lg border border-line px-2 py-1.5">
           <div className="min-w-0">
-            <div className="truncate text-[12px] font-semibold">{w.title}</div>
+            <div className="truncate text-base font-semibold">{w.title}</div>
             <div className="text-[10px] text-muted">{w.reasons.join(" · ")}</div>
           </div>
           <a href={`/p/${encodeURIComponent(w.slug)}`} className="shrink-0 text-[10px] text-lime-2">
@@ -176,7 +176,7 @@ export function AdCatalogPanel() {
       </div>
       <div className="grid gap-1.5 sm:grid-cols-2">
         {AD_PLACEMENTS.map((p) => (
-          <label key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-line px-2 py-1.5 text-[12px]">
+          <label key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-line px-2 py-1.5 text-base">
             <span className="min-w-0 truncate">{p.label}</span>
             <span className="flex items-center gap-1">
               $
@@ -204,7 +204,7 @@ export function AdCatalogPanel() {
             ["heroVideo", "Click-to-play video"],
           ] as const
         ).map(([k, label]) => (
-          <label key={k} className="flex items-center justify-between gap-2 text-[12px]">
+          <label key={k} className="flex items-center justify-between gap-2 text-base">
             <span>{label}</span>
             <input
               type="checkbox"
@@ -291,7 +291,7 @@ export function AdSlotsPanel() {
                 <select
                   value={cur.kind ?? d.kind}
                   onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, kind: e.target.value as AdSlotKind } }))}
-                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]"
+                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-base"
                 >
                   <option value="image">Image</option>
                   <option value="video">YouTube</option>
@@ -302,19 +302,19 @@ export function AdSlotsPanel() {
                   value={cur.link ?? ""}
                   onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, link: e.target.value } }))}
                   placeholder="Click URL https://…"
-                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]"
+                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-base"
                 />
                 <input
                   value={cur.image ?? ""}
                   onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, image: e.target.value } }))}
                   placeholder="Image URL"
-                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]"
+                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-base"
                 />
                 <input
                   value={cur.video ?? ""}
                   onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, video: e.target.value } }))}
                   placeholder="YouTube URL"
-                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]"
+                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-base"
                 />
                 <input
                   value={cur.pubId ?? ""}
@@ -331,7 +331,7 @@ export function AdSlotsPanel() {
                 <select
                   value={String(cur.days ?? 30)}
                   onChange={(e) => setDraft((m) => ({ ...m, [d.id]: { ...cur, days: Number(e.target.value) } }))}
-                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]"
+                  className="rounded-lg border border-line bg-bg px-2 py-1.5 text-base"
                 >
                   <option value="1">1 day</option>
                   <option value="7">7 days</option>
@@ -403,8 +403,8 @@ export function RoomsAdminPanel() {
         <p className="text-[11px] text-muted">Pause hides a room from the list. Create extra rooms under More rooms. Pause is saved immediately.</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New room name" className="min-w-[140px] flex-1 rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]" />
-        <select value={region} onChange={(e) => setRegion(e.target.value)} className="rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New room name" className="min-w-[140px] flex-1 rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
+        <select value={region} onChange={(e) => setRegion(e.target.value)} className="rounded-lg border border-line bg-bg px-2 py-1.5 text-base">
           {ROOM_SECTION_ORDER.map((r) => (
             <option key={r} value={r}>
               {r}
@@ -425,12 +425,12 @@ export function RoomsAdminPanel() {
           Create room
         </button>
       </div>
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search rooms" className="w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-[12px]" />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search rooms" className="w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
       <div className="max-h-80 overflow-y-auto">
         {shown.map((r) => (
           <div key={r.id} className="flex items-center justify-between gap-2 border-b border-line py-1.5">
             <div className="min-w-0">
-              <div className="truncate text-[12px] font-semibold">{r.name}</div>
+              <div className="truncate text-base font-semibold">{r.name}</div>
               <div className="text-[10px] text-muted">
                 {r.region}
                 {r.custom ? " · custom" : ""}

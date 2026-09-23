@@ -197,19 +197,19 @@ export function ShopAdminPanel() {
           });
         }}
       >
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="rounded-lg border border-line bg-bg px-2 py-2 text-sm sm:col-span-2" required />
-        <select value={kind} onChange={(e) => setKind(e.target.value as ProductKind)} className="rounded-lg border border-line bg-bg px-2 py-2 text-sm">
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="rounded-lg border border-line bg-bg px-2 py-2 text-base sm:col-span-2" required />
+        <select value={kind} onChange={(e) => setKind(e.target.value as ProductKind)} className="rounded-lg border border-line bg-bg px-2 py-2 text-base">
           {PRODUCT_KINDS.map((k) => (
             <option key={k} value={k}>
               {KIND_META[k].label}
             </option>
           ))}
         </select>
-        <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price · Free / ₦5,000" className="rounded-lg border border-line bg-bg px-2 py-2 text-sm" />
-        <input value={cover} onChange={(e) => setCover(e.target.value)} placeholder="Cover image URL" className="rounded-lg border border-line bg-bg px-2 py-2 text-sm sm:col-span-2" />
-        <input value={downloadUrl} onChange={(e) => setDownloadUrl(e.target.value)} placeholder="Download / file URL" className="rounded-lg border border-line bg-bg px-2 py-2 text-sm sm:col-span-2" />
-        <input value={blurb} onChange={(e) => setBlurb(e.target.value)} placeholder="Short blurb" className="rounded-lg border border-line bg-bg px-2 py-2 text-sm sm:col-span-2" />
-        <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Details shown after they leave an email" className="min-h-20 rounded-lg border border-line bg-bg px-2 py-2 text-sm sm:col-span-2" />
+        <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price · Free / ₦5,000" className="rounded-lg border border-line bg-bg px-2 py-2 text-base" />
+        <input value={cover} onChange={(e) => setCover(e.target.value)} placeholder="Cover image URL" className="rounded-lg border border-line bg-bg px-2 py-2 text-base sm:col-span-2" />
+        <input value={downloadUrl} onChange={(e) => setDownloadUrl(e.target.value)} placeholder="Download / file URL" className="rounded-lg border border-line bg-bg px-2 py-2 text-base sm:col-span-2" />
+        <input value={blurb} onChange={(e) => setBlurb(e.target.value)} placeholder="Short blurb" className="rounded-lg border border-line bg-bg px-2 py-2 text-base sm:col-span-2" />
+        <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Details shown after they leave an email" className="min-h-20 rounded-lg border border-line bg-bg px-2 py-2 text-base sm:col-span-2" />
         <button type="submit" className="btn-join rounded-lg py-2 text-[12px] font-bold sm:col-span-2">
           + Add product
         </button>

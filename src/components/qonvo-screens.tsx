@@ -1750,8 +1750,8 @@ function Admin({ store }: { store: Store }) {
             );
           })}
           <div className="flex gap-2 pt-1">
-            <input value={extraCoin} onChange={(e) => setExtraCoin(e.target.value)} placeholder="coin id (e.g. doge)" className="w-28 rounded-lg border border-line bg-panel px-2 py-2 font-mono text-xs" />
-            <input value={extraAddr} onChange={(e) => setExtraAddr(e.target.value)} placeholder="address" className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 font-mono text-xs" />
+            <input value={extraCoin} onChange={(e) => setExtraCoin(e.target.value)} placeholder="coin id (e.g. doge)" className="w-28 rounded-lg border border-line bg-panel px-2 py-2 font-mono text-base" />
+            <input value={extraAddr} onChange={(e) => setExtraAddr(e.target.value)} placeholder="address" className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 font-mono text-base" />
             <button
               type="button"
               className="rounded border border-line px-2 text-xs"
@@ -2107,7 +2107,7 @@ function FeedsDeskPanel({ store }: { store: Store }) {
           <h3 className="text-base font-bold">Archive and delete stories</h3>
           <p className="mt-1 text-xs text-muted">Archive hides it from Feeds. Delete removes it. Restore brings an archive back.</p>
         </div>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title" className="rounded-lg border border-line bg-panel px-2 py-1.5 text-sm" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title" className="rounded-lg border border-line bg-panel px-2 py-1.5 text-base" />
       </div>
       {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
       <div className="max-h-[420px] space-y-2 overflow-y-auto">
@@ -2280,15 +2280,15 @@ function NewsEnginePanel({ store }: { store: Store }) {
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="text-xs text-muted">
           Include keywords
-          <input value={include} onChange={(e) => setInclude(e.target.value)} placeholder="lagos, fintech" className="mt-1 w-full rounded-lg border border-line bg-panel px-2 py-1.5 text-sm text-fg" />
+          <input value={include} onChange={(e) => setInclude(e.target.value)} placeholder="lagos, fintech" className="mt-1 w-full rounded-lg border border-line bg-panel px-2 py-1.5 text-base text-fg" />
         </label>
         <label className="text-xs text-muted">
           Exclude keywords
-          <input value={exclude} onChange={(e) => setExclude(e.target.value)} placeholder="rumour, unverified" className="mt-1 w-full rounded-lg border border-line bg-panel px-2 py-1.5 text-sm text-fg" />
+          <input value={exclude} onChange={(e) => setExclude(e.target.value)} placeholder="rumour, unverified" className="mt-1 w-full rounded-lg border border-line bg-panel px-2 py-1.5 text-base text-fg" />
         </label>
         <label className="text-xs text-muted">
           Max age (hours)
-          <input type="number" min={6} max={240} value={maxAgeHours} onChange={(e) => setMaxAgeHours(Number(e.target.value) || 72)} className="mt-1 w-full rounded-lg border border-line bg-panel px-2 py-1.5 text-sm text-fg" />
+          <input type="number" min={6} max={240} value={maxAgeHours} onChange={(e) => setMaxAgeHours(Number(e.target.value) || 72)} className="mt-1 w-full rounded-lg border border-line bg-panel px-2 py-1.5 text-base text-fg" />
         </label>
       </div>
 
@@ -2334,13 +2334,13 @@ function NewsEnginePanel({ store }: { store: Store }) {
             </div>
             {editId === d.id ? (
               <div className="mt-3 space-y-2 border-t border-line pt-3">
-                <input value={edit.title} onChange={(e) => setEdit((x) => ({ ...x, title: e.target.value }))} className="w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm" placeholder="Title" />
-                <textarea value={edit.body} onChange={(e) => setEdit((x) => ({ ...x, body: e.target.value }))} rows={5} className="w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm" placeholder="Body" />
-                <input value={edit.meta_description} onChange={(e) => setEdit((x) => ({ ...x, meta_description: e.target.value }))} className="w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm" placeholder="Meta description" />
+                <input value={edit.title} onChange={(e) => setEdit((x) => ({ ...x, title: e.target.value }))} className="w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base" placeholder="Title" />
+                <textarea value={edit.body} onChange={(e) => setEdit((x) => ({ ...x, body: e.target.value }))} rows={5} className="w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base" placeholder="Body" />
+                <input value={edit.meta_description} onChange={(e) => setEdit((x) => ({ ...x, meta_description: e.target.value }))} className="w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base" placeholder="Meta description" />
                 <div className="grid gap-2 sm:grid-cols-3">
-                  <input value={edit.tags} onChange={(e) => setEdit((x) => ({ ...x, tags: e.target.value }))} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm" placeholder="Tags" />
-                  <input value={edit.category} onChange={(e) => setEdit((x) => ({ ...x, category: e.target.value }))} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm" placeholder="Category" />
-                  <input value={edit.image} onChange={(e) => setEdit((x) => ({ ...x, image: e.target.value }))} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm" placeholder="Image URL" />
+                  <input value={edit.tags} onChange={(e) => setEdit((x) => ({ ...x, tags: e.target.value }))} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base" placeholder="Tags" />
+                  <input value={edit.category} onChange={(e) => setEdit((x) => ({ ...x, category: e.target.value }))} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base" placeholder="Category" />
+                  <input value={edit.image} onChange={(e) => setEdit((x) => ({ ...x, image: e.target.value }))} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base" placeholder="Image URL" />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -2514,8 +2514,8 @@ function ModPanel() {
         <Toggle on={cfg.links} label="Too many links" set={(v) => patch({ links: v })} />
         <Toggle on={cfg.shout} label="ALL CAPS shout" set={(v) => patch({ shout: v })} />
       </div>
-      <textarea value={cfg.custom} onChange={(e) => patch({ custom: e.target.value })} rows={3} placeholder="Extra block words, comma or new line" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-xs" />
-      <textarea value={cfg.allow} onChange={(e) => patch({ allow: e.target.value })} rows={2} placeholder="Allow list (never block these)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-xs" />
+      <textarea value={cfg.custom} onChange={(e) => patch({ custom: e.target.value })} rows={3} placeholder="Extra block words, comma or new line" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <textarea value={cfg.allow} onChange={(e) => patch({ allow: e.target.value })} rows={2} placeholder="Allow list (never block these)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       <button
         type="button"
         className="btn-3d rounded-lg px-3 py-2 text-sm font-semibold"

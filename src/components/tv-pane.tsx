@@ -109,13 +109,13 @@ export function SocialsAdminPanel() {
           });
         }}
       >
-        <input value={id} onChange={(e) => setId(e.target.value)} placeholder="id · youtube" className="rounded-lg border border-line bg-bg px-2 py-2 text-sm" />
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name · YouTube" className="rounded-lg border border-line bg-bg px-2 py-2 text-sm" required />
-        <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@handle" className="rounded-lg border border-line bg-bg px-2 py-2 text-sm" />
-        <input value={followers} onChange={(e) => setFollowers(e.target.value)} placeholder="Badge · 12K" className="rounded-lg border border-line bg-bg px-2 py-2 text-sm" />
-        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className="rounded-lg border border-line bg-bg px-2 py-2 text-sm sm:col-span-2" />
-        <input value={thumb} onChange={(e) => setThumb(e.target.value)} placeholder="Preview image URL" className="rounded-lg border border-line bg-bg px-2 py-2 text-sm sm:col-span-2" />
-        <input value={blurb} onChange={(e) => setBlurb(e.target.value)} placeholder="One-line blurb" className="rounded-lg border border-line bg-bg px-2 py-2 text-sm sm:col-span-2" />
+        <input value={id} onChange={(e) => setId(e.target.value)} placeholder="id · youtube" className="rounded-lg border border-line bg-bg px-2 py-2 text-base" />
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name · YouTube" className="rounded-lg border border-line bg-bg px-2 py-2 text-base" required />
+        <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@handle" className="rounded-lg border border-line bg-bg px-2 py-2 text-base" />
+        <input value={followers} onChange={(e) => setFollowers(e.target.value)} placeholder="Badge · 12K" className="rounded-lg border border-line bg-bg px-2 py-2 text-base" />
+        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" className="rounded-lg border border-line bg-bg px-2 py-2 text-base sm:col-span-2" />
+        <input value={thumb} onChange={(e) => setThumb(e.target.value)} placeholder="Preview image URL" className="rounded-lg border border-line bg-bg px-2 py-2 text-base sm:col-span-2" />
+        <input value={blurb} onChange={(e) => setBlurb(e.target.value)} placeholder="One-line blurb" className="rounded-lg border border-line bg-bg px-2 py-2 text-base sm:col-span-2" />
         <button type="submit" className="btn-join rounded-lg py-2 text-[12px] font-bold sm:col-span-2">
           + Add / update
         </button>

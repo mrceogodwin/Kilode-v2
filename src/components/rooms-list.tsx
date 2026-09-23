@@ -24,7 +24,7 @@ export function RoomList({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search rooms or states"
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-xs outline-none"
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-2.5 py-2 text-base outline-none"
         />
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
