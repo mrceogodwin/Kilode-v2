@@ -424,7 +424,7 @@ export function useQonvo() {
     };
 
     tick();
-    // Cost: active ~12s, idle ~45s, hidden stop. Only while Chat tab is live.
+    // Cost: active ~25s, idle ~90s, hidden stop. Only while Chat tab is live.
     const onVis = () => {
       if (document.hidden) {
         if (timer !== undefined) window.clearTimeout(timer);
@@ -828,8 +828,8 @@ export function useQonvo() {
       if (typeof document !== "undefined" && document.hidden) return;
       // Callers only invoke from Chat UI; do not gate on chatLive (races setChatLive).
       const now = Date.now();
-      // typing: 2.5s → 4s throttle; non-typing: min 12s between presence POSTs
-      if (now - lastPing.current < (typingOn ? 4000 : 12_000)) return;
+      // typing: 8s throttle; non-typing: min 30s between presence POSTs (invocation cut)
+      if (now - lastPing.current < (typingOn ? 8000 : 30_000)) return;
       lastPing.current = now;
       void pingPresence({ data: { roomId, typing: typingOn } })
         .then((p) => {
