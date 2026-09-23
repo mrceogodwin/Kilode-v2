@@ -73,7 +73,7 @@ import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
 import { InstallToast, SiteFooter, TrendingTicker } from "@/components/site-chrome";
 import { FeedsHero } from "@/components/feeds-hero";
-import { BrandLockup, CinemaTvIcon } from "@/components/brand-lockup";
+import { BrandLockup } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
 import { MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
@@ -418,7 +418,7 @@ export function QonvoApp() {
                 setMenuOpen(false);
               }}
             >
-              <CinemaTvIcon className="size-4 text-lime-2" />
+              <Tv className="size-4 text-lime-2" />
             </button>
             <button
               type="button"
