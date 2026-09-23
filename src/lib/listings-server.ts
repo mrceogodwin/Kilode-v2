@@ -348,7 +348,7 @@ export const listMyApplicants = createServerFn({ method: "GET" })
   });
 
 
-/** Owner edit for market/rent (Vendor, Renter, Brand market). Approved → pending for staff re-check. */
+/** Owner edit for job/market/rent. Approved → pending for staff re-check. */
 export const updateListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator(
@@ -382,11 +382,13 @@ export const updateListing = createServerFn({ method: "POST" })
     if (!row) return { ok: false as const, reason: "Listing not found." };
     if (row.user_id !== context.userId) return { ok: false as const, reason: "You can only edit your own listings." };
     const kind = asKind(row.kind);
-    if (kind === "job") return { ok: false as const, reason: "Edit jobs from Create · Job or post a new role." };
     const ak = await kindOf(context.userId);
     if (!canKind(ak, ACTION[kind])) return { ok: false as const, reason: kindActionHint(ACTION[kind]) };
     const title = data.title.trim().slice(0, 120);
     if (title.length < 3) return { ok: false as const, reason: "Add a title." };
+    if (kind === "job" && !(data.company ?? "").trim()) {
+      return { ok: false as const, reason: "Company / hiring org is required for jobs." };
+    }
     const submitter = await handleOf(context.userId);
     const gate = await gateText("feeds", `${title} ${data.body ?? ""}`, { userId: context.userId, author: submitter });
     if (!gate.ok) return { ok: false as const, reason: gate.reason };
@@ -408,7 +410,7 @@ export const updateListing = createServerFn({ method: "POST" })
     return { ok: true as const, status: status as "pending" | "approved" | "rejected" };
   });
 
-/** Owner hard-delete for market/rent listings only. */
+/** Owner hard-delete for own job/market/rent listings. Jobs also clear applications. */
 export const deleteListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { id: string }) => d)
@@ -424,7 +426,9 @@ export const deleteListing = createServerFn({ method: "POST" })
     if (!row) return { ok: false as const, reason: "Listing not found." };
     if (row.user_id !== context.userId) return { ok: false as const, reason: "You can only delete your own listings." };
     const kind = asKind(row.kind);
-    if (kind === "job") return { ok: false as const, reason: "Job listings cannot be deleted here — ask staff if needed." };
+    if (kind === "job") {
+      await sql`delete from nf_apps where listing_id = ${data.id}`;
+    }
     await sql`delete from nf_listings where id = ${data.id} and user_id = ${context.userId}`;
     return { ok: true as const };
   });

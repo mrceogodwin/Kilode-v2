@@ -431,6 +431,14 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       .then((rows) => setMyRent(Array.isArray(rows) ? rows : []))
       .catch(() => setMyRent([]));
   }
+  function refreshMyJobs() {
+    void listMyListings({ data: { kind: "job" } })
+      .then((rows) => setMyJobs(Array.isArray(rows) ? rows : []))
+      .catch(() => setMyJobs([]));
+    void listMyApplicants()
+      .then((rows) => setMyApplicants(Array.isArray(rows) ? rows : []))
+      .catch(() => setMyApplicants([]));
+  }
 
   const kind = store.kind as AccountKind;
   const kindLabel = ACCOUNT_KINDS.find((k) => k.id === kind)?.label ?? "Member";
@@ -851,7 +859,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                 <span className="font-bold text-lime-2">2.</span> Staff approve → it goes live on Jobs. Seekers apply with their @handle + note.
               </p>
               <p>
-                <span className="font-bold text-lime-2">3.</span> Applicants land in your inbox below. Contact them off-platform — Kilode does not run interviews or payroll.
+                <span className="font-bold text-lime-2">3.</span> Edit or delete your roles below anytime — a live edit goes back to pending. Applicants land in your inbox; contact them off-platform.
               </p>
             </div>
           </Section>
@@ -865,25 +873,24 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
               />
             ) : (
               <div className="space-y-2">
-                {myJobs.slice(0, 10).map((r) => {
+                <p className="text-[11px] text-muted">
+                  Edit fields anytime. A live job returns to pending for staff. Delete removes the role and its applications.
+                </p>
+                {myJobs.slice(0, 12).map((r) => {
                   const apps = myApplicants.filter((a) => a.listingId === r.id).length;
                   return (
-                    <div key={r.id} className="rounded-xl border border-line bg-panel px-3 py-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="truncate text-sm font-semibold">{r.title}</div>
-                        <StatusPill status={r.status} />
-                      </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted">
-                        <span>
-                          {r.company ? `${r.company} · ` : ""}
-                          {r.city || "Nigeria"} · {fmtCount(r.views)} views · {timeAgo(r.ts)}
-                        </span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-lime-2/15 px-2 py-0.5 font-bold text-lime-2">
+                    <ListingRow
+                      key={r.id}
+                      r={r}
+                      manage
+                      onChanged={refreshMyJobs}
+                      badge={
+                        <span className="inline-flex items-center gap-1 rounded-full bg-lime-2/15 px-2 py-0.5 text-[10px] font-bold text-lime-2">
                           <Users className="size-3" />
                           {apps} applicant{apps === 1 ? "" : "s"}
                         </span>
-                      </div>
-                    </div>
+                      }
+                    />
                   );
                 })}
                 <div className="grid grid-cols-2 gap-2">
@@ -1351,7 +1358,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   );
 }
 
-function ListingRow({ r, manage, onChanged }: { r: Listing; manage?: boolean; onChanged?: () => void }) {
+function ListingRow({ r, manage, onChanged, badge }: { r: Listing; manage?: boolean; onChanged?: () => void; badge?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -1408,12 +1415,18 @@ function ListingRow({ r, manage, onChanged }: { r: Listing; manage?: boolean; on
       setErr("Contact is required.");
       return;
     }
+    if (r.kind === "job" && !company.trim()) {
+      setErr("Company / hiring org is required.");
+      return;
+    }
     if (link.trim() && !safeHttpUrl(link)) {
       setErr("Link must be http or https.");
       return;
     }
     let image: string | undefined;
-    if (clearPhoto) image = "";
+    if (r.kind === "job") {
+      image = r.image; // jobs skip photo editor
+    } else if (clearPhoto) image = "";
     else if (imageData) image = imageData;
     else if (imageUrl.trim()) image = imageUrl.trim();
     else image = r.image; // keep
@@ -1488,6 +1501,7 @@ function ListingRow({ r, manage, onChanged }: { r: Listing; manage?: boolean; on
             {r.city || "Nigeria"} · {fmtCount(r.views)} views · {timeAgo(r.ts)}
           </div>
           {r.body ? <div className="mt-0.5 line-clamp-1 text-[10px] text-muted">{r.body.split("\n")[0]}</div> : null}
+          {badge ? <div className="mt-1">{badge}</div> : null}
           {manage ? (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               <button
@@ -1525,8 +1539,9 @@ function ListingRow({ r, manage, onChanged }: { r: Listing; manage?: boolean; on
             <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className="w-full rounded-lg border border-line bg-panel px-2.5 py-2 text-base" />
             <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Contact *" className="w-full rounded-lg border border-line bg-panel px-2.5 py-2 text-base" />
           </div>
-          <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder={r.kind === "rent" ? "Landlord / agent" : "Brand / shop"} className="w-full rounded-lg border border-line bg-panel px-2.5 py-2 text-base" />
-          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://… (optional)" className="w-full rounded-lg border border-line bg-panel px-2.5 py-2 text-base" />
+          <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder={r.kind === "job" ? "Hiring company *" : r.kind === "rent" ? "Landlord / agent" : "Brand / shop"} className="w-full rounded-lg border border-line bg-panel px-2.5 py-2 text-base" />
+          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder={r.kind === "job" ? "Apply link https://… (optional)" : "https://… (optional)"} className="w-full rounded-lg border border-line bg-panel px-2.5 py-2 text-base" />
+          {r.kind !== "job" ? (
           <div className="inset-well rounded-lg p-2">
             <div className="mb-1 text-[10px] font-bold tracking-[0.12em] text-lime-2">PHOTO</div>
             <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
@@ -1548,6 +1563,7 @@ function ListingRow({ r, manage, onChanged }: { r: Listing; manage?: boolean; on
             </label>
             {preview ? <img src={preview} alt="" className="mt-2 max-h-32 w-full rounded-lg object-cover" /> : null}
           </div>
+          ) : null}
           {err ? <p className="text-[11px] text-danger">{err}</p> : null}
           <button type="button" disabled={busy} className="btn-join w-full rounded-lg py-2 text-[12px] font-bold disabled:cursor-wait" onClick={save}>
             {busy ? "Saving…" : "Save changes"}
