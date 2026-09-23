@@ -158,7 +158,7 @@ export function YearBornSelect({
       <select
         value={value === "" ? "" : String(value)}
         onChange={(e) => onChange(e.target.value ? Number(e.target.value) : "")}
-        className="min-h-9 min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-sm"
+        className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 py-2 text-base"
       >
         <option value="">Year</option>
         {years.map((n) => (

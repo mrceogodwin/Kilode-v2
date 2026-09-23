@@ -41,18 +41,28 @@ function Login() {
       return;
     }
     setBusy(true);
-    const r = await kilodeSignUp(name, password, staff ? "member" : kind, staff ? "👑" : face, typeof yearBorn === "number" ? yearBorn : undefined);
-    setBusy(false);
-    if (!r.ok) setErr(r.reason);
-    else go();
+    try {
+      const r = await kilodeSignUp(name, password, staff ? "member" : kind, staff ? "👑" : face, typeof yearBorn === "number" ? yearBorn : undefined);
+      if (!r.ok) setErr(r.reason);
+      else go();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Sign up failed. Try again.");
+    } finally {
+      setBusy(false);
+    }
   }
   async function inn() {
     setErr("");
     setBusy(true);
-    const r = await kilodeSignIn(name, password);
-    setBusy(false);
-    if (!r.ok) setErr(r.reason + (mode === "in" ? " New here? Create an account." : ""));
-    else go();
+    try {
+      const r = await kilodeSignIn(name, password);
+      if (!r.ok) setErr(r.reason + (mode === "in" ? " New here? Create an account." : ""));
+      else go();
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : "Sign in failed. Try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -71,8 +81,8 @@ function Login() {
         </p>
         {authEnabled ? (
           <>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Username" autoComplete="username" className="w-full rounded-lg border border-line bg-panel px-3 py-1.5 text-sm" />
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (8+ characters)" autoComplete={mode === "in" ? "current-password" : "new-password"} className="w-full rounded-lg border border-line bg-panel px-3 py-1.5 text-sm" />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Username" autoComplete="username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (8+ characters)" autoComplete={mode === "in" ? "current-password" : "new-password"} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
             {mode === "up" && !staff ? (
               <>
                 <AccountKindPicker

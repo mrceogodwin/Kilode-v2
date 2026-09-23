@@ -219,6 +219,7 @@ export function QonvoApp() {
   const [joinFace, setJoinFace] = useState(KIND_FACE.member);
   const [joinYear, setJoinYear] = useState<number | "">("");
   const [joinErr, setJoinErr] = useState("");
+  const [joinBusy, setJoinBusy] = useState(false);
   const logoTaps = useRef({ n: 0, t: 0 });
   const [liveOpen, setLiveOpen] = useState(false);
   const [donateOpen, setDonateOpen] = useState(false);
@@ -462,7 +463,7 @@ export function QonvoApp() {
                   value={feedQ}
                   onChange={(e) => setFeedQ(e.target.value)}
                   placeholder="Search feeds"
-                  className="min-h-8 flex-1 rounded-md border border-line bg-panel px-2 text-[11px]"
+                  className="min-h-11 flex-1 rounded-md border border-line bg-panel px-2 text-base"
                   autoFocus
                 />
               ) : (
@@ -720,7 +721,7 @@ export function QonvoApp() {
                   readOnly={!(store.authed || session.user)}
                   placeholder={store.authed || session.user ? "Message + emoji" : "Sign in to chat"}
                   data-chat-input="1"
-                  className="min-h-11 flex-1 rounded-full border border-line bg-panel-3 px-4 text-sm outline-none"
+                  className="min-h-11 flex-1 rounded-full border border-line bg-panel-3 px-4 text-base outline-none"
                 />
                 {store.authed || session.user ? (
                   <button type="submit" className="btn-join inline-flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-full px-3.5 text-xs font-bold">
@@ -1095,14 +1096,16 @@ export function QonvoApp() {
               value={joinName}
               onChange={(e) => setJoinName(e.target.value)}
               placeholder="Username"
-              className="mb-1.5 w-full rounded-lg border border-line bg-black/40 px-3 py-1.5 text-sm outline-none"
+              autoComplete="username"
+              className="mb-1.5 w-full rounded-lg border border-line bg-black/40 px-3 py-2 text-base outline-none"
             />
             <input
               type="password"
               value={joinPass}
               onChange={(e) => setJoinPass(e.target.value)}
               placeholder="Password (8+ characters)"
-              className="mb-1.5 w-full rounded-lg border border-line bg-black/40 px-3 py-1.5 text-sm outline-none"
+              autoComplete="current-password"
+              className="mb-1.5 w-full rounded-lg border border-line bg-black/40 px-3 py-2 text-base outline-none"
             />
             {joinErr ? <p className="mb-1.5 text-sm text-danger">{joinErr}</p> : null}
             {store.authErr ? <p className="mb-1.5 text-sm text-danger">{store.authErr}</p> : null}
@@ -1147,7 +1150,8 @@ export function QonvoApp() {
             <div className="flex gap-2">
               <button
                 type="button"
-                className="btn-join flex-1 rounded-lg py-2 text-sm font-bold"
+                disabled={joinBusy}
+                className="btn-join flex-1 rounded-lg py-2 text-sm font-bold disabled:opacity-60"
                 onClick={() => {
                   void (async () => {
                     setJoinErr("");
@@ -1155,27 +1159,42 @@ export function QonvoApp() {
                       setJoinErr("Tick both boxes. Read the Terms and the Rules first.");
                       return;
                     }
-                    const r = await kilodeSignUp(joinName, joinPass, joinKind, joinFace, typeof joinYear === "number" ? joinYear : undefined);
-                    if (!r.ok) setJoinErr(r.reason);
-                    else window.location.reload();
+                    setJoinBusy(true);
+                    try {
+                      const r = await kilodeSignUp(joinName, joinPass, joinKind, joinFace, typeof joinYear === "number" ? joinYear : undefined);
+                      if (!r.ok) setJoinErr(r.reason);
+                      else window.location.reload();
+                    } catch (e: unknown) {
+                      setJoinErr(e instanceof Error ? e.message : "Sign up failed. Try again.");
+                    } finally {
+                      setJoinBusy(false);
+                    }
                   })();
                 }}
               >
-                Register
+                {joinBusy ? "Working…" : "Register"}
               </button>
               <button
                 type="button"
-                className="flex-1 rounded-lg border border-line py-2 text-sm"
+                disabled={joinBusy}
+                className="flex-1 rounded-lg border border-line py-2 text-sm disabled:opacity-60"
                 onClick={() => {
                   void (async () => {
                     setJoinErr("");
-                    const r = await kilodeSignIn(joinName, joinPass);
-                    if (!r.ok) setJoinErr(r.reason);
-                    else window.location.reload();
+                    setJoinBusy(true);
+                    try {
+                      const r = await kilodeSignIn(joinName, joinPass);
+                      if (!r.ok) setJoinErr(r.reason);
+                      else window.location.reload();
+                    } catch (e: unknown) {
+                      setJoinErr(e instanceof Error ? e.message : "Sign in failed. Try again.");
+                    } finally {
+                      setJoinBusy(false);
+                    }
                   })();
                 }}
               >
-                Sign in
+                {joinBusy ? "Working…" : "Sign in"}
               </button>
             </div>
           </div>
@@ -1316,7 +1335,7 @@ function RepostModal({
         </div>
         <p className="mt-2 line-clamp-3 text-[14px] font-semibold leading-snug">{post.title}</p>
         <p className="mt-1 text-[11px] text-muted">Goes to the chat you are in. People see “{handle || "You"} reposted”.</p>
-        <textarea value={cap} onChange={(e) => onCap(e.target.value)} placeholder="Add a caption (optional)" className="mt-3 min-h-20 w-full rounded-lg border border-line bg-bg px-3 py-2 text-[13px]" />
+        <textarea value={cap} onChange={(e) => onCap(e.target.value)} placeholder="Add a caption (optional)" className="mt-3 min-h-20 w-full rounded-lg border border-line bg-bg px-3 py-2 text-base" />
         <div className="mt-3 flex gap-2">
           <button type="button" className="btn-join flex-1 rounded-lg py-2 text-[12px] font-bold" onClick={onSend}>
             Send to chat
@@ -1494,7 +1513,7 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search songs, artists, genres"
-          className="min-h-9 flex-1 rounded-lg border border-line bg-panel px-3 text-xs outline-none"
+          className="min-h-11 flex-1 rounded-lg border border-line bg-panel px-3 text-base outline-none"
         />
         <button type="button" className="btn-3d shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold" onClick={onAdd}>
           Add
@@ -1831,7 +1850,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder={session.user ? (replyTo ? "Reply to comment…" : "Write a comment") : "Sign in to comment"}
-              className="min-h-10 flex-1 rounded-lg border border-line bg-panel px-3 text-sm"
+              className="min-h-10 flex-1 rounded-lg border border-line bg-panel px-3 text-base"
             />
             <button type="submit" className="btn-join rounded-lg px-3 text-xs font-bold">
               {replyTo ? "Reply" : "Comment"}
@@ -1852,7 +1871,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
               setReason("");
             }}
           >
-            <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Report this post" className="min-h-10 flex-1 rounded-lg border border-line bg-panel px-3 text-xs" />
+            <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Report this post" className="min-h-10 flex-1 rounded-lg border border-line bg-panel px-3 text-base" />
             <button type="submit" className="text-xs text-danger">
               Report
             </button>

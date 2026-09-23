@@ -14,10 +14,10 @@ import { Route as AdvertiseRouteImport } from './routes/advertise'
 import { Route as InstallRouteImport } from './routes/install'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OpsRouteImport } from './routes/ops'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
-import { Route as ApiSitemapRouteImport } from './routes/api/sitemap'
 import { Route as ApiIndexnowRouteImport } from './routes/api/indexnow'
-import { Route as SitemapXmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ApiSitemapRouteImport } from './routes/api/sitemap'
 import { Route as PIdRouteImport } from './routes/p.$id'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -47,14 +47,14 @@ const OpsRoute = OpsRouteImport.update({
   path: '/ops',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSitemapRoute = ApiSitemapRouteImport.update({
-  id: '/api/sitemap',
-  path: '/api/sitemap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiIndexnowRoute = ApiIndexnowRouteImport.update({
@@ -62,9 +62,9 @@ const ApiIndexnowRoute = ApiIndexnowRouteImport.update({
   path: '/api/indexnow',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SitemapXmlRoute = SitemapXmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
+const ApiSitemapRoute = ApiSitemapRouteImport.update({
+  id: '/api/sitemap',
+  path: '/api/sitemap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PIdRoute = PIdRouteImport.update({
@@ -89,10 +89,10 @@ export interface FileRoutesByFullPath {
   '/install': typeof InstallRoute
   '/login': typeof LoginRoute
   '/ops': typeof OpsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
-  '/api/sitemap': typeof ApiSitemapRoute
   '/api/indexnow': typeof ApiIndexnowRoute
-  '/sitemap.xml': typeof SitemapXmlRoute
+  '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -103,10 +103,10 @@ export interface FileRoutesByTo {
   '/install': typeof InstallRoute
   '/login': typeof LoginRoute
   '/ops': typeof OpsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
-  '/api/sitemap': typeof ApiSitemapRoute
   '/api/indexnow': typeof ApiIndexnowRoute
-  '/sitemap.xml': typeof SitemapXmlRoute
+  '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -118,10 +118,10 @@ export interface FileRoutesById {
   '/install': typeof InstallRoute
   '/login': typeof LoginRoute
   '/ops': typeof OpsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
-  '/api/sitemap': typeof ApiSitemapRoute
   '/api/indexnow': typeof ApiIndexnowRoute
-  '/sitemap.xml': typeof SitemapXmlRoute
+  '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -134,10 +134,10 @@ export interface FileRouteTypes {
     | '/install'
     | '/login'
     | '/ops'
-    | '/terms'
-    | '/api/sitemap'
-    | '/api/indexnow'
     | '/sitemap.xml'
+    | '/terms'
+    | '/api/indexnow'
+    | '/api/sitemap'
     | '/p/$id'
     | '/u/$handle'
     | '/api/auth/$'
@@ -148,10 +148,10 @@ export interface FileRouteTypes {
     | '/install'
     | '/login'
     | '/ops'
-    | '/terms'
-    | '/api/sitemap'
-    | '/api/indexnow'
     | '/sitemap.xml'
+    | '/terms'
+    | '/api/indexnow'
+    | '/api/sitemap'
     | '/p/$id'
     | '/u/$handle'
     | '/api/auth/$'
@@ -162,10 +162,10 @@ export interface FileRouteTypes {
     | '/install'
     | '/login'
     | '/ops'
-    | '/terms'
-    | '/api/sitemap'
-    | '/api/indexnow'
     | '/sitemap.xml'
+    | '/terms'
+    | '/api/indexnow'
+    | '/api/sitemap'
     | '/p/$id'
     | '/u/$handle'
     | '/api/auth/$'
@@ -177,10 +177,10 @@ export interface RootRouteChildren {
   InstallRoute: typeof InstallRoute
   LoginRoute: typeof LoginRoute
   OpsRoute: typeof OpsRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
-  ApiSitemapRoute: typeof ApiSitemapRoute
   ApiIndexnowRoute: typeof ApiIndexnowRoute
-  SitemapXmlRoute: typeof SitemapXmlRoute
+  ApiSitemapRoute: typeof ApiSitemapRoute
   PIdRoute: typeof PIdRoute
   UHandleRoute: typeof UHandleRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -223,18 +223,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OpsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/sitemap': {
-      id: '/api/sitemap'
-      path: '/api/sitemap'
-      fullPath: '/api/sitemap'
-      preLoaderRoute: typeof ApiSitemapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/indexnow': {
@@ -244,11 +244,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiIndexnowRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapXmlRouteImport
+    '/api/sitemap': {
+      id: '/api/sitemap'
+      path: '/api/sitemap'
+      fullPath: '/api/sitemap'
+      preLoaderRoute: typeof ApiSitemapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$id': {
@@ -281,10 +281,10 @@ const rootRouteChildren: RootRouteChildren = {
   InstallRoute: InstallRoute,
   LoginRoute: LoginRoute,
   OpsRoute: OpsRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
-  ApiSitemapRoute: ApiSitemapRoute,
   ApiIndexnowRoute: ApiIndexnowRoute,
-  SitemapXmlRoute: SitemapXmlRoute,
+  ApiSitemapRoute: ApiSitemapRoute,
   PIdRoute: PIdRoute,
   UHandleRoute: UHandleRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

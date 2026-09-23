@@ -175,7 +175,7 @@ function PostDetail({ post, store }: { post: Post; store: Store }) {
         onChange={(e) => setBody(e.target.value)}
         rows={3}
         placeholder="Comment"
-        className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base"
       />
       <button
         type="button"
@@ -189,7 +189,7 @@ function PostDetail({ post, store }: { post: Post; store: Store }) {
       </button>
       <div className="raised space-y-2 rounded-xl p-3">
         <div className="text-[11px] font-medium text-muted">Report</div>
-        <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why this post should be reviewed" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+        <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why this post should be reviewed" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
         <button
           type="button"
           className="text-xs text-danger"
@@ -362,14 +362,14 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       {kind === "music" && canMusic ? (
         <div className="raised space-y-3 rounded-2xl p-4">
           <p className="text-sm text-muted">Audio platforms only: Spotify, Apple Music, SoundCloud, Audiomack, Deezer. YouTube clips belong in Videos.</p>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Track title" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-          <input value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="Artist name" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-          <input value={album} onChange={(e) => setAlbum(e.target.value)} placeholder="Album / EP (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-          <input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Genre" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-          <input value={link} onChange={(e) => onUrl(e.target.value)} placeholder="https://open.spotify.com/track/…" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Track title" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <input value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="Artist name" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <input value={album} onChange={(e) => setAlbum(e.target.value)} placeholder="Album / EP (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Genre" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <input value={link} onChange={(e) => onUrl(e.target.value)} placeholder="https://open.spotify.com/track/…" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           {preview ? <p className="text-xs text-lime-2">{preview}</p> : null}
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Notes / credits" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-          <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Notes / credits" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           <div className="inset-well rounded-xl p-3">
             <div className="mb-2 text-[11px] font-medium text-muted">Cover image only (optional)</div>
             <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
@@ -393,43 +393,43 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
         <div className="raised space-y-4 rounded-2xl p-4">
           <section>
             <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">CONTENT</div>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Headline" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} placeholder="Write the full post…" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-            <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} placeholder="Excerpt — short summary for the tile (not the same as the title)" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Headline" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8} placeholder="Write the full post…" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            <textarea value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows={2} placeholder="Excerpt — short summary for the tile (not the same as the title)" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           </section>
           <section>
             <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">FEATURED IMAGE</div>
             <div className="inset-well rounded-xl p-3">
               <p className="mb-2 text-[11px] text-muted">Recommended 1200 × 675 (16:9). JPG, PNG or WebP. Max 2MB. This is the Feeds thumbnail.</p>
               <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
-              <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="Or paste image URL https://…" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-              <input value={altText} onChange={(e) => setAltText(e.target.value)} placeholder="Image alt text (accessibility + search)" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+              <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="Or paste image URL https://…" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+              <input value={altText} onChange={(e) => setAltText(e.target.value)} placeholder="Image alt text (accessibility + search)" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
               {image || imageUrl ? <img src={image || imageUrl} alt="" className="mt-2 max-h-40 rounded-lg object-cover" /> : null}
             </div>
           </section>
           <section>
             <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">CATEGORY · TAGS · SOURCE</div>
             <div className="grid gap-2 sm:grid-cols-2">
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-xl border border-line bg-panel px-3 py-2.5 text-sm">
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-xl border border-line bg-panel px-3 py-2.5 text-base">
                 {POST_CATS.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </select>
-              <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags (comma separated)" className="rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+              <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Tags (comma separated)" className="rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
             </div>
             <input
               value={link}
               onChange={(e) => setLink(e.target.value)}
               placeholder="Source / canonical URL — https://…"
-              className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm"
+              className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base"
             />
-            <input value={sourceName} onChange={(e) => setSourceName(e.target.value)} placeholder="Source name (Premium Times, original…)" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+            <input value={sourceName} onChange={(e) => setSourceName(e.target.value)} placeholder="Source name (Premium Times, original…)" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           </section>
           <section>
             <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">SEO</div>
-            <input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="SEO title (search engines, max ~70)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-            <textarea value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} rows={2} placeholder="SEO description (max ~160 characters)" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
-            <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder={`URL slug · ${title ? slugify(title) : "auto-from-title"}`} className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-sm" />
+            <input value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} placeholder="SEO title (search engines, max ~70)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            <textarea value={seoDesc} onChange={(e) => setSeoDesc(e.target.value)} rows={2} placeholder="SEO description (max ~160 characters)" className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            <input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder={`URL slug · ${title ? slugify(title) : "auto-from-title"}`} className="mt-2 w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           </section>
           <section>
             <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">PUBLISH</div>
@@ -549,7 +549,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Feeds, rooms, artists, jobs"
-        className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base"
       />
       {s ? (
         <>
@@ -638,37 +638,37 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
         <div className="mb-1 text-[11px] font-medium text-muted">Your avatar</div>
         <AvatarPicker value={face} handle={name} onChange={setFace} />
       </div>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Public username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Public username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       <div>
         <div className="mb-1 text-[11px] font-medium text-muted">Account type (locked)</div>
-        <p className="rounded-lg border border-line bg-panel px-3 py-2 text-sm">
+        <p className="rounded-lg border border-line bg-panel px-3 py-2 text-base">
           {kindLabel}
           <span className="mt-0.5 block text-[10px] text-muted">Chosen at register. It does not change later.</span>
         </p>
       </div>
       {kind === "artist" ? (
         <>
-          <input value={stage} onChange={(e) => setStage(e.target.value)} placeholder="Stage name" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-          <input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Genre (Afrobeats, Highlife…)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+          <input value={stage} onChange={(e) => setStage(e.target.value)} placeholder="Stage name" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+          <input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Genre (Afrobeats, Highlife…)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
         </>
       ) : null}
       {kind === "writer" ? (
         <>
-          <input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Outlet / publication" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-          <input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Beats (politics, music, sport…)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+          <input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Outlet / publication" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+          <input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Beats (politics, music, sport…)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
         </>
       ) : null}
       {kind === "advertiser" || kind === "brand" ? (
         <>
-          <input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder={kind === "brand" ? "Company name" : "Brand name"} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-          <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://your-site.com" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+          <input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder={kind === "brand" ? "Company name" : "Brand name"} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+          <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://your-site.com" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
         </>
       ) : null}
       {kind === "artist" ? (
-        <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Spotify / Apple / Audiomack URL" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+        <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Spotify / Apple / Audiomack URL" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       ) : null}
-      <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City (optional)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Bio" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City (optional)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Bio" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       <button
         type="button"
         className="btn-3d rounded-lg px-3 py-2 text-sm"
@@ -787,8 +787,8 @@ function Inbox() {
   }, []);
   return (
     <Screen kicker="YOU" title="Messages" sub="Private DMs. Username only. Staff cannot read these.">
-      <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Their username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Message" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Their username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Message" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       {msg ? <p className="text-sm text-muted">{msg}</p> : null}
       <button
         type="button"
@@ -838,7 +838,7 @@ function Teams({ store, onHome }: { store: Store; onHome: (id?: string) => void 
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Team name"
-              className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 text-sm"
+              className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 text-base"
             />
             <button
               type="button"
@@ -1033,22 +1033,22 @@ function Ads({ store }: { store: Store }) {
           </button>
         ))}
       </div>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Brand / campaign name" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Destination URL (https://…)" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Brand / campaign name" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Destination URL (https://…)" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       {kind === "image" || kind === "image-text" ? (
         <div className="inset-well mb-2 rounded-xl p-3">
           <div className="text-[11px] font-medium text-muted">Image · {size.label}</div>
           <p className="mb-2 text-[11px] text-muted">{size.hint}</p>
           <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
-          <input value={image.startsWith("data:") ? "" : image} onChange={(e) => setImage(e.target.value)} placeholder="Or paste image URL https://…" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+          <input value={image.startsWith("data:") ? "" : image} onChange={(e) => setImage(e.target.value)} placeholder="Or paste image URL https://…" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
           {image ? <img src={image} alt="" className="mt-2 max-h-36 rounded-lg object-cover" /> : null}
         </div>
       ) : null}
       {kind === "video" || kind === "video-text" ? (
-        <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="YouTube URL (not hosted here)" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+        <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="YouTube URL (not hosted here)" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       ) : null}
       {kind !== "image" && kind !== "video" ? (
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Short copy" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Short copy" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       ) : null}
       <div className="mb-1 text-[11px] font-medium text-muted">Pay with</div>
       <div className="mb-2 flex flex-wrap gap-1">
@@ -1084,8 +1084,8 @@ function Ads({ store }: { store: Store }) {
           Verify the first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet. We match your tx on the public chain.
         </p>
       </div>
-      <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount sent (about $${usd} USD in crypto)`} className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash / payment ID after you pay" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount sent (about $${usd} USD in crypto)`} className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash / payment ID after you pay" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       {err ? <p className="mb-2 text-sm text-danger">{err}</p> : null}
       <label className="mb-3 flex items-start gap-2 text-[11px] text-muted">
         <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
@@ -1529,8 +1529,8 @@ function Admin({ store }: { store: Store }) {
         <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
           <div className="text-[11px] font-medium text-muted">Staff access</div>
           <p className="text-xs text-muted">Only you are super. You grant sub-admin or admin. You can revoke. Nobody can take your seat.</p>
-          <input value={grantId} onChange={(e) => setGrantId(e.target.value)} placeholder="Their username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-          <select value={grantRole} onChange={(e) => setGrantRole(e.target.value as typeof grantRole)} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm">
+          <input value={grantId} onChange={(e) => setGrantId(e.target.value)} placeholder="Their username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+          <select value={grantRole} onChange={(e) => setGrantRole(e.target.value as typeof grantRole)} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base">
             <option value="mod">Sub-admin (mod) — hide, reports, ads</option>
             <option value="admin">Admin — wallets + moderator too</option>
           </select>
@@ -1593,8 +1593,8 @@ function AdminResetPassword({ members }: { members: { id: string; handle: string
     <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
       <div className="text-[11px] font-medium text-muted">Reset a user’s password</div>
       <p className="text-xs text-muted">No email. If they forget, you set a new one and tell them in chat. Cannot reset the owner.</p>
-      <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New password (8+)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New password (8+)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       {err ? <p className="text-sm text-danger">{err}</p> : null}
       {msg ? <p className="text-sm text-lime-2">{msg}</p> : null}
       <button
@@ -1655,8 +1655,8 @@ function AdminPassword() {
     <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
       <div className="text-[11px] font-medium text-muted">Your password</div>
       <p className="text-xs text-muted">Change it here. No email reset — we never stored a real mailbox.</p>
-      <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Current password" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="New password (8+)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Current password" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="New password (8+)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       {err ? <p className="text-sm text-danger">{err}</p> : null}
       {msg ? <p className="text-sm text-lime-2">{msg}</p> : null}
       <button
@@ -1702,7 +1702,7 @@ function VerifyKindPanel({
     <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
       <div className="text-[11px] font-medium text-muted">Kilode Verified + account type</div>
       <p className="text-xs text-muted">Badge appears next to @handle on posts and chat. Only you (super) can change account type. Users cannot switch themselves.</p>
-      <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       {picked ? <p className="text-[11px] text-muted">{picked.handle} · {picked.kind} · {picked.verified ? "verified" : "not verified"}</p> : null}
       <div className="flex flex-wrap gap-2">
         <button
@@ -1734,7 +1734,7 @@ function VerifyKindPanel({
       </div>
       {canChangeKind ? (
         <div className="flex flex-wrap gap-2">
-          <select value={kind} onChange={(e) => setKind(e.target.value as AccountKind)} className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 text-sm">
+          <select value={kind} onChange={(e) => setKind(e.target.value as AccountKind)} className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 text-base">
             {ACCOUNT_KINDS.map((k) => (
               <option key={k.id} value={k.id}>
                 {k.label}
@@ -1808,8 +1808,8 @@ function BanMutePanel({ members }: { members: { id: string; handle: string; kind
     <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
       <div className="text-[10px] font-bold tracking-normal text-lime-2">Mute & ban</div>
       <p className="text-xs text-muted">Mute stops chat. Ban stops chat, feeds, ads, and music. Owner cannot be restricted.</p>
-      <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-      <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (optional)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+      <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (optional)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       <div className="flex flex-wrap gap-1">
         <button type="button" className="rounded border border-line px-2 py-1 text-[11px]" onClick={() => act("mute", 1)}>Mute 1h</button>
         <button type="button" className="rounded border border-line px-2 py-1 text-[11px]" onClick={() => act("mute", 24)}>Mute 24h</button>
@@ -2349,8 +2349,8 @@ function Settings({ store }: { store: Store }) {
     <Screen kicker="YOU" title="Settings" sub="Username + password. No email reset.">
       <Card title="Public username" body={`${store.handle || "Sign in to set one"} · ${kindLabel}`} />
       <Card title="Change password" body="Do this while signed in. There is no reset email — this app does not collect your real email, so nobody can mail you a new password.">
-        <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Current password" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
-        <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="New password" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm" />
+        <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Current password" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+        <input type="password" value={next} onChange={(e) => setNext(e.target.value)} placeholder="New password" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
         {err ? <p className="mt-2 text-sm text-danger">{err}</p> : null}
         {msg ? <p className="mt-2 text-sm text-lime-2">{msg}</p> : null}
         <button type="button" className="btn-3d mt-2 rounded-lg px-3 py-2 text-sm" onClick={() => void change()}>
@@ -2589,7 +2589,7 @@ function Contact({ store }: { store: Store }) {
         onChange={(e) => setBody(e.target.value)}
         rows={5}
         placeholder="Message"
-        className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base"
       />
       <button
         type="button"
