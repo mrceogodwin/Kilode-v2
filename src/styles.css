@@ -661,12 +661,12 @@ html[data-skin="ivory"] .brand-word {
   display: grid;
   place-items: center;
   overflow: hidden;
-  /* Brand-green tile behind bang-only mark — never near-black plate */
-  background: linear-gradient(180deg, #6b9e78 0%, #4e8660 48%, #3d6a48 100%);
+  /* Visibly lime/mint tile on night — never charcoal/black plate */
+  background: linear-gradient(180deg, #a8e06a 0%, #7bc45a 48%, #5aa84e 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 2px 6px rgba(0, 0, 0, 0.28),
-    0 0 0 1px rgba(47, 107, 60, 0.55);
+    0 0 0 1px rgba(47, 120, 60, 0.55);
 }
 .brand-mark img {
   grid-area: 1 / 1;

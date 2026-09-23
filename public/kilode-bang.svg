@@ -1,22 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
   <defs>
     <linearGradient id="bang" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#9fd0aa"/>
-      <stop offset="48%" stop-color="#6b9e78"/>
-      <stop offset="100%" stop-color="#3d6a48"/>
+      <stop offset="0%" stop-color="#d4f296"/>
+      <stop offset="45%" stop-color="#a8e06a"/>
+      <stop offset="100%" stop-color="#8cce60"/>
     </linearGradient>
     <linearGradient id="shine" x1="0.15" y1="0" x2="0.85" y2="1">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.45"/>
-      <stop offset="42%" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.42"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
+    <radialGradient id="dot" cx="35%" cy="32%" r="70%">
+      <stop offset="0%" stop-color="#e0f6b0"/>
+      <stop offset="55%" stop-color="#a8e06a"/>
+      <stop offset="100%" stop-color="#8cce60"/>
+    </radialGradient>
   </defs>
-  <!-- Bang-only mark: no dark glass plate -->
+  <!-- Solid brand-lime bang on transparent — no dark glass cores -->
   <g transform="translate(256 248)">
     <g transform="rotate(-12)">
       <rect x="-44" y="-168" width="88" height="250" rx="40" fill="url(#bang)"/>
       <rect x="-44" y="-168" width="88" height="250" rx="40" fill="url(#shine)"/>
     </g>
   </g>
-  <circle cx="292" cy="392" r="44" fill="url(#bang)"/>
-  <circle cx="278" cy="376" r="15" fill="#ffffff" fill-opacity="0.32"/>
+  <circle cx="292" cy="392" r="44" fill="url(#dot)"/>
+  <circle cx="278" cy="376" r="15" fill="#ffffff" fill-opacity="0.38"/>
 </svg>
