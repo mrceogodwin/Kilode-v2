@@ -177,18 +177,17 @@ export function SiteFooter() {
         </div>
       </div>
 
-      <div className="mt-3 border-t border-white/10 pt-3">
-        <div className="mb-2 text-center text-[10px] font-semibold tracking-[0.14em] text-muted uppercase">Email updates</div>
-        <DigestBox quiet defaultOpen />
+      <div className="mt-3.5 border-t border-white/10 pt-3">
+        <div className="overflow-hidden rounded-2xl border border-lime-2/20 bg-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+          <div className="border-b border-white/10 px-3 pt-3 pb-2.5">
+            <div className="mb-2 text-center text-[10px] font-semibold tracking-[0.14em] text-muted uppercase">Email updates</div>
+            <DigestBox quiet defaultOpen />
+          </div>
+          <div className="menu-install rounded-none border-0 shadow-none">
+            <GetAppRow />
+          </div>
+        </div>
       </div>
-
-      <a
-        href="/install"
-        className="mt-1.5 flex items-center justify-center gap-1.5 py-1 text-[11px] text-muted/80 hover:text-fg"
-      >
-        <img src="/kilode-bang-icon.png" alt="" className="size-4 rounded-[4px] object-cover opacity-70" />
-        Install Kilode on your home screen
-      </a>
 
       <p className="mt-3 text-center text-[10px] leading-snug text-muted">
         <a href="/terms" className="underline">
