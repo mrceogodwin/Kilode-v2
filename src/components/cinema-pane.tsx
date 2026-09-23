@@ -120,13 +120,7 @@ export function CinemaPane() {
               </div>
               <span className="text-[10px] text-muted">{watching.votes} votes · {watching.section}</span>
             </div>
-            <iframe
-              title={watching.title}
-              src={`https://www.youtube.com/embed/${watching.youtube_id}?rel=0`}
-              className="aspect-video w-full border-0 bg-black md:max-h-[52vh]"
-              allow="encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-            />
+            <CinemaPlayer title={watching.title} youtubeId={watching.youtube_id} />
             <div className="flex items-center justify-between gap-2 border-t border-white/5 bg-panel px-2 py-1.5">
               <div>
                 <div className="text-sm font-semibold">{watching.title}</div>
@@ -151,7 +145,7 @@ export function CinemaPane() {
             </div>
             <CinemaRate movieId={watching.id} signed={signed} />
             </div>
-            <div className="mt-2 overflow-hidden rounded-xl border border-line bg-panel md:mt-0 md:max-h-[70vh] md:overflow-y-auto">
+            <div className="cinema-live-card mt-2 overflow-hidden rounded-xl border border-lime-2/40 bg-panel shadow-[0_0_28px_rgba(107,158,120,0.14)] md:mt-0 md:max-h-[70vh] md:overflow-y-auto">
               <CinemaChat movieId={watching.id} title={watching.title} signed={signed} />
               <CinemaQuizBox movieId={watching.id} signed={signed} />
             </div>
@@ -251,6 +245,49 @@ export function CinemaPane() {
           </button>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+function CinemaPlayer({ title, youtubeId }: { title: string; youtubeId: string }) {
+  const [failed, setFailed] = useState(false);
+  const id = (youtubeId || "").trim();
+  const showEmbed = Boolean(id) && !failed;
+
+  return (
+    <div className="relative w-full min-h-[11.5rem] aspect-video shrink-0 bg-black sm:min-h-[14rem]">
+      {showEmbed ? (
+        <iframe
+          title={title}
+          src={`https://www.youtube.com/embed/${id}?rel=0`}
+          className="absolute inset-0 h-full w-full border-0 bg-black"
+          allow="encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-b from-[#0c1210] via-black to-[#061008] px-4 text-center">
+          {id ? (
+            <img
+              src={thumb(id)}
+              alt=""
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-35"
+              onError={() => setFailed(true)}
+            />
+          ) : null}
+          <div className="relative z-[1] flex flex-col items-center gap-1.5">
+            <span className="inline-flex size-10 items-center justify-center rounded-xl border border-lime-2/40 bg-black/55 text-lime-2 shadow-[0_0_20px_rgba(107,158,120,0.25)]">
+              <Film className="size-5" />
+            </span>
+            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-lime-2">Kilode Cinema</div>
+            <div className="max-w-[18rem] text-sm font-extrabold leading-snug text-fg">{title || "Watching now"}</div>
+            <p className="max-w-[16rem] text-[10px] leading-snug text-muted">
+              {id ? "Trailer preview unavailable. Vote, rate, and join Live talk below." : "No YouTube clip yet. Staff will pin a trailer soon."}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -457,14 +494,25 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
   }, [msgs, mode]);
 
   return (
-    <div className="border-t border-white/5 bg-bg">
-      <div className="flex items-start justify-between gap-2 border-b border-white/5 px-2 py-1.5">
+    <div className="border-t border-lime-2/15 bg-gradient-to-b from-lime-2/[0.06] to-bg">
+      <div className="flex items-start justify-between gap-2 border-b border-lime-2/20 px-2.5 py-2">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="truncate text-[11px] font-bold text-lime-2">Live talk</span>
-            <span className="truncate text-[10px] text-muted">· {shortTitle}</span>
+            <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md border border-lime-2/35 bg-black/40 text-lime-2" aria-hidden>
+              <svg viewBox="0 0 64 64" className="size-3.5">
+                <rect x="26" y="7" width="11" height="34" rx="4.5" transform="rotate(-12 32 24)" fill="currentColor" />
+                <circle cx="36.5" cy="50" r="6.5" fill="currentColor" />
+              </svg>
+            </span>
+            <div className="min-w-0">
+              <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-lime-2">Kilode Cinema</div>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="truncate text-[12px] font-extrabold text-fg">Live talk</span>
+                <span className="truncate text-[10px] text-muted">· {shortTitle}</span>
+              </div>
+            </div>
             {mode === "live" ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-lime-2/40 bg-lime-2/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-lime-2">
+              <span className="inline-flex items-center gap-1 rounded-full border border-lime-2/50 bg-lime-2/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-lime-2">
                 <span className="desk-live size-1.5 rounded-full bg-lime-2" aria-hidden />
                 Live · this hour
               </span>
@@ -472,7 +520,7 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
               <span className="rounded-full border border-line px-1.5 py-0.5 text-[9px] font-semibold text-muted">Full film</span>
             )}
           </div>
-          <p className="mt-0.5 text-[9px] leading-snug text-muted">People discussing this film as it plays. Jump in.</p>
+          <p className="mt-1 text-[9px] leading-snug text-muted">Watch-party chat · discuss this film as it plays.</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] text-muted">
             <span>Talk while it plays</span>
             {mode === "live" ? <span>· Live window · {liveWindowNote}</span> : null}
@@ -507,7 +555,7 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
       </div>
       <div
         ref={scroller}
-        className="max-h-56 overflow-y-auto px-2 py-1.5"
+        className="min-h-40 max-h-72 overflow-y-auto px-2 py-2 sm:min-h-36 sm:max-h-64"
         onScroll={() => {
           const el = scroller.current;
           if (!el) return;

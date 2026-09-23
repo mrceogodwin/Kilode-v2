@@ -73,7 +73,7 @@ import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
 import { InstallToast, SiteFooter, TrendingTicker } from "@/components/site-chrome";
 import { FeedsHero } from "@/components/feeds-hero";
-import { BrandLockup } from "@/components/brand-lockup";
+import { BrandLockup, CinemaTvIcon } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
 import { MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
@@ -410,15 +410,17 @@ export function QonvoApp() {
             <SkinToggle />
             <button
               type="button"
-              className="grid size-8 place-items-center rounded-lg border border-line bg-panel-2"
-              aria-label="Kilode TV and socials"
-              title="Kilode TV"
+              className="grid size-8 place-items-center rounded-lg border border-lime-2/35 bg-panel-2 shadow-[0_0_12px_rgba(107,158,120,0.12)]"
+              aria-label="Kilode Cinema"
+              title="Kilode Cinema"
               onClick={() => {
-                setScreen("tv");
+                store.setOpenPost(null);
+                setHomeTab("cinema");
+                setScreen("home");
                 setMenuOpen(false);
               }}
             >
-              <Tv className="size-3.5 text-lime-2" />
+              <CinemaTvIcon className="size-4 text-lime-2" />
             </button>
             <button
               type="button"

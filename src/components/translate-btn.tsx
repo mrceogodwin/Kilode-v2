@@ -26,12 +26,13 @@ export function ThreadTranslateBar({
             setErr("");
             onTranslated({});
           }}
-          className="h-6 min-h-[24px] max-w-[4.25rem] rounded border border-line bg-panel px-0.5 py-0 text-[10px] leading-none text-muted"
+          className="h-6 min-h-[24px] min-w-[2.75rem] max-w-[3.5rem] rounded border border-line bg-panel px-0.5 py-0 text-[10px] leading-none text-muted"
           aria-label="Show messages in"
+          title={label}
         >
           {LANGS.filter((l) => l.id !== "en").map((l) => (
             <option key={l.id} value={l.id}>
-              {l.label}
+              {l.id.toUpperCase()}
             </option>
           ))}
         </select>

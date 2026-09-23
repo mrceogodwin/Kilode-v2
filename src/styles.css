@@ -649,6 +649,32 @@ html[data-skin="ivory"] .music-rail .text-muted {
   }
 }
 
+/* Kilode Cinema — header TV mark soft ping (not spammy) */
+.cinema-tv-screen {
+  transition: fill 0.3s ease;
+}
+.cinema-tv-ping {
+  background: radial-gradient(circle, rgba(107, 158, 120, 0.35) 0%, transparent 70%);
+  animation: cinema-tv-ping 2.8s ease-in-out infinite;
+}
+@keyframes cinema-tv-ping {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.05);
+  }
+}
+.cinema-live-card {
+  box-shadow:
+    0 0 0 1px rgba(107, 158, 120, 0.22),
+    0 0 28px rgba(107, 158, 120, 0.12),
+    inset 0 1px 0 rgba(107, 158, 120, 0.08);
+}
+
 @media (max-width: 767px) {
   html,
   body,
