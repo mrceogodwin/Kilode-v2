@@ -78,6 +78,64 @@ function mergeByTs(prev: ChatMsg[], incoming: ChatMsg[], cap = 80): ChatMsg[] {
   return [...map.values()].sort((a, b) => a.ts - b.ts).slice(-cap);
 }
 
+/** Local send still waiting to appear in a server pack (or explicitly failed). */
+type PendingSend = {
+  id: string;
+  roomId: string;
+  /** Optimistic client ts (for removal) and/or server-confirmed ts. */
+  ts: number;
+  optimisticTs: number;
+  t: string;
+  n: string;
+  parentTs?: number;
+  parentN?: string;
+  parentT?: string;
+  confirmed: boolean;
+};
+
+const PENDING_MATCH_WINDOW_MS = 120_000;
+
+function pendingToMsg(p: PendingSend): ChatMsg {
+  return {
+    n: p.n,
+    t: p.t,
+    ts: p.ts,
+    rx: {},
+    parentTs: p.parentTs,
+    parentN: p.parentN,
+    parentT: p.parentT,
+  };
+}
+
+function serverHasPending(incoming: ChatMsg[], p: PendingSend): boolean {
+  if (incoming.some((m) => m.ts === p.ts || m.ts === p.optimisticTs)) return true;
+  const lo = Math.min(p.ts, p.optimisticTs) - PENDING_MATCH_WINDOW_MS;
+  const hi = Math.max(p.ts, p.optimisticTs) + PENDING_MATCH_WINDOW_MS;
+  return incoming.some(
+    (m) =>
+      m.t === p.t &&
+      m.n.toLowerCase() === p.n.toLowerCase() &&
+      m.ts >= lo &&
+      m.ts <= hi,
+  );
+}
+
+/** Keep just-sent rows that a stale/incomplete server page omitted (ts <= serverTip case). */
+function mergePreservingPending(
+  incoming: ChatMsg[],
+  pending: PendingSend[],
+  prev: ChatMsg[] = [],
+  cap = 80,
+): ChatMsg[] {
+  const missing = pending.filter((p) => !serverHasPending(incoming, p)).map(pendingToMsg);
+  // Also keep prev rows that match pending (covers confirmed already painted but not in pack).
+  const pendingTs = new Set(pending.flatMap((p) => [p.ts, p.optimisticTs]));
+  const fromPrev = prev.filter(
+    (m) => pendingTs.has(m.ts) && !incoming.some((x) => x.ts === m.ts) && !missing.some((x) => x.ts === m.ts),
+  );
+  return mergeByTs(incoming, [...fromPrev, ...missing], cap);
+}
+
 function passKey(name: string, pass: string) {
   return `${name.toLowerCase()}::${pass}`;
 }
@@ -132,6 +190,37 @@ export function useQonvo() {
   const msgsByRoomRef = useRef<Record<string, ChatMsg[]>>({});
   /** Blocks double reaction taps (click+touch / rapid re-press) until saveRx settles. */
   const rxInFlightRef = useRef<Set<string>>(new Set());
+  /** Just-sent rows per room until they appear in a server pack (or fail). */
+  const pendingByRoomRef = useRef<Record<string, PendingSend[]>>({});
+  /** Bumped on each send; stale room-load / post-send listMsgs ignore older generations. */
+  const sendSeqByRoomRef = useRef<Record<string, number>>({});
+  /** Bumped when a room-load starts; responses for older gens are ignored. */
+  const roomLoadGenRef = useRef<Record<string, number>>({});
+
+  const listPending = useCallback((id: string) => pendingByRoomRef.current[id] ?? [], []);
+
+  const upsertPending = useCallback((row: PendingSend) => {
+    const cur = pendingByRoomRef.current[row.roomId] ?? [];
+    const without = cur.filter((p) => p.id !== row.id && p.optimisticTs !== row.optimisticTs);
+    pendingByRoomRef.current[row.roomId] = [...without, row];
+  }, []);
+
+  const dropPending = useCallback((room: string, pred: (p: PendingSend) => boolean) => {
+    const cur = pendingByRoomRef.current[room] ?? [];
+    pendingByRoomRef.current[room] = cur.filter((p) => !pred(p));
+  }, []);
+
+  const reconcilePending = useCallback((room: string, incoming: ChatMsg[]) => {
+    const cur = pendingByRoomRef.current[room] ?? [];
+    if (!cur.length) return;
+    pendingByRoomRef.current[room] = cur.filter((p) => !serverHasPending(incoming, p));
+  }, []);
+
+  const bumpSendSeq = useCallback((room: string) => {
+    const n = (sendSeqByRoomRef.current[room] ?? 0) + 1;
+    sendSeqByRoomRef.current[room] = n;
+    return n;
+  }, []);
 
   const persistNotes = useCallback((next: Note[]) => {
     setNotes(next);
@@ -302,10 +391,16 @@ export function useQonvo() {
     setTyping([]);
     setChatErr("");
     setMsgsLoading(true);
+    const loadGen = (roomLoadGenRef.current[want] ?? 0) + 1;
+    roomLoadGenRef.current[want] = loadGen;
+    const sendSeqAtStart = sendSeqByRoomRef.current[want] ?? 0;
     void listMsgs({ data: { roomId: want }, signal: ac.signal })
       .then((r) => {
         // Stale-response guard: ignore if user already left this room.
         if (!on || roomIdRef.current !== want) return;
+        // Ignore if a newer room-load started, or a send finished after this fetch began.
+        if (roomLoadGenRef.current[want] !== loadGen) return;
+        if ((sendSeqByRoomRef.current[want] ?? 0) > sendSeqAtStart) return;
         const pack = asPack(r);
         // Timeout/error packs are empty — keep cache, do not wipe presence or thread.
         if (packFailed(pack)) {
@@ -314,19 +409,26 @@ export function useQonvo() {
           setMsgs(fallback);
           return;
         }
-        // Prefer server page, but keep any newer rows a faster poll already merged in.
-        // Blind replace + sticky tipTs skipped those rows on after: until reconcile.
+        // Prefer server page; always re-attach pending/confirmed sends missing from the pack.
         const incoming = pack.msgs ?? [];
+        const pending = listPending(want);
         setMsgs((prev) => {
           let merged: ChatMsg[];
           if (!incoming.length) {
-            merged = [];
-            tipTsByRoomRef.current[want] = 0;
+            // Never wipe a thread that still has in-flight local sends.
+            if (pending.length) {
+              merged = mergePreservingPending([], pending, prev);
+            } else {
+              merged = [];
+              tipTsByRoomRef.current[want] = 0;
+            }
           } else {
             const serverTip = incoming.reduce((a, m) => Math.max(a, m.ts), 0);
+            // Keep poll-raced rows newer than the pack tip AND any pending/confirmed locals.
             const raced = prev.filter((m) => m.ts > serverTip);
-            merged = mergeByTs(incoming, raced);
+            merged = mergePreservingPending(mergeByTs(incoming, raced), pending, prev);
           }
+          reconcilePending(want, incoming);
           msgsRef.current = merged;
           cacheRoomMsgs(want, merged);
           return merged;
@@ -351,7 +453,7 @@ export function useQonvo() {
       on = false;
       ac.abort(); // drop in-flight listMsgs on room switch
     };
-  }, [roomId, ready, cacheRoomMsgs, noteServerTip]);
+  }, [roomId, ready, cacheRoomMsgs, noteServerTip, listPending, reconcilePending]);
 
   useEffect(() => {
     msgsRef.current = msgs;
@@ -417,9 +519,22 @@ export function useQonvo() {
           // Viewing older page: keep presence fresh, leave the history window alone.
           if (hasNewerRef.current) return;
           if (!afterTs || reconcile || !("after" in payload)) {
-            if (!pack.msgs.length) return;
+            if (!pack.msgs.length) {
+              // Empty success must not erase pending local sends.
+              const pending = listPending(want);
+              if (!pending.length) return;
+              setMsgs((prev) => {
+                const merged = mergePreservingPending([], pending, prev);
+                msgsRef.current = merged;
+                cacheRoomMsgs(want, merged);
+                return merged;
+              });
+              return;
+            }
             setMsgs((prev) => {
-              const merged = mergeByTs(prev, pack.msgs);
+              const pending = listPending(want);
+              const merged = mergePreservingPending(mergeByTs(prev, pack.msgs), pending, prev);
+              reconcilePending(want, pack.msgs);
               msgsRef.current = merged;
               cacheRoomMsgs(want, merged);
               return merged;
@@ -433,9 +548,22 @@ export function useQonvo() {
           const known = new Set(msgsRef.current.map((m) => m.ts));
           const extra = pack.msgs.filter((m) => !known.has(m.ts));
           for (const m of pack.msgs) noteServerTip(want, m.ts);
-          if (!extra.length) return;
+          reconcilePending(want, pack.msgs);
+          if (!extra.length) {
+            // Still re-attach pending if a prior merge dropped them.
+            const pending = listPending(want);
+            if (!pending.length) return;
+            setMsgs((prev) => {
+              const merged = mergePreservingPending(prev, pending, prev);
+              msgsRef.current = merged;
+              cacheRoomMsgs(want, merged);
+              return merged;
+            });
+            return;
+          }
           setMsgs((prev) => {
-            const merged = mergeByTs(prev, extra);
+            const pending = listPending(want);
+            const merged = mergePreservingPending(mergeByTs(prev, extra), pending, prev);
             msgsRef.current = merged;
             cacheRoomMsgs(want, merged);
             return merged;
@@ -472,7 +600,7 @@ export function useQonvo() {
       document.removeEventListener("visibilitychange", onVis);
       for (const ev of ACTIVITY_EVENTS) window.removeEventListener(ev, markActivity);
     };
-  }, [ready, roomId, chatLive, cacheRoomMsgs, noteServerTip]);
+  }, [ready, roomId, chatLive, cacheRoomMsgs, noteServerTip, listPending, reconcilePending]);
 
   useEffect(() => {
     if (session.isPending) return;
@@ -726,6 +854,8 @@ export function useQonvo() {
         handle ||
         publicUsername(session.user.displayName || session.user.primaryEmail || session.user.id.slice(0, 16));
       const optimisticTs = Date.now();
+      const pendingId = uid();
+      const sendSeq = bumpSendSeq(sentRoom);
       const parent = parentTs ? msgsRef.current.find((m) => m.ts === parentTs) : undefined;
       const optimistic: ChatMsg = {
         n: who,
@@ -736,6 +866,18 @@ export function useQonvo() {
         parentN: parent?.n,
         parentT: parent?.t?.slice(0, 80),
       };
+      upsertPending({
+        id: pendingId,
+        roomId: sentRoom,
+        ts: optimisticTs,
+        optimisticTs,
+        t: body,
+        n: who,
+        parentTs,
+        parentN: parent?.n,
+        parentT: parent?.t?.slice(0, 80),
+        confirmed: false,
+      });
       // Show immediately; replace with server row on success.
       if (!hasNewer) {
         setMsgs((prev) => {
@@ -753,6 +895,7 @@ export function useQonvo() {
               ? (r as { reason: string }).reason
               : "Blocked by the moderator.";
           note(reason);
+          dropPending(sentRoom, (p) => p.id === pendingId);
           if (stillHere()) {
             setChatErr(reason);
             setMsgs((prev) => {
@@ -785,6 +928,19 @@ export function useQonvo() {
           parentN: row.parentN ?? parent?.n,
           parentT: row.parentT ?? parent?.t?.slice(0, 80),
         };
+        // Keep pending until a server pack actually includes this row (ts or n+t match).
+        upsertPending({
+          id: pendingId,
+          roomId: sentRoom,
+          ts: confirmed.ts,
+          optimisticTs,
+          t: confirmed.t,
+          n: confirmed.n,
+          parentTs: confirmed.parentTs,
+          parentN: confirmed.parentN,
+          parentT: confirmed.parentT,
+          confirmed: true,
+        });
         noteServerTip(sentRoom, confirmed.ts);
         if (stillHere()) {
           setMsgs((prev) => {
@@ -807,25 +963,34 @@ export function useQonvo() {
         // Re-fetch this room only; merge so a laggy list never drops the just-sent message.
         void listMsgs({ data: { roomId: sentRoom } })
           .then((pack) => {
+            // Ignore if a newer send for this room already superseded this reconcile.
+            if ((sendSeqByRoomRef.current[sentRoom] ?? 0) !== sendSeq) return;
             const p = asPack(pack);
             if (packFailed(p)) return;
             const server = p.msgs ?? [];
-            const merged = mergeByTs(server, [confirmed]);
-            cacheRoomMsgs(sentRoom, merged);
-            for (const m of merged) noteServerTip(sentRoom, m.ts);
+            const pending = listPending(sentRoom);
+            const merged = mergePreservingPending(server, pending, [confirmed]);
+            // Belt: always keep this confirmed even if pending was cleared early.
+            const withConfirmed = merged.some((m) => m.ts === confirmed.ts)
+              ? merged
+              : mergeByTs(merged, [confirmed]);
+            reconcilePending(sentRoom, server);
+            cacheRoomMsgs(sentRoom, withConfirmed);
+            for (const m of withConfirmed) noteServerTip(sentRoom, m.ts);
             // Never paint another room's list onto the active thread.
             if (!stillHere()) return;
             setHasOlder(!!p.older);
             setHasNewer(!!p.newer);
             if (p.online) setOnline(p.online);
             if (p.typing) setTyping(p.typing);
-            msgsRef.current = merged;
-            setMsgs(merged);
+            msgsRef.current = withConfirmed;
+            setMsgs(withConfirmed);
           })
           .catch(() => undefined);
         note(`Sent in ${ROOMS.find((x) => x.id === sentRoom)?.name ?? sentRoom}`);
         return true;
       } catch (e: unknown) {
+        dropPending(sentRoom, (p) => p.id === pendingId);
         if (stillHere()) {
           setMsgs((prev) => {
             const next = prev.filter((m) => m.ts !== optimisticTs);
@@ -849,7 +1014,20 @@ export function useQonvo() {
         return false;
       }
     },
-    [cacheRoomMsgs, handle, hasNewer, note, noteServerTip, roomId, session.user],
+    [
+      bumpSendSeq,
+      cacheRoomMsgs,
+      dropPending,
+      handle,
+      hasNewer,
+      listPending,
+      note,
+      noteServerTip,
+      reconcilePending,
+      roomId,
+      session.user,
+      upsertPending,
+    ],
   );
 
   const bumpPresence = useCallback(
@@ -883,13 +1061,16 @@ export function useQonvo() {
         setHasOlder(false);
         return;
       }
-      msgsRef.current = p.msgs;
-      setMsgs(p.msgs);
-      cacheRoomMsgs(want, p.msgs);
+      const pending = listPending(want);
+      const merged = mergePreservingPending(p.msgs, pending);
+      reconcilePending(want, p.msgs);
+      msgsRef.current = merged;
+      setMsgs(merged);
+      cacheRoomMsgs(want, merged);
       setHasOlder(!!p.older);
       setHasNewer(true);
     }).catch(() => undefined);
-  }, [cacheRoomMsgs, chatHours, msgs, roomId]);
+  }, [cacheRoomMsgs, chatHours, listPending, msgs, reconcilePending, roomId]);
 
   const newerChat = useCallback(() => {
     const last = msgs[msgs.length - 1];
@@ -899,9 +1080,12 @@ export function useQonvo() {
         if (roomIdRef.current !== want) return;
         const p = asPack(pack);
         if (packFailed(p)) return;
-        msgsRef.current = p.msgs;
-        setMsgs(p.msgs);
-        cacheRoomMsgs(want, p.msgs);
+        const pending = listPending(want);
+        const merged = mergePreservingPending(p.msgs, pending);
+        reconcilePending(want, p.msgs);
+        msgsRef.current = merged;
+        setMsgs(merged);
+        cacheRoomMsgs(want, merged);
         for (const m of p.msgs) noteServerTip(want, m.ts);
         setHasOlder(!!p.older);
         setHasNewer(!!p.newer);
@@ -918,23 +1102,29 @@ export function useQonvo() {
           if (roomIdRef.current !== want) return;
           const l = asPack(live);
           if (packFailed(l)) return;
-          msgsRef.current = l.msgs;
-          setMsgs(l.msgs);
-          cacheRoomMsgs(want, l.msgs);
+          const pending = listPending(want);
+          const merged = mergePreservingPending(l.msgs, pending);
+          reconcilePending(want, l.msgs);
+          msgsRef.current = merged;
+          setMsgs(merged);
+          cacheRoomMsgs(want, merged);
           for (const m of l.msgs) noteServerTip(want, m.ts);
           setHasOlder(!!l.older);
           setHasNewer(false);
         }).catch(() => undefined);
         return;
       }
-      msgsRef.current = p.msgs;
-      setMsgs(p.msgs);
-      cacheRoomMsgs(want, p.msgs);
+      const pending = listPending(want);
+      const merged = mergePreservingPending(p.msgs, pending);
+      reconcilePending(want, p.msgs);
+      msgsRef.current = merged;
+      setMsgs(merged);
+      cacheRoomMsgs(want, merged);
       for (const m of p.msgs) noteServerTip(want, m.ts);
       setHasOlder(true);
       setHasNewer(!!p.newer);
     }).catch(() => undefined);
-  }, [cacheRoomMsgs, chatHours, hasNewer, noteServerTip, msgs, roomId]);
+  }, [cacheRoomMsgs, chatHours, hasNewer, listPending, noteServerTip, reconcilePending, msgs, roomId]);
 
   /** One gesture → one saveRx until settled (+ short cooldown absorbs click/touch double-fire). */
   const react = useCallback(
