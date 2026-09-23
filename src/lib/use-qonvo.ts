@@ -86,7 +86,7 @@ export function useQonvo() {
   const session = useCurrentUserState();
   const [ready, setReady] = useState(false);
   const [handle, setHandle] = useState("");
-  const [roomId, setRoomId] = useState("global");
+  const [roomId, setRoomId] = useState("lounge");
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [pins, setPins] = useState<string[]>([]);
@@ -147,7 +147,7 @@ export function useQonvo() {
 
   useEffect(() => {
     setHandle(loadJson("me", ""));
-    setRoomId(loadJson("room", "global"));
+    setRoomId(loadJson("room", "lounge"));
     const posts0 = loadJson<Post[]>("posts", [])
       .filter((p): p is Post => !!p && typeof p.id === "string")
       // Drop stale picsum / old demo-feed cards so week news images win.
@@ -1294,7 +1294,7 @@ export function useQonvo() {
   const reset = useCallback(() => {
     clearAll();
     setHandle("");
-    setRoomId("global");
+    setRoomId("lounge");
     setMsgs([]);
     setPosts([]);
     setPins([]);

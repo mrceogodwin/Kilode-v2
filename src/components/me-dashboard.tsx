@@ -219,7 +219,7 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
   const chat: QuickTile = {
     icon: MessageSquare,
     label: "Chat rooms",
-    hint: "36 states + global",
+    hint: "Live rooms · topics & places",
     onClick: () => goto({ tab: "chat" }),
   };
   const voteCinema: QuickTile = {
@@ -509,7 +509,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   /** Member keeps Feeds "New post" as a primary activity CTA (seeker has its own Feeds desk). */
   const feedsPostPrimary = kind === "member";
 
-  const rooms = store.pins.length ? store.pins : ["global"];
+  const rooms = store.pins.length ? store.pins : ["lounge"];
   const CtaIcon = cta.icon;
 
   const stats: { n: number; l: string }[] =
@@ -1168,7 +1168,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
               <ActionTile icon={Briefcase} label="Browse jobs" hint="Apply with note" onClick={() => goto({ screen: "jobs" })} />
               <ActionTile icon={Plus} label="New post" hint="Feeds editor" onClick={openCreatePost} />
               <ActionTile icon={Film} label="Vote cinema" hint="One vote / day" onClick={() => goto({ tab: "cinema" })} />
-              <ActionTile icon={MessageSquare} label="Chat" hint="36 states + global" onClick={() => goto({ tab: "chat" })} />
+              <ActionTile icon={MessageSquare} label="Chat" hint="Live rooms · topics & places" onClick={() => goto({ tab: "chat" })} />
             </div>
             {profileGaps.length ? (
               <div className="mt-3 rounded-xl border border-dashed border-line bg-panel/60 px-3 py-2.5 text-[11px] text-muted">
@@ -1243,7 +1243,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
               <ActionTile icon={Plus} label="New post" hint="Rich Feeds editor" onClick={openCreate} />
               <ActionTile icon={Briefcase} label="Apply jobs" hint="Open roles" onClick={() => goto({ screen: "jobs" })} />
               <ActionTile icon={Film} label="Vote cinema" hint="One vote / day" onClick={() => goto({ tab: "cinema" })} />
-              <ActionTile icon={MessageSquare} label="Chat" hint="36 states + global" onClick={() => goto({ tab: "chat" })} />
+              <ActionTile icon={MessageSquare} label="Chat" hint="Live rooms · topics & places" onClick={() => goto({ tab: "chat" })} />
             </div>
             {profileGaps.length ? (
               <div className="mt-3 rounded-xl border border-dashed border-line bg-panel/60 px-3 py-2.5 text-[11px] text-muted">

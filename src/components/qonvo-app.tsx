@@ -245,11 +245,19 @@ function QonvoAppInner() {
   const [chatXlate, setChatXlate] = useState<Record<string, string>>({});
   const [forumWhy, setForumWhy] = useState(false);
   const [chatOk, setChatOk] = useState(false);
-  const [roomOverlay, setRoomOverlay] = useState<{ extra: Room[]; paused: string[] }>({ extra: [], paused: [] });
+  const [roomOverlay, setRoomOverlay] = useState<{
+    extra: Room[];
+    paused: string[];
+    overrides: Record<string, { name: string; region: string }>;
+  }>({ extra: [], paused: [], overrides: {} });
 
   const liveRooms = useMemo(() => {
     const paused = new Set(roomOverlay.paused);
-    return [...ROOMS.filter((r) => !paused.has(r.id)), ...roomOverlay.extra];
+    const built = ROOMS.filter((r) => !paused.has(r.id)).map((r) => {
+      const o = roomOverlay.overrides[r.id];
+      return o ? { ...r, name: o.name, region: o.region } : r;
+    });
+    return [...built, ...roomOverlay.extra];
   }, [roomOverlay]);
 
   const room =
@@ -1044,7 +1052,7 @@ function QonvoAppInner() {
 
               <DrawerGroup label="Kilode">
                 <DrawerRow icon={Home} label="Feeds" hint="News for Nigeria" onClick={() => { store.setOpenPost(null); setMarketDesk(null); setScreen("home"); setHomeTab("feeds"); setMenuOpen(false); }} on={homeTab === "feeds" && screen === "home" && !marketDesk} />
-                <DrawerRow icon={MessageSquare} label="Chat" hint="Live rooms · 36 states" onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }} on={homeTab === "chat" && screen === "home"} />
+                <DrawerRow icon={MessageSquare} label="Chat" hint="Live rooms · topics & places" onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }} on={homeTab === "chat" && screen === "home"} />
                 <DrawerRow icon={Radio} label="Music" hint="Artist links. We embed." onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
                 <DrawerRow icon={Film} label="Cinema" hint="Vote and watch together" onClick={() => { setScreen("home"); setHomeTab("cinema"); setMenuOpen(false); }} on={homeTab === "cinema" && screen === "home"} />
                 <DrawerRow icon={Tv} label="Kilode TV" hint="Socials · follow in one place" onClick={() => { setScreen("tv"); setMenuOpen(false); }} on={screen === "tv"} />

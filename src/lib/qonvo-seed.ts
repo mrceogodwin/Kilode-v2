@@ -1016,7 +1016,7 @@ export const MORE_DEMO_ADS: Campaign[] = [
 
 export const DEMO_JOINS: Join[] = [
   { name: "Amaka#2201", ts: Date.now() - 120_000, room: "ng" },
-  { name: "Kemi#0092", ts: Date.now() - 300_000, room: "global" },
+  { name: "Kemi#0092", ts: Date.now() - 300_000, room: "lounge" },
   { name: "Chidi#4410", ts: Date.now() - 480_000, room: "tech" },
   { name: "Baba#12", ts: Date.now() - 700_000, room: "sport" },
   { name: "Ife#830", ts: Date.now() - 900_000, room: "ng" },

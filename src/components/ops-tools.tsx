@@ -5,7 +5,7 @@ import { AD_SLOT_DEFS, type AdSlotKind, type AdSlotRow } from "@/lib/ad-slots";
 import { listAdSlots, listDigestCount, runDigestNow, saveAdSlot } from "@/lib/ad-slots-server";
 import { listAdCatalog, saveAdCatalog, type AdCatalog } from "@/lib/ad-catalog-server";
 import { AD_PLACEMENTS } from "@/lib/qonvo-data";
-import { listRoomsAdmin, saveCustomRoom, setRoomPaused } from "@/lib/rooms-server";
+import { deleteRoom, listRoomsAdmin, renameRoom, saveCustomRoom, setRoomPaused } from "@/lib/rooms-server";
 import { ROOM_SECTION_ORDER } from "@/lib/qonvo-data";
 
 export function OpsKeysPanel() {
@@ -445,6 +445,9 @@ export function RoomsAdminPanel() {
   const [region, setRegion] = useState<string>("More rooms");
   const [msg, setMsg] = useState("");
   const [q, setQ] = useState("");
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editRegion, setEditRegion] = useState("More rooms");
   function load() {
     void listRoomsAdmin()
       .then(setRows)
@@ -453,16 +456,25 @@ export function RoomsAdminPanel() {
   useEffect(() => {
     load();
   }, []);
-  const shown = rows.filter((r) => !q || r.name.toLowerCase().includes(q.toLowerCase()) || r.region.toLowerCase().includes(q.toLowerCase()));
+  const shown = rows.filter(
+    (r) => !q || r.name.toLowerCase().includes(q.toLowerCase()) || r.region.toLowerCase().includes(q.toLowerCase()) || r.id.includes(q.toLowerCase()),
+  );
   return (
     <div className="md:col-span-2 raised space-y-3 rounded-2xl p-4">
       <div>
-        <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">ROOMS · 36 STATES · PAUSE</div>
+        <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">SUPER · ROOMS · MANAGE</div>
         <h3 className="text-lg font-extrabold">Chat rooms</h3>
-        <p className="text-[11px] text-muted">Pause hides a room from the list. Create extra rooms under More rooms. Pause is saved immediately.</p>
+        <p className="text-[11px] text-muted">
+          Curated defaults stay small for clarity. Super can add, rename, show/hide (pause), or delete custom rooms. Pause hides from visitors immediately.
+        </p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New room name" className="min-w-[140px] flex-1 rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="New room name"
+          className="min-w-[140px] flex-1 rounded-lg border border-line bg-bg px-2 py-1.5 text-base"
+        />
         <select value={region} onChange={(e) => setRegion(e.target.value)} className="rounded-lg border border-line bg-bg px-2 py-1.5 text-base">
           {ROOM_SECTION_ORDER.map((r) => (
             <option key={r} value={r}>
@@ -481,34 +493,121 @@ export function RoomsAdminPanel() {
             });
           }}
         >
-          Create room
+          Add room
         </button>
       </div>
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search rooms" className="w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
-      <div className="max-h-80 overflow-y-auto">
-        {shown.map((r) => (
-          <div key={r.id} className="flex items-center justify-between gap-2 border-b border-line py-1.5">
-            <div className="min-w-0">
-              <div className="truncate text-base font-semibold">{r.name}</div>
-              <div className="text-[10px] text-muted">
-                {r.region}
-                {r.custom ? " · custom" : ""}
-              </div>
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Search rooms"
+        className="w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base"
+      />
+      <div className="max-h-96 space-y-2 overflow-y-auto">
+        {shown.map((r) => {
+          const editing = editId === r.id;
+          return (
+            <div key={r.id} className="rounded-xl border border-line/80 p-2.5">
+              {editing ? (
+                <div className="flex flex-wrap items-end gap-2">
+                  <label className="min-w-[140px] flex-1 text-[10px] text-muted">
+                    Name
+                    <input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="mt-0.5 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base text-fg"
+                    />
+                  </label>
+                  <label className="text-[10px] text-muted">
+                    Section
+                    <select
+                      value={editRegion}
+                      onChange={(e) => setEditRegion(e.target.value)}
+                      className="mt-0.5 block rounded-lg border border-line bg-bg px-2 py-1.5 text-base text-fg"
+                    >
+                      {ROOM_SECTION_ORDER.map((sec) => (
+                        <option key={sec} value={sec}>
+                          {sec}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="btn-join rounded-lg px-3 py-1.5 text-[11px] font-bold"
+                    onClick={() => {
+                      void renameRoom({ data: { id: r.id, name: editName, region: editRegion } }).then((res) => {
+                        setMsg(res.ok ? `Renamed → ${editName}` : res.reason);
+                        if (res.ok) setEditId(null);
+                        load();
+                      });
+                    }}
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-line px-3 py-1.5 text-[11px] font-bold"
+                    onClick={() => setEditId(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-base font-semibold">{r.name}</div>
+                    <div className="text-[10px] text-muted">
+                      {r.region}
+                      {r.custom ? " · custom" : " · built-in"}
+                      {" · "}
+                      <span className="font-mono">{r.id}</span>
+                      {r.paused ? " · hidden" : ""}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      className="rounded-full border border-line px-2 py-0.5 text-[10px] font-bold"
+                      onClick={() => {
+                        setEditId(r.id);
+                        setEditName(r.name);
+                        setEditRegion(r.region);
+                      }}
+                    >
+                      Rename
+                    </button>
+                    <button
+                      type="button"
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.paused ? "bg-danger/20 text-danger" : "border border-line"}`}
+                      onClick={() => {
+                        void setRoomPaused({ data: { id: r.id, paused: !r.paused, name: r.name, region: r.region } }).then(() => {
+                          setMsg(r.paused ? `Shown: ${r.name}` : `Hidden: ${r.name}`);
+                          load();
+                        });
+                      }}
+                    >
+                      {r.paused ? "Show" : "Hide"}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full border border-danger/40 px-2 py-0.5 text-[10px] font-bold text-danger"
+                      onClick={() => {
+                        const label = r.custom ? `Delete custom room “${r.name}”?` : `Archive (hide) built-in “${r.name}”?`;
+                        if (!window.confirm(label)) return;
+                        void deleteRoom({ data: { id: r.id } }).then((res) => {
+                          setMsg(res.mode === "deleted" ? `Deleted ${r.name}` : `Archived ${r.name}`);
+                          load();
+                        });
+                      }}
+                    >
+                      {r.custom ? "Delete" : "Archive"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            <button
-              type="button"
-              className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${r.paused ? "bg-danger/20 text-danger" : "border border-line"}`}
-              onClick={() => {
-                void setRoomPaused({ data: { id: r.id, paused: !r.paused, name: r.name, region: r.region } }).then(() => {
-                  setMsg(r.paused ? `Live: ${r.name}` : `Paused: ${r.name}`);
-                  load();
-                });
-              }}
-            >
-              {r.paused ? "Paused · tap to live" : "Pause"}
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
       {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
     </div>
