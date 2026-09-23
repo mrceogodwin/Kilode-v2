@@ -8,6 +8,7 @@ import { postBodyPlain, sanitizePostHtml } from "@/lib/post-body";
 import { pushNote, userIdByHandle } from "@/lib/social-server";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 import { applyMatch } from "@/lib/pay-match";
+import { DB_TIMEOUT_MS, withTimeout } from "@/lib/with-timeout";
 
 async function kindOf(userId: string): Promise<AccountKind> {
   try {
@@ -498,6 +499,8 @@ export const listMsgs = createServerFn({ method: "GET" })
     typeof d === "string" ? { roomId: d } : d,
   )
   .handler(async ({ data }) => {
+    try {
+      return await withTimeout(async () => {
     const roomId = data.roomId;
     const sql = await getSql();
     const hours = await loadChatTtlHours();
@@ -588,12 +591,19 @@ export const listMsgs = createServerFn({ method: "GET" })
     }
     const presence = await roomPresence(roomId);
     return { msgs, older, newer, hours, online: presence.online, typing: presence.typing };
+        }, DB_TIMEOUT_MS, "listMsgs");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "listMsgs failed";
+      return { msgs: [] as const, older: false, newer: false, hours: 24, online: [] as const, typing: [] as const, error: message };
+    }
   });
 
 export const saveMsg = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { roomId: string; text: string; parentTs?: number }) => d)
   .handler(async ({ context, data }) => {
+    try {
+      return await withTimeout(async () => {
     if (!allowWrite(`msg:${context.userId}`, 30)) return { ok: false as const, reason: RATE_BLOCKED };
     const text = data.text.trim();
     if (!text) return null;
@@ -630,12 +640,19 @@ export const saveMsg = createServerFn({ method: "POST" })
       if (uid) await pushNote(uid, `${n} replied in chat`, "/");
     }
     return { id, n, ts, t: gate.text, parentTs, parentN, parentT };
+        }, DB_TIMEOUT_MS, "saveMsg");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "saveMsg failed";
+      return { ok: false as const, reason: message.includes("timed out") ? "Chat timed out. Try again." : message.slice(0, 160) };
+    }
   });
 
 export const pingPresence = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { roomId: string; typing?: boolean }) => d)
   .handler(async ({ context, data }) => {
+    try {
+      return await withTimeout(async () => {
     const sql = await getSql();
     const handle = await publicHandle(context.userId);
     const now = Date.now();
@@ -658,6 +675,11 @@ export const pingPresence = createServerFn({ method: "POST" })
       }
     }
     return roomPresence(data.roomId);
+        }, DB_TIMEOUT_MS, "pingPresence");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "pingPresence failed";
+      return { online: [] as const, typing: [] as const };
+    }
   });
 
 export const purgeMsgs = createServerFn({ method: "POST" })
@@ -855,6 +877,8 @@ export const saveJoin = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { name: string; room?: string }) => d)
   .handler(async ({ data }) => {
+    try {
+      await withTimeout(async () => {
     const sql = await getSql();
     const name = data.name.trim().slice(0, 24);
     if (!name) return;
@@ -863,6 +887,10 @@ export const saveJoin = createServerFn({ method: "POST" })
       await sql`update nf_joins set room = ${data.room ?? ""}, ts = ${Date.now()} where name = ${name}`;
     } else {
       await sql`insert into nf_joins (name, room, ts) values (${name}, ${data.room ?? ""}, ${Date.now()})`;
+    }
+        }, DB_TIMEOUT_MS, "saveJoin");
+    } catch {
+      /* timed out / DB down — client can retry */
     }
   });
 

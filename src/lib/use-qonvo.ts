@@ -25,6 +25,12 @@ import { listNotes } from "@/lib/social-server";
 import { hidePost as hidePostRow, setAdPlacement, setAdStatus, setAdWindow } from "@/lib/staff-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { publicUsername } from "@/lib/account-email";
+import {
+  ACTIVITY_EVENTS,
+  CHAT_POLL_ACTIVE_MS,
+  CHAT_POLL_IDLE_MS,
+  pollDelayMs,
+} from "@/lib/adaptive-poll";
 
 function guestName() {
   return `Guest#${Math.floor(1000 + Math.random() * 9000)}`;
@@ -249,6 +255,7 @@ export function useQonvo() {
     if (!ready) return;
     let on = true;
     const want = roomId;
+    const ac = new AbortController();
     roomIdRef.current = want;
     // Never show another room's thread. Prefer this room's cache while Neon loads.
     const cached = msgsByRoomRef.current[want] ?? loadJson<ChatMsg[]>(`msgs.${want}`, []);
@@ -260,7 +267,7 @@ export function useQonvo() {
     setTyping([]);
     setChatErr("");
     setMsgsLoading(true);
-    void listMsgs({ data: { roomId: want } })
+    void listMsgs({ data: { roomId: want }, signal: ac.signal })
       .then((r) => {
         // Stale-response guard: ignore if user already left this room.
         if (!on || roomIdRef.current !== want) return;
@@ -286,6 +293,7 @@ export function useQonvo() {
       });
     return () => {
       on = false;
+      ac.abort(); // drop in-flight listMsgs on room switch
     };
   }, [roomId, ready, cacheRoomMsgs]);
 
@@ -301,18 +309,40 @@ export function useQonvo() {
     if (!ready || !chatLive) return;
     let dead = false;
     let inFlight = false;
+    let ac: AbortController | null = null;
+    let timer: number | undefined;
+    let lastActivity = Date.now();
     const want = roomId;
+
+    const markActivity = () => {
+      lastActivity = Date.now();
+    };
+
+    const arm = () => {
+      if (dead) return;
+      if (timer !== undefined) window.clearTimeout(timer);
+      const delay = pollDelayMs(lastActivity, CHAT_POLL_ACTIVE_MS, CHAT_POLL_IDLE_MS);
+      if (!delay) return; // hidden → stop until visibilitychange
+      timer = window.setTimeout(tick, delay);
+    };
+
     const tick = () => {
       if (dead || (typeof document !== "undefined" && document.hidden)) return;
-      if (inFlight) return; // avoid duplicate parallel listMsgs for same room
+      if (inFlight) {
+        arm();
+        return;
+      }
       if (roomIdRef.current !== want) return;
       const last = msgsRef.current[msgsRef.current.length - 1];
       const payload = hasNewerRef.current || !last ? { roomId: want } : { roomId: want, after: last.ts };
+      ac?.abort();
+      ac = new AbortController();
+      const signal = ac.signal;
       inFlight = true;
-      void listMsgs({ data: payload })
+      void listMsgs({ data: payload, signal })
         .then((r) => {
           // Classic A→B→A race: drop responses for a room we already left.
-          if (dead || roomIdRef.current !== want) return;
+          if (dead || signal.aborted || roomIdRef.current !== want) return;
           const pack = asPack(r);
           if (pack.online) setOnline(pack.online);
           if (pack.typing) setTyping(pack.typing);
@@ -343,20 +373,31 @@ export function useQonvo() {
         })
         .catch(() => undefined)
         .finally(() => {
+          // Only the current controller may clear inFlight / re-arm (abort race).
+          if (ac?.signal !== signal) return;
           inFlight = false;
+          arm();
         });
     };
+
     tick();
-    // Cost hygiene: 6.5s → 12s. Pauses when tab hidden; only while Chat tab is live.
-    const id = window.setInterval(tick, 12_000);
+    // Cost: active ~12s, idle ~45s, hidden stop. Only while Chat tab is live.
     const onVis = () => {
-      if (!document.hidden) tick();
+      if (document.hidden) {
+        if (timer !== undefined) window.clearTimeout(timer);
+        return;
+      }
+      markActivity();
+      tick();
     };
     document.addEventListener("visibilitychange", onVis);
+    for (const ev of ACTIVITY_EVENTS) window.addEventListener(ev, markActivity, { passive: true });
     return () => {
       dead = true;
-      window.clearInterval(id);
+      ac?.abort();
+      if (timer !== undefined) window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVis);
+      for (const ev of ACTIVITY_EVENTS) window.removeEventListener(ev, markActivity);
     };
   }, [ready, roomId, chatLive, cacheRoomMsgs]);
 

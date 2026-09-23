@@ -23,6 +23,12 @@ import { canKind } from "@/lib/permissions";
 import { HandleLink } from "@/components/handle-link";
 import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
 import { AdSlot } from "@/components/ad-slot";
+import {
+  ACTIVITY_EVENTS,
+  CINEMA_POLL_ACTIVE_MS,
+  CINEMA_POLL_IDLE_MS,
+  pollDelayMs,
+} from "@/lib/adaptive-poll";
 
 function thumb(id: string) {
   return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
@@ -669,6 +675,9 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
   useEffect(() => {
     let on = true;
     let inFlight = false;
+    let ac: AbortController | null = null;
+    let timer: number | undefined;
+    let lastActivity = Date.now();
     setAllMsgs([]);
     msgsRef.current = [];
     setErr("");
@@ -678,16 +687,35 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
     stickBottom.current = true;
     lastLen.current = 0;
     setMode("live");
+
+    const markActivity = () => {
+      lastActivity = Date.now();
+    };
+
+    const arm = () => {
+      if (!on) return;
+      if (timer !== undefined) window.clearTimeout(timer);
+      const delay = pollDelayMs(lastActivity, CINEMA_POLL_ACTIVE_MS, CINEMA_POLL_IDLE_MS);
+      if (!delay) return;
+      timer = window.setTimeout(() => pull(false), delay);
+    };
+
     const pull = (forceFull = false) => {
       if (typeof document !== "undefined" && document.hidden) return;
-      if (inFlight) return;
+      if (inFlight) {
+        if (!forceFull) arm();
+        return;
+      }
       const last = msgsRef.current[msgsRef.current.length - 1];
       const payload =
         forceFull || !last ? { roomId } : { roomId, after: last.ts };
+      ac?.abort();
+      ac = new AbortController();
+      const signal = ac.signal;
       inFlight = true;
-      void listMsgs({ data: payload })
+      void listMsgs({ data: payload, signal })
         .then((r) => {
-          if (!on) return;
+          if (!on || signal.aborted) return;
           if (forceFull || !last) {
             applyPack(r);
             return;
@@ -702,23 +730,32 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
           setAllMsgs((prev) => [...prev, ...extra].slice(-80));
         })
         .catch(() => {
-          if (on && !pendingRef.current && !last) setAllMsgs([]);
+          if (on && !signal.aborted && !pendingRef.current && !last) setAllMsgs([]);
         })
         .finally(() => {
+          if (ac?.signal !== signal) return;
           inFlight = false;
+          if (on) arm();
         });
     };
     pull(true);
-    // Cost hygiene: 8s full refetch → 14s incremental; pause when tab hidden.
-    const t = setInterval(() => pull(false), 14_000);
+    // Cost: active ~14s, idle ~50s, hidden stop. Abort in-flight on movie/room switch.
     const onVis = () => {
-      if (!document.hidden) pull(false);
+      if (document.hidden) {
+        if (timer !== undefined) window.clearTimeout(timer);
+        return;
+      }
+      markActivity();
+      pull(false);
     };
     document.addEventListener("visibilitychange", onVis);
+    for (const ev of ACTIVITY_EVENTS) window.addEventListener(ev, markActivity, { passive: true });
     return () => {
       on = false;
-      clearInterval(t);
+      ac?.abort();
+      if (timer !== undefined) window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVis);
+      for (const ev of ACTIVITY_EVENTS) window.removeEventListener(ev, markActivity);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
@@ -726,20 +763,24 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
   useEffect(() => {
     if (!signed) return;
     let on = true;
+    let ac: AbortController | null = null;
     const bump = () => {
       if (typeof document !== "undefined" && document.hidden) return;
       const now = Date.now();
       if (now - lastPing.current < 18_000) return;
       lastPing.current = now;
-      void pingPresence({ data: { roomId, typing: false } })
+      ac?.abort();
+      ac = new AbortController();
+      const signal = ac.signal;
+      void pingPresence({ data: { roomId, typing: false }, signal })
         .then((p) => {
-          if (!on) return;
+          if (!on || signal.aborted) return;
           if (p.online) setOnline(p.online);
         })
         .catch(() => undefined);
     };
     bump();
-    // Cost hygiene: 20s → 30s; skip while tab hidden.
+    // Cost hygiene: 30s; skip while tab hidden; abort on room switch.
     const t = setInterval(bump, 30_000);
     const onVis = () => {
       if (!document.hidden) bump();
@@ -747,6 +788,7 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
     document.addEventListener("visibilitychange", onVis);
     return () => {
       on = false;
+      ac?.abort();
       clearInterval(t);
       document.removeEventListener("visibilitychange", onVis);
     };

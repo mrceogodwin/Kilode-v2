@@ -5,6 +5,7 @@ import { dbSource, getSql } from "@/lib/db";
 import { asAccountKind, type AccountKind } from "@/lib/qonvo-data";
 import { accountEmail, publicUsername } from "@/lib/account-email";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
+import { DB_TIMEOUT_MS, withTimeout } from "@/lib/with-timeout";
 
 function fail(reason: string) {
   return { ok: false as const, reason };
@@ -49,10 +50,21 @@ export const registerAccount = createServerFn({ method: "POST" })
       return fail(`Database is not ready (${msg.slice(0, 160)}). Set DATABASE_URL (Neon pooled) on Vercel and redeploy, then retry.`);
     }
 
-    const made = await insertCredentialUser(handle, email, data.password);
-    if (!made.ok) return made;
-    await saveKind(handle, email, kind, data.face, age).catch(() => undefined);
-    return { ok: true as const, handle };
+    try {
+      return await withTimeout(async () => {
+        const made = await insertCredentialUser(handle, email, data.password);
+        if (!made.ok) return made;
+        await saveKind(handle, email, kind, data.face, age).catch(() => undefined);
+        return { ok: true as const, handle };
+      }, DB_TIMEOUT_MS, "registerAccount");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return fail(
+        msg.includes("timed out")
+          ? "Sign up timed out. Try again."
+          : `Database is not ready (${msg.slice(0, 160)}).`,
+      );
+    }
   });
 
 function isUniqueViolation(e: unknown): boolean {
