@@ -14,7 +14,7 @@ function Ops() {
     return <div className="grid h-dvh place-items-center bg-bg text-sm text-muted">Opening staff login…</div>;
   }
   return (
-    <div className="h-dvh overflow-auto bg-bg text-fg">
+    <div className="h-dvh overflow-x-hidden overflow-y-auto bg-bg text-fg">
       <div className="border-b border-line px-4 py-2 text-xs text-muted">Kilode staff · {user.displayName || "owner"}</div>
       <QonvoScreen id="admin" store={store} onHome={() => { window.location.href = "/"; }} />
     </div>

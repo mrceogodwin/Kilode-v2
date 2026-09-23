@@ -2001,7 +2001,7 @@ function Admin({ store }: { store: Store }) {
   }
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-3 overflow-y-auto p-4 md:grid-cols-2">
+    <div className="mx-auto grid w-full min-w-0 max-w-5xl grid-cols-1 gap-3 overflow-x-hidden overflow-y-auto p-4 md:grid-cols-2">
       <div className="md:col-span-2">
         <h2 className="text-xl font-bold">Super admin</h2>
         <p className="text-xs text-muted">
@@ -2035,10 +2035,10 @@ function Admin({ store }: { store: Store }) {
         <div className="text-[11px] font-medium text-muted">Reports</div>
         {reports.length === 0 ? <p className="text-sm text-muted">No flags.</p> : null}
         {reports.map((r) => (
-          <div key={r.id} className="flex items-center justify-between gap-2 rounded-xl border border-line bg-panel p-3">
-            <div className="min-w-0">
+          <div key={r.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-panel p-3">
+            <div className="min-w-0 break-words">
               <div className="text-xs font-semibold">{r.author}</div>
-              <p className="text-sm">{r.reason}</p>
+              <p className="break-words text-sm">{r.reason}</p>
               <div className="text-[10px] text-muted">post {r.post_id}</div>
             </div>
             <button type="button" className="shrink-0 text-xs text-danger" onClick={() => void hidePost({ data: r.post_id })}>
@@ -2060,21 +2060,21 @@ function Admin({ store }: { store: Store }) {
       {role === "super" || role === "admin" ? <AdminPassword /> : null}
       {role === "super" || role === "admin" ? <AdminResetPassword members={members} /> : null}
       {role === "super" || role === "admin" ? (
-        <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
+        <div className="md:col-span-2 min-w-0 max-w-full raised space-y-2 rounded-xl p-3">
           <div className="text-[11px] font-medium text-muted">Pay-to wallets</div>
-          <p className="text-xs text-muted">Shown when users pay ads or donate. They copy from the app only. Add more coins below.</p>
+          <p className="break-words text-xs text-muted">Shown when users pay ads or donate. They copy from the app only. Add more coins below.</p>
           {walletMsg ? <p className="text-[11px] text-lime-2">{walletMsg}</p> : null}
           {Array.from(new Set([...AD_COINS.map((c) => c.id), ...Object.keys(wallets)])).map((id) => {
             const c = AD_COINS.find((x) => x.id === id);
             const ticker = c?.ticker ?? id.toUpperCase();
             return (
-              <div key={id} className="flex gap-2">
+              <div key={id} className="flex min-w-0 flex-wrap gap-2">
                 <span className="w-14 shrink-0 pt-2 text-[10px] font-bold text-muted">{ticker}</span>
                 <input
                   value={wallets[id] ?? ""}
                   onChange={(e) => setWallets((w) => ({ ...w, [id]: e.target.value }))}
                   placeholder={`${c?.label ?? id} address`}
-                  className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 font-mono text-xs"
+                  className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-3 py-2 font-mono text-xs"
                 />
                 <button
                   type="button"
@@ -2132,9 +2132,9 @@ function Admin({ store }: { store: Store }) {
         </div>
       ) : null}
       {role === "super" ? (
-        <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
+        <div className="md:col-span-2 min-w-0 max-w-full raised space-y-2 rounded-xl p-3">
           <div className="text-[11px] font-medium text-muted">Staff access</div>
-          <p className="text-xs text-muted">Only you are super. You grant sub-admin or admin. You can revoke. Nobody can take your seat.</p>
+          <p className="break-words text-xs text-muted">Only you are super. You grant sub-admin or admin. You can revoke. Nobody can take your seat.</p>
           <input value={grantId} onChange={(e) => setGrantId(e.target.value)} placeholder="Their username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
           <select value={grantRole} onChange={(e) => setGrantRole(e.target.value as typeof grantRole)} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base">
             <option value="mod">Sub-admin (mod) — hide, reports, ads</option>
@@ -2156,8 +2156,8 @@ function Admin({ store }: { store: Store }) {
           </button>
           {msg ? <p className="text-sm text-danger">{msg}</p> : null}
           {staff.map((s) => (
-            <div key={s.user_id} className="flex items-center justify-between gap-2 text-xs">
-              <span className="text-muted">
+            <div key={s.user_id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="min-w-0 break-words text-muted">
                 {s.handle || s.user_id} · {s.locked || s.role === "super" ? "owner (you)" : s.role === "mod" ? "sub-admin" : s.role}
               </span>
               {s.role !== "super" && !s.locked ? (
@@ -2196,7 +2196,7 @@ function AdminResetPassword({ members }: { members: { id: string; handle: string
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   return (
-    <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-2 rounded-xl p-3">
       <div className="text-[11px] font-medium text-muted">Reset a user’s password</div>
       <p className="text-xs text-muted">No email. If they forget, you set a new one and tell them in chat. Cannot reset the owner.</p>
       <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
@@ -2238,7 +2238,7 @@ function DbPanel() {
       .catch(() => setInfo({ ok: false, source: "unknown", vercel: false, reason: "Could not read DB" }));
   }, []);
   return (
-    <div className="md:col-span-2 raised space-y-1 rounded-xl p-3">
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-1 rounded-xl p-3">
       <div className="text-[11px] font-medium text-muted">Database</div>
       {!info ? <p className="text-xs text-muted">Checking…</p> : null}
       {info?.ok ? (
@@ -2258,7 +2258,7 @@ function AdminPassword() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   return (
-    <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-2 rounded-xl p-3">
       <div className="text-[11px] font-medium text-muted">Your password</div>
       <p className="text-xs text-muted">Change it here. No email reset — we never stored a real mailbox.</p>
       <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Current password" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
@@ -2305,11 +2305,11 @@ function VerifyKindPanel({
   const [msg, setMsg] = useState("");
   const picked = members.find((m) => m.handle.toLowerCase() === handle.trim().toLowerCase());
   return (
-    <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-xl p-3">
       <div className="text-[11px] font-medium text-muted">Verified badge + override account type</div>
-      <p className="text-xs text-muted">Pick a member below or type their username. Admin can verify. Only Super can change account type (immutable for users).</p>
-      <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-      {picked ? <p className="text-[11px] text-muted">{picked.handle} · {picked.kind} · {picked.verified ? "verified" : "not verified"}</p> : null}
+      <p className="break-words text-xs text-muted">Pick a member below or type their username. Admin can verify. Only Super can change account type (immutable for users).</p>
+      <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full min-w-0 rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      {picked ? <p className="break-words text-[11px] text-muted">{picked.handle} · {picked.kind} · {picked.verified ? "verified" : "not verified"}</p> : null}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -2339,8 +2339,8 @@ function VerifyKindPanel({
         </button>
       </div>
       {canChangeKind ? (
-        <div className="flex flex-wrap gap-2">
-          <select value={kind} onChange={(e) => setKind(e.target.value as AccountKind)} className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 text-base">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
+          <select value={kind} onChange={(e) => setKind(e.target.value as AccountKind)} className="w-full max-w-full min-w-0 flex-1 rounded-lg border border-line bg-panel px-3 py-2 text-base">
             {ACCOUNT_KINDS.map((k) => (
               <option key={k.id} value={k.id}>
                 {k.label}
@@ -2349,7 +2349,7 @@ function VerifyKindPanel({
           </select>
           <button
             type="button"
-            className="btn-3d rounded-lg px-3 py-2 text-[11px] font-bold"
+            className="btn-3d w-full shrink-0 rounded-lg px-3 py-2 text-[11px] font-bold sm:w-auto"
             onClick={() => {
               if (!handle.trim()) return;
               void setAccountKind({ data: { handle: handle.trim(), kind } }).then((r) => {
@@ -2362,20 +2362,20 @@ function VerifyKindPanel({
           </button>
         </div>
       ) : null}
-      {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
-      <div className="max-h-40 overflow-y-auto">
+      {msg ? <p className="break-words text-[11px] text-lime-2">{msg}</p> : null}
+      <div className="mt-1 max-h-40 min-w-0 overflow-y-auto">
         {members.slice(0, 40).map((m) => (
           <button
             key={m.id}
             type="button"
-            className="flex w-full items-center justify-between gap-2 border-b border-white/5 py-1 text-left text-[11px]"
+            className="flex w-full min-w-0 flex-col gap-0.5 border-b border-white/5 py-1.5 text-left text-[11px] sm:flex-row sm:items-center sm:justify-between sm:gap-2"
             onClick={() => {
               setHandle(m.handle);
               if (m.kind) setKind(m.kind as AccountKind);
             }}
           >
-            <span>@{m.handle}</span>
-            <span className="text-muted">
+            <span className="min-w-0 break-all">@{m.handle}</span>
+            <span className="shrink-0 text-muted">
               {m.kind}
               {m.verified ? " · ✓" : ""}
             </span>
@@ -2411,9 +2411,9 @@ function BanMutePanel({ members }: { members: { id: string; handle: string; kind
     });
   };
   return (
-    <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-2 rounded-xl p-3">
       <div className="text-[10px] font-bold tracking-normal text-lime-2">Mute & ban</div>
-      <p className="text-xs text-muted">Mute stops chat. Ban stops chat, feeds, ads, and music. Owner cannot be restricted.</p>
+      <p className="break-words text-xs text-muted">Mute stops chat. Ban stops chat, feeds, ads, and music. Owner cannot be restricted.</p>
       <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (optional)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       <div className="flex flex-wrap gap-1">
@@ -2460,7 +2460,7 @@ function FeedsDeskPanel({ store }: { store: Store }) {
   }, []);
   const shown = rows.filter((r) => !q || r.title.toLowerCase().includes(q.toLowerCase()) || (r.category || "").toLowerCase().includes(q.toLowerCase()));
   return (
-    <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-2 rounded-xl p-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <div className="text-[11px] font-medium text-muted">Feeds desk</div>
@@ -2583,7 +2583,7 @@ function NewsEnginePanel({ store }: { store: Store }) {
   };
 
   return (
-    <div className="md:col-span-2 raised space-y-3 rounded-xl p-3">
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-xl p-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <div className="text-[11px] font-medium text-muted">News Engine</div>
@@ -2781,7 +2781,7 @@ function ChatTtlPanel() {
       .catch(() => undefined);
   }, []);
   return (
-    <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-2 rounded-xl p-3">
       <div className="text-[10px] font-bold tracking-normal text-lime-2">Chat lifetime</div>
       <p className="text-xs text-muted">How long user messages stay in Chat before they disappear. Only you set this. Feeds and ads are not touched.</p>
       <div className="flex flex-wrap gap-1">
@@ -2841,7 +2841,7 @@ function ModPanel() {
     setCfg((c) => ({ ...c, ...p }));
   }
   return (
-    <div className="md:col-span-2 raised space-y-3 rounded-xl p-3">
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-xl p-3">
       <div className="flex items-center justify-between gap-2">
         <div>
           <div className="text-[10px] font-bold tracking-normal text-lime-2">AI moderator</div>

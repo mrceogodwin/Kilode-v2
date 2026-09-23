@@ -24,20 +24,20 @@ export function OpsKeysPanel() {
     load();
   }, []);
   return (
-    <div className="md:col-span-2 raised space-y-3 rounded-2xl p-4">
-      <div>
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-2xl p-4">
+      <div className="min-w-0">
         <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">API KEYS · 20 SLOTS</div>
         <h3 className="text-lg font-extrabold">Translate · news · SEO</h3>
-        <p className="text-[11px] text-muted">Paste keys here. They stay on the server. Empty slots are skipped. RSS news works without a key. Translate uses DeepL or Google Cloud if you paste those, else MyMemory. SEO Boost uses Grok/OpenAI/Groq if set, else writes titles from the post itself. IndexNow pings Bing when that key is set (file served at /api/indexnow).</p>
+        <p className="break-words text-[11px] text-muted">Paste keys here. They stay on the server. Empty slots are skipped. RSS news works without a key. Translate uses DeepL or Google Cloud if you paste those, else MyMemory. SEO Boost uses Grok/OpenAI/Groq if set, else writes titles from the post itself. IndexNow pings Bing when that key is set (file served at /api/indexnow).</p>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid min-w-0 gap-2 sm:grid-cols-2">
         {rows.map((s) => (
-          <label key={s.id} className="rounded-xl border border-line bg-panel p-2">
-            <span className="flex items-center justify-between text-[11px] font-semibold">
-              {s.label}
-              <span className={s.set ? "text-lime-2" : "text-muted"}>{s.set ? "saved" : "empty"}</span>
+          <label key={s.id} className="min-w-0 rounded-xl border border-line bg-panel p-2">
+            <span className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px] font-semibold">
+              <span className="min-w-0 break-words">{s.label}</span>
+              <span className={`shrink-0 ${s.set ? "text-lime-2" : "text-muted"}`}>{s.set ? "saved" : "empty"}</span>
             </span>
-            <span className="block text-[10px] text-muted">{s.hint}</span>
+            <span className="mt-0.5 block break-words text-[10px] text-muted">{s.hint}</span>
             <input
               type="password"
               autoComplete="off"
@@ -76,12 +76,12 @@ export function OpsSeoPanel() {
       .catch(() => setWeak([]));
   }, []);
   return (
-    <div className="md:col-span-2 raised space-y-3 rounded-2xl p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-2xl p-4">
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
           <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">SEO</div>
           <h3 className="text-lg font-extrabold">Sitemap · IndexNow · Boost</h3>
-          <p className="text-[11px] text-muted">
+          <p className="break-words text-[11px] text-muted">
             Live sitemap at /api/sitemap. Article pages ship NewsArticle JSON-LD + Open Graph. Boost fills missing titles/descriptions (and uses an LLM key if you pasted one), then pings IndexNow. This is crawl hygiene — not a Google ranking guarantee.
           </p>
         </div>
@@ -131,11 +131,11 @@ export function AdCatalogPanel() {
   }, []);
   if (!cat) return null;
   return (
-    <div className="md:col-span-2 raised space-y-3 rounded-2xl p-4">
-      <div>
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-2xl p-4">
+      <div className="min-w-0">
         <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">AD CATALOG · PRICES · CAPS</div>
         <h3 className="text-lg font-extrabold">Paid inventory</h3>
-        <p className="text-[11px] text-muted">
+        <p className="break-words text-[11px] text-muted">
           Daily cap stops a flood of submissions. Featured N is how many live ads rotate at the top of the Ads tab so a paid campaign is not buried. Page size is the first 3-column page; more loads on scroll. Save to take effect.
         </p>
       </div>
@@ -267,7 +267,7 @@ export function AdSlotsPanel() {
     load();
   }, []);
   return (
-    <div className="md:col-span-2 raised space-y-3 rounded-2xl p-4">
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-2xl p-4">
       <div>
         <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">AD SLOTS · GOOGLE · BANNERS · VIDEO</div>
         <h3 className="text-lg font-extrabold">Where ads appear</h3>
@@ -460,7 +460,7 @@ export function RoomsAdminPanel() {
     (r) => !q || r.name.toLowerCase().includes(q.toLowerCase()) || r.region.toLowerCase().includes(q.toLowerCase()) || r.id.includes(q.toLowerCase()),
   );
   return (
-    <div className="md:col-span-2 raised space-y-3 rounded-2xl p-4">
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-2xl p-4">
       <div>
         <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">SUPER · ROOMS · MANAGE</div>
         <h3 className="text-lg font-extrabold">Chat rooms</h3>
