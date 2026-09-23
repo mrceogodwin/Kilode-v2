@@ -1,11 +1,11 @@
-function BangMark({ className }: { className: string }) {
+function BrandMark({ className }: { className: string }) {
   return (
     <span className={`brand-mark ${className}`} aria-hidden>
-      {/* Glossy brand-lime bang on transparent (v3) — soft plate provides contrast. */}
+      {/* Glossy brand-lime M monogram on transparent — soft forest plate provides contrast. */}
       <img
-        src="/kilode-bang-mark-v3.png"
+        src="/kilode-m-mark.png"
         alt=""
-        className="h-full w-full object-contain p-[12%]"
+        className="h-full w-full object-contain p-[10%]"
         draggable={false}
       />
     </span>
@@ -22,7 +22,7 @@ export function BrandLockup({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const word = size === "lg" ? "text-[19px]" : size === "sm" ? "text-[13px]" : "text-[15px] sm:text-[16px]";
   return (
     <span className="brand-lockup inline-flex items-center gap-2">
-      <BangMark className={`${icon} shrink-0`} />
+      <BrandMark className={`${icon} shrink-0`} />
       <span className="brand-copy min-w-0">
         <span className={`brand-word ${word}`}>KILODE</span>
         <span className="brand-url">News & Community Hub</span>
