@@ -373,119 +373,120 @@ function QonvoAppInner() {
 
   return (
     <div className="kilode-shell relative flex h-full min-h-dvh flex-col bg-bg text-fg md:h-dvh md:max-h-dvh md:overflow-hidden">
-      <header className="z-20 shrink-0 border-b border-line/80 bg-panel/90 backdrop-blur-md">
-        <div className="flex h-10 min-w-0 items-center gap-1 px-2 sm:h-12 sm:gap-3 sm:px-3">
-          <button
-            type="button"
-            className="shrink-0"
-            aria-label="Kilode home"
-            onClick={() => {
-              const now = Date.now();
-              if (now - logoTaps.current.t > 2500) logoTaps.current.n = 0;
-              logoTaps.current.t = now;
-              logoTaps.current.n += 1;
-              if (logoTaps.current.n >= 5) {
-                logoTaps.current.n = 0;
-                window.location.href = session.user ? "/ops" : "/login?next=/ops";
-                return;
-              }
-              goHome();
-            }}
-          >
-            <BrandLockup />
-          </button>
-          <nav className="mx-auto hidden min-w-0 items-center justify-center gap-1 md:flex">
-            <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home" && !marketDesk} onClick={() => { store.setOpenPost(null); setMarketDesk(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
-            <HomeTab label="Chat" on={homeTab === "chat" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("chat"); setScreen("home"); setMenuOpen(false); }} />
-            <HomeTab label="Music" on={homeTab === "music" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("music"); setScreen("home"); setMenuOpen(false); }} />
-            <HomeTab label="Cinema" on={homeTab === "cinema" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("cinema"); setScreen("home"); setMenuOpen(false); }} />
-            <HomeTab label="Ads" on={homeTab === "advert" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("advert"); setScreen("home"); setMenuOpen(false); }} />
-            <HomeTab label="Downloads" on={homeTab === "downloads" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("downloads"); setScreen("home"); setMenuOpen(false); }} />
-            {signedIn ? (
-              <HomeTab label="Me" on={screen === "dashboard" || screen === "profile"} onClick={() => { setScreen("dashboard"); setMenuOpen(false); }} />
-            ) : (
-              <HomeTab label="Me" on={false} onClick={() => { window.location.href = "/login?mode=up"; }} />
-            )}
-          </nav>
-          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-            <NotifyBell
-              signedIn={signedIn}
-              posts={store.posts}
-              onOpenNotes={() => {
-                setScreen("notifications");
-                setMenuOpen(false);
-              }}
-              onOpenPost={(id) => {
-                store.setOpenPost(id);
-                setHomeTab("feeds");
-                setScreen("home");
-              }}
-            />
-            <SkinToggle />
+      <header className="kilode-chrome z-20 shrink-0">
+        <div className="kilode-header-capsule">
+          <div className="flex min-h-12 min-w-0 items-center gap-1 px-2.5 py-2 sm:min-h-[3.25rem] sm:gap-3 sm:px-3.5 sm:py-2.5">
             <button
               type="button"
-              className="grid size-8 place-items-center rounded-lg border border-lime-2/35 bg-panel-2 shadow-[0_0_12px_rgba(107,158,120,0.12)]"
-              aria-label="Kilode TV & Socials"
-              title="Kilode TV & Socials"
+              className="shrink-0"
+              aria-label="Kilode home"
               onClick={() => {
-                setScreen("tv");
-                setMenuOpen(false);
+                const now = Date.now();
+                if (now - logoTaps.current.t > 2500) logoTaps.current.n = 0;
+                logoTaps.current.t = now;
+                logoTaps.current.n += 1;
+                if (logoTaps.current.n >= 5) {
+                  logoTaps.current.n = 0;
+                  window.location.href = session.user ? "/ops" : "/login?next=/ops";
+                  return;
+                }
+                goHome();
               }}
             >
-              <Tv className="size-4 text-lime-2" />
+              <BrandLockup />
             </button>
-            <button
-              type="button"
-              className="grid size-8 place-items-center rounded-lg border border-line bg-panel-2"
-              aria-label="Menu"
-              onClick={() => setMenuOpen((v) => !v)}
-            >
-              <Menu className="size-3.5" />
-            </button>
-            <span className="hidden items-center gap-1.5 text-[11px] font-medium text-lime-2 sm:flex">
-              <span className="size-1.5 animate-pulse rounded-full bg-lime-2" />
-              Live
-            </span>
-            {session.isPending ? (
-              <span className="h-8 w-12 animate-pulse rounded-lg bg-white/10" />
-            ) : (
-              <>
-                <SignedIn>
-                  <button
-                    type="button"
-                    aria-label="Me"
-                    title="Me"
-                    className="shrink-0"
-                    onClick={() => {
-                      setScreen("dashboard");
-                      setMenuOpen(false);
-                    }}
-                  >
-                    {session.user?.profileImageUrl ? (
-                      <img
-                        src={session.user.profileImageUrl}
-                        alt=""
-                        className="h-8 w-8 shrink-0 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-lime-2 text-xs font-bold text-white">
-                        {(session.user?.displayName ?? session.user?.primaryEmail ?? "M").charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </button>
-                </SignedIn>
-                <SignedOut>
-                  <Link to="/login" search={{ mode: "up" }} className="btn-join rounded-lg px-2 py-1 text-[10px] font-bold sm:px-3 sm:text-xs">
-                    Join
-                  </Link>
-                </SignedOut>
-              </>
-            )}
-
+            <nav className="mx-auto hidden min-w-0 items-center justify-center gap-1 md:flex">
+              <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home" && !marketDesk} onClick={() => { store.setOpenPost(null); setMarketDesk(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
+              <HomeTab label="Chat" on={homeTab === "chat" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("chat"); setScreen("home"); setMenuOpen(false); }} />
+              <HomeTab label="Music" on={homeTab === "music" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("music"); setScreen("home"); setMenuOpen(false); }} />
+              <HomeTab label="Cinema" on={homeTab === "cinema" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("cinema"); setScreen("home"); setMenuOpen(false); }} />
+              <HomeTab label="Ads" on={homeTab === "advert" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("advert"); setScreen("home"); setMenuOpen(false); }} />
+              <HomeTab label="Downloads" on={homeTab === "downloads" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("downloads"); setScreen("home"); setMenuOpen(false); }} />
+              {signedIn ? (
+                <HomeTab label="Me" on={screen === "dashboard" || screen === "profile"} onClick={() => { setScreen("dashboard"); setMenuOpen(false); }} />
+              ) : (
+                <HomeTab label="Me" on={false} onClick={() => { window.location.href = "/login?mode=up"; }} />
+              )}
+            </nav>
+            <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+              <NotifyBell
+                signedIn={signedIn}
+                posts={store.posts}
+                onOpenNotes={() => {
+                  setScreen("notifications");
+                  setMenuOpen(false);
+                }}
+                onOpenPost={(id) => {
+                  store.setOpenPost(id);
+                  setHomeTab("feeds");
+                  setScreen("home");
+                }}
+              />
+              <SkinToggle />
+              <button
+                type="button"
+                className="chrome-ico"
+                aria-label="Kilode TV & Socials"
+                title="Kilode TV & Socials"
+                onClick={() => {
+                  setScreen("tv");
+                  setMenuOpen(false);
+                }}
+              >
+                <Tv className="size-3.5 text-lime-2 sm:size-4" />
+              </button>
+              <button
+                type="button"
+                className="chrome-ico"
+                aria-label="Menu"
+                onClick={() => setMenuOpen((v) => !v)}
+              >
+                <Menu className="size-3.5" />
+              </button>
+              <span className="hidden items-center gap-1.5 pl-0.5 text-[11px] font-medium text-lime-2 sm:flex">
+                <span className="size-1.5 animate-pulse rounded-full bg-lime-2" />
+                Live
+              </span>
+              {session.isPending ? (
+                <span className="h-7 w-10 animate-pulse rounded-full bg-white/10 sm:h-8 sm:w-12" />
+              ) : (
+                <>
+                  <SignedIn>
+                    <button
+                      type="button"
+                      aria-label="Me"
+                      title="Me"
+                      className="shrink-0"
+                      onClick={() => {
+                        setScreen("dashboard");
+                        setMenuOpen(false);
+                      }}
+                    >
+                      {session.user?.profileImageUrl ? (
+                        <img
+                          src={session.user.profileImageUrl}
+                          alt=""
+                          className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-white/10 sm:h-8 sm:w-8"
+                        />
+                      ) : (
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-lime-2 text-[11px] font-bold text-white sm:h-8 sm:w-8 sm:text-xs">
+                          {(session.user?.displayName ?? session.user?.primaryEmail ?? "M").charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </button>
+                  </SignedIn>
+                  <SignedOut>
+                    <Link to="/login" search={{ mode: "up" }} className="btn-join rounded-full px-2.5 py-1 text-[10px] font-bold sm:px-3 sm:text-xs">
+                      Join
+                    </Link>
+                  </SignedOut>
+                </>
+              )}
+            </div>
           </div>
         </div>
         {/* Rooms/Live/Videos folded into Chat & Me — keep tab bar clear on mobile */}
-        <div className="h-5 overflow-hidden border-t border-line/60 bg-panel-2">
+        <div className="kilode-chrome-ticker">
           <div className="ticker-track px-8 text-[10px] leading-5 text-muted">
             {[...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10), ...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10)].map((r, i) => (
               <button key={r.id + i} type="button" aria-label={`Open room ${r.name}`} className="shrink-0 hover:text-fg" onClick={() => goHome(r.id)}>
@@ -1333,7 +1334,7 @@ function SkinToggle() {
   return (
     <button
       type="button"
-      className="grid size-8 place-items-center rounded-lg border border-line bg-panel-2"
+      className="chrome-ico"
       aria-label={skin === "night" ? "Switch to light skin" : "Switch to night skin"}
       title={skin === "night" ? "Light" : "Night"}
       onClick={() => {
