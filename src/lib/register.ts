@@ -26,6 +26,9 @@ async function withTimeout<T>(p: Promise<T>, ms = AUTH_TIMEOUT_MS, label = "Requ
 function niceAuthError(raw: string) {
   const m = raw.toLowerCase();
   if (m.includes("timed out") || m.includes("timeout") || m.includes("aborted")) {
+    if (raw.toLowerCase().includes("sign-up")) {
+      return "Sign-up timed out. The database may be waking up — wait a few seconds and try again.";
+    }
     return raw.includes("timed out") ? raw : "Sign-in timed out. Try again.";
   }
   if (m.includes("exist") || m.includes("already") || m.includes("taken") || m.includes("unique")) {

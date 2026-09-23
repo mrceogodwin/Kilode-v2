@@ -34,10 +34,19 @@ export const registerAccount = createServerFn({ method: "POST" })
     }
 
     try {
-      await getSql();
+      // Cap wait so a stuck Neon connect / migrate never hits the client 25s race.
+      await Promise.race([
+        getSql(),
+        new Promise<never>((_, reject) => {
+          setTimeout(
+            () => reject(new Error("Database connect timed out after 12s (Neon cold start or lock). Try again.")),
+            12_000,
+          );
+        }),
+      ]);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      return fail(`Database is not ready (${msg.slice(0, 120)}). Set DATABASE_URL on Vercel and redeploy.`);
+      return fail(`Database is not ready (${msg.slice(0, 160)}). Set DATABASE_URL (Neon pooled) on Vercel and redeploy, then retry.`);
     }
 
     const made = await insertCredentialUser(handle, email, data.password);
@@ -45,6 +54,12 @@ export const registerAccount = createServerFn({ method: "POST" })
     await saveKind(handle, email, kind, data.face, age).catch(() => undefined);
     return { ok: true as const, handle };
   });
+
+function isUniqueViolation(e: unknown): boolean {
+  const err = e as { code?: string; message?: string };
+  const msg = (err?.message ?? String(e)).toLowerCase();
+  return err?.code === "23505" || msg.includes("duplicate key") || msg.includes("unique");
+}
 
 async function insertCredentialUser(handle: string, email: string, password: string) {
   const sql = await getSql();
@@ -58,20 +73,37 @@ async function insertCredentialUser(handle: string, email: string, password: str
   const hashed = await hashPassword(password);
   const now = new Date().toISOString();
   try {
-    await sql`insert into "user" (id, name, email, "emailVerified", "createdAt", "updatedAt") values (${id}, ${handle}, ${email}, ${true}, ${now}::timestamptz, ${now}::timestamptz)`;
-  } catch {
-    await sql.query(
-      `insert into "user" (id, name, email, "emailVerified", "createdAt", "updatedAt") values ($1, $2, $3, true, now(), now())`,
-      [id, handle, email],
-    );
-  }
-  try {
-    await sql`insert into "account" (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt") values (${randomUUID()}, ${id}, ${"credential"}, ${id}, ${hashed}, ${now}::timestamptz, ${now}::timestamptz)`;
-  } catch {
-    await sql.query(
-      `insert into "account" (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt") values ($1, $2, 'credential', $3, $4, now(), now())`,
-      [randomUUID(), id, id, hashed],
-    );
+    try {
+      await sql`insert into "user" (id, name, email, "emailVerified", "createdAt", "updatedAt") values (${id}, ${handle}, ${email}, ${true}, ${now}::timestamptz, ${now}::timestamptz)`;
+    } catch (e) {
+      if (isUniqueViolation(e)) return fail("That username is taken. Sign in instead.");
+      // Older schemas / driver casting — retry with explicit SQL.
+      try {
+        await sql.query(
+          `insert into "user" (id, name, email, "emailVerified", "createdAt", "updatedAt") values ($1, $2, $3, true, now(), now())`,
+          [id, handle, email],
+        );
+      } catch (e2) {
+        if (isUniqueViolation(e2)) return fail("That username is taken. Sign in instead.");
+        return fail(explainDb(e2 instanceof Error ? e2.message : String(e2)));
+      }
+    }
+    try {
+      await sql`insert into "account" (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt") values (${randomUUID()}, ${id}, ${"credential"}, ${id}, ${hashed}, ${now}::timestamptz, ${now}::timestamptz)`;
+    } catch (e) {
+      if (isUniqueViolation(e)) return fail("That username is taken. Sign in instead.");
+      try {
+        await sql.query(
+          `insert into "account" (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt") values ($1, $2, 'credential', $3, $4, now(), now())`,
+          [randomUUID(), id, id, hashed],
+        );
+      } catch (e2) {
+        if (isUniqueViolation(e2)) return fail("That username is taken. Sign in instead.");
+        return fail(explainDb(e2 instanceof Error ? e2.message : String(e2)));
+      }
+    }
+  } catch (e) {
+    return fail(explainDb(e instanceof Error ? e.message : String(e)));
   }
   return { ok: true as const };
 }

@@ -111,6 +111,90 @@ async function applyPendingMigrations(run: Run): Promise<void> {
   }
 }
 
+/** Neon serverless: fail connects fast; never block signup on migrate locks. */
+const NEON_CONNECT_TIMEOUT_MS = 8_000;
+const NEON_STATEMENT_TIMEOUT_MS = 10_000;
+const NEON_MIGRATE_LOCK_KEY = 87236401;
+const NEON_MIGRATE_LOCK_ATTEMPTS = 6;
+const NEON_MIGRATE_LOCK_WAIT_MS = 400;
+
+function looksLikeNeonPooler(url: string): boolean {
+  return /-pooler[./]/i.test(url) || /pgbouncer=true/i.test(url);
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Apply pending migrations under a non-blocking advisory try-lock.
+ * Deploy already runs `scripts/migrate.mjs`; this is a safety net for the first
+ * request after a schema add. Never use session `pg_advisory_lock` on serverless
+ * — a held lock / cold Neon / pooler mismatch hangs past the client 25s timeout.
+ */
+async function migrateNeonIfNeeded(
+  pool: import("pg").Pool,
+  migrationPaths: string[],
+): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query(`set statement_timeout = ${NEON_STATEMENT_TIMEOUT_MS}`);
+    await client.query(`set lock_timeout = ${NEON_CONNECT_TIMEOUT_MS}`);
+    await client.query(
+      "create table if not exists _migrations (name text primary key, applied_at timestamptz not null default now())",
+    );
+    const doneRows = await client.query<{ name: string }>("select name from _migrations");
+    const done = doneRows.rows.map((r) => r.name);
+    const pending = pendingMigrations(migrationPaths, done);
+    if (pending.length === 0) return;
+
+    let locked = false;
+    for (let i = 0; i < NEON_MIGRATE_LOCK_ATTEMPTS; i += 1) {
+      const got = await client.query<{ ok: boolean }>(
+        "select pg_try_advisory_lock($1) as ok",
+        [NEON_MIGRATE_LOCK_KEY],
+      );
+      if (got.rows[0]?.ok) {
+        locked = true;
+        break;
+      }
+      await sleep(NEON_MIGRATE_LOCK_WAIT_MS);
+    }
+    if (!locked) {
+      console.warn(
+        "[db] migrate lock busy — skipping runtime migrate (deploy migrate or another isolate owns it)",
+      );
+      return;
+    }
+    try {
+      // Re-check under the lock so we do not double-apply.
+      const again = await client.query<{ name: string }>("select name from _migrations");
+      const done2 = again.rows.map((r) => r.name);
+      const still = pendingMigrations(migrationPaths, done2);
+      const migrations = import.meta.glob("/migrations/*.sql", {
+        query: "?raw",
+        import: "default",
+        eager: true,
+      }) as Record<string, string>;
+      for (const { name, path } of still) {
+        await client.query(migrations[path]);
+        await client.query(
+          "insert into _migrations (name) values ($1) on conflict (name) do nothing",
+          [name],
+        );
+      }
+    } finally {
+      try {
+        await client.query("select pg_advisory_unlock($1)", [NEON_MIGRATE_LOCK_KEY]);
+      } catch {
+        /* ignore */
+      }
+    }
+  } finally {
+    client.release();
+  }
+}
+
 function createNeonSql(): Promise<Sql> {
   globalRef.__pgSqlPromise__ ??= (async () => {
     // Regular Postgres driver: node-postgres (`pg`) — works directly with Neon's
@@ -119,20 +203,34 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
-    const pool = new Pool({ connectionString: databaseUrl });
-    try {
-      await pool.query("select pg_advisory_lock(87236401)");
-      await applyPendingMigrations(async <T>(text: string, params: unknown[] = []) => {
-        const res = await pool.query(text, params);
-        return res.rows as T[];
-      });
-    } finally {
-      try {
-        await pool.query("select pg_advisory_unlock(87236401)");
-      } catch {
-        /* ignore */
-      }
+    const url = databaseUrl!;
+    if (!looksLikeNeonPooler(url)) {
+      console.warn(
+        "[db] DATABASE_URL does not look like a Neon pooled URI (-pooler). Prefer the pooled connection string on Vercel to avoid cold-connect hangs.",
+      );
     }
+    const pool = new Pool({
+      connectionString: url,
+      // Serverless isolate: one connection is enough; exit when idle so we do not
+      // pin Neon slots across idle periods.
+      max: 1,
+      connectionTimeoutMillis: NEON_CONNECT_TIMEOUT_MS,
+      idleTimeoutMillis: 10_000,
+      allowExitOnIdle: true,
+      statement_timeout: NEON_STATEMENT_TIMEOUT_MS,
+      query_timeout: NEON_STATEMENT_TIMEOUT_MS,
+    });
+    pool.on("connect", (c) => {
+      c.query(`set statement_timeout = ${NEON_STATEMENT_TIMEOUT_MS}`).catch(() => undefined);
+    });
+
+    const migrations = import.meta.glob("/migrations/*.sql", {
+      query: "?raw",
+      import: "default",
+      eager: true,
+    }) as Record<string, string>;
+    await migrateNeonIfNeeded(pool, Object.keys(migrations));
+
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
       return res.rows as T[];
