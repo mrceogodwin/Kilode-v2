@@ -156,7 +156,7 @@ export function SiteFooter() {
     <footer className="site-foot mt-5 overflow-hidden rounded-2xl px-3 py-3.5 sm:px-3.5 sm:py-4">
       <div className="text-center">
         <p className="text-[9px] font-semibold tracking-[0.16em] text-lime-2 uppercase">Kilode</p>
-        <h2 className="chrome-head mx-auto mt-0.5 max-w-[16rem] text-balance">JOIN KILODE.NG</h2>
+        <h2 className="chrome-head mx-auto mt-0.5 max-w-[20rem] text-balance">Join Kilode.ng today!</h2>
         <p className="mt-1 text-[11px] leading-snug text-muted">Talk Nigeria. Live. Password only — no email to sign up.</p>
         <p className="mt-0.5 text-[11px] leading-snug text-muted/90">{joinHint}</p>
       </div>
