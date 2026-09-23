@@ -165,20 +165,20 @@
   .site-foot {
     background: linear-gradient(180deg, #1c3324 0%, #121a14 52%, #0c120e 100%);
     border: 1px solid rgba(107, 158, 120, 0.32);
-    box-shadow: 0 0 0 1px rgba(107, 158, 120, 0.06), 0 16px 36px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 0 0 1px rgba(107, 158, 120, 0.06), 0 12px 28px rgba(0, 0, 0, 0.32);
   }
   .chrome-head {
-    font-weight: 800;
-    font-style: italic;
-    font-size: 26px;
-    line-height: 1.32;
-    letter-spacing: 0.04em;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 22px;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
     text-transform: none;
-    background-image: linear-gradient(180deg, #ffffff 0%, #eceff3 26%, #9aa3ae 50%, #d8dce2 74%, #f6f7f9 100%);
+    background-image: linear-gradient(180deg, #f4f7f5 0%, #d7e4db 45%, #b7cfc0 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.28)) drop-shadow(0 3px 2px rgba(0, 0, 0, 0.55));
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.18)) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.4));
   }
   .flash-bar {
     border-bottom: 1px solid var(--color-line);
@@ -461,8 +461,8 @@ html[data-skin="ivory"] .site-foot {
   box-shadow: 0 8px 24px rgba(31, 122, 64, 0.08);
 }
 html[data-skin="ivory"] .chrome-head {
-  background-image: linear-gradient(180deg, #4a4e56 0%, #1a1c20 48%, #6a6f78 100%);
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.85)) drop-shadow(0 2px 1px rgba(0, 0, 0, 0.12));
+  background-image: linear-gradient(180deg, #1f2a22 0%, #24352a 55%, #3a5242 100%);
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.7)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.08));
 }
 html[data-skin="ivory"] .hero-flag {
   background: #eef2ee;

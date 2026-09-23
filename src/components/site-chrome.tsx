@@ -109,53 +109,82 @@ export function SiteFooter() {
       .catch(() => undefined);
   }
   const n = site.shares ?? EMPTY.shares;
-  const subs = site.subscribers || 0;
-  const subLine =
-    subs <= 0
-      ? "Join for instant updates"
-      : subs === 1
-        ? "Join 1 subscriber for instant updates"
-        : `Join ${subs.toLocaleString("en-US")} subscribers for instant updates`;
+  const shareTotal = (n.x || 0) + (n.wa || 0) + (n.tg || 0) + (n.fb || 0) + (n.copy || 0);
+  const members = site.members || 0;
+  const joinHint =
+    members <= 0
+      ? "Create a handle to post, chat, and save."
+      : members === 1
+        ? "1 member already here — pick a username and join."
+        : `${members.toLocaleString("en-US")} members — pick a username and join.`;
   return (
-    <footer className="site-foot mt-8 overflow-hidden rounded-2xl px-4 py-6">
-      <a href="/login?mode=up" className="block px-2 py-1 text-center">
-        <h2 className="chrome-head mx-auto max-w-[15.5rem]">{subLine}</h2>
-      </a>
-      <p className="mt-3 text-center text-[12px] leading-relaxed text-muted">Talk Nigeria. Live.</p>
-      <div className="mt-4">
-        <DigestBox />
+    <footer className="site-foot mt-6 overflow-hidden rounded-2xl px-3.5 py-4 sm:px-4 sm:py-5">
+      <div className="text-center">
+        <p className="text-[10px] font-semibold tracking-[0.12em] text-lime-2 uppercase">Kilode</p>
+        <h2 className="chrome-head mx-auto mt-1 max-w-[16rem] text-balance">Join with a username</h2>
+        <p className="mt-1.5 text-[12px] leading-snug text-muted">Talk Nigeria. Live. Password only — no email to sign up.</p>
+        <p className="mt-1 text-[11px] leading-snug text-muted/90">{joinHint}</p>
       </div>
-      <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-[10px] tabular-nums text-muted">
-        <span className="inline-flex items-center gap-1 rounded-full border border-lime-2/30 bg-lime-2/10 px-2 py-0.5 text-lime-2">
+
+      <a
+        href="/login?mode=up"
+        className="btn-join mt-3.5 flex min-h-11 w-full items-center justify-center rounded-xl px-3 text-[14px] font-bold"
+      >
+        Create account
+      </a>
+      <p className="mt-1.5 text-center text-[11px] text-muted">
+        Already here?{" "}
+        <a href="/login?mode=in" className="font-semibold text-lime-2 underline-offset-2 hover:underline">
+          Sign in
+        </a>
+      </p>
+
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-[10px] tabular-nums text-muted">
+        <span className="inline-flex items-center gap-1 text-lime-2">
           <span className="size-1.5 animate-pulse rounded-full bg-lime-2" />
           {fmtCount(site.visitorsToday)} today
         </span>
+        <span aria-hidden className="opacity-40">·</span>
         <span>{fmtCount(site.visitorsAll)} visitors</span>
+        <span aria-hidden className="opacity-40">·</span>
         <span>{fmtCount(site.members)} joined</span>
       </div>
-      <div className="mt-4">
-        <GetAppRow />
+
+      <div className="mt-3 border-t border-white/5 pt-2.5">
+        <DigestBox quiet />
       </div>
-      <div className="mt-4">
-        <div className="mb-1.5 text-center text-[10px] font-bold tracking-[0.14em] text-muted">SHARE</div>
-        <div className="grid grid-cols-5 gap-1">
-          <ShareChip label="X" count={n.x} className="bg-black text-white ring-1 ring-white/20" onClick={() => share("x")}>
-            <IconX />
-          </ShareChip>
-          <ShareChip label="WhatsApp" count={n.wa} className="bg-[#25D366] text-white" onClick={() => share("wa")}>
-            <IconWa />
-          </ShareChip>
-          <ShareChip label="Telegram" count={n.tg} className="bg-[#229ED9] text-white" onClick={() => share("tg")}>
-            <IconTg />
-          </ShareChip>
-          <ShareChip label="Facebook" count={n.fb} className="bg-[#1877F2] text-white" onClick={() => share("fb")}>
-            <IconFb />
-          </ShareChip>
-          <ShareChip label="Copy" count={n.copy} className="bg-lime-2 text-white" onClick={() => share("copy")}>
-            <Share2 className="size-3.5" />
-          </ShareChip>
+
+      <a
+        href="/install"
+        className="mt-2 flex items-center justify-center gap-1.5 py-1 text-[11px] text-muted hover:text-fg"
+      >
+        <img src="/kilode-bang-icon.png" alt="" className="size-4 rounded-[4px] object-cover opacity-80" />
+        Install Kilode on your home screen
+      </a>
+
+      {shareTotal > 0 ? (
+        <div className="mt-3 border-t border-white/5 pt-3">
+          <div className="mb-1.5 text-center text-[10px] font-medium tracking-[0.1em] text-muted">Share Kilode</div>
+          <div className="grid grid-cols-5 gap-1">
+            <ShareChip label="X" count={n.x} className="bg-black text-white ring-1 ring-white/20" onClick={() => share("x")}>
+              <IconX />
+            </ShareChip>
+            <ShareChip label="WhatsApp" count={n.wa} className="bg-[#25D366] text-white" onClick={() => share("wa")}>
+              <IconWa />
+            </ShareChip>
+            <ShareChip label="Telegram" count={n.tg} className="bg-[#229ED9] text-white" onClick={() => share("tg")}>
+              <IconTg />
+            </ShareChip>
+            <ShareChip label="Facebook" count={n.fb} className="bg-[#1877F2] text-white" onClick={() => share("fb")}>
+              <IconFb />
+            </ShareChip>
+            <ShareChip label="Copy" count={n.copy} className="bg-lime-2 text-white" onClick={() => share("copy")}>
+              <Share2 className="size-3.5" />
+            </ShareChip>
+          </div>
         </div>
-      </div>
+      ) : null}
+
       <p className="mt-3 text-center text-[10px] leading-snug text-muted">
         <a href="/terms" className="underline">
           Terms
@@ -173,7 +202,7 @@ export function SiteFooter() {
           Advertise
         </a>
       </p>
-      <p className="mt-1.5 flex items-center justify-center gap-1 text-[10px] text-muted">
+      <p className="mt-1 flex items-center justify-center gap-1 text-[10px] text-muted">
         <TelegramLink />
       </p>
     </footer>

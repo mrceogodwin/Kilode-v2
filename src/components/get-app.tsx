@@ -32,34 +32,59 @@ export function TelegramLink({ className = "" }: { className?: string }) {
   );
 }
 
-export function DigestBox() {
+export function DigestBox({ quiet = false }: { quiet?: boolean }) {
   const [email, setEmail] = useState("");
   const [msg, setMsg] = useState("");
+  const [open, setOpen] = useState(!quiet);
   return (
-    <form
-      className="mt-2"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void saveDigest({ data: { email } }).then((r) => {
-          setMsg(r.ok ? "Saved. We keep the address. Email send is not live yet." : r.reason);
-          if (r.ok) setEmail("");
-        });
-      }}
-    >
-      <div className="flex items-center gap-1.5">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email for instant updates"
-          className="min-h-9 flex-1 rounded-lg border border-line bg-bg px-2.5 text-[12px]"
-        />
-        <button type="submit" className="btn-join rounded-lg px-3 py-2 text-[11px] font-bold">
-          Add
+    <div className={quiet ? "" : "mt-2"}>
+      {quiet && !open ? (
+        <button
+          type="button"
+          className="mx-auto flex w-full items-center justify-center gap-1 py-1 text-[11px] text-muted hover:text-fg"
+          onClick={() => setOpen(true)}
+        >
+          Get updates by email
+          <span aria-hidden className="text-[10px]">▾</span>
         </button>
-      </div>
-      {msg ? <p className="mt-1 text-[10px] text-lime-2">{msg}</p> : null}
-    </form>
+      ) : null}
+      {open ? (
+        <form
+          className={quiet ? "mt-0.5" : ""}
+          onSubmit={(e) => {
+            e.preventDefault();
+            void saveDigest({ data: { email } }).then((r) => {
+              setMsg(r.ok ? "Saved. We keep the address. Email send is not live yet." : r.reason);
+              if (r.ok) setEmail("");
+            });
+          }}
+        >
+          {quiet ? (
+            <p className="mb-1 text-center text-[10px] text-muted">Optional — account signup still uses username + password.</p>
+          ) : null}
+          <div className="flex items-center gap-1.5">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={quiet ? "Email for updates" : "Email for instant updates"}
+              className={`flex-1 rounded-lg border border-line bg-bg px-2.5 text-[12px] ${quiet ? "min-h-8" : "min-h-9"}`}
+            />
+            <button
+              type="submit"
+              className={
+                quiet
+                  ? "rounded-lg border border-line bg-panel-2 px-2.5 py-1.5 text-[11px] font-semibold text-fg"
+                  : "btn-join rounded-lg px-3 py-2 text-[11px] font-bold"
+              }
+            >
+              {quiet ? "Save" : "Add"}
+            </button>
+          </div>
+          {msg ? <p className="mt-1 text-[10px] text-lime-2">{msg}</p> : null}
+        </form>
+      ) : null}
+    </div>
   );
 }
 
@@ -69,7 +94,9 @@ export function MenuPin() {
       <div className="menu-install overflow-hidden rounded-xl">
         <GetAppRow />
       </div>
-      <DigestBox />
+      <div className="mt-1.5">
+        <DigestBox quiet />
+      </div>
     </div>
   );
 }
