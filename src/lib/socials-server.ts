@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { assertStaff } from "@/lib/staff-server";
-import { safeHttpUrl } from "@/lib/qonvo-data";
+import { safeHttpUrl, youtubeId } from "@/lib/qonvo-data";
 
 export type SocialRow = {
   id: string;
@@ -15,6 +15,14 @@ export type SocialRow = {
   sort: number;
 };
 
+export type TvLive = {
+  title: string;
+  blurb: string;
+  youtubeId: string;
+  live: boolean;
+  url: string;
+};
+
 const SEED: SocialRow[] = [
   { id: "youtube", name: "YouTube", handle: "", url: "", blurb: "Shows, news clips, live.", thumb: "", followers: "TV", sort: 1 },
   { id: "tiktok", name: "TikTok", handle: "", url: "", blurb: "Shorts from the desk.", thumb: "", followers: "Clips", sort: 2 },
@@ -24,6 +32,14 @@ const SEED: SocialRow[] = [
   { id: "telegram", name: "Telegram", handle: "@Builtbystacks", url: "https://t.me/Builtbystacks", blurb: "Alerts in your pocket.", thumb: "", followers: "Channel", sort: 6 },
   { id: "whatsapp", name: "WhatsApp", handle: "", url: "", blurb: "Status and channel drops.", thumb: "", followers: "Chat", sort: 7 },
 ];
+
+const EMPTY_TV: TvLive = {
+  title: "Kilode TV Live",
+  blurb: "Live from the Kilode desk.",
+  youtubeId: "",
+  live: false,
+  url: "",
+};
 
 async function ensure() {
   const sql = await getSql();
@@ -46,6 +62,21 @@ async function ensure() {
     'https://www.facebook.com/kilode.ng',
     'https://whatsapp.com/channel'
   )`);
+
+  await sql.query(`create table if not exists nf_tv_live (
+    id text primary key default 'live',
+    title text not null default '',
+    blurb text not null default '',
+    youtube_url text not null default '',
+    live int not null default 0,
+    updated_at bigint not null default 0
+  )`);
+  const tvN = await sql<{ n: string | number }>`select count(*) as n from nf_tv_live where id = 'live'`;
+  if (Number(tvN[0]?.n ?? 0) === 0) {
+    await sql`insert into nf_tv_live (id, title, blurb, youtube_url, live, updated_at)
+      values ('live', ${EMPTY_TV.title}, ${EMPTY_TV.blurb}, '', 0, ${Date.now()})
+      on conflict (id) do nothing`;
+  }
 }
 
 function row(r: SocialRow): SocialRow {
@@ -58,6 +89,24 @@ function row(r: SocialRow): SocialRow {
     thumb: r.thumb || "",
     followers: r.followers || "",
     sort: Number(r.sort) || 0,
+  };
+}
+
+function tvOf(r: {
+  title: string | null;
+  blurb: string | null;
+  youtube_url: string | null;
+  live: number | string | boolean | null;
+}): TvLive {
+  const rawUrl = (r.youtube_url || "").trim();
+  const id = youtubeId(rawUrl) || "";
+  const url = id ? (safeHttpUrl(rawUrl) || (rawUrl.startsWith("http") ? rawUrl.slice(0, 300) : `https://www.youtube.com/watch?v=${id}`)) : "";
+  return {
+    title: (r.title || EMPTY_TV.title).trim() || EMPTY_TV.title,
+    blurb: (r.blurb || "").trim() || EMPTY_TV.blurb,
+    youtubeId: id,
+    live: r.live === true || r.live === 1 || r.live === "1",
+    url,
   };
 }
 
@@ -98,4 +147,45 @@ export const deleteSocial = createServerFn({ method: "POST" })
     const sql = await getSql();
     await sql`delete from nf_socials where id = ${data.id}`;
     return { ok: true as const };
+  });
+
+export const getTvLive = createServerFn({ method: "GET" }).handler(async (): Promise<TvLive> => {
+  try {
+    await ensure();
+    const sql = await getSql();
+    const rows = await sql<{
+      title: string;
+      blurb: string;
+      youtube_url: string;
+      live: number | string | boolean | null;
+    }>`select title, blurb, youtube_url, live from nf_tv_live where id = 'live' limit 1`;
+    if (!rows[0]) return { ...EMPTY_TV };
+    return tvOf(rows[0]);
+  } catch {
+    return { ...EMPTY_TV };
+  }
+});
+
+export const saveTvLive = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { title?: string; blurb?: string; youtubeUrl?: string; live?: boolean }) => d)
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.userId, "super");
+    await ensure();
+    const sql = await getSql();
+    const title = (data.title || EMPTY_TV.title).trim().slice(0, 80) || EMPTY_TV.title;
+    const blurb = (data.blurb || "").trim().slice(0, 200) || EMPTY_TV.blurb;
+    const raw = (data.youtubeUrl || "").trim();
+    let youtubeUrl = "";
+    if (raw) {
+      const id = youtubeId(raw);
+      if (!id) return { ok: false as const, reason: "Need a valid YouTube URL or 11-char id" };
+      youtubeUrl = safeHttpUrl(raw) || `https://www.youtube.com/watch?v=${id}`;
+    }
+    const live = data.live && youtubeUrl ? 1 : 0;
+    const ts = Date.now();
+    await sql`insert into nf_tv_live (id, title, blurb, youtube_url, live, updated_at)
+      values ('live', ${title}, ${blurb}, ${youtubeUrl}, ${live}, ${ts})
+      on conflict (id) do update set title = ${title}, blurb = ${blurb}, youtube_url = ${youtubeUrl}, live = ${live}, updated_at = ${ts}`;
+    return { ok: true as const, live: tvOf({ title, blurb, youtube_url: youtubeUrl, live }) };
   });
