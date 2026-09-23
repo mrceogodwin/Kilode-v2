@@ -63,6 +63,7 @@ function FeaturedRail({ ads, onView }: { ads: Campaign[]; onView: (id: string) =
     if (ads.length < 2) return;
     const t = window.setInterval(() => {
       if (hover.current || !track.current) return;
+      if (typeof document !== "undefined" && document.hidden) return;
       const el = track.current;
       const next = el.scrollLeft + el.clientWidth * 0.55;
       el.scrollTo({ left: next >= el.scrollWidth - 8 ? 0 : next, behavior: "smooth" });
@@ -144,7 +145,9 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
     ...live.filter((a) => a.placement === "featured" || a.placement === "square"),
     ...live.filter((a) => a.placement !== "featured" && a.placement !== "square"),
   ].slice(0, featuredN);
-  const sentinel = useRef<HTMLDivElement>(null);
+  // Cost: page via NEXT only. Do not auto-page with IntersectionObserver —
+  // `live` is a new array each render, so an IO effect on [live] re-subscribes
+  // and can cascade-expand every duration bucket while the sentinel stays visible.
   useEffect(() => {
     void listAdCatalog()
       .then((c) => {
@@ -154,28 +157,6 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
       })
       .catch(() => undefined);
   }, []);
-  useEffect(() => {
-    const el = sentinel.current;
-    if (!el) return;
-    const io = new IntersectionObserver((entries) => {
-      if (!entries[0]?.isIntersecting) return;
-      setShown((s) => {
-        let changed = false;
-        const next = { ...s };
-        for (const { days } of buckets) {
-          const pack = live.filter((a) => adDayBucket(a.days) === days);
-          const cur = next[days] ?? pageSize;
-          if (cur < pack.length) {
-            next[days] = cur + pageSize;
-            changed = true;
-          }
-        }
-        return changed ? next : s;
-      });
-    });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [live, pageSize]);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center justify-between border-b border-white/5 px-3 py-2">
@@ -239,7 +220,6 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
             </section>
           );
         })}
-        <div ref={sentinel} className="h-2" />
         <AdReserve id="ads_g2" className="mb-6 mt-4" />
         {vert === "All"
           ? AD_VERTICALS.filter((v) => v !== "All")
