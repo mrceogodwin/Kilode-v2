@@ -6,6 +6,7 @@ import {
   Download,
   Film,
   HelpCircle,
+  LogOut,
   Megaphone,
   MessageSquare,
   Pencil,
@@ -203,7 +204,7 @@ function primaryCta(kind: AccountKind): { label: string; icon: typeof Plus; onCl
   return { label: "New post", icon: Plus, onClick: openCreate };
 }
 
-export function MeDashboard({ store, onForum }: { store: Store; onForum?: () => void }) {
+export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForum?: () => void; onLogout?: () => void | Promise<void> }) {
   const signed = Boolean(store.handle);
   const [myCinema, setMyCinema] = useState<CinemaMovie[]>([]);
   const [myJobs, setMyJobs] = useState<Listing[]>([]);
@@ -211,6 +212,7 @@ export function MeDashboard({ store, onForum }: { store: Store; onForum?: () => 
   const [myRent, setMyRent] = useState<Listing[]>([]);
   const [openJobs, setOpenJobs] = useState<Listing[]>([]);
   const [myApps, setMyApps] = useState<MyApp[]>([]);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (!signed) return;
@@ -455,6 +457,22 @@ export function MeDashboard({ store, onForum }: { store: Store; onForum?: () => 
             {cta.label}
           </button>
         </div>
+        {onLogout ? (
+          <div className="border-t border-line/70 px-3 py-2.5">
+            <button
+              type="button"
+              disabled={signingOut}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-panel px-3 py-2 text-[12px] font-semibold text-muted hover:border-line hover:text-ink disabled:cursor-wait"
+              onClick={() => {
+                setSigningOut(true);
+                void Promise.resolve(onLogout()).catch(() => setSigningOut(false));
+              }}
+            >
+              <LogOut className="size-3.5" />
+              {signingOut ? "Signing out…" : "Sign out"}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="mb-5 grid grid-cols-4 gap-1.5">

@@ -20,7 +20,7 @@ import { listWallets, getChatTtl } from "@/lib/forum-server";
 import { listAdCatalog } from "@/lib/ad-catalog-server";
 import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
-import { authClient } from "@/lib/auth/client";
+import { authClient, signOut } from "@/lib/auth/client";
 import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { canKind } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
@@ -69,7 +69,17 @@ export function QonvoScreen({
   else if (id === "market") view = <ListingsPane kind="market" />;
   else if (id === "rent") view = <ListingsPane kind="rent" />;
   else if (id === "help") view = <Help />;
-  else if (id === "dashboard") view = <MeDashboard store={store} onForum={onForum} />;
+  else if (id === "dashboard")
+    view = (
+      <MeDashboard
+        store={store}
+        onForum={onForum}
+        onLogout={async () => {
+          store.logout();
+          await signOut();
+        }}
+      />
+    );
   else if (id === "trending") view = <Trending onHome={onHome} />;
   else if (id === "tv") view = <TvPane />;
   else if (id === "contact") view = <Contact store={store} />;
