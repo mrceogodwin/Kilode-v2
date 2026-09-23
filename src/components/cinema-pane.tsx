@@ -15,7 +15,7 @@ import {
   type CinemaQuiz,
   type CinemaSection,
 } from "@/lib/cinema-server";
-import { Check, Film, HelpCircle, Send, Star, X } from "lucide-react";
+import { Check, Film, HelpCircle, Play, Send, Star, X } from "lucide-react";
 import { listMsgs, saveMsg, getProfile, pingPresence } from "@/lib/forum-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { timeLabel, type AccountKind, type ChatMsg } from "@/lib/qonvo-data";
@@ -134,7 +134,7 @@ export function CinemaPane() {
                 <div className="truncate text-sm font-semibold">{watching.title}</div>
                 <p className="text-[10px] text-muted">
                   <span className="capitalize text-lime-2">{watching.section}</span>
-                  {" · "}Played from YouTube · not stored on Kilode
+                  {" · "}Played from YouTube. Not stored on Kilode
                 </p>
               </div>
               <CinemaVoteBtn
@@ -301,42 +301,73 @@ export function CinemaPane() {
 
 function CinemaPlayer({ title, youtubeId }: { title: string; youtubeId: string }) {
   const [failed, setFailed] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const id = (youtubeId || "").trim();
-  const showEmbed = Boolean(id) && !failed;
+
+  /* Reset when the pinned title changes; leaving Cinema unmounts this and destroys the iframe. */
+  useEffect(() => {
+    setPlaying(false);
+    setFailed(false);
+  }, [id]);
+
+  const showEmbed = Boolean(id) && !failed && playing;
 
   return (
     <div className="relative w-full min-h-[11.5rem] aspect-video shrink-0 bg-black sm:min-h-[14rem]">
       {showEmbed ? (
         <iframe
+          key={id}
           title={title}
-          src={`https://www.youtube.com/embed/${id}?rel=0`}
+          src={`https://www.youtube-nocookie.com/embed/${id}?rel=0&autoplay=1`}
           className="absolute inset-0 h-full w-full border-0 bg-black"
           allow="encrypted-media; fullscreen; picture-in-picture"
-          loading="lazy"
           referrerPolicy="strict-origin-when-cross-origin"
           onError={() => setFailed(true)}
         />
       ) : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gradient-to-b from-[#0c1210] via-black to-[#061008] px-4 text-center">
+        <button
+          type="button"
+          className="absolute inset-0 flex w-full flex-col items-center justify-center gap-2 bg-gradient-to-b from-[#0c1210] via-black to-[#061008] px-4 text-center"
+          disabled={!id || failed}
+          aria-label={id && !failed ? "Tap to play trailer" : undefined}
+          onClick={() => {
+            if (!id || failed) return;
+            setPlaying(true);
+          }}
+        >
           {id ? (
             <img
               src={thumb(id)}
               alt=""
-              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-35"
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-45"
               onError={() => setFailed(true)}
             />
           ) : null}
+          <div className="pointer-events-none absolute inset-0 bg-black/35" aria-hidden />
           <div className="relative z-[1] flex flex-col items-center gap-1.5">
-            <span className="inline-flex size-10 items-center justify-center rounded-xl border border-lime-2/40 bg-black/55 text-lime-2 shadow-[0_0_20px_rgba(107,158,120,0.25)]">
-              <Film className="size-5" />
-            </span>
-            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-lime-2">Kilode Cinema</div>
-            <div className="max-w-[18rem] text-sm font-extrabold leading-snug text-fg">{title || "Watching now"}</div>
-            <p className="max-w-[16rem] text-[10px] leading-snug text-muted">
-              {id ? "Trailer preview unavailable. Vote, rate, and join Live talk below." : "No YouTube clip yet. Staff will pin a trailer soon."}
-            </p>
+            {id && !failed ? (
+              <>
+                <span className="inline-flex size-14 items-center justify-center rounded-full border border-lime-2/50 bg-black/60 text-lime-2 shadow-[0_0_24px_rgba(107,158,120,0.35)]">
+                  <Play className="size-7 fill-lime-2 text-lime-2" />
+                </span>
+                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-lime-2">Tap to play trailer</div>
+                <div className="max-w-[18rem] text-sm font-extrabold leading-snug text-fg">{title || "Watching now"}</div>
+                <p className="max-w-[16rem] text-[10px] leading-snug text-muted">Played from YouTube. Not stored on Kilode</p>
+              </>
+            ) : (
+              <>
+                <span className="inline-flex size-10 items-center justify-center rounded-xl border border-lime-2/40 bg-black/55 text-lime-2 shadow-[0_0_20px_rgba(107,158,120,0.25)]">
+                  <Film className="size-5" />
+                </span>
+                <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-lime-2">Kilode Cinema</div>
+                <div className="max-w-[18rem] text-sm font-extrabold leading-snug text-fg">{title || "Watching now"}</div>
+                <p className="max-w-[16rem] text-[10px] leading-snug text-muted">
+                  {id ? "Trailer preview unavailable. Vote, rate, and join Live talk below." : "No YouTube clip yet. Staff will pin a trailer soon."}
+                </p>
+              </>
+            )}
           </div>
-        </div>
+        </button>
       )}
     </div>
   );
