@@ -14,6 +14,7 @@ import {
   Radio,
   Store,
   Tv,
+  Users,
   Vote,
 } from "lucide-react";
 import {
@@ -30,7 +31,7 @@ import { AvatarImg } from "@/components/account-kind";
 import { AdSlot } from "@/components/ad-slot";
 import { SiteFooter } from "@/components/site-chrome";
 import { listMyCinema, type CinemaMovie } from "@/lib/cinema-server";
-import { listListings, listMyApps, listMyListings, type Listing, type MyApp } from "@/lib/listings-server";
+import { listListings, listMyApps, listMyApplicants, listMyListings, type Listing, type MyApp, type MyApplicant } from "@/lib/listings-server";
 
 type Store = ReturnType<typeof useQonvo>;
 
@@ -292,8 +293,10 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
     // job_poster has jobs.post only — never "Apply jobs"
     return [
       { icon: Briefcase, label: "Post a job", hint: "Staff approve first", onClick: openCreate },
+      { icon: Users, label: "Applicants", hint: "Inbox on this desk", onClick: () => {
+        document.getElementById("me-applicants")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } },
       chat,
-      voteCinema,
       { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
     ];
   }
@@ -357,6 +360,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   const [myRent, setMyRent] = useState<Listing[]>([]);
   const [openJobs, setOpenJobs] = useState<Listing[]>([]);
   const [myApps, setMyApps] = useState<MyApp[]>([]);
+  const [myApplicants, setMyApplicants] = useState<MyApplicant[]>([]);
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
@@ -379,6 +383,9 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
     void listListings({ data: { kind: "job" } })
       .then((rows) => setOpenJobs(Array.isArray(rows) ? rows : []))
       .catch(() => setOpenJobs([]));
+    void listMyApplicants()
+      .then((rows) => setMyApplicants(Array.isArray(rows) ? rows : []))
+      .catch(() => setMyApplicants([]));
   }, [signed, store.handle]);
 
   const kind = store.kind as AccountKind;
@@ -465,9 +472,9 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             : kind === "job_poster"
               ? [
                   { n: myJobs.length, l: "Jobs" },
+                  { n: myApplicants.length, l: "Apps" },
                   { n: pendingJobs, l: "Pending" },
                   { n: listingViews, l: "Views" },
-                  { n: store.pins.length, l: "Rooms" },
                 ]
               : kind === "vendor"
                 ? [
@@ -543,7 +550,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             <button
               type="button"
               disabled={signingOut}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-panel px-3 py-2 text-[12px] font-semibold text-muted hover:border-line hover:text-ink disabled:cursor-wait"
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-panel px-3 py-2 text-[12px] font-semibold text-muted hover:border-danger/40 hover:text-ink disabled:cursor-wait"
               onClick={() => {
                 setSigningOut(true);
                 void Promise.resolve(onLogout())
@@ -556,6 +563,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
               <LogOut className="size-3.5" />
               {signingOut ? "Signing out…" : "Sign out"}
             </button>
+            <p className="mt-1.5 text-center text-[10px] text-muted">Sign out lives here — not next to the header mark.</p>
           </div>
         ) : null}
       </div>
@@ -769,24 +777,114 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       ) : null}
 
       {kind === "job_poster" ? (
-        <Section kicker="JOBS" title="Your jobs" action="Post a job" onAction={openCreate}>
-          {myJobs.length === 0 ? (
-            <EmptyBlock
-              body="No jobs under your handle yet. Post a role with company, city, contact and optional apply link — staff approve before seekers see it."
-              cta="Post first job"
-              onClick={openCreate}
-            />
-          ) : (
-            <div className="space-y-2">
-              {myJobs.slice(0, 10).map((r) => (
-                <ListingRow key={r.id} r={r} />
-              ))}
-              <button type="button" className="btn-3d w-full rounded-lg py-2 text-[12px] font-bold" onClick={() => goto({ screen: "jobs" })}>
-                Open Jobs board
-              </button>
+        <>
+          <Section kicker="HIRING" title="How Job Poster works">
+            <div className="raised space-y-2 rounded-2xl border border-lime-2/25 p-3 text-[12px] leading-snug text-muted">
+              <p>
+                <span className="font-bold text-lime-2">1.</span> Post a role from Create — company, city, contact, optional apply link.
+              </p>
+              <p>
+                <span className="font-bold text-lime-2">2.</span> Staff approve → it goes live on Jobs. Seekers apply with their @handle + note.
+              </p>
+              <p>
+                <span className="font-bold text-lime-2">3.</span> Applicants land in your inbox below. Contact them off-platform — Kilode does not run interviews or payroll.
+              </p>
             </div>
-          )}
-        </Section>
+          </Section>
+
+          <Section kicker="JOBS" title="Your jobs" action="Post a job" onAction={openCreate}>
+            {myJobs.length === 0 ? (
+              <EmptyBlock
+                body="No jobs under your handle yet. Post a role with company, city, contact and optional apply link — staff approve before seekers see it."
+                cta="Post first job"
+                onClick={openCreate}
+              />
+            ) : (
+              <div className="space-y-2">
+                {myJobs.slice(0, 10).map((r) => {
+                  const apps = myApplicants.filter((a) => a.listingId === r.id).length;
+                  return (
+                    <div key={r.id} className="rounded-xl border border-line bg-panel px-3 py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="truncate text-sm font-semibold">{r.title}</div>
+                        <StatusPill status={r.status} />
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-muted">
+                        <span>
+                          {r.company ? `${r.company} · ` : ""}
+                          {r.city || "Nigeria"} · {fmtCount(r.views)} views · {timeAgo(r.ts)}
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-lime-2/15 px-2 py-0.5 font-bold text-lime-2">
+                          <Users className="size-3" />
+                          {apps} applicant{apps === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" className="btn-join rounded-lg py-2 text-[12px] font-bold" onClick={openCreate}>
+                    Post another job
+                  </button>
+                  <button type="button" className="btn-3d rounded-lg py-2 text-[12px] font-bold" onClick={() => goto({ screen: "jobs" })}>
+                    Open Jobs board
+                  </button>
+                </div>
+              </div>
+            )}
+          </Section>
+
+          <Section
+            kicker="APPLICANTS"
+            title="Inbox"
+            action={myApplicants.length ? `${myApplicants.length}` : undefined}
+            onAction={myApplicants.length ? () => goto({ screen: "jobs" }) : undefined}
+          >
+            <div id="me-applicants" />
+            {myApplicants.length === 0 ? (
+              <EmptyBlock
+                body="No applications yet. Once a job is approved, seekers apply from Jobs or Create · Apply — their @handle and note show up here."
+                cta={myJobs.length ? "Open Jobs board" : "Post a job"}
+                onClick={myJobs.length ? () => goto({ screen: "jobs" }) : openCreate}
+              />
+            ) : (
+              <div className="space-y-2">
+                {myApplicants.slice(0, 12).map((a) => (
+                  <div key={a.id} className="rounded-xl border border-line bg-panel px-3 py-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold">@{a.handle}</div>
+                        <div className="text-[10px] text-muted">
+                          Applied to <span className="font-semibold text-ink">{a.jobTitle}</span> · {timeAgo(a.ts)}
+                        </div>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-lime-2/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-lime-2">
+                        New
+                      </span>
+                    </div>
+                    {a.note ? <p className="mt-1.5 line-clamp-3 text-[11px] leading-snug text-muted">{a.note}</p> : (
+                      <p className="mt-1.5 text-[11px] italic text-muted">No note — reach out via their profile or your posted contact.</p>
+                    )}
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        className="btn-3d flex-1 rounded-lg py-1.5 text-[11px] font-bold"
+                        onClick={() => {
+                          window.location.href = `/u/${encodeURIComponent(a.handle)}`;
+                        }}
+                      >
+                        View @{a.handle}
+                      </button>
+                      <button type="button" className="btn-join flex-1 rounded-lg py-1.5 text-[11px] font-bold" onClick={() => goto({ screen: "jobs" })}>
+                        Open Jobs
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
+        </>
       ) : null}
 
       {kind === "vendor" ? (

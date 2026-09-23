@@ -175,6 +175,15 @@ export const applyListing = createServerFn({ method: "POST" })
     } catch {
       /* exists */
     }
+    const already = await sql<{ id: string }>`select id from nf_apps where listing_id = ${data.id} and user_id = ${context.userId} limit 1`;
+    if (already[0]) return { ok: false as const, reason: "You already applied to this job." };
+    // Confirm job exists and is live (approved + not expired)
+    const job = await sql<{ id: string; status: string; expires_at: number | string | null }>`select id, status, expires_at from nf_listings where id = ${data.id} and kind = 'job' limit 1`;
+    if (!job[0]) return { ok: false as const, reason: "Job not found." };
+    if (job[0].status !== "approved") return { ok: false as const, reason: "This job is not open for applications yet." };
+    if (job[0].expires_at && Number(job[0].expires_at) < Date.now()) {
+      return { ok: false as const, reason: "This job listing has expired." };
+    }
     await sql`insert into nf_apps (id, listing_id, user_id, handle, note, ts) values (${id}, ${data.id}, ${context.userId}, ${handle}, ${(data.note ?? "").slice(0, 500)}, ${Date.now()})`;
     return { ok: true as const };
   });
@@ -272,6 +281,50 @@ export const listMyApps = createServerFn({ method: "GET" })
         note: r.note ?? "",
         ts: Number(r.ts),
         status: r.status ?? "unknown",
+      }),
+    );
+  });
+
+export type MyApplicant = {
+  id: string;
+  listingId: string;
+  jobTitle: string;
+  handle: string;
+  note: string;
+  ts: number;
+};
+
+/** Applications to jobs owned by the signed-in Job Poster. */
+export const listMyApplicants = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    try {
+      await ensure();
+    } catch {
+      return [] as MyApplicant[];
+    }
+    const rows = await sql<{
+      id: string;
+      listing_id: string;
+      handle: string;
+      note: string | null;
+      ts: number | string;
+      title: string | null;
+    }>`select a.id, a.listing_id, a.handle, a.note, a.ts, l.title
+      from nf_apps a
+      inner join nf_listings l on l.id = a.listing_id
+      where l.user_id = ${context.userId} and l.kind = 'job'
+      order by a.ts desc
+      limit 60`;
+    return rows.map(
+      (r): MyApplicant => ({
+        id: r.id,
+        listingId: r.listing_id,
+        jobTitle: r.title ?? "Job",
+        handle: r.handle,
+        note: r.note ?? "",
+        ts: Number(r.ts),
       }),
     );
   });

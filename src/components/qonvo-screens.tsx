@@ -302,6 +302,8 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   const [applyId, setApplyId] = useState("");
   const [openJobs, setOpenJobs] = useState<Listing[]>([]);
   const [busy, setBusy] = useState(false);
+  const [empType, setEmpType] = useState("Full-time");
+  const [payBand, setPayBand] = useState("");
 
   function onUrl(v: string) {
     setLink(v);
@@ -447,12 +449,17 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       setErr("Link must be http or https.");
       return;
     }
+    const meta =
+      kind === "job"
+        ? [empType.trim() || null, payBand.trim() ? `Pay: ${payBand.trim()}` : null].filter(Boolean).join(" · ")
+        : "";
+    const composedBody = meta ? `${meta}\n\n${body}`.trim() : body;
     setBusy(true);
     void saveListing({
       data: {
         kind,
         title,
-        body,
+        body: composedBody,
         city,
         contact,
         link,
@@ -465,7 +472,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       else {
         setMsg(
           kind === "job"
-            ? "Job submitted. Staff approve before seekers see it — check Me → Jobs."
+            ? "Job submitted. Staff approve before seekers see it — check Me → Hiring desk."
             : kind === "market"
               ? "Product submitted for staff approval — check Me → Market."
               : "Space submitted for staff approval — check Me → Rent.",
@@ -476,6 +483,10 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
         setContact("");
         setLink("");
         setCompany("");
+        if (kind === "job") {
+          setEmpType("Full-time");
+          setPayBand("");
+        }
       }
     }).catch(() => {
       setBusy(false);
@@ -587,7 +598,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   const sheetSub =
     pane === "music" ? "Lists live on Music — no staff approval, no payment. Kilode embeds the platform player — never hosts audio."
     : pane === "cinema" ? "Submit a YouTube trailer URL for staff approval."
-    : pane === "job" ? "Post a job listing (title, company, contact, link)."
+    : pane === "job" ? "Post a role with type, pay band, company and contact. Applicants land on Me."
     : pane === "apply" ? "Browse and apply to jobs. You cannot post jobs or music."
     : pane === "market" ? "Showcase a product. No in-app checkout."
     : pane === "rent" ? "List a space with contact. No in-app booking."
@@ -763,11 +774,21 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           </div>
           <p className="text-sm text-muted">
             {pane === "job"
-              ? "Role, company, city, contact, optional apply link. Staff approve before seekers see it. Not music."
+              ? "Role, company, city, contact, optional apply link. Staff approve before seekers see it. Applicants land on your Me · Hiring desk."
               : pane === "market"
                 ? "Showcase a product with contact. No in-app checkout. Staff approve first."
                 : "List a space with contact. No in-app booking. Staff approve first."}
           </p>
+          {pane === "job" ? (
+            <div className="rounded-xl border border-lime-2/20 bg-lime-2/5 px-3 py-2.5 text-[11px] leading-snug text-muted">
+              <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-lime-2">FLAGSHIP HIRING FLOW</div>
+              <ol className="list-decimal space-y-0.5 pl-4">
+                <li>Submit role → pending until staff approve.</li>
+                <li>Seekers apply with @handle + note from Jobs / Create · Apply.</li>
+                <li>Review applicants on Me · Hiring desk — contact them yourself.</li>
+              </ol>
+            </div>
+          ) : null}
           <label className="block text-[11px] font-medium text-muted">
             {pane === "job" ? "Role title" : pane === "market" ? "Product name" : "Space title"} <span className="text-danger">*</span>
           </label>
@@ -776,6 +797,18 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
             <>
               <label className="block text-[11px] font-medium text-muted">Company <span className="text-danger">*</span></label>
               <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Hiring company / org" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+              <div>
+                <div className="mb-1 text-[11px] font-medium text-muted">Employment type</div>
+                <div className="flex flex-wrap gap-1">
+                  {["Full-time", "Part-time", "Contract", "Internship", "Remote"].map((t) => (
+                    <button key={t} type="button" onClick={() => setEmpType(t)} className={`rounded-full px-2.5 py-1 text-[11px] ${empType === t ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="block text-[11px] font-medium text-muted">Pay band (optional)</label>
+              <input value={payBand} onChange={(e) => setPayBand(e.target.value)} placeholder="e.g. ₦300k–500k / mo · Negotiable" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
             </>
           ) : pane === "market" ? (
             <>
