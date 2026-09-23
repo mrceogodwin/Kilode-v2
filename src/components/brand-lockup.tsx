@@ -1,7 +1,18 @@
 function BangMark({ className }: { className: string }) {
   return (
     <span className={`brand-mark ${className}`} aria-hidden>
-      <img src="/kilode-bang-icon.png" alt="" className="h-full w-full object-cover" draggable={false} />
+      <img
+        src="/kilode-bang-icon.png"
+        alt=""
+        className="brand-mark-night h-full w-full object-cover"
+        draggable={false}
+      />
+      <img
+        src="/kilode-bang-icon-light.png"
+        alt=""
+        className="brand-mark-day h-full w-full object-cover"
+        draggable={false}
+      />
     </span>
   );
 }
