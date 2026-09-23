@@ -1,6 +1,6 @@
 # Kilode
 
-Nigeria’s live forum — feeds, chat, music, videos, ads. Talk Nigeria. Live.
+Nigeria’s live forum — feeds, chat, music, videos, ads. Talk Nigeria. Live!
 
 - Site: [kilode.ng](https://kilode.ng)
 - Live app: [kilode.vercel.app](https://kilode.vercel.app)

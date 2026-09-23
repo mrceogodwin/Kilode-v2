@@ -15,7 +15,7 @@ export function seoHead(opts?: {
   author?: string;
   keywords?: string;
 }) {
-  const title = opts?.title ? `${opts.title} · ${SITE.name}` : `${SITE.name} — Talk Nigeria. Live.`;
+  const title = opts?.title ? `${opts.title} · ${SITE.name}` : `${SITE.name} — Talk Nigeria. Live!`;
   const description = (opts?.description ?? SITE.description).slice(0, 160);
   const url = `${SITE.url}${opts?.path ?? "/"}`;
   const image = opts?.image ?? `${SITE.url}/og.svg`;

@@ -123,7 +123,7 @@ export function SiteFooter() {
   const { site, setSite } = usePublicSite();
   function share(kind: ShareKey) {
     const url = "https://kilode.ng";
-    const text = "Kilode — Talk Nigeria. Live.";
+    const text = "Kilode — Talk Nigeria. Live!";
     if (kind === "x") window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank", "noopener");
     if (kind === "wa") window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, "_blank", "noopener");
     if (kind === "tg") window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank", "noopener");
@@ -157,7 +157,7 @@ export function SiteFooter() {
       <div className="text-center">
         <p className="text-[9px] font-semibold tracking-[0.16em] text-lime-2 uppercase">Kilode</p>
         <h2 className="chrome-head mx-auto mt-0.5 max-w-[20rem] text-balance">Join Kilode.ng</h2>
-        <p className="mt-1 text-[11px] leading-snug text-muted">Talk Nigeria. Live. Password only — no email to sign up.</p>
+        <p className="mt-1 text-[11px] leading-snug text-muted">Talk Nigeria. Live! Password only — no email to sign up.</p>
         <p className="mt-0.5 text-[11px] leading-snug text-muted/90">{joinHint}</p>
       </div>
 
