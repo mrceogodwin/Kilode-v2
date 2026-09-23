@@ -1,9 +1,9 @@
 function BangMark({ className }: { className: string }) {
   return (
     <span className={`brand-mark ${className}`} aria-hidden>
-      {/* Solid brand-lime bang on transparent (v2) — no dark-glass photo cores. */}
+      {/* Glossy brand-lime bang on transparent (v3) — soft plate provides contrast. */}
       <img
-        src="/kilode-bang-mark-v2.png"
+        src="/kilode-bang-mark-v3.png"
         alt=""
         className="h-full w-full object-contain p-[12%]"
         draggable={false}
