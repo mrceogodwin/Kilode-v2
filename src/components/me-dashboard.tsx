@@ -314,7 +314,12 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
     ];
   }
   if (kind === "job_seeker") {
-    return [applyJobs, voteCinema, chat, newPost];
+    return [
+      applyJobs,
+      voteCinema,
+      chat,
+      { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
+    ];
   }
   // member
   return [newPost, applyJobs, voteCinema, chat];
@@ -409,8 +414,8 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       ? [
           { n: songs.length, l: "Tracks" },
           { n: trackViews, l: "Views" },
-          { n: mine.length, l: "Posts" },
           { n: store.pins.length, l: "Rooms" },
+          { n: store.savedPosts.length, l: "Saved" },
         ]
       : kind === "writer"
         ? [
@@ -430,29 +435,29 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             ? [
                 { n: myAds.length, l: "Ads" },
                 { n: adViews, l: "Ad views" },
-                { n: kind === "brand" ? myMarket.length : mine.length, l: kind === "brand" ? "Products" : "Posts" },
-                { n: store.pins.length, l: "Rooms" },
+                { n: kind === "brand" ? myMarket.length : store.pins.length, l: kind === "brand" ? "Products" : "Rooms" },
+                { n: kind === "brand" ? store.pins.length : store.savedPosts.length, l: kind === "brand" ? "Rooms" : "Saved" },
               ]
             : kind === "job_poster"
               ? [
                   { n: myJobs.length, l: "Jobs" },
                   { n: pendingJobs, l: "Pending" },
                   { n: listingViews, l: "Views" },
-                  { n: mine.length, l: "Posts" },
+                  { n: store.pins.length, l: "Rooms" },
                 ]
               : kind === "vendor"
                 ? [
                     { n: myMarket.length, l: "Products" },
                     { n: listingViews, l: "Views" },
-                    { n: mine.length, l: "Posts" },
                     { n: store.pins.length, l: "Rooms" },
+                    { n: store.savedPosts.length, l: "Saved" },
                   ]
                 : kind === "renter"
                   ? [
                       { n: myRent.length, l: "Spaces" },
                       { n: listingViews, l: "Views" },
-                      { n: mine.length, l: "Posts" },
                       { n: store.pins.length, l: "Rooms" },
+                      { n: store.savedPosts.length, l: "Saved" },
                     ]
                   : kind === "job_seeker"
                     ? [
@@ -462,7 +467,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                         { n: store.pins.length, l: "Rooms" },
                       ]
                     : [
-                        { n: mine.length, l: "Topics" },
+                        { n: mine.length, l: "Posts" },
                         { n: postVotes, l: "Votes" },
                         { n: store.savedPosts.length, l: "Saved" },
                         { n: store.pins.length, l: "Rooms" },
@@ -472,7 +477,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
     <div className="mx-auto max-w-2xl p-4 pb-24">
       <div className="mb-4">
         <div className="text-[10px] font-bold tracking-[0.2em] text-lime-2">ME · DASHBOARD</div>
-        <h2 className="text-2xl font-extrabold tracking-tight">Your hub</h2>
+        <h2 className="text-2xl font-extrabold tracking-tight">{kindLabel} hub</h2>
         <p className="mt-1 text-sm text-muted">{purpose}</p>
       </div>
 
@@ -863,24 +868,23 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         </Section>
       ) : null}
 
-      {kind !== "writer" ? (
+      {/* Feeds activity: members get New post; specialists only when they already have posts (no explore CTA). */}
+      {kind !== "writer" && (feedsPostPrimary || mine.length > 0) ? (
         <Section
           kicker="ACTIVITY"
-          title={feedsPostPrimary ? "Your posts" : "Your feed activity"}
-          action={feedsPostPrimary ? "New post" : undefined}
-          onAction={feedsPostPrimary ? openCreate : undefined}
+          title={feedsPostPrimary ? "Your posts" : "Your feed posts"}
+          action={kind === "member" ? "New post" : undefined}
+          onAction={kind === "member" ? openCreate : undefined}
         >
           {mine.length === 0 ? (
             <EmptyBlock
               body={
-                feedsPostPrimary
+                kind === "member"
                   ? "Nothing published yet. A new post puts you in Feeds for Nigeria."
-                  : kind === "job_seeker"
-                    ? "Job Seeker focus is applications — explore Feeds anytime."
-                    : "This account type focuses elsewhere — explore Feeds anytime."
+                  : "Job Seeker focus is applications. You can still post in Feeds from Create."
               }
-              cta={feedsPostPrimary ? "New post" : "Open Feeds"}
-              onClick={() => (feedsPostPrimary ? openCreate() : goto({ tab: "feeds" }))}
+              cta={kind === "member" ? "New post" : "Open Feeds"}
+              onClick={() => (kind === "member" ? openCreate() : goto({ tab: "feeds" }))}
             />
           ) : (
             <div className="space-y-2">

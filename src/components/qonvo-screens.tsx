@@ -22,7 +22,7 @@ import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { authClient, signOut } from "@/lib/auth/client";
 import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
-import { canKind } from "@/lib/permissions";
+import { canKind, createSheetTitle } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
 import { ShopAdminPanel } from "@/components/downloads-pane";
@@ -324,7 +324,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       return;
     }
     if (!canKind(store.kind, "feeds.post")) {
-      setErr("This account type cannot start a topic.");
+      setErr("This account type cannot publish to Feeds.");
       return;
     }
     if (!title.trim() || !postBodyPlain(body)) {
@@ -560,20 +560,36 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     );
   }
 
+  const sheetTitle =
+    pane === "music" ? "Create · Music"
+    : pane === "cinema" ? "Create · Cinema"
+    : pane === "job" ? "Create · Job"
+    : pane === "apply" ? "Create · Apply"
+    : pane === "market" ? "Create · Market"
+    : pane === "rent" ? "Create · Rent"
+    : pane === "ads" ? "Create · Ads"
+    : pane === "post" && ak === "writer" ? "Create · Story"
+    : pane === "post" ? "Create · Feeds"
+    : createSheetTitle(ak);
+
+  const sheetSub =
+    pane === "music" ? "List a track URL. Kilode embeds the platform player — never hosts audio."
+    : pane === "cinema" ? "Submit a YouTube trailer URL for staff approval."
+    : pane === "job" ? "Post a job listing (title, company, contact, link)."
+    : pane === "apply" ? "Browse and apply to jobs. You cannot post jobs or music."
+    : pane === "market" ? "Showcase a product. No in-app checkout."
+    : pane === "rent" ? "List a space with contact. No in-app booking."
+    : pane === "ads" ? "Place an ad after crypto payment."
+    : pane === "post" && ak === "writer" ? "Write a story with the rich Feeds editor."
+    : pane === "post" ? "Publish a topic to Feeds with the rich editor."
+    : createSheetTitle(ak).replace("Create · ", "") + " — primary action for your account.";
+
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-5 pb-8">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">Create</h2>
+        <h2 className="text-xl font-bold tracking-tight">{sheetTitle}</h2>
         <p className="mt-1 text-sm text-muted">
-          {kindLabel}: {primary === "music" ? "List a track URL first. Kilode embeds the platform player."
-            : primary === "cinema" ? "Submit a YouTube trailer URL for staff approval."
-            : primary === "job" ? "Post a job listing (title, company, contact, link)."
-            : primary === "apply" ? "Browse and apply to jobs. You cannot post jobs or music."
-            : primary === "market" ? "Showcase a product. No in-app checkout."
-            : primary === "rent" ? "List a space with contact. No in-app booking."
-            : primary === "ads" ? "Place an ad after crypto payment."
-            : ak === "writer" ? "Write a story with the rich Feeds editor."
-            : "Publish a topic to Feeds with the rich editor."}
+          {kindLabel}: {sheetSub}
         </p>
       </div>
 
@@ -1050,7 +1066,14 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
     );
   }
   const mine = store.posts.filter((p) => !!p?.id && p.author === store.handle);
+  const myTracks = store.tracks.filter((t) => !!t?.id && (t.author === store.handle || t.artist === store.handle));
   const kindLabel = ACCOUNT_KINDS.find((k) => k.id === kind)?.label ?? "Member";
+  const kindStat =
+    kind === "artist" ? ` · ${myTracks.length} tracks`
+    : kind === "writer" ? ` · ${mine.length} stories`
+    : kind === "member" || kind === "job_seeker" ? ` · ${mine.length} posts`
+    : kind === "advertiser" || kind === "brand" ? ` · ${store.campaigns.filter((c) => c.status !== "rejected").length} ads`
+    : "";
   return (
     <Screen kicker="ME · EDIT" title="Edit profile" sub="Face, handle, city, bio. Account type stays locked from join.">
       <button
@@ -1064,7 +1087,7 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
         <AvatarImg handle={store.handle || "Guest"} face={face} size={56} />
         <div>
           <div className="text-lg font-extrabold">{store.handle || "Sign in"}</div>
-          <div className="text-[11px] text-lime-2">{kindLabel} · {mine.length} topics</div>
+          <div className="text-[11px] text-lime-2">{kindLabel}{kindStat}</div>
         </div>
       </div>
       <div className="mb-3">

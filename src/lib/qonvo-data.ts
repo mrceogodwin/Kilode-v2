@@ -187,7 +187,7 @@ export const MENU = [
   ["forum", "Feeds & topics"],
   ["community", "Communities"],
   ["search", "Search"],
-  ["create", "Create post"],
+  ["create", "Create"],
   ["dashboard", "Dashboard"],
   ["profile", "Edit profile"],
   ["bookmarks", "My Bookmarks"],

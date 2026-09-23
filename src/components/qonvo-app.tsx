@@ -48,7 +48,7 @@ import {
   Tv,
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
-import { canKind, canCreateMenu } from "@/lib/permissions";
+import { canKind, canCreateMenu, createLabelFor } from "@/lib/permissions";
 import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
@@ -520,7 +520,8 @@ export function QonvoApp() {
               </button>
               <button
                 type="button"
-                aria-label="New post"
+                aria-label={signedIn ? createLabelFor(store.kind) : "Create"}
+                title={signedIn ? createLabelFor(store.kind) : "Create"}
                 className="btn-3d grid size-8 place-items-center rounded-md text-[14px] font-semibold"
                 onClick={() => (signedIn ? setScreen("create") : (window.location.href = "/login?mode=up"))}
               >
@@ -972,7 +973,13 @@ export function QonvoApp() {
               ) : (
               <div className="mb-4 grid grid-cols-3 gap-2 px-0.5">
                 {[
-                  { n: store.posts.filter((p) => !!p?.id && p.author === store.handle).length, l: "Yours" },
+                  store.kind === "artist"
+                    ? { n: store.tracks.filter((t) => !!t?.id && (t.author === store.handle || t.artist === store.handle)).length, l: "Tracks" }
+                    : store.kind === "advertiser" || store.kind === "brand"
+                      ? { n: store.campaigns.filter((c) => c.status !== "rejected").length, l: "Ads" }
+                      : store.kind === "writer"
+                        ? { n: store.posts.filter((p) => !!p?.id && p.author === store.handle && p.status !== "draft").length, l: "Stories" }
+                        : { n: store.posts.filter((p) => !!p?.id && p.author === store.handle).length, l: store.kind === "member" ? "Posts" : "Yours" },
                   { n: store.pins.length, l: "Rooms" },
                   { n: store.savedPosts.length, l: "Saved" },
                 ].map((s) => (
@@ -990,7 +997,7 @@ export function QonvoApp() {
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     ...(canCreateMenu(store.kind)
-                      ? [{ id: "create" as MenuId, label: "Create", tab: null as null | "feeds" | "music" | "chat" | "videos" }]
+                      ? [{ id: "create" as MenuId, label: createLabelFor(store.kind), tab: null as null | "feeds" | "music" | "chat" | "videos" }]
                       : []),
                     ...(canKind(store.kind, "ads.submit") ? [{ id: "ads" as MenuId, label: "Place ad", tab: null as null }] : []),
                     { id: "inbox" as MenuId, label: "Messages", tab: null as null },
@@ -1108,7 +1115,10 @@ export function QonvoApp() {
                       })
                       .map((id) => {
                       const Icon = ICONS[id];
-                      const label = MENU.find((m) => m[0] === id)?.[1] ?? id;
+                      const label =
+                        id === "create"
+                          ? createLabelFor(store.kind)
+                          : (MENU.find((m) => m[0] === id)?.[1] ?? id);
                       return (
                         <button
                           key={id}

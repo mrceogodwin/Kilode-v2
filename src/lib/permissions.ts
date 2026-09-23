@@ -64,3 +64,54 @@ export function canCreateMenu(kind: AccountKind): boolean {
     canKind(kind, "rent.list")
   );
 }
+
+/** Short Create / CTA label for this account type (menus, aria, sheets). */
+export function createLabelFor(kind: AccountKind): string {
+  switch (kind) {
+    case "artist":
+      return "Add music";
+    case "writer":
+      return "Write story";
+    case "advertiser":
+    case "brand":
+      return "Place ad";
+    case "cinema":
+      return "Submit title";
+    case "job_poster":
+      return "Post a job";
+    case "vendor":
+      return "List product";
+    case "renter":
+      return "List space";
+    case "job_seeker":
+      return "Apply jobs";
+    default:
+      return "New post";
+  }
+}
+
+/** Create sheet heading suffix for the active primary pane. */
+export function createSheetTitle(kind: AccountKind): string {
+  switch (kind) {
+    case "artist":
+      return "Create · Music";
+    case "writer":
+      return "Create · Story";
+    case "advertiser":
+    case "brand":
+      return "Create · Ads";
+    case "cinema":
+      return "Create · Cinema";
+    case "job_poster":
+      return "Create · Job";
+    case "vendor":
+      return "Create · Market";
+    case "renter":
+      return "Create · Rent";
+    case "job_seeker":
+      return "Create · Apply";
+    default:
+      return "Create · Feeds";
+  }
+}
+
