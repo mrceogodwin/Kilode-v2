@@ -27,11 +27,11 @@
 export const PREVIEW_SIGN_OUT_TIMEOUT_MS = 1500;
 
 /**
- * Deployed: generous, because only the server can end this session — but still
- * bounded, so a wedged request reports failure the visitor can retry instead of
- * spinning forever. A sign-out still unanswered at 10s is not going to land.
+ * Deployed: only the server can end this session — but bounded tightly so the
+ * Me Sign out button never sits on "Signing out…" for long. A request still
+ * unanswered at 5s is not going to land; callers show a retry note.
  */
-export const DEPLOYED_SIGN_OUT_TIMEOUT_MS = 10_000;
+export const DEPLOYED_SIGN_OUT_TIMEOUT_MS = 5_000;
 
 /**
  * How long to wait for a sign-out in this environment. Every sign-out network

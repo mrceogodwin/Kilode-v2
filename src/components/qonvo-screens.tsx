@@ -75,8 +75,19 @@ export function QonvoScreen({
         store={store}
         onForum={onForum}
         onLogout={async () => {
+          // 1) Clear Kilode UI immediately (handle + local flags) → Me Join / GuestDash.
           store.logout();
-          await signOut();
+          // 2) Best-effort server clear with hard timeout inside signOut(); always finish UI.
+          try {
+            await signOut("/");
+          } catch (err) {
+            const msg =
+              err instanceof Error
+                ? err.message
+                : "Sign-out timed out — you may still be signed in. Hard refresh and try again.";
+            store.note(msg);
+            // Stay on GuestDash; do not leave the button spinning.
+          }
         }}
       />
     );

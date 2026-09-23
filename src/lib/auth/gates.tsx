@@ -119,7 +119,11 @@ export function UserButton() {
           disabled={signingOut}
           onClick={() => {
             setSigningOut(true);
-            void signOut().catch(() => setSigningOut(false));
+            void signOut()
+              .catch(() => {
+                /* still signed in — button re-enabled so visitor can retry */
+              })
+              .finally(() => setSigningOut(false));
           }}
           className="shrink-0 text-[11px] underline-offset-4 opacity-70 hover:underline disabled:cursor-wait"
         >

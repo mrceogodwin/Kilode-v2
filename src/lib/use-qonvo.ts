@@ -70,6 +70,9 @@ export function useQonvo() {
   const [openPost, setOpenPost] = useState<string | null>(null);
   const [openTrack, setOpenTrack] = useState<string | null>(null);
   const [authed, setAuthed] = useState(false);
+  /** Blocks session→handle rehydration after an intentional Sign out (cookie may linger briefly). */
+  const [localSignedOut, setLocalSignedOut] = useState(false);
+  const localSignedOutRef = useRef(false);
   const [authErr, setAuthErr] = useState("");
   const [bio, setBio] = useState("");
   const [city, setCity] = useState("");
@@ -319,6 +322,14 @@ export function useQonvo() {
 
   useEffect(() => {
     if (session.isPending) return;
+    // Intentional Sign out: keep Me on Join until the cookie is gone or the page reloads.
+    if (localSignedOut) {
+      if (!session.user) {
+        localSignedOutRef.current = false;
+        setLocalSignedOut(false);
+      }
+      return;
+    }
     if (session.user) {
       const name = publicUsername(session.user.displayName || session.user.primaryEmail || session.user.id.slice(0, 16));
       setHandle(name);
@@ -326,19 +337,26 @@ export function useQonvo() {
       saveJson("me", name);
       saveJson("authed", name);
       void listPins()
-        .then(setPins)
+        .then((rows) => {
+          if (localSignedOutRef.current) return;
+          setPins(rows);
+        })
         .catch(() => undefined);
       void listTeams()
-        .then((rows) => setTeams((Array.isArray(rows) ? rows : []).filter((t) => !!t && typeof t.id === "string") as Team[]))
+        .then((rows) => {
+          if (localSignedOutRef.current) return;
+          setTeams((Array.isArray(rows) ? rows : []).filter((t) => !!t && typeof t.id === "string") as Team[]);
+        })
         .catch(() => undefined);
       void listNotes()
         .then((rows) => {
+          if (localSignedOutRef.current) return;
           if (rows.length) setNotes(rows);
         })
         .catch(() => undefined);
       void listMyAds()
         .then((mine) => {
-          if (!mine.length) return;
+          if (localSignedOutRef.current || !mine.length) return;
           setCampaigns((prev) => {
             const ids = new Set(prev.map((c) => c.id));
             return [...mine.filter((m) => !ids.has(m.id)), ...prev];
@@ -347,6 +365,7 @@ export function useQonvo() {
         .catch(() => undefined);
       void getProfile()
         .then((p) => {
+          if (localSignedOutRef.current) return;
           if (p.handle) {
             setHandle(p.handle);
             saveJson("me", p.handle);
@@ -395,7 +414,7 @@ export function useQonvo() {
     } else {
       setAuthed(false);
     }
-  }, [session.isPending, session.user]);
+  }, [session.isPending, session.user, localSignedOut]);
 
   const recordJoin = useCallback((name: string, room?: string) => {
     setJoins((prev) => [{ name, ts: Date.now(), room }, ...prev.filter((j) => j.name !== name)].slice(0, 20));
@@ -465,8 +484,14 @@ export function useQonvo() {
   }, [note, recordJoin, roomId]);
 
   const logout = useCallback(() => {
-    saveJson("authed", "");
+    // Clear Kilode UI session immediately so Me never sits on "Signing out…".
+    // Server cookie clear is best-effort via signOut(); localSignedOut blocks rehydration.
+    localSignedOutRef.current = true;
+    setLocalSignedOut(true);
+    setHandle("");
     setAuthed(false);
+    saveJson("me", "");
+    saveJson("authed", "");
   }, []);
 
   const needAccount = useCallback(() => {

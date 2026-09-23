@@ -522,7 +522,11 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
               className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-panel px-3 py-2 text-[12px] font-semibold text-muted hover:border-line hover:text-ink disabled:cursor-wait"
               onClick={() => {
                 setSigningOut(true);
-                void Promise.resolve(onLogout()).catch(() => setSigningOut(false));
+                void Promise.resolve(onLogout())
+                  .catch(() => {
+                    /* parent notes failure; GuestDash already shown via store.logout() */
+                  })
+                  .finally(() => setSigningOut(false));
               }}
             >
               <LogOut className="size-3.5" />
