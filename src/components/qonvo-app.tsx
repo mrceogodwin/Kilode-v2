@@ -735,7 +735,7 @@ function QonvoAppInner() {
                 }}
               />
               <form
-                className="relative flex shrink-0 gap-2 border-t border-line bg-panel/90 p-2 pb-2 mb-[calc(3.35rem+env(safe-area-inset-bottom))] backdrop-blur md:mb-0"
+                className="chat-compose relative flex shrink-0 gap-2 border-t border-line bg-panel/90 p-2 pb-2 mb-[calc(3.35rem+env(safe-area-inset-bottom))] backdrop-blur md:mb-0"
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!session.user) {
@@ -2344,9 +2344,9 @@ function ChatLine({
   const repost = parseRepost(m.t || "");
   return (
     <div
-      className={`rounded-xl border px-2.5 py-1.5 ${
+      className={`chat-bubble rounded-xl border px-2.5 py-1.5 ${
         mine
-          ? "border-lime-2/35 bg-lime-2/[0.07]"
+          ? "chat-bubble-mine border-lime-2/35 bg-lime-2/[0.07]"
           : "border-white/10 bg-panel/70"
       }`}
     >
