@@ -537,13 +537,11 @@ function QonvoAppInner() {
                 <Plus className="size-3.5" />
               </button>
             </div>
-          ) : homeTab === "music" ? (
+          ) : homeTab === "music" && canKind(store.kind, "music.submit") && signedIn ? (
             <div className="flex shrink-0 justify-end gap-1 border-b border-line px-2 py-0.5">
-              {canKind(store.kind, "music.submit") && signedIn ? (
-                <button type="button" className="btn-3d rounded-md px-2.5 py-0.5 text-[10px] font-semibold" onClick={() => setScreen("create")}>
-                  Add track
-                </button>
-              ) : null}
+              <button type="button" className="btn-3d rounded-md px-2.5 py-0.5 text-[10px] font-semibold" onClick={() => setScreen("create")}>
+                Add track
+              </button>
             </div>
           ) : null}
 
@@ -1627,10 +1625,8 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search songs, artists, genres"
           className="min-h-11 flex-1 rounded-lg border border-line bg-panel px-3 text-base outline-none"
+          aria-label="Search songs, artists, genres"
         />
-        <button type="button" className="btn-3d shrink-0 rounded-md px-2 py-1 text-[11px] font-semibold" onClick={onAdd}>
-          Add
-        </button>
       </div>
 
       <div className="flex shrink-0 flex-nowrap gap-1.5 overflow-x-auto overscroll-x-contain border-b border-line px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
