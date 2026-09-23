@@ -357,8 +357,8 @@ function CinemaPlayer({ title, youtubeId }: { title: string; youtubeId: string }
                   <Play className="size-7 fill-lime-2 text-lime-2" />
                 </span>
                 <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-lime-2">Tap to play trailer</div>
-                <div className="max-w-[18rem] text-sm font-extrabold leading-snug text-fg">{title || "Watching now"}</div>
-                <p className="max-w-[16rem] text-[10px] leading-snug text-muted">Played from YouTube. Not stored on Kilode</p>
+                <div className="max-w-[18rem] text-sm font-extrabold leading-snug text-white">{title || "Watching now"}</div>
+                <p className="max-w-[16rem] text-[10px] leading-snug text-white/70">Played from YouTube. Not stored on Kilode</p>
               </>
             ) : (
               <>
@@ -366,8 +366,8 @@ function CinemaPlayer({ title, youtubeId }: { title: string; youtubeId: string }
                   <Film className="size-5" />
                 </span>
                 <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-lime-2">Kilode Cinema</div>
-                <div className="max-w-[18rem] text-sm font-extrabold leading-snug text-fg">{title || "Watching now"}</div>
-                <p className="max-w-[16rem] text-[10px] leading-snug text-muted">
+                <div className="max-w-[18rem] text-sm font-extrabold leading-snug text-white">{title || "Watching now"}</div>
+                <p className="max-w-[16rem] text-[10px] leading-snug text-white/70">
                   {id ? "Trailer preview unavailable. Vote, rate, and join Live talk below." : "No YouTube clip yet. Staff will pin a trailer soon."}
                 </p>
               </>
