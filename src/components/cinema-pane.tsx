@@ -495,47 +495,45 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
 
   return (
     <div className="border-t border-lime-2/15 bg-gradient-to-b from-lime-2/[0.06] to-bg">
-      <div className="flex items-start justify-between gap-2 border-b border-lime-2/20 px-2.5 py-2">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md border border-lime-2/35 bg-black/40 text-lime-2" aria-hidden>
-              <svg viewBox="0 0 64 64" className="size-3.5">
-                <rect x="26" y="7" width="11" height="34" rx="4.5" transform="rotate(-12 32 24)" fill="currentColor" />
-                <circle cx="36.5" cy="50" r="6.5" fill="currentColor" />
-              </svg>
+      <div className="flex items-center justify-between gap-1.5 border-b border-lime-2/20 px-2 py-1">
+        <div
+          className="flex min-w-0 flex-1 items-center gap-1.5"
+          title={
+            mode === "live"
+              ? `Watch-party · talk while it plays · ${liveWindowNote}${online.length > 0 ? ` · ${online.length} in this room` : ""}`
+              : `Watch-party · full film thread${online.length > 0 ? ` · ${online.length} in this room` : ""}`
+          }
+        >
+          <span className="inline-flex size-4 shrink-0 items-center justify-center rounded border border-lime-2/35 bg-black/40 text-lime-2" aria-hidden>
+            <svg viewBox="0 0 64 64" className="size-3">
+              <rect x="26" y="7" width="11" height="34" rx="4.5" transform="rotate(-12 32 24)" fill="currentColor" />
+              <circle cx="36.5" cy="50" r="6.5" fill="currentColor" />
+            </svg>
+          </span>
+          <span className="min-w-0 truncate text-[11px] font-extrabold leading-none text-fg">
+            Live talk <span className="font-semibold text-muted">· {shortTitle}</span>
+          </span>
+          {mode === "live" ? (
+            <span className="inline-flex h-4 shrink-0 items-center gap-0.5 rounded-full border border-lime-2/50 bg-lime-2/15 px-1 text-[8px] font-bold uppercase leading-none tracking-wide text-lime-2">
+              <span className="desk-live size-1 rounded-full bg-lime-2" aria-hidden />
+              Live
             </span>
-            <div className="min-w-0">
-              <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-lime-2">Kilode Cinema</div>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="truncate text-[12px] font-extrabold text-fg">Live talk</span>
-                <span className="truncate text-[10px] text-muted">· {shortTitle}</span>
-              </div>
-            </div>
-            {mode === "live" ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-lime-2/50 bg-lime-2/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-lime-2">
-                <span className="desk-live size-1.5 rounded-full bg-lime-2" aria-hidden />
-                Live · this hour
-              </span>
-            ) : (
-              <span className="rounded-full border border-line px-1.5 py-0.5 text-[9px] font-semibold text-muted">Full film</span>
-            )}
-          </div>
-          <p className="mt-1 text-[9px] leading-snug text-muted">Watch-party chat · discuss this film as it plays.</p>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] text-muted">
-            <span>Talk while it plays</span>
-            {mode === "live" ? <span>· Live window · {liveWindowNote}</span> : null}
-            {online.length > 0 ? <span className="font-semibold text-lime-2">{online.length} in this room</span> : null}
-          </div>
+          ) : (
+            <span className="inline-flex h-4 shrink-0 items-center rounded-full border border-line px-1 text-[8px] font-semibold leading-none text-muted">Full</span>
+          )}
+          {online.length > 0 ? (
+            <span className="hidden shrink-0 text-[8px] font-semibold leading-none text-lime-2 sm:inline">{online.length}</span>
+          ) : null}
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-0.5">
-          <div className="flex rounded-full border border-line p-0.5" role="group" aria-label="Talk mode">
+        <div className="flex shrink-0 items-center gap-1">
+          <div className="flex h-6 items-center rounded-full border border-line p-0.5" role="group" aria-label="Talk mode">
             <button
               type="button"
               onClick={() => {
                 setMode("live");
                 stickBottom.current = true;
               }}
-              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${mode === "live" ? "btn-3d text-lime-2" : "text-muted"}`}
+              className={`rounded-full px-1.5 py-0 text-[9px] font-semibold leading-none ${mode === "live" ? "btn-3d text-lime-2" : "text-muted"}`}
             >
               Live
             </button>
@@ -545,7 +543,7 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
                 setMode("full");
                 stickBottom.current = true;
               }}
-              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${mode === "full" ? "btn-3d" : "text-muted"}`}
+              className={`rounded-full px-1.5 py-0 text-[9px] font-semibold leading-none ${mode === "full" ? "btn-3d" : "text-muted"}`}
             >
               Full
             </button>
