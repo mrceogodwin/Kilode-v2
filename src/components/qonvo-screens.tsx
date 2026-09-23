@@ -1464,21 +1464,39 @@ function Ads({ store }: { store: Store }) {
         <span className="font-bold text-lime-2">1 · Slot</span> → <span className="font-bold text-lime-2">2 · Creative</span> → <span className="font-bold text-lime-2">3 · Copy wallet</span> → pay → paste tx → submit.{" "}
         NOWPayments needs a Super Admin API key (not set) — use manual crypto wallets.
       </div>
-      <div className="mb-3 grid gap-1.5">
-        {AD_PLACEMENTS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => setPlace(p.id)}
-            className={`raised rounded-2xl px-3 py-3 text-left ${place === p.id ? "ring-1 ring-lime-2" : ""}`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-bold">{p.label}</span>
-              <span className="text-[12px] font-extrabold text-lime-2">${prices[p.id] ?? p.usd}</span>
-            </div>
-            <div className="text-[11px] text-muted">{p.hint}</div>
-          </button>
-        ))}
+      <div className="mb-3 grid gap-1.5" role="group" aria-label="Ad slot">
+        {AD_PLACEMENTS.map((p) => {
+          const on = place === p.id;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setPlace(p.id)}
+              aria-pressed={on}
+              className={`raised rounded-2xl px-3 py-3 text-left transition ${
+                on
+                  ? "border-lime-2 bg-lime-2/[0.12] shadow-[0_0_0_2px_var(--color-lime-2),0_6px_16px_rgba(31,122,64,0.18)] -translate-y-px"
+                  : ""
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className={`text-sm font-bold ${on ? "text-lime-2" : ""}`}>{p.label}</span>
+                <div className="flex shrink-0 items-center gap-2">
+                  <span className="text-[12px] font-extrabold text-lime-2">${prices[p.id] ?? p.usd}</span>
+                  <span
+                    aria-hidden
+                    className={`grid size-5 place-items-center rounded-full text-[11px] font-bold leading-none ${
+                      on ? "bg-lime-2 text-[#f4f7f5]" : "border border-line bg-transparent text-transparent"
+                    }`}
+                  >
+                    ✓
+                  </span>
+                </div>
+              </div>
+              <div className="mt-0.5 text-[11px] text-muted">{p.hint}</div>
+            </button>
+          );
+        })}
       </div>
       <div className="mb-1 text-[11px] font-medium text-muted">Duration</div>
       <div className="mb-3 flex flex-wrap gap-1">
