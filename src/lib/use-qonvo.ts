@@ -59,11 +59,22 @@ function packFailed(pack: MsgPack): boolean {
   return typeof pack.error === "string" && pack.error.length > 0;
 }
 
-/** Union by ts (server row wins), keep chronological tip window. */
+/** Union by ts (server fields win); rx counts take max so optimistic taps are not wiped below pending saves. */
 function mergeByTs(prev: ChatMsg[], incoming: ChatMsg[], cap = 80): ChatMsg[] {
   const map = new Map<number, ChatMsg>();
   for (const m of prev) map.set(m.ts, m);
-  for (const m of incoming) map.set(m.ts, m);
+  for (const m of incoming) {
+    const old = map.get(m.ts);
+    if (!old) {
+      map.set(m.ts, m);
+      continue;
+    }
+    const rx: Record<string, number> = { ...(m.rx ?? {}) };
+    for (const [k, v] of Object.entries(old.rx ?? {})) {
+      rx[k] = Math.max(rx[k] ?? 0, v ?? 0);
+    }
+    map.set(m.ts, { ...m, rx });
+  }
   return [...map.values()].sort((a, b) => a.ts - b.ts).slice(-cap);
 }
 
@@ -119,6 +130,8 @@ export function useQonvo() {
   const roomIdRef = useRef(roomId);
   /** In-memory per-room threads so switching rooms does not wipe other rooms' cache. */
   const msgsByRoomRef = useRef<Record<string, ChatMsg[]>>({});
+  /** Blocks double reaction taps (click+touch / rapid re-press) until saveRx settles. */
+  const rxInFlightRef = useRef<Set<string>>(new Set());
 
   const persistNotes = useCallback((next: Note[]) => {
     setNotes(next);
@@ -301,11 +314,24 @@ export function useQonvo() {
           setMsgs(fallback);
           return;
         }
-        const next = pack.msgs ?? [];
-        msgsRef.current = next;
-        setMsgs(next);
-        cacheRoomMsgs(want, next);
-        for (const m of next) noteServerTip(want, m.ts);
+        // Prefer server page, but keep any newer rows a faster poll already merged in.
+        // Blind replace + sticky tipTs skipped those rows on after: until reconcile.
+        const incoming = pack.msgs ?? [];
+        setMsgs((prev) => {
+          let merged: ChatMsg[];
+          if (!incoming.length) {
+            merged = [];
+            tipTsByRoomRef.current[want] = 0;
+          } else {
+            const serverTip = incoming.reduce((a, m) => Math.max(a, m.ts), 0);
+            const raced = prev.filter((m) => m.ts > serverTip);
+            merged = mergeByTs(incoming, raced);
+          }
+          msgsRef.current = merged;
+          cacheRoomMsgs(want, merged);
+          return merged;
+        });
+        for (const m of incoming) noteServerTip(want, m.ts);
         setHasOlder(!!pack.older);
         setHasNewer(!!pack.newer);
         if (typeof pack.hours === "number") setChatHours(pack.hours);
@@ -343,6 +369,7 @@ export function useQonvo() {
     let timer: number | undefined;
     let lastActivity = Date.now();
     let pollN = 0;
+    let forceReconcile = false;
     const want = roomId;
 
     const markActivity = () => {
@@ -365,8 +392,9 @@ export function useQonvo() {
       }
       if (roomIdRef.current !== want) return;
       pollN += 1;
-      // Full reconcile every 4th poll so after: gaps (optimistic cursor / missed rows) heal.
-      const reconcile = pollN % 4 === 0;
+      // Full reconcile every 2nd poll (25s active → ≤50s heal) + on tab focus.
+      const reconcile = forceReconcile || pollN % 2 === 0;
+      forceReconcile = false;
       // Server-confirmed tip only — never after: an optimistic Date.now() still in the list.
       const afterTs = tipTsByRoomRef.current[want] ?? 0;
       const payload =
@@ -431,6 +459,8 @@ export function useQonvo() {
         return;
       }
       markActivity();
+      // Heal tip-skip / clock-skew gaps as soon as the tab is visible again.
+      forceReconcile = true;
       tick();
     };
     document.addEventListener("visibilitychange", onVis);
@@ -906,17 +936,40 @@ export function useQonvo() {
     }).catch(() => undefined);
   }, [cacheRoomMsgs, chatHours, hasNewer, noteServerTip, msgs, roomId]);
 
+  /** One gesture → one saveRx until settled (+ short cooldown absorbs click/touch double-fire). */
   const react = useCallback(
     (ts: number, kind: string) => {
-      setMsgs((prev) =>
-        prev.map((m) => {
+      const key = `${roomId}|${ts}|${kind}`;
+      if (rxInFlightRef.current.has(key)) return;
+      rxInFlightRef.current.add(key);
+      setMsgs((prev) => {
+        const next = prev.map((m) => {
           if (m.ts !== ts) return m;
           const rx = { ...(m.rx ?? {}) };
           rx[kind] = (rx[kind] ?? 0) + 1;
           return { ...m, rx };
-        }),
-      );
-      void saveRx({ data: { roomId, ts, kind } }).catch(() => undefined);
+        });
+        msgsRef.current = next;
+        if (roomId) msgsByRoomRef.current[roomId] = next;
+        return next;
+      });
+      void saveRx({ data: { roomId, ts, kind } })
+        .catch(() => {
+          setMsgs((prev) => {
+            const next = prev.map((m) => {
+              if (m.ts !== ts) return m;
+              const rx = { ...(m.rx ?? {}) };
+              rx[kind] = Math.max(0, (rx[kind] ?? 0) - 1);
+              return { ...m, rx };
+            });
+            msgsRef.current = next;
+            if (roomId) msgsByRoomRef.current[roomId] = next;
+            return next;
+          });
+        })
+        .finally(() => {
+          window.setTimeout(() => rxInFlightRef.current.delete(key), 450);
+        });
     },
     [roomId],
   );

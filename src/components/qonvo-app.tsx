@@ -2399,10 +2399,24 @@ function ChatLine({
       </div>
       <TranslatedLine text={xlate} />
       <div className="mt-1 flex gap-3">
-        <button type="button" className="text-[11px] text-muted" onClick={() => onReact(m.ts, "up")}>
+        <button
+          type="button"
+          className="text-[11px] text-muted"
+          onClick={(e) => {
+            e.preventDefault();
+            onReact(m.ts, "up");
+          }}
+        >
           + {m.rx?.up ?? 0}
         </button>
-        <button type="button" className="text-[11px] text-muted" onClick={() => onReact(m.ts, "fire")}>
+        <button
+          type="button"
+          className="text-[11px] text-muted"
+          onClick={(e) => {
+            e.preventDefault();
+            onReact(m.ts, "fire");
+          }}
+        >
           🔥 {m.rx?.fire ?? 0}
         </button>
         <button type="button" className="text-[11px] text-lime-2" onClick={() => onReply(m)}>
