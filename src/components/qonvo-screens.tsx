@@ -32,7 +32,7 @@ import { MeDashboard } from "@/components/me-dashboard";
 import { AdCatalogPanel, AdSlotsPanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { SiteFlagsPanel } from "@/components/site-chrome";
 import { matchAdPayments, matchOneAd } from "@/lib/pay-match-server";
-import { listListings, saveListing, type Listing } from "@/lib/listings-server";
+import { applyListing, listListings, saveListing, type Listing } from "@/lib/listings-server";
 import { submitMovie } from "@/lib/cinema-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 import { PostRichEditor } from "@/components/post-rich-editor";
@@ -234,6 +234,20 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
 
   const [pane, setPane] = useState<Pane>(primary);
   useEffect(() => setPane(primary), [primary]);
+  useEffect(() => {
+    const onCreate = (e: Event) => {
+      const next = (e as CustomEvent<{ pane?: Pane }>).detail?.pane;
+      if (next) setPane(next);
+    };
+    window.addEventListener("kilode:create", onCreate);
+    return () => window.removeEventListener("kilode:create", onCreate);
+  }, []);
+  useEffect(() => {
+    if (pane !== "apply" && ak !== "job_seeker") return;
+    void listListings({ data: { kind: "job" } })
+      .then((rows) => setOpenJobs(Array.isArray(rows) ? rows : []))
+      .catch(() => setOpenJobs([]));
+  }, [pane, ak]);
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -261,6 +275,11 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   const [city, setCity] = useState("");
   const [days, setDays] = useState(30);
   const [cinSec, setCinSec] = useState<"nigerian" | "global" | "coming">("nigerian");
+  const [coverUrl, setCoverUrl] = useState("");
+  const [applyNote, setApplyNote] = useState("");
+  const [applyId, setApplyId] = useState("");
+  const [openJobs, setOpenJobs] = useState<Listing[]>([]);
+  const [busy, setBusy] = useState(false);
 
   function onUrl(v: string) {
     setLink(v);
@@ -289,6 +308,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
 
   function submit(status: "draft" | "publish") {
     setErr("");
+    setMsg("");
     if (!agree) {
       setErr("Accept the Terms to publish.");
       return;
@@ -335,11 +355,13 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     setSeoTitle("");
     setSeoDesc("");
     setSlug("");
+    setMsg(status === "publish" ? "Published to Feeds." : "Draft saved on this device.");
     if (status === "publish") onForum?.();
   }
 
   function submitMusic() {
     setErr("");
+    setMsg("");
     if (!agree) {
       setErr("Accept the Terms to list music.");
       return;
@@ -356,11 +378,12 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       setErr("Title and artist are required.");
       return;
     }
+    const cover = image || (safeHttpUrl(coverUrl) ?? "");
     store.publishTrack({
       title,
       artist,
       url: link,
-      cover: image,
+      cover,
       genre,
       album,
       note: body,
@@ -373,7 +396,9 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     setTags("");
     setLink("");
     setImage("");
+    setCoverUrl("");
     setPreview("");
+    setMsg("Listed on Music. Open the Music tab to play the embed.");
     onForum?.();
   }
 
@@ -384,10 +409,23 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       setErr("Accept the Terms to submit.");
       return;
     }
-    if (!title.trim()) {
-      setErr("Add a title.");
+    if (!title.trim() || title.trim().length < 3) {
+      setErr("Add a clear title (at least 3 characters).");
       return;
     }
+    if (kind === "job" && !company.trim()) {
+      setErr("Company / hiring org is required for jobs.");
+      return;
+    }
+    if (!contact.trim()) {
+      setErr("Add a public contact (phone, email, or @handle).");
+      return;
+    }
+    if (link.trim() && !safeHttpUrl(link)) {
+      setErr("Link must be http or https.");
+      return;
+    }
+    setBusy(true);
     void saveListing({
       data: {
         kind,
@@ -400,9 +438,16 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
         days,
       },
     }).then((r) => {
+      setBusy(false);
       if (!r.ok) setErr(r.reason);
       else {
-        setMsg("Submitted for staff approval.");
+        setMsg(
+          kind === "job"
+            ? "Job submitted. Staff approve before seekers see it — check Me → Jobs."
+            : kind === "market"
+              ? "Product submitted for staff approval — check Me → Market."
+              : "Space submitted for staff approval — check Me → Rent.",
+        );
         setTitle("");
         setBody("");
         setCity("");
@@ -410,6 +455,9 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
         setLink("");
         setCompany("");
       }
+    }).catch(() => {
+      setBusy(false);
+      setErr("Could not submit. Try again.");
     });
   }
 
@@ -420,13 +468,26 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       setErr("Accept the Terms to submit.");
       return;
     }
+    if (!title.trim()) {
+      setErr("Add the movie title.");
+      return;
+    }
+    if (!youtubeId(link)) {
+      setErr("Paste a YouTube watch / youtu.be / embed URL. Kilode never hosts the file.");
+      return;
+    }
+    setBusy(true);
     void submitMovie({ data: { title, url: link, section: cinSec } }).then((r) => {
+      setBusy(false);
       if (!r.ok) setErr(r.reason);
       else {
-        setMsg("Submitted. Staff will approve before it enters the vote pool.");
+        setMsg("Submitted. Staff will approve before it enters the vote pool — track it on Me → Cinema.");
         setTitle("");
         setLink("");
       }
+    }).catch(() => {
+      setBusy(false);
+      setErr("Could not submit. Try again.");
     });
   }
 
@@ -465,6 +526,10 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           <p className="mt-1 text-sm text-muted">
             {ak === "brand" ? "Brand ad creative + crypto pay. Staff approve." : "Ads Poster — place a campaign. Staff approve after payment."}
           </p>
+          <div className="mt-2 rounded-xl border border-line bg-panel/80 px-3 py-2 text-[11px] leading-snug text-muted">
+            <span className="font-bold text-lime-2">Pay path:</span> copy the Kilode wallet below, send crypto, paste the tx hash.{" "}
+            <span className="font-semibold text-white">NOWPayments</span> stays off until Super Admin pastes an API key in /ops — then it can auto-invoice. Manual wallets are live now.
+          </div>
           {ak === "brand" && canMarket ? (
             <button type="button" className="btn-3d mt-2 rounded-lg px-3 py-1.5 text-[11px] font-semibold" onClick={() => setPane("market")}>
               Also list on Marketplace
@@ -497,7 +562,8 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
             : primary === "market" ? "Showcase a product. No in-app checkout."
             : primary === "rent" ? "List a space with contact. No in-app booking."
             : primary === "ads" ? "Place an ad after crypto payment."
-            : "Publish a topic to Feeds."}
+            : ak === "writer" ? "Write a story with the rich Feeds editor."
+            : "Publish a topic to Feeds with the rich editor."}
         </p>
       </div>
 
@@ -512,24 +578,75 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       ) : null}
 
       {pane === "apply" ? (
-        <div className="raised space-y-3 rounded-2xl p-4">
-          <p className="text-sm text-muted">Job Seeker accounts apply to live roles. You cannot post jobs or list music.</p>
-          <button type="button" className="btn-join w-full rounded-xl px-3 py-3 text-sm font-bold" onClick={() => goto("jobs")}>
-            Browse jobs
-          </button>
-          <button type="button" className="btn-3d w-full rounded-xl px-3 py-3 text-sm font-semibold" onClick={() => goto("home", "feeds")}>
-            Back to Feeds
+        <div className="raised space-y-3 rounded-2xl border border-lime-2/30 p-4">
+          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">JOB SEEKER · APPLY</div>
+          <p className="text-sm text-muted">Pick a live role, leave a short note. The poster sees your @handle. You cannot post jobs or list music.</p>
+          {openJobs.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-line bg-panel/60 px-3 py-4 text-center text-[12px] text-muted">
+              No approved jobs live right now. Polish your profile bio and city, then check again.
+            </div>
+          ) : (
+            <div className="max-h-72 space-y-2 overflow-y-auto">
+              {openJobs.slice(0, 12).map((j) => (
+                <button
+                  key={j.id}
+                  type="button"
+                  onClick={() => setApplyId(j.id)}
+                  className={`w-full rounded-xl border px-3 py-2 text-left ${applyId === j.id ? "border-lime-2 bg-lime-2/10" : "border-line bg-panel"}`}
+                >
+                  <div className="truncate text-sm font-semibold">{j.title}</div>
+                  <div className="text-[10px] text-muted">{j.company || "Hiring"} · {j.city || "Remote"}</div>
+                </button>
+              ))}
+            </div>
+          )}
+          {applyId ? (
+            <>
+              <textarea value={applyNote} onChange={(e) => setApplyNote(e.target.value)} rows={3} placeholder="Short note / WhatsApp / why you fit (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+              {err ? <p className="text-sm text-danger">{err}</p> : null}
+              {msg ? <p className="text-sm text-lime-2">{msg}</p> : null}
+              <button
+                type="button"
+                className="btn-join w-full rounded-xl px-3 py-3 text-sm font-bold"
+                disabled={busy}
+                onClick={() => {
+                  setErr("");
+                  setMsg("");
+                  setBusy(true);
+                  void applyListing({ data: { id: applyId, note: applyNote } }).then((r) => {
+                    setBusy(false);
+                    if (!r.ok) setErr(r.reason);
+                    else {
+                      setMsg("Application sent. Track it on Me → Applications.");
+                      setApplyNote("");
+                      setApplyId("");
+                    }
+                  }).catch(() => {
+                    setBusy(false);
+                    setErr("Could not apply. Try again.");
+                  });
+                }}
+              >
+                {busy ? "Sending…" : "Apply to selected job"}
+              </button>
+            </>
+          ) : null}
+          <button type="button" className="btn-3d w-full rounded-xl px-3 py-2 text-sm font-semibold" onClick={() => goto("jobs")}>
+            Open full Jobs board
           </button>
         </div>
       ) : null}
 
       {pane === "music" && canMusic ? (
         <div className="raised space-y-3 rounded-2xl border border-lime-2/30 p-4">
-          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">MUSIC · TRACK URL</div>
-          <p className="text-sm text-muted">Paste a Spotify, Apple Music, SoundCloud, Audiomack or Deezer link. No audio files. Cover is optional — we fetch art when we can.</p>
+          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">MUSIC · TRACK URL + COVER</div>
+          <p className="text-sm text-muted">Paste a Spotify, Apple Music, SoundCloud, Audiomack or Deezer link. No audio files. Cover helps the Music tile — upload or paste a URL.</p>
+          <label className="block text-[11px] font-medium text-muted">Track URL <span className="text-danger">*</span></label>
           <input value={link} onChange={(e) => onUrl(e.target.value)} placeholder="https://open.spotify.com/track/…" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
-          {preview ? <p className="text-xs text-lime-2">{preview}</p> : null}
+          {preview ? <p className="text-xs text-lime-2">{preview}</p> : link.trim() && !parseMusicUrl(link) ? <p className="text-xs text-danger">Not a supported music URL yet.</p> : null}
+          <label className="block text-[11px] font-medium text-muted">Title <span className="text-danger">*</span></label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Track title" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <label className="block text-[11px] font-medium text-muted">Artist <span className="text-danger">*</span></label>
           <input value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="Artist name" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           <div className="grid gap-2 sm:grid-cols-2">
             <input value={album} onChange={(e) => setAlbum(e.target.value)} placeholder="Album / EP (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
@@ -539,8 +656,11 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           <div className="inset-well rounded-xl p-3">
             <div className="mb-2 text-[11px] font-medium text-muted">Cover image (optional)</div>
             <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
+            <input value={coverUrl} onChange={(e) => setCoverUrl(e.target.value)} placeholder="Or cover URL https://…" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+            {(image || coverUrl) ? <img src={image || coverUrl} alt="" className="mt-2 max-h-36 rounded-lg object-cover" /> : null}
           </div>
           {err ? <p className="text-sm text-danger">{err}</p> : null}
+          {msg ? <p className="text-sm text-lime-2">{msg}</p> : null}
           <label className="flex items-start gap-2 text-[11px] text-muted">
             <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             <span>
@@ -554,15 +674,28 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           <button type="button" className="btn-join w-full rounded-xl px-3 py-3 text-sm font-bold" onClick={submitMusic}>
             List on Music
           </button>
+          <button type="button" className="btn-3d w-full rounded-xl px-3 py-2 text-sm font-semibold" onClick={() => goto("home", "music")}>
+            Open Music tab
+          </button>
         </div>
       ) : null}
 
       {pane === "cinema" && canCinema ? (
-        <div className="raised space-y-3 rounded-2xl p-4">
-          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">CINEMA · YOUTUBE URL</div>
+        <div className="raised space-y-3 rounded-2xl border border-lime-2/30 p-4">
+          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">CINEMA · TITLE + TRAILER</div>
           <p className="text-sm text-muted">Trailer or official clip only. Staff approve → vote pool → Watching Now. Kilode never hosts the file.</p>
+          <label className="block text-[11px] font-medium text-muted">Movie title <span className="text-danger">*</span></label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Movie title" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <label className="block text-[11px] font-medium text-muted">YouTube trailer URL <span className="text-danger">*</span></label>
           <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://youtube.com/watch?v=…" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          {youtubeId(link) ? (
+            <div className="overflow-hidden rounded-xl border border-line">
+              <img src={`https://i.ytimg.com/vi/${youtubeId(link)}/hqdefault.jpg`} alt="" className="aspect-video w-full object-cover" />
+              <div className="bg-panel px-3 py-1.5 text-[10px] text-muted">Trailer preview · id {youtubeId(link)}</div>
+            </div>
+          ) : link.trim() ? (
+            <p className="text-xs text-danger">Need a valid YouTube URL to preview.</p>
+          ) : null}
           <div className="flex flex-wrap gap-1">
             {(["nigerian", "global", "coming"] as const).map((s) => (
               <button key={s} type="button" onClick={() => setCinSec(s)} className={`rounded-full px-2.5 py-1 text-[11px] capitalize ${cinSec === s ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
@@ -576,8 +709,8 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
             <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             <span>I agree to the Terms. This is an official / trailer YouTube link I may share.</span>
           </label>
-          <button type="button" className="btn-join w-full rounded-xl px-3 py-3 text-sm font-bold" onClick={submitCinema}>
-            Submit for approval
+          <button type="button" className="btn-join w-full rounded-xl px-3 py-3 text-sm font-bold" disabled={busy} onClick={submitCinema}>
+            {busy ? "Submitting…" : "Submit for approval"}
           </button>
           <button type="button" className="btn-3d w-full rounded-xl px-3 py-2 text-sm font-semibold" onClick={() => goto("home", "cinema")}>
             Open Cinema
@@ -586,29 +719,60 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       ) : null}
 
       {(pane === "job" && canJobs) || (pane === "market" && canMarket) || (pane === "rent" && canRent) ? (
-        <div className="raised space-y-3 rounded-2xl p-4">
+        <div className="raised space-y-3 rounded-2xl border border-lime-2/30 p-4">
           <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">
-            {pane === "job" ? "JOB LISTING" : pane === "market" ? "MARKETPLACE" : "RENT / SPACE"}
+            {pane === "job" ? "JOB · POST A ROLE" : pane === "market" ? "MARKET · LIST PRODUCT" : "RENT · LIST SPACE"}
           </div>
           <p className="text-sm text-muted">
-            {pane === "job" ? "Title, company, contact, and optional link. Staff approve. Not music." : "Showcase only — contact off-platform. No checkout on Kilode."}
+            {pane === "job"
+              ? "Role, company, city, contact, optional apply link. Staff approve before seekers see it. Not music."
+              : pane === "market"
+                ? "Showcase a product with contact. No in-app checkout. Staff approve first."
+                : "List a space with contact. No in-app booking. Staff approve first."}
           </p>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={pane === "job" ? "Role title" : pane === "market" ? "Product name" : "Space title"} className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <label className="block text-[11px] font-medium text-muted">
+            {pane === "job" ? "Role title" : pane === "market" ? "Product name" : "Space title"} <span className="text-danger">*</span>
+          </label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={pane === "job" ? "e.g. Frontend engineer" : pane === "market" ? "e.g. Ankara print dress" : "e.g. 2-bed Lekki flat"} className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           {pane === "job" ? (
-            <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Company" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
-          ) : null}
-          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} placeholder="Description" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            <>
+              <label className="block text-[11px] font-medium text-muted">Company <span className="text-danger">*</span></label>
+              <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Hiring company / org" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            </>
+          ) : pane === "market" ? (
+            <>
+              <label className="block text-[11px] font-medium text-muted">Brand / shop (optional)</label>
+              <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Shop or brand name" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            </>
+          ) : (
+            <>
+              <label className="block text-[11px] font-medium text-muted">Landlord / agent (optional)</label>
+              <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Name or agency" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            </>
+          )}
+          <label className="block text-[11px] font-medium text-muted">Description</label>
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={4} placeholder={pane === "job" ? "Responsibilities, pay band, how to apply…" : pane === "market" ? "Condition, size, price hint, delivery…" : "Beds, rent band, area, viewing hours…"} className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           <div className="grid gap-2 sm:grid-cols-2">
-            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
-            <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Contact (phone / email / @handle)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-muted">City</label>
+              <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Lagos, Abuja…" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-muted">Contact <span className="text-danger">*</span></label>
+              <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="Phone / email / @handle" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+            </div>
           </div>
-          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Link (https://… optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
-          <div className="flex flex-wrap gap-1">
-            {[7, 14, 30].map((d) => (
-              <button key={d} type="button" onClick={() => setDays(d)} className={`rounded-full px-2.5 py-1 text-[11px] ${days === d ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
-                {d} days
-              </button>
-            ))}
+          <label className="block text-[11px] font-medium text-muted">{pane === "job" ? "Apply link (optional)" : "External link (optional)"}</label>
+          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+          <div>
+            <div className="mb-1 text-[11px] font-medium text-muted">Live for</div>
+            <div className="flex flex-wrap gap-1">
+              {[7, 14, 30].map((d) => (
+                <button key={d} type="button" onClick={() => setDays(d)} className={`rounded-full px-2.5 py-1 text-[11px] ${days === d ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
+                  {d} days
+                </button>
+              ))}
+            </div>
           </div>
           {err ? <p className="text-sm text-danger">{err}</p> : null}
           {msg ? <p className="text-sm text-lime-2">{msg}</p> : null}
@@ -619,9 +783,10 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           <button
             type="button"
             className="btn-join w-full rounded-xl px-3 py-3 text-sm font-bold"
+            disabled={busy}
             onClick={() => submitListing(pane === "job" ? "job" : pane === "market" ? "market" : "rent")}
           >
-            {pane === "job" ? "Submit job" : pane === "market" ? "List product" : "List space"}
+            {busy ? "Submitting…" : pane === "job" ? "Submit job" : pane === "market" ? "List product" : "List space"}
           </button>
           <button type="button" className="btn-3d w-full rounded-xl px-3 py-2 text-sm font-semibold" onClick={() => goto(pane === "job" ? "jobs" : pane)}>
             Open {pane === "job" ? "Jobs" : pane === "market" ? "Marketplace" : "Rent"}
@@ -630,8 +795,10 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       ) : null}
 
       {pane === "post" && canPost ? (
-        <div className="raised space-y-4 rounded-2xl p-4">
+        <div className="raised space-y-4 rounded-2xl border border-lime-2/30 p-4">
           <section>
+            <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">{ak === "writer" ? "WRITER · RICH STORY" : "FEEDS · RICH POST"}</div>
+            <p className="mb-2 text-[12px] text-muted">Headline, toolbar body (bold / heads / image), featured image, SEO. Draft stays on this device until you publish.</p>
             <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">CONTENT</div>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Headline" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
             <PostRichEditor
@@ -685,6 +852,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
             <p className="mt-1 text-[11px] text-muted">Author is your @handle. Draft stays in your dashboard until you publish.</p>
           </section>
           {err ? <p className="text-sm text-danger">{err}</p> : null}
+          {msg ? <p className="text-sm text-lime-2">{msg}</p> : null}
           <label className="flex items-start gap-2 text-[11px] text-muted">
             <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             <span>
@@ -697,7 +865,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button type="button" className="btn-join flex-1 rounded-xl px-3 py-3 text-sm font-bold" onClick={() => submit("publish")}>
-              Publish to Feeds
+              {ak === "writer" ? "Publish story" : "Publish to Feeds"}
             </button>
             <button type="button" className="btn-3d rounded-xl px-3 py-3 text-sm font-semibold sm:flex-none" onClick={() => submit("draft")}>
               Save draft
@@ -1248,6 +1416,10 @@ function Ads({ store }: { store: Store }) {
   }
   return (
     <Screen kicker="ADS" title="Place an ad" sub="Pick a slot, creative type, and duration. Pay crypto. Staff approve. Then it appears on that slot.">
+      <div className="mb-3 rounded-xl border border-lime-2/30 bg-lime-2/5 px-3 py-2 text-[11px] leading-snug text-muted">
+        <span className="font-bold text-lime-2">1 · Slot</span> → <span className="font-bold text-lime-2">2 · Creative</span> → <span className="font-bold text-lime-2">3 · Copy wallet</span> → pay → paste tx → submit.{" "}
+        NOWPayments needs a Super Admin API key (not set) — use manual crypto wallets.
+      </div>
       <div className="mb-3 grid gap-1.5">
         {AD_PLACEMENTS.map((p) => (
           <button

@@ -320,6 +320,29 @@ export const voteMovie = createServerFn({ method: "POST" })
     return { ok: true as const, votes: Number(after[0]?.votes ?? Number(exists[0].votes ?? 0) + 1) };
   });
 
+export const listMyCinema = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    try {
+      await ensureMovies();
+    } catch {
+      return [] as CinemaMovie[];
+    }
+    const rows = await sql<{
+      id: string;
+      youtube_id: string;
+      title: string;
+      section: string;
+      status: string;
+      watching: number | string | boolean | null;
+      votes: number | string | null;
+      submitter: string | null;
+      ts: number | string;
+    }>`select id, youtube_id, title, section, status, watching, votes, submitter, ts from nf_movies where user_id = ${context.userId} order by ts desc limit 40`;
+    return rows.map(mapRow);
+  });
+
 export const listCinemaQueue = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {

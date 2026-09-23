@@ -210,3 +210,69 @@ export const listListingQueue = createServerFn({ method: "GET" })
     const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings order by ts desc limit 80`;
     return rows.map(map);
   });
+
+export const listMyListings = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator((d?: { kind?: string }) => d ?? {})
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    try {
+      await ensure();
+    } catch {
+      /* exists */
+    }
+    const kindFilter = data.kind ? asKind(data.kind) : null;
+    const rows = kindFilter
+      ? await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings where user_id = ${context.userId} and kind = ${kindFilter} order by ts desc limit 40`
+      : await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at from nf_listings where user_id = ${context.userId} order by ts desc limit 80`;
+    return rows.map(map);
+  });
+
+export type MyApp = {
+  id: string;
+  listingId: string;
+  title: string;
+  company: string;
+  city: string;
+  note: string;
+  ts: number;
+  status: string;
+};
+
+export const listMyApps = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    try {
+      await ensure();
+    } catch {
+      return [] as MyApp[];
+    }
+    const rows = await sql<{
+      id: string;
+      listing_id: string;
+      note: string | null;
+      ts: number | string;
+      title: string | null;
+      company: string | null;
+      city: string | null;
+      status: string | null;
+    }>`select a.id, a.listing_id, a.note, a.ts, l.title, l.company, l.city, l.status
+      from nf_apps a
+      left join nf_listings l on l.id = a.listing_id
+      where a.user_id = ${context.userId}
+      order by a.ts desc limit 40`;
+    return rows.map(
+      (r): MyApp => ({
+        id: r.id,
+        listingId: r.listing_id,
+        title: r.title ?? "Job",
+        company: r.company ?? "",
+        city: r.city ?? "",
+        note: r.note ?? "",
+        ts: Number(r.ts),
+        status: r.status ?? "unknown",
+      }),
+    );
+  });
+
