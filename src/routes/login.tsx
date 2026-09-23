@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { authEnabled } from "@/lib/auth/client";
-import { AccountKindPicker, AvatarPicker, YearBornSelect } from "@/components/account-kind";
+import { AccountKindPicker, AvatarPicker } from "@/components/account-kind";
 import { KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 import { BrandLockup } from "@/components/brand-lockup";
@@ -20,12 +20,12 @@ function Login() {
   const staff = search.next === "/ops" || (search.next ?? "").startsWith("/ops");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [err, setErr] = useState("");
   const [agree, setAgree] = useState(false);
   const [agreeRules, setAgreeRules] = useState(false);
   const [kind, setKind] = useState<AccountKind>("member");
   const [face, setFace] = useState(KIND_FACE.member);
-  const [yearBorn, setYearBorn] = useState<number | "">("");
   const [mode, setMode] = useState<"in" | "up">(staff ? "in" : search.mode === "up" ? "up" : "in");
   const [busy, setBusy] = useState(false);
 
@@ -42,7 +42,7 @@ function Login() {
     }
     setBusy(true);
     try {
-      const r = await kilodeSignUp(name, password, staff ? "member" : kind, staff ? "👑" : face, typeof yearBorn === "number" ? yearBorn : undefined);
+      const r = await kilodeSignUp(name, password, staff ? "member" : kind, staff ? "👑" : face);
       if (!r.ok) setErr(r.reason);
       else go();
     } catch (e: unknown) {
@@ -82,7 +82,24 @@ function Login() {
         {authEnabled ? (
           <>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Username" autoComplete="username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (8+ characters)" autoComplete={mode === "in" ? "current-password" : "new-password"} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+            <div className="relative">
+              <input
+                type={showPass ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password (8+ characters)"
+                autoComplete={mode === "in" ? "current-password" : "new-password"}
+                className="w-full rounded-lg border border-line bg-panel py-2 pl-3 pr-11 text-base"
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-1.5 py-0.5 text-[18px] leading-none text-muted"
+                aria-label={showPass ? "Hide password" : "Show password"}
+                onClick={() => setShowPass((v) => !v)}
+              >
+                {showPass ? "🙈" : "👁️"}
+              </button>
+            </div>
             {mode === "up" && !staff ? (
               <>
                 <AccountKindPicker
@@ -94,7 +111,6 @@ function Login() {
                   }}
                 />
                 <AvatarPicker compact value={face} handle={name} onChange={setFace} />
-                <YearBornSelect value={yearBorn} onChange={setYearBorn} />
                 <div className="space-y-1.5 rounded-lg border border-line px-2 py-1.5">
                   <label className="flex items-start gap-2 text-[10px] leading-snug text-muted">
                     <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
@@ -113,7 +129,7 @@ function Login() {
                       <a href="/terms#rules" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
                         Rules
                       </a>
-                      . I am responsible for what I submit.{" "}
+                      . I am 15 or older and responsible for what I submit.{" "}
                       <a href="/terms#howto" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
                         How to use
                       </a>
@@ -124,13 +140,10 @@ function Login() {
               </>
             ) : null}
             {mode === "up" && staff ? (
-              <>
-                <YearBornSelect value={yearBorn} onChange={setYearBorn} />
-                <label className="flex items-start gap-2 rounded-lg border border-line px-2 py-1.5 text-[11px] text-muted">
-                  <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-                  <span>I am creating the owner account for this site.</span>
-                </label>
-              </>
+              <label className="flex items-start gap-2 rounded-lg border border-line px-2 py-1.5 text-[11px] text-muted">
+                <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+                <span>I am creating the owner account for this site.</span>
+              </label>
             ) : null}
             {err ? <p className="text-sm text-danger">{err}</p> : null}
             {mode === "up" ? (

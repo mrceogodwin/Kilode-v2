@@ -5,7 +5,7 @@ import { saveProfile } from "@/lib/forum-server";
 import { registerAccount } from "@/lib/register-server";
 
 /** Client auth must never hang forever on Working… */
-const AUTH_TIMEOUT_MS = 12_000;
+const AUTH_TIMEOUT_MS = 25_000;
 
 async function withTimeout<T>(p: Promise<T>, ms = AUTH_TIMEOUT_MS, label = "Request"): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -57,15 +57,15 @@ export async function kilodeSignUp(name: string, password: string, kind: Account
   const handle = publicUsername(name);
   if (handle.length < 3) return { ok: false as const, reason: "Username needs 3+ letters or numbers." };
   if (password.length < 8) return { ok: false as const, reason: "Password needs 8+ characters." };
-  const year = Number(yearBorn);
-  if (!Number.isInteger(year) || new Date().getUTCFullYear() - year < 15) {
-    return { ok: false as const, reason: "You must be 15 or older. Pick the year you were born." };
+  const year = typeof yearBorn === "number" ? yearBorn : undefined;
+  if (year !== undefined && (!Number.isInteger(year) || new Date().getUTCFullYear() - year < 15)) {
+    return { ok: false as const, reason: "You must be 15 or older." };
   }
   let created: { ok: boolean; reason?: string; handle?: string };
   try {
     created = await withTimeout(
       registerAccount({
-        data: { name: handle, password, kind: asAccountKind(kind), agree: true, face: face ?? "", yearBorn: year },
+        data: { name: handle, password, kind: asAccountKind(kind), agree: true, face: face ?? "", ...(year !== undefined ? { yearBorn: year } : {}) },
       }),
       AUTH_TIMEOUT_MS,
       "Sign-up",

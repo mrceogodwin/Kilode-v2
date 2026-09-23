@@ -63,7 +63,7 @@ import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { listWallets } from "@/lib/forum-server";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
-import { AccountKindPicker, AvatarImg, AvatarPicker, YearBornSelect } from "@/components/account-kind";
+import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { TranslateBtn } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
 import { NotifyBell } from "@/components/notify-bell";
@@ -213,11 +213,11 @@ export function QonvoApp() {
   const [feedQ, setFeedQ] = useState("");
   const [feedSearchOn, setFeedSearchOn] = useState(false);
   const [joinPass, setJoinPass] = useState("");
+  const [joinShowPass, setJoinShowPass] = useState(false);
   const [joinAgree, setJoinAgree] = useState(false);
   const [joinAgreeRules, setJoinAgreeRules] = useState(false);
   const [joinKind, setJoinKind] = useState<AccountKind>("member");
   const [joinFace, setJoinFace] = useState(KIND_FACE.member);
-  const [joinYear, setJoinYear] = useState<number | "">("");
   const [joinErr, setJoinErr] = useState("");
   const [joinBusy, setJoinBusy] = useState(false);
   const logoTaps = useRef({ n: 0, t: 0 });
@@ -1109,14 +1109,24 @@ export function QonvoApp() {
               autoComplete="username"
               className="mb-1.5 w-full rounded-lg border border-line bg-black/40 px-3 py-2 text-base outline-none"
             />
-            <input
-              type="password"
-              value={joinPass}
-              onChange={(e) => setJoinPass(e.target.value)}
-              placeholder="Password (8+ characters)"
-              autoComplete="current-password"
-              className="mb-1.5 w-full rounded-lg border border-line bg-black/40 px-3 py-2 text-base outline-none"
-            />
+            <div className="relative mb-1.5">
+              <input
+                type={joinShowPass ? "text" : "password"}
+                value={joinPass}
+                onChange={(e) => setJoinPass(e.target.value)}
+                placeholder="Password (8+ characters)"
+                autoComplete="current-password"
+                className="w-full rounded-lg border border-line bg-black/40 py-2 pl-3 pr-11 text-base outline-none"
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-1.5 py-0.5 text-[18px] leading-none text-muted"
+                aria-label={joinShowPass ? "Hide password" : "Show password"}
+                onClick={() => setJoinShowPass((v) => !v)}
+              >
+                {joinShowPass ? "🙈" : "👁️"}
+              </button>
+            </div>
             {joinErr ? <p className="mb-1.5 text-sm text-danger">{joinErr}</p> : null}
             {store.authErr ? <p className="mb-1.5 text-sm text-danger">{store.authErr}</p> : null}
             <div className="mb-1.5">
@@ -1131,9 +1141,6 @@ export function QonvoApp() {
             </div>
             <div className="mb-1.5">
               <AvatarPicker compact value={joinFace} handle={joinName} onChange={setJoinFace} />
-            </div>
-            <div className="mb-1.5">
-              <YearBornSelect value={joinYear} onChange={setJoinYear} />
             </div>
             <div className="mb-2 space-y-1.5 rounded-lg border border-line px-2 py-1.5">
               <label className="flex items-start gap-2 text-[10px] leading-snug text-muted">
@@ -1153,7 +1160,7 @@ export function QonvoApp() {
                   <a href="/terms#rules" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
                     Rules
                   </a>
-                  . I am responsible for what I submit.
+                  . I am 15 or older and responsible for what I submit.
                 </span>
               </label>
             </div>
@@ -1171,7 +1178,7 @@ export function QonvoApp() {
                     }
                     setJoinBusy(true);
                     try {
-                      const r = await kilodeSignUp(joinName, joinPass, joinKind, joinFace, typeof joinYear === "number" ? joinYear : undefined);
+                      const r = await kilodeSignUp(joinName, joinPass, joinKind, joinFace);
                       if (!r.ok) setJoinErr(r.reason);
                       else window.location.reload();
                     } catch (e: unknown) {

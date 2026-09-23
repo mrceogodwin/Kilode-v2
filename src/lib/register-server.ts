@@ -18,10 +18,13 @@ export const registerAccount = createServerFn({ method: "POST" })
     const handle = publicUsername(data.name);
     if (handle.length < 3) return fail("Username needs 3+ letters or numbers.");
     if ((data.password ?? "").length < 8) return fail("Password needs 8+ characters.");
-    const year = Number(data.yearBorn);
-    const age = new Date().getUTCFullYear() - year;
-    if (!Number.isInteger(year) || year < 1900 || age < 15 || age > 120) {
-      return fail("You must be 15 or older to join Kilode.");
+    let age: number | undefined;
+    if (data.yearBorn !== undefined && data.yearBorn !== null && String(data.yearBorn) !== "") {
+      const year = Number(data.yearBorn);
+      age = new Date().getUTCFullYear() - year;
+      if (!Number.isInteger(year) || year < 1900 || age < 15 || age > 120) {
+        return fail("You must be 15 or older to join Kilode.");
+      }
     }
     const kind = asAccountKind(data.kind);
     const email = accountEmail(handle);
