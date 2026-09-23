@@ -2,20 +2,32 @@ import { useState } from "react";
 import { LANGS } from "@/lib/i18n";
 import { translateText } from "@/lib/social-server";
 
-export function TranslateBtn({ text }: { text: string }) {
+/** Compact top-right control: pick a language, translate the whole visible thread. */
+export function ThreadTranslateBar({
+  items,
+  onTranslated,
+}: {
+  items: { key: string; text: string }[];
+  onTranslated: (map: Record<string, string>) => void;
+}) {
   const [to, setTo] = useState("yo");
-  const [out, setOut] = useState("");
-  const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
-  if (!text.trim()) return null;
+  const [err, setErr] = useState("");
+
+  const label = LANGS.find((l) => l.id === to)?.label ?? to;
+
   return (
-    <div className="mt-1">
-      <div className="flex flex-wrap items-center gap-1">
+    <div className="flex shrink-0 flex-col items-end gap-0.5">
+      <div className="flex items-center gap-1">
         <select
           value={to}
-          onChange={(e) => setTo(e.target.value)}
-          className="rounded border border-line bg-panel px-1 py-0.5 text-[10px] text-muted"
-          aria-label="Translate to"
+          onChange={(e) => {
+            setTo(e.target.value);
+            setErr("");
+            onTranslated({});
+          }}
+          className="max-w-[5.5rem] rounded border border-line bg-panel px-1 py-0.5 text-[10px] text-muted"
+          aria-label="Show messages in"
         >
           {LANGS.filter((l) => l.id !== "en").map((l) => (
             <option key={l.id} value={l.id}>
@@ -25,24 +37,44 @@ export function TranslateBtn({ text }: { text: string }) {
         </select>
         <button
           type="button"
-          className="text-[10px] text-lime-2"
-          disabled={busy}
+          className="rounded border border-lime-2/40 bg-lime-2/10 px-1.5 py-0.5 text-[10px] font-semibold text-lime-2 disabled:opacity-50"
+          disabled={busy || items.length === 0}
           onClick={() => {
+            const pack = items.filter((i) => i.text.trim());
+            if (!pack.length) {
+              onTranslated({});
+              return;
+            }
             setBusy(true);
             setErr("");
-            void translateText({ data: { text, to } })
-              .then((r) => {
-                if (r.ok) setOut(r.text);
-                else setErr(r.reason);
-              })
-              .finally(() => setBusy(false));
+            void (async () => {
+              const map: Record<string, string> = {};
+              let fail = "";
+              for (const item of pack) {
+                try {
+                  const r = await translateText({ data: { text: item.text, to } });
+                  if (r.ok) map[item.key] = r.text;
+                  else if (!fail) fail = r.reason;
+                } catch {
+                  fail = "Translate failed.";
+                  break;
+                }
+              }
+              if (fail) setErr(fail);
+              onTranslated(map);
+            })().finally(() => setBusy(false));
           }}
         >
-          {busy ? "…" : "Translate"}
+          {busy ? "…" : `Show in ${label}`}
         </button>
       </div>
-      {out ? <p className="mt-1 text-[12px] text-muted">{out}</p> : null}
-      {err ? <p className="mt-1 text-[11px] text-danger">{err}</p> : null}
+      {err ? <span className="max-w-[11rem] text-right text-[9px] text-danger">{err}</span> : null}
     </div>
   );
+}
+
+/** Shown under a message when the thread bar has a translation for it. */
+export function TranslatedLine({ text }: { text?: string }) {
+  if (!text?.trim()) return null;
+  return <p className="mt-0.5 text-[12px] leading-snug text-muted">{text}</p>;
 }

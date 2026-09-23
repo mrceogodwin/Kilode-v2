@@ -21,7 +21,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { timeLabel, type AccountKind, type ChatMsg } from "@/lib/qonvo-data";
 import { canKind } from "@/lib/permissions";
 import { HandleLink } from "@/components/handle-link";
-import { TranslateBtn } from "@/components/translate-btn";
+import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
 import { AdSlot } from "@/components/ad-slot";
 
 function thumb(id: string) {
@@ -356,13 +356,20 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [draft, setDraft] = useState("");
   const [err, setErr] = useState("");
+  const [xlate, setXlate] = useState<Record<string, string>>({});
   const pendingRef = useRef<{ ts: number; t: string; n: string } | null>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  const stickBottom = useRef(true);
+  const lastLen = useRef(0);
 
   useEffect(() => {
     let on = true;
     setMsgs([]);
     setErr("");
+    setXlate({});
     pendingRef.current = null;
+    stickBottom.current = true;
+    lastLen.current = 0;
     const pull = () => {
       if (typeof document !== "undefined" && document.hidden) return;
       void listMsgs({ data: { roomId } })
@@ -392,9 +399,40 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
     };
   }, [roomId]);
 
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    const added = msgs.length - lastLen.current;
+    lastLen.current = msgs.length;
+    if (added <= 0 && msgs.length === 0) return;
+    if (stickBottom.current) {
+      requestAnimationFrame(() => {
+        el.scrollTop = el.scrollHeight;
+      });
+    }
+  }, [msgs]);
+
   return (
     <div className="border-t border-white/5 bg-bg">
-      <div className="max-h-56 overflow-y-auto px-2 py-1.5">
+      <div className="flex items-center justify-between gap-2 border-b border-white/5 px-2 py-1.5">
+        <div className="min-w-0">
+          <div className="truncate text-[11px] font-semibold text-lime-2">Talk this film</div>
+          <div className="text-[9px] text-muted">Live chat for this title</div>
+        </div>
+        <ThreadTranslateBar
+          items={msgs.map((m) => ({ key: String(m.ts), text: m.t }))}
+          onTranslated={setXlate}
+        />
+      </div>
+      <div
+        ref={scroller}
+        className="max-h-56 overflow-y-auto px-2 py-1.5"
+        onScroll={() => {
+          const el = scroller.current;
+          if (!el) return;
+          stickBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+        }}
+      >
         {msgs.length === 0 ? (
           <p className="text-[10px] text-muted">
             No chat for this film yet. Each title has its own thread.
@@ -415,7 +453,7 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
               <span className="text-[9px] text-muted">{timeLabel(m.ts)}</span>
             </div>
             <p className="text-[12px] leading-snug">{m.t}</p>
-            <TranslateBtn text={m.t} />
+            <TranslatedLine text={xlate[String(m.ts)]} />
           </div>
         ))}
       </div>
@@ -433,6 +471,7 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
           const optimisticTs = Date.now();
           const optimistic = { n: "You", t: text, ts: optimisticTs, rx: {} as Record<string, number> };
           pendingRef.current = { ts: optimisticTs, t: text, n: "You" };
+          stickBottom.current = true;
           setMsgs((prev) => [...prev, optimistic]);
           setDraft("");
           void saveMsg({ data: { roomId, text } })
@@ -515,6 +554,7 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
     </div>
   );
 }
+
 
 export function CinemaAdminPanel() {
   const [rows, setRows] = useState<CinemaMovie[]>([]);

@@ -64,7 +64,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { listWallets } from "@/lib/forum-server";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
-import { TranslateBtn } from "@/components/translate-btn";
+import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
 import { NotifyBell } from "@/components/notify-bell";
 import { HowKilode } from "@/components/how-kilode";
@@ -231,6 +231,7 @@ export function QonvoApp() {
   const [openFolds, setOpenFolds] = useState<Record<string, boolean>>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const [replyTo, setReplyTo] = useState<ChatMsg | null>(null);
+  const [chatXlate, setChatXlate] = useState<Record<string, string>>({});
   const [forumWhy, setForumWhy] = useState(false);
   const [chatOk, setChatOk] = useState(false);
   const [roomOverlay, setRoomOverlay] = useState<{ extra: Room[]; paused: string[] }>({ extra: [], paused: [] });
@@ -292,6 +293,7 @@ export function QonvoApp() {
     setNewCount(0);
     setOpenFolds({});
     setReplyTo(null);
+    setChatXlate({});
     requestAnimationFrame(() => scroller.current?.scrollTo({ top: scroller.current.scrollHeight }));
   }, [store.roomId]);
 
@@ -313,7 +315,10 @@ export function QonvoApp() {
     lastMsgCount.current = store.msgs.length;
     if (added <= 0) return;
     if (stickBottom.current) {
-      scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
+      requestAnimationFrame(() => {
+        const el = scroller.current;
+        if (el) el.scrollTop = el.scrollHeight;
+      });
       setNewCount(0);
     } else setNewCount((n) => n + added);
   }, [store.msgs]);
@@ -541,6 +546,10 @@ export function QonvoApp() {
                     <div className="text-[9px] font-medium tracking-[0.16em] text-lime-2">KILODE FORUM</div>
                     <div className="truncate text-sm font-bold leading-tight">{room.name}</div>
                   </div>
+                  <ThreadTranslateBar
+                    items={store.msgs.map((m) => ({ key: String(m.ts), text: m.t }))}
+                    onTranslated={setChatXlate}
+                  />
                   <ForumClock label={purge === "kept" ? "kept" : purge} onOpen={() => setForumWhy(true)} />
                 </div>
                 <div className="mt-1.5 flex items-center gap-1">
@@ -656,13 +665,13 @@ export function QonvoApp() {
                         </button>
                         {open
                           ? row.hidden.map((m) => (
-                              <ChatLine key={m.ts + m.n} m={m} handle={store.handle} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} />
+                              <ChatLine key={m.ts + m.n} m={m} handle={store.handle} xlate={chatXlate[String(m.ts)]} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} />
                             ))
                           : null}
                       </div>
                     );
                   }
-                  return <ChatLine key={row.key} m={row.m} handle={store.handle} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} />;
+                  return <ChatLine key={row.key} m={row.m} handle={store.handle} xlate={chatXlate[String(row.m.ts)]} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} />;
                 })}
               </div>
               {newCount > 0 ? (
@@ -712,6 +721,10 @@ export function QonvoApp() {
                     setNewCount(0);
                     store.bumpPresence(false);
                     inputRef.current?.focus();
+                    requestAnimationFrame(() => {
+                      const el = scroller.current;
+                      if (el) el.scrollTop = el.scrollHeight;
+                    });
                   });
                 }}
               >
@@ -1841,7 +1854,6 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
             <p key={i}>{para}</p>
           ))}
         </div>
-        <TranslateBtn text={post.body} />
         {post.link ? (
           <a href={post.link} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-1 text-xs text-lime-2">
             <Link2 className="size-3" /> Source
@@ -1866,7 +1878,6 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
                 <span className="font-normal text-muted">{timeLabel(c.ts)}</span>
               </div>
               <p className="mt-1.5 leading-6">{c.body}</p>
-              <TranslateBtn text={c.body} />
               <button type="button" className="mt-1 text-[10px] font-semibold text-lime-2" onClick={() => setReplyTo(c.ts)}>
                 Reply
               </button>
@@ -2263,11 +2274,13 @@ function ChatAdCard({ ad, pinned, onView }: { ad: Campaign; pinned?: boolean; on
 function ChatLine({
   m,
   handle,
+  xlate,
   onReact,
   onReply,
 }: {
   m: ChatMsg;
   handle: string;
+  xlate?: string;
   onReact: (ts: number, kind: "up" | "fire") => void;
   onReply: (m: ChatMsg) => void;
 }) {
@@ -2314,7 +2327,7 @@ function ChatLine({
           )
         )}
       </div>
-      <TranslateBtn text={m.t} />
+      <TranslatedLine text={xlate} />
       <div className="mt-1 flex gap-3">
         <button type="button" className="text-[11px] text-muted" onClick={() => onReact(m.ts, "up")}>
           + {m.rx?.up ?? 0}
