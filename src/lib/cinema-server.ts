@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
-import { authMiddleware } from "@/lib/auth/middleware";
+import { authMiddleware, optionalAuthMiddleware } from "@/lib/auth/middleware";
 import { asAccountKind, type AccountKind, youtubeId } from "@/lib/qonvo-data";
 import { canKind, kindActionHint } from "@/lib/permissions";
 import { gateText } from "@/lib/mod-cache";
@@ -16,6 +16,12 @@ export type CinemaMovie = {
   votes: number;
   submitter: string;
   ts: number;
+  /** Community star average 0–5 (from nf_cinema_rate). */
+  rating_avg: number;
+  /** Number of star ratings. */
+  rating_n: number;
+  /** True when the signed-in user already voted on this title today (UTC). */
+  voted_today: boolean;
 };
 
 export const CINEMA_SECTIONS = ["watching", "top", "trending", "nigerian", "global", "coming"] as const;
@@ -23,14 +29,14 @@ export type CinemaSection = (typeof CINEMA_SECTIONS)[number];
 
 /** Official trailers only. Kilode never hosts the file. Used to seed an empty table and as a client fallback. */
 export const CINEMA_SEED: CinemaMovie[] = [
-  { id: "seed-black-panther", youtube_id: "xjDjIWPwcPU", title: "Black Panther", section: "global", status: "approved", watching: true, votes: 18, submitter: "Kilode", ts: 1726700000000 },
-  { id: "seed-wakanda", youtube_id: "_Z3QKkl1WyM", title: "Black Panther: Wakanda Forever", section: "global", status: "approved", watching: false, votes: 14, submitter: "Kilode", ts: 1726700001000 },
-  { id: "seed-woman-king", youtube_id: "3RDaPV_rJ1Y", title: "The Woman King", section: "nigerian", status: "approved", watching: false, votes: 11, submitter: "Kilode", ts: 1726700002000 },
-  { id: "seed-dune", youtube_id: "8g18jFHCLXk", title: "Dune", section: "coming", status: "approved", watching: false, votes: 9, submitter: "Kilode", ts: 1726700003000 },
-  { id: "seed-endgame", youtube_id: "TcMBFSGVi1c", title: "Avengers: Endgame", section: "coming", status: "approved", watching: false, votes: 8, submitter: "Kilode", ts: 1726700004000 },
-  { id: "seed-noway", youtube_id: "JfVOs4VSpmA", title: "Spider-Man: No Way Home", section: "global", status: "approved", watching: false, votes: 7, submitter: "Kilode", ts: 1726700005000 },
-  { id: "seed-johnwick", youtube_id: "qEVUtrk8_B4", title: "John Wick: Chapter 4", section: "global", status: "approved", watching: false, votes: 6, submitter: "Kilode", ts: 1726700006000 },
-  { id: "seed-oppen", youtube_id: "uYPbbksJxIg", title: "Oppenheimer", section: "coming", status: "approved", watching: false, votes: 5, submitter: "Kilode", ts: 1726700007000 },
+  { id: "seed-black-panther", youtube_id: "xjDjIWPwcPU", title: "Black Panther", section: "global", status: "approved", watching: true, votes: 18, submitter: "Kilode", ts: 1726700000000 , rating_avg: 0, rating_n: 0, voted_today: false },
+  { id: "seed-wakanda", youtube_id: "_Z3QKkl1WyM", title: "Black Panther: Wakanda Forever", section: "global", status: "approved", watching: false, votes: 14, submitter: "Kilode", ts: 1726700001000 , rating_avg: 0, rating_n: 0, voted_today: false },
+  { id: "seed-woman-king", youtube_id: "3RDaPV_rJ1Y", title: "The Woman King", section: "nigerian", status: "approved", watching: false, votes: 11, submitter: "Kilode", ts: 1726700002000 , rating_avg: 0, rating_n: 0, voted_today: false },
+  { id: "seed-dune", youtube_id: "8g18jFHCLXk", title: "Dune", section: "coming", status: "approved", watching: false, votes: 9, submitter: "Kilode", ts: 1726700003000 , rating_avg: 0, rating_n: 0, voted_today: false },
+  { id: "seed-endgame", youtube_id: "TcMBFSGVi1c", title: "Avengers: Endgame", section: "coming", status: "approved", watching: false, votes: 8, submitter: "Kilode", ts: 1726700004000 , rating_avg: 0, rating_n: 0, voted_today: false },
+  { id: "seed-noway", youtube_id: "JfVOs4VSpmA", title: "Spider-Man: No Way Home", section: "global", status: "approved", watching: false, votes: 7, submitter: "Kilode", ts: 1726700005000 , rating_avg: 0, rating_n: 0, voted_today: false },
+  { id: "seed-johnwick", youtube_id: "qEVUtrk8_B4", title: "John Wick: Chapter 4", section: "global", status: "approved", watching: false, votes: 6, submitter: "Kilode", ts: 1726700006000 , rating_avg: 0, rating_n: 0, voted_today: false },
+  { id: "seed-oppen", youtube_id: "uYPbbksJxIg", title: "Oppenheimer", section: "coming", status: "approved", watching: false, votes: 5, submitter: "Kilode", ts: 1726700007000 , rating_avg: 0, rating_n: 0, voted_today: false },
 ];
 
 function nid() {
@@ -55,7 +61,11 @@ function mapRow(r: {
   votes: number | string | null;
   submitter: string | null;
   ts: number | string;
+  rating_avg?: number | string | null;
+  rating_n?: number | string | null;
+  voted_today?: number | string | boolean | null;
 }): CinemaMovie {
+  const avg = Number(r.rating_avg ?? 0);
   return {
     id: r.id,
     youtube_id: r.youtube_id,
@@ -66,6 +76,9 @@ function mapRow(r: {
     votes: Number(r.votes ?? 0),
     submitter: r.submitter ?? "",
     ts: Number(r.ts),
+    rating_avg: Number.isFinite(avg) ? avg : 0,
+    rating_n: Number(r.rating_n ?? 0),
+    voted_today: Number(r.voted_today) === 1 || r.voted_today === true,
   };
 }
 
@@ -197,16 +210,21 @@ export const fetchCinemaCatalog = createServerFn({ method: "POST" })
   });
 
 export const listCinema = createServerFn({ method: "GET" })
+  .middleware([optionalAuthMiddleware])
   .validator((d?: { section?: string }) => d ?? {})
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     try {
       await ensureMovies();
+      await ensureCinemaExtra();
       await seedCinemaIfEmpty();
       await crownIfEmpty();
     } catch {
       return { watching: CINEMA_SEED.find((m) => m.watching) ?? CINEMA_SEED[0], movies: CINEMA_SEED };
     }
     const sql = await getSql();
+    const userId = context.userId;
+    const day = todayUtc();
+    /* Ratings + today's vote via scalar subqueries (Neon-friendly; no join explode). */
     const rows = await sql<{
       id: string;
       youtube_id: string;
@@ -217,7 +235,18 @@ export const listCinema = createServerFn({ method: "GET" })
       votes: number | string | null;
       submitter: string | null;
       ts: number | string;
-    }>`select id, youtube_id, title, section, status, watching, votes, submitter, ts from nf_movies where status = 'approved' order by watching desc, votes desc, ts desc limit 80`;
+      rating_avg: number | string | null;
+      rating_n: number | string | null;
+      voted_today: number | string | null;
+    }>`select id, youtube_id, title, section, status, watching, votes, submitter, ts,
+        (select coalesce(avg(stars), 0) from nf_cinema_rate r where r.movie_id = nf_movies.id) as rating_avg,
+        (select count(*) from nf_cinema_rate r where r.movie_id = nf_movies.id) as rating_n,
+        case when ${userId ?? ""} = '' then 0
+          when exists (
+            select 1 from nf_votes v
+            where v.movie_id = nf_movies.id and v.user_id = ${userId ?? ""} and v.day = ${day}
+          ) then 1 else 0 end as voted_today
+      from nf_movies where status = 'approved' order by watching desc, votes desc, ts desc limit 80`;
     const movies = rows.map(mapRow);
     const watching = movies.find((m) => m.watching) ?? movies[0] ?? null;
     const sec = data.section || "watching";
@@ -265,11 +294,16 @@ export const voteMovie = createServerFn({ method: "POST" })
     const sql = await getSql();
     try {
       await ensureMovies();
+      await seedCinemaIfEmpty();
     } catch {
       /* exists */
     }
     const id = data.id.trim();
     if (!id) return { ok: false as const, reason: "Missing movie." };
+    const exists = await sql<{ id: string; votes: number | string | null; status: string }>`
+      select id, votes, status from nf_movies where id = ${id} limit 1`;
+    if (!exists[0]) return { ok: false as const, reason: "That title is not in Cinema yet." };
+    if (exists[0].status !== "approved") return { ok: false as const, reason: "Only approved titles can be voted." };
     const day = todayUtc();
     try {
       await sql`insert into nf_votes (user_id, movie_id, day, ts) values (${context.userId}, ${id}, ${day}, ${Date.now()})`;
@@ -277,7 +311,8 @@ export const voteMovie = createServerFn({ method: "POST" })
       return { ok: false as const, reason: "You already voted on this title today. Come back tomorrow." };
     }
     await sql`update nf_movies set votes = coalesce(votes, 0) + 1 where id = ${id} and status = 'approved'`;
-    return { ok: true as const };
+    const after = await sql<{ votes: number | string | null }>`select votes from nf_movies where id = ${id} limit 1`;
+    return { ok: true as const, votes: Number(after[0]?.votes ?? Number(exists[0].votes ?? 0) + 1) };
   });
 
 export const listCinemaQueue = createServerFn({ method: "GET" })
@@ -352,16 +387,24 @@ const QUIZ_SEED: CinemaQuiz[] = [
 ];
 
 export const getCinemaExtra = createServerFn({ method: "GET" })
+  .middleware([optionalAuthMiddleware])
   .validator((d: { movieId: string }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     try {
       await ensureCinemaExtra();
     } catch {
       return { avg: 0, n: 0, mine: 0, quiz: QUIZ_SEED.filter((q) => q.movie_id === data.movieId) };
     }
     const sql = await getSql();
-    const n = await sql<{ n: string | number; avg: string | number | null }>`select count(*) as n, avg(stars) as avg from nf_cinema_rate where movie_id = ${data.movieId}`;
-    let quiz = await sql<CinemaQuiz>`select id, movie_id, topic, q, a, b, c, d, e, answer from nf_cinema_quiz where movie_id = ${data.movieId} limit 12`;
+    const movieId = data.movieId.trim();
+    const n = await sql<{ n: string | number; avg: string | number | null }>`select count(*) as n, avg(stars)::float as avg from nf_cinema_rate where movie_id = ${movieId}`;
+    let mine = 0;
+    if (context.userId) {
+      const mineRows = await sql<{ stars: number | string | null }>`
+        select stars from nf_cinema_rate where movie_id = ${movieId} and user_id = ${context.userId} limit 1`;
+      mine = Number(mineRows[0]?.stars ?? 0);
+    }
+    let quiz = await sql<CinemaQuiz>`select id, movie_id, topic, q, a, b, c, d, e, answer from nf_cinema_quiz where movie_id = ${movieId} limit 12`;
     if (!quiz.length) {
       for (const q of QUIZ_SEED) {
         try {
@@ -371,10 +414,16 @@ export const getCinemaExtra = createServerFn({ method: "GET" })
           /* dup */
         }
       }
-      quiz = await sql<CinemaQuiz>`select id, movie_id, topic, q, a, b, c, d, e, answer from nf_cinema_quiz where movie_id = ${data.movieId} limit 12`;
-      if (!quiz.length) quiz = QUIZ_SEED.filter((q) => q.movie_id === data.movieId);
+      quiz = await sql<CinemaQuiz>`select id, movie_id, topic, q, a, b, c, d, e, answer from nf_cinema_quiz where movie_id = ${movieId} limit 12`;
+      if (!quiz.length) quiz = QUIZ_SEED.filter((q) => q.movie_id === movieId);
     }
-    return { avg: Number(n[0]?.avg ?? 0), n: Number(n[0]?.n ?? 0), mine: 0, quiz };
+    const avg = Number(n[0]?.avg ?? 0);
+    return {
+      avg: Number.isFinite(avg) ? avg : 0,
+      n: Number(n[0]?.n ?? 0),
+      mine: Number.isFinite(mine) ? mine : 0,
+      quiz,
+    };
   });
 
 export const rateMovie = createServerFn({ method: "POST" })
@@ -382,13 +431,25 @@ export const rateMovie = createServerFn({ method: "POST" })
   .validator((d: { id: string; stars: number }) => d)
   .handler(async ({ context, data }) => {
     if (!allowWrite(`cin-rate:${context.userId}`, 20)) return { ok: false as const, reason: RATE_BLOCKED };
-    const stars = Math.min(5, Math.max(1, Math.round(data.stars)));
+    const stars = Math.min(5, Math.max(1, Math.round(Number(data.stars))));
+    if (!Number.isFinite(stars) || stars < 1) return { ok: false as const, reason: "Pick 1–5 stars." };
+    const id = (data.id || "").trim();
+    if (!id) return { ok: false as const, reason: "Missing movie." };
     const sql = await getSql();
-    await ensureCinemaExtra();
-    await sql`insert into nf_cinema_rate (movie_id, user_id, stars, ts) values (${data.id}, ${context.userId}, ${stars}, ${Date.now()})
+    try {
+      await ensureMovies();
+      await ensureCinemaExtra();
+      await seedCinemaIfEmpty();
+    } catch {
+      /* tables */
+    }
+    const exists = await sql<{ id: string }>`select id from nf_movies where id = ${id} and status = 'approved' limit 1`;
+    if (!exists[0]) return { ok: false as const, reason: "That title is not in Cinema yet." };
+    await sql`insert into nf_cinema_rate (movie_id, user_id, stars, ts) values (${id}, ${context.userId}, ${stars}, ${Date.now()})
       on conflict (movie_id, user_id) do update set stars = ${stars}, ts = ${Date.now()}`;
-    const n = await sql<{ n: string | number; avg: string | number | null }>`select count(*) as n, avg(stars) as avg from nf_cinema_rate where movie_id = ${data.id}`;
-    return { ok: true as const, avg: Number(n[0]?.avg ?? stars), n: Number(n[0]?.n ?? 1) };
+    const n = await sql<{ n: string | number; avg: string | number | null }>`select count(*) as n, avg(stars)::float as avg from nf_cinema_rate where movie_id = ${id}`;
+    const avg = Number(n[0]?.avg ?? stars);
+    return { ok: true as const, avg: Number.isFinite(avg) ? avg : stars, n: Number(n[0]?.n ?? 1), mine: stars };
   });
 
 export const saveCinemaQuiz = createServerFn({ method: "POST" })

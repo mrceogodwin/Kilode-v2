@@ -45,3 +45,18 @@ export const authMiddleware = createMiddleware({ type: "function" })
     const userId = await requireUserId(context.bearerToken);
     return next({ context: { userId } });
   });
+
+/**
+ * Soft session: forwards bearer + resolves userId when signed in, else null.
+ * Does NOT throw. Use for public reads that enrich with "mine" (ratings, voted).
+ */
+export const optionalAuthMiddleware = createMiddleware({ type: "function" })
+  .client(async ({ next }) => {
+    const { getBearerToken } = await import("./client");
+    return next({ sendContext: { bearerToken: getBearerToken() ?? undefined } });
+  })
+  .server(async ({ next, context }) => {
+    const { getSessionUser } = await import("./verify.server");
+    const user = await getSessionUser(context.bearerToken).catch(() => null);
+    return next({ context: { userId: user?.id ?? (null as string | null) } });
+  });

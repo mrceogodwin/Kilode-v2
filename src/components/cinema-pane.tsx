@@ -15,7 +15,7 @@ import {
   type CinemaQuiz,
   type CinemaSection,
 } from "@/lib/cinema-server";
-import { Film, HelpCircle, Send, Star, X } from "lucide-react";
+import { Check, Film, HelpCircle, Send, Star, X } from "lucide-react";
 import { listMsgs, saveMsg, getProfile, pingPresence } from "@/lib/forum-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { timeLabel, type AccountKind, type ChatMsg } from "@/lib/qonvo-data";
@@ -122,28 +122,33 @@ export function CinemaPane() {
             </div>
             <CinemaPlayer title={watching.title} youtubeId={watching.youtube_id} />
             <div className="flex items-center justify-between gap-2 border-t border-white/5 bg-panel px-2 py-1.5">
-              <div>
-                <div className="text-sm font-semibold">{watching.title}</div>
-                <p className="text-[10px] text-muted">Played from YouTube. Not stored on Kilode.</p>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold">{watching.title}</div>
+                <p className="text-[10px] text-muted">
+                  <span className="capitalize text-lime-2">{watching.section}</span>
+                  {" · "}Played from YouTube · not stored on Kilode
+                </p>
               </div>
-              <button
-                type="button"
-                className="btn-3d shrink-0 rounded-lg px-2 py-1 text-[10px] font-semibold"
-                onClick={() => {
-                  if (!signed) {
-                    window.location.href = "/login?mode=up";
-                    return;
-                  }
-                  void voteMovie({ data: { id: watching.id } }).then((r) => {
-                    if (!r.ok) setErr(r.reason);
-                    else load(sec);
-                  });
+              <CinemaVoteBtn
+                movie={watching}
+                signed={signed}
+                onErr={setErr}
+                onVoted={(votes) => {
+                  setWatching((w) => (w ? { ...w, votes, voted_today: true } : w));
+                  setMovies((list) => list.map((m) => (m.id === watching.id ? { ...m, votes, voted_today: true } : m)));
                 }}
-              >
-                Vote · {watching.votes}
-              </button>
+              />
             </div>
-            <CinemaRate movieId={watching.id} signed={signed} />
+            <CinemaRate
+              movieId={watching.id}
+              signed={signed}
+              seedAvg={watching.rating_avg}
+              seedN={watching.rating_n}
+              onRated={(avg, n) => {
+                setWatching((w) => (w ? { ...w, rating_avg: avg, rating_n: n } : w));
+                setMovies((list) => list.map((m) => (m.id === watching.id ? { ...m, rating_avg: avg, rating_n: n } : m)));
+              }}
+            />
             </div>
             <div className="cinema-live-card mt-2 flex shrink-0 flex-col overflow-hidden rounded-xl border border-lime-2/40 bg-panel shadow-[0_0_28px_rgba(107,158,120,0.14)] md:mt-0 md:max-h-[70vh]">
               <CinemaChat movieId={watching.id} title={watching.title} signed={signed} />
@@ -204,37 +209,62 @@ export function CinemaPane() {
             </button>
           ))}
         </div>
-        <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted">{sec === "watching" ? "Also in Cinema" : sec}</div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <div className="text-[10px] font-medium uppercase tracking-wide text-muted">{sec === "watching" ? "Also in Cinema" : sec}</div>
+          <div className="text-[9px] text-muted">3-up · tap poster to watch</div>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
           {also.map((m) => (
-            <article key={m.id} className="raised overflow-hidden rounded-lg">
-              <button type="button" className="block w-full text-left" onClick={() => { setWatching(m); setErr(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
-                <img src={thumb(m.youtube_id)} alt="" className="aspect-video w-full object-cover" />
-                <div className="p-1.5">
-                  <div className="line-clamp-2 text-[11px] font-semibold leading-tight">{m.title}</div>
-                  <div className="mt-0.5 text-[9px] capitalize text-muted">{m.section} · {m.votes} votes · tap to watch</div>
+            <article key={m.id} className="raised flex min-w-0 flex-col overflow-hidden rounded-lg border border-white/5 bg-panel/40">
+              <button
+                type="button"
+                className="group relative block w-full text-left"
+                onClick={() => {
+                  setWatching(m);
+                  setErr("");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              >
+                <div className="relative aspect-video overflow-hidden bg-black">
+                  <img
+                    src={thumb(m.youtube_id)}
+                    alt=""
+                    className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.visibility = "hidden";
+                    }}
+                  />
+                  <span className="absolute left-1 top-1 rounded bg-black/70 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-lime-2">
+                    {m.section}
+                  </span>
+                  <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1 py-0.5 text-[8px] font-semibold text-fg">
+                    Tap to watch
+                  </span>
+                </div>
+                <div className="px-1.5 pb-1 pt-1.5">
+                  <div className="line-clamp-2 min-h-[2.2em] text-[10px] font-bold leading-tight sm:text-[11px]">{m.title}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[9px] text-muted">
+                    <span className="inline-flex items-center gap-0.5 font-semibold text-lime-2">
+                      <Star className="size-2.5 fill-lime-2 text-lime-2" />
+                      {m.rating_n > 0 ? m.rating_avg.toFixed(1) : "—"}
+                    </span>
+                    <span>·</span>
+                    <span>{m.votes} votes</span>
+                  </div>
                 </div>
               </button>
-              <div className="px-1.5 pb-1.5">
-                <button
-                  type="button"
-                  className="w-full rounded border border-line py-0.5 text-[10px] font-semibold"
-                  onClick={() => {
-                    if (!signed) {
-                      window.location.href = "/login";
-                      return;
-                    }
-                    void voteMovie({ data: { id: m.id } }).then((r) => {
-                      if (!r.ok) setErr(r.reason);
-                      else {
-                        setErr("");
-                        load(sec);
-                      }
-                    });
+              <div className="mt-auto px-1.5 pb-1.5">
+                <CinemaVoteBtn
+                  movie={m}
+                  signed={signed}
+                  compact
+                  onErr={setErr}
+                  onVoted={(votes) => {
+                    setMovies((list) => list.map((row) => (row.id === m.id ? { ...row, votes, voted_today: true } : row)));
+                    setWatching((w) => (w && w.id === m.id ? { ...w, votes, voted_today: true } : w));
                   }}
-                >
-                  Vote
-                </button>
+                />
               </div>
             </article>
           ))}
@@ -292,11 +322,90 @@ function CinemaPlayer({ title, youtubeId }: { title: string; youtubeId: string }
   );
 }
 
-function CinemaRate({ movieId, signed }: { movieId: string; signed: boolean }) {
-  const [avg, setAvg] = useState(0);
-  const [n, setN] = useState(0);
+function CinemaVoteBtn({
+  movie,
+  signed,
+  onVoted,
+  onErr,
+  compact,
+}: {
+  movie: CinemaMovie;
+  signed: boolean;
+  onVoted: (votes: number) => void;
+  onErr: (reason: string) => void;
+  compact?: boolean;
+}) {
+  const [busy, setBusy] = useState(false);
+  const voted = movie.voted_today;
+  return (
+    <button
+      type="button"
+      disabled={busy || voted}
+      className={
+        voted
+          ? `inline-flex items-center justify-center gap-1 rounded-lg border border-lime-2/50 bg-lime-2/15 font-bold text-lime-2 ${compact ? "w-full px-1 py-1 text-[9px]" : "shrink-0 px-2.5 py-1.5 text-[10px]"}`
+          : `btn-join inline-flex items-center justify-center gap-1 rounded-lg font-extrabold tracking-wide text-white ${compact ? "w-full px-1 py-1 text-[9px]" : "shrink-0 px-2.5 py-1.5 text-[10px]"}`
+      }
+      onClick={() => {
+        if (!signed) {
+          onErr("Sign in to vote — one vote per title per day.");
+          return;
+        }
+        if (voted || busy) return;
+        setBusy(true);
+        onErr("");
+        void voteMovie({ data: { id: movie.id } })
+          .then((r) => {
+            if (!r.ok) onErr(r.reason);
+            else onVoted("votes" in r && typeof r.votes === "number" ? r.votes : movie.votes + 1);
+          })
+          .catch((e: unknown) => {
+            const msg =
+              e instanceof Error && (e.message === "Unauthorized" || e.name === "UnauthorizedError")
+                ? "Sign in to vote — one vote per title per day."
+                : "Could not save your vote. Try again.";
+            onErr(msg);
+          })
+          .finally(() => setBusy(false));
+      }}
+    >
+      {voted ? (
+        <>
+          <Check className={compact ? "size-2.5" : "size-3"} />
+          Voted · {movie.votes}
+        </>
+      ) : busy ? (
+        "…"
+      ) : (
+        <>Vote · {movie.votes}</>
+      )}
+    </button>
+  );
+}
+
+function CinemaRate({
+  movieId,
+  signed,
+  seedAvg = 0,
+  seedN = 0,
+  onRated,
+}: {
+  movieId: string;
+  signed: boolean;
+  seedAvg?: number;
+  seedN?: number;
+  onRated?: (avg: number, n: number) => void;
+}) {
+  const [avg, setAvg] = useState(seedAvg);
+  const [n, setN] = useState(seedN);
   const [mine, setMine] = useState(0);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
   useEffect(() => {
+    setAvg(seedAvg);
+    setN(seedN);
+    setMine(0);
+    setErr("");
     void getCinemaExtra({ data: { movieId } })
       .then((r) => {
         setAvg(r.avg);
@@ -304,34 +413,68 @@ function CinemaRate({ movieId, signed }: { movieId: string; signed: boolean }) {
         setMine(r.mine);
       })
       .catch(() => undefined);
-  }, [movieId]);
+  }, [movieId, seedAvg, seedN]);
+  const filled = mine > 0 ? mine : Math.round(avg);
   return (
-    <div className="flex items-center gap-1 border-t border-white/5 bg-panel px-2 py-1.5">
-      <span className="mr-1 text-[10px] text-muted">Stars</span>
-      {[1, 2, 3, 4, 5].map((s) => (
-        <button
-          key={s}
-          type="button"
-          aria-label={`${s} star`}
-          className="p-0.5"
-          onClick={() => {
-            if (!signed) {
-              window.location.href = "/login";
-              return;
-            }
-            void rateMovie({ data: { id: movieId, stars: s } }).then((r) => {
-              if (r.ok) {
-                setAvg(r.avg);
-                setN(r.n);
-                setMine(s);
+    <div className="border-t border-white/5 bg-panel px-2 py-1.5">
+      <div className="flex items-center gap-0.5">
+        <span className="mr-1 text-[10px] font-medium text-muted">Rate</span>
+        {[1, 2, 3, 4, 5].map((s) => (
+          <button
+            key={s}
+            type="button"
+            aria-label={`${s} star`}
+            disabled={busy}
+            className="rounded p-0.5 transition hover:scale-110 disabled:opacity-60"
+            onClick={() => {
+              if (!signed) {
+                setErr("Sign in to rate this title.");
+                return;
               }
-            });
-          }}
-        >
-          <Star className={`size-3.5 ${s <= (mine || Math.round(avg)) ? "fill-lime-2 text-lime-2" : "text-muted"}`} />
-        </button>
-      ))}
-      <span className="ml-1 text-[10px] text-muted">{avg ? avg.toFixed(1) : "—"} · {n}</span>
+              setBusy(true);
+              setErr("");
+              void rateMovie({ data: { id: movieId, stars: s } })
+                .then((r) => {
+                  if (r.ok) {
+                    setAvg(r.avg);
+                    setN(r.n);
+                    setMine("mine" in r && typeof r.mine === "number" ? r.mine : s);
+                    onRated?.(r.avg, r.n);
+                  } else {
+                    setErr(r.reason);
+                  }
+                })
+                .catch((e: unknown) => {
+                  const msg =
+                    e instanceof Error && (e.message === "Unauthorized" || e.name === "UnauthorizedError")
+                      ? "Sign in to rate this title."
+                      : "Could not save rating. Try again.";
+                  setErr(msg);
+                })
+                .finally(() => setBusy(false));
+            }}
+          >
+            <Star
+              className={`size-4 ${s <= filled ? "fill-lime-2 text-lime-2 drop-shadow-[0_0_6px_rgba(107,158,120,0.45)]" : "text-white/25"}`}
+            />
+          </button>
+        ))}
+        <span className="ml-1.5 text-[10px] text-muted">
+          {avg > 0 ? avg.toFixed(1) : "—"}
+          {n > 0 ? ` · ${n}` : ""}
+          {mine > 0 ? <span className="text-lime-2"> · yours {mine}</span> : null}
+        </span>
+      </div>
+      {err ? (
+        <p className="mt-1 text-[10px] text-danger">
+          {err}{" "}
+          {/sign in/i.test(err) ? (
+            <a href="/login?mode=up" className="font-semibold underline">
+              Sign in
+            </a>
+          ) : null}
+        </p>
+      ) : null}
     </div>
   );
 }
