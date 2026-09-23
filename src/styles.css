@@ -66,6 +66,15 @@
   }
 }
 
+/* iOS Safari zooms focused fields under 16px; utilities like text-sm must not win */
+@supports (-webkit-touch-callout: none) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 @layer components {
   .raised {
     background: linear-gradient(180deg, #222 0%, #141414 100%);

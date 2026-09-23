@@ -147,8 +147,8 @@ export function CinemaPane() {
         <div className="mb-3 rounded-xl border border-line bg-panel p-2">
           <div className="text-[11px] font-medium text-muted">Cinema Advertiser — submit a YouTube URL</div>
           <p className="mb-2 text-[10px] text-muted">Staff approve. Votes send it to Watching Now. No video files on Kilode.</p>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Movie title" className="mb-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-sm" />
-          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/watch?v=…" className="mb-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-sm" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Movie title" className="mb-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
+          <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/watch?v=…" className="mb-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
           <div className="mb-1 flex gap-1">
             {(["nigerian", "global", "coming"] as const).map((s) => (
               <button key={s} type="button" onClick={() => setSubmitSec(s)} className={`rounded-full px-2 py-0.5 text-[10px] capitalize ${submitSec === s ? "btn-3d" : "border border-line text-muted"}`}>
@@ -396,7 +396,7 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
           });
         }}
       >
-        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={signed ? "Talk this scene…" : "Sign in to chat"} className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-sm" />
+        <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={signed ? "Talk this scene…" : "Sign in to chat"} className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-base" />
         <button type="submit" className="btn-join grid size-8 place-items-center rounded-lg" aria-label="Send">
           <Send className="size-3.5" />
         </button>
@@ -472,21 +472,21 @@ function CinemaQuizAdmin({ movies, onSaved }: { movies: CinemaMovie[]; onSaved: 
   return (
     <div className="mt-3 border-t border-line pt-3">
       <div className="text-[11px] font-medium text-muted">A–E quiz (you type it. AI generate waits for an operator key — we do not invent answers)</div>
-      <select value={movieId} onChange={(ev) => setMovieId(ev.target.value)} className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-sm">
+      <select value={movieId} onChange={(ev) => setMovieId(ev.target.value)} className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base">
         <option value="">Movie</option>
         {movies.map((m) => (
           <option key={m.id} value={m.id}>{m.title}</option>
         ))}
       </select>
-      <input value={topic} onChange={(ev) => setTopic(ev.target.value)} placeholder="Topic" className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-sm" />
-      <input value={q} onChange={(ev) => setQ(ev.target.value)} placeholder="Question" className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-sm" />
+      <input value={topic} onChange={(ev) => setTopic(ev.target.value)} placeholder="Topic" className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
+      <input value={q} onChange={(ev) => setQ(ev.target.value)} placeholder="Question" className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
       {(["A", "B", "C", "D", "E"] as const).map((L, i) => (
         <input
           key={L}
           value={[a, b, c, d, e][i]}
           onChange={(ev) => [setA, setB, setC, setD, setE][i](ev.target.value)}
           placeholder={`${L} option`}
-          className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-sm"
+          className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base"
         />
       ))}
       <div className="mt-1 flex gap-1">
