@@ -673,15 +673,7 @@ html[data-skin="ivory"] .brand-word {
   height: 100%;
   object-fit: cover;
 }
-.brand-mark-day {
-  display: none;
-}
-html[data-skin="ivory"] .brand-mark-night {
-  display: none;
-}
-html[data-skin="ivory"] .brand-mark-day {
-  display: block;
-}
+/* Ivory: keep the real 3D dark-plate bang; soft mint/sage chrome frames it */
 html[data-skin="ivory"] .brand-mark {
   background: linear-gradient(180deg, #cfe6d7 0%, #a8ceb6 100%);
   box-shadow:
