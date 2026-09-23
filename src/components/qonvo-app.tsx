@@ -847,7 +847,7 @@ function QonvoAppInner() {
                 <div className="text-base font-extrabold text-danger">{purge === "kept" ? "Kept" : purge}</div>
                 <p className="mt-1 text-[10px] text-muted">
                   {store.chatHours === 0
-                    ? "Super admin set chat to never expire."
+                    ? "Kilode set chat to never expire."
                     : `Messages older than ${chatTtlLabel(store.chatHours)} disappear. Feeds, music, videos, and ads stay.`}
                 </p>
               </div>

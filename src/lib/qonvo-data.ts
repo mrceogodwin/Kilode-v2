@@ -471,7 +471,7 @@ export const AD_SIZES: Record<AdPlacement, { label: string; hint: string }> = {
   "article-leader": { label: "728 × 90", hint: "Long banner. JPG/PNG, max 2MB." },
   "article-mid": { label: "600 × 300", hint: "In-story box. JPG/PNG, max 2MB." },
   cinema: { label: "1280 × 220", hint: "Cinema strip. JPG/PNG, max 2MB." },
-  "feeds-hero": { label: "1280 × 720", hint: "16:9. Image or YouTube. Super prices this high." },
+  "feeds-hero": { label: "1280 × 720", hint: "16:9. Image or YouTube. Premium Kilode placement." },
 };
 
 export type Campaign = {
@@ -586,7 +586,7 @@ export const TERMS = `Kilode Terms of Use
 
 By creating an account or using post, music, video, cinema, ads, jobs, marketplace, or rent tools you agree:
 
-1. You pick one account type at register. You cannot switch it yourself. Super admin may override.
+1. You pick one account type at register. You cannot switch it yourself. Kilode may adjust it if needed.
 2. You are responsible for what you publish. Do not post illegal content, scams, hate, or anyone’s private data.
 3. Music is link-only (YouTube, Audiomack, SoundCloud, Spotify, Boomplay, Apple). We do not host audio files.
 4. Movies are YouTube URLs submitted by Cinema Posters, then approved. We do not host video files.

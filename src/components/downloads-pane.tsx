@@ -57,7 +57,7 @@ export function DownloadsPane() {
         <div className="raised rounded-2xl px-4 py-10 text-center">
           <Download className="mx-auto size-8 text-lime-2" />
           <p className="mt-3 text-sm font-semibold">Nothing listed yet</p>
-          <p className="mt-1 text-[12px] text-muted">Super adds products from the ops desk. They show here the moment they publish.</p>
+          <p className="mt-1 text-[12px] text-muted">Kilode publishes products here as they go live.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -106,7 +106,7 @@ export function DownloadsPane() {
                     Open download
                   </a>
                 ) : (
-                  <p className="text-[12px] text-muted">No file URL on this item yet. Super will attach one.</p>
+                  <p className="text-[12px] text-muted">Download link coming soon from Kilode.</p>
                 )}
                 <button type="button" className="mt-3 block text-[12px] text-muted" onClick={() => setBuy(null)}>
                   Close

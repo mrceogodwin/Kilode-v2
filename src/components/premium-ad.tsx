@@ -51,7 +51,7 @@ export function PremiumStoryAd({ compact }: { compact?: boolean }) {
     <div className={`grid w-full place-items-center ad-void-empty px-4 text-center ${compact ? "h-[100px]" : "h-[128px]"}`}>
       <div>
         <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</div>
-        <p className="mt-1 text-[10px] font-normal text-muted">Image or YouTube. Super fills this slot.</p>
+        <p className="mt-1 text-[10px] font-normal text-muted">Image or YouTube. Kilode fills this slot.</p>
       </div>
     </div>
   );

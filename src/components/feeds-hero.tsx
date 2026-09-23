@@ -226,7 +226,7 @@ function HeroSlide({
         <div>
           <div className="text-[9px] font-medium tracking-[0.2em] text-lime-2">ADVERTISEMENT</div>
           <div className="mt-1 text-[13px] font-medium">Google AdSense</div>
-          <p className="mt-1 text-[11px] text-muted">This slide fills when Super pastes ca-pub + unit.</p>
+          <p className="mt-1 text-[11px] text-muted">This slide fills when Kilode turns on the ad unit.</p>
         </div>
       </div>
     );
@@ -258,7 +258,7 @@ function HeroSlide({
         <div>
           <div className="text-[9px] font-medium tracking-[0.2em] text-lime-2">COMPANY {slide.n}</div>
           <div className="mt-1 text-[13px] font-medium">16:9 banner</div>
-          <p className="mt-1 text-[11px] text-muted">Reserved in this slider. Super pastes the creative.</p>
+          <p className="mt-1 text-[11px] text-muted">Reserved in this slider. Kilode adds the creative.</p>
         </div>
       </a>
     );

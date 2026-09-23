@@ -3,10 +3,10 @@ import { X } from "lucide-react";
 
 const SCENES = [
   { src: "/howto/feeds.jpg", title: "Feeds", body: "News in a 4-column grid. Open a story for comments, related posts, and Top 10." },
-  { src: "/howto/chat.jpg", title: "Forum", body: "Live rooms. Messages expire on a clock Super sets. No links or phone numbers." },
+  { src: "/howto/chat.jpg", title: "Forum", body: "Live rooms. Messages expire on a Kilode timer. No links or phone numbers." },
   { src: "/howto/cinema.jpg", title: "Cinema", body: "Watch a YouTube title together. Vote, rate 1–5, take the A–E quiz." },
   { src: "/howto/ads.jpg", title: "Ads", body: "Ten paid slots. Pay crypto. After approval the creative goes live for the days you bought." },
-  { src: "/howto/join.jpg", title: "Join", body: "Username + password. Pick a type at register. That type stays unless Super changes it." },
+  { src: "/howto/join.jpg", title: "Join", body: "Username + password. Pick a type at register. Your type stays locked after you join." },
 ];
 
 export function HowKilode({ className = "", children }: { className?: string; children?: ReactNode }) {

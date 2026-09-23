@@ -114,7 +114,7 @@ export function CinemaPane() {
             <h3 className="mt-1 text-base font-extrabold">Watch together. Kilode never hosts the file.</h3>
             <ul className="mt-3 space-y-2 text-[12px] leading-snug text-muted">
               <li>YouTube embed only. Trailer or official clip.</li>
-              <li>Join to vote once a day, rate 1–5 stars, and take the A–E quiz Super sets.</li>
+              <li>Join to vote once a day, rate 1–5 stars, and take the Kilode A–E quiz.</li>
               <li>Cinema Posters submit URLs. Staff approve. Votes can send it to Watching Now.</li>
               <li>Live talk beside the player is a watch-party chat — join this hour's discussion while it plays.</li>
             </ul>

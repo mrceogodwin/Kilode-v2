@@ -712,7 +712,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                   }}
                 />
               ))}
-              <p className="text-[10px] text-muted">News Engine is staff-only in /ops — your public stories still go through Feeds.</p>
+              <p className="text-[10px] text-muted">News Engine is Kilode staff-only — your public stories still go through Feeds.</p>
             </div>
           )}
         </Section>
@@ -770,7 +770,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         <Section kicker="ADS" title="Your campaigns" action="Place ad" onAction={() => goto({ screen: "ads" })}>
           {myAds.length === 0 ? (
             <EmptyBlock
-              body="No campaigns yet. Pick a slot, upload creative, copy the Kilode wallet, pay crypto, paste the tx hash. Staff approve. NOWPayments needs a Super Admin API key — manual wallets are the live path."
+              body="No campaigns yet. Pick a slot, upload creative, copy the Kilode wallet, pay crypto, paste the tx hash. Staff approve. Auto-pay needs a Kilode setup key — manual wallets are the live path."
               cta="Place ad"
               onClick={() => goto({ screen: "ads" })}
             />
@@ -799,7 +799,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         <Section kicker="BRAND" title="Ads & showcase" action="Place ad" onAction={() => goto({ screen: "ads" })}>
           {myAds.length === 0 ? (
             <EmptyBlock
-              body="Brand ads go live after crypto payment + staff approve. NOWPayments needs a Super Admin API key — use the wallet Copy path today. You can also showcase products in Marketplace."
+              body="Brand ads go live after crypto payment + staff approve. Auto-pay needs a Kilode setup key — use the wallet Copy path today. You can also showcase products in Marketplace."
               cta="Place ad"
               onClick={() => goto({ screen: "ads" })}
             />
@@ -1251,7 +1251,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           <Section kicker="UPDATES" title="Email digest">
             <div className="raised rounded-2xl border border-line p-3">
               <p className="mb-2 text-[12px] text-muted">
-                Same subscribe used in the footer — get new public posts by email, one at a time. No spam. We do not send until mail is wired; your address is stored.
+                Same subscribe as the footer — get new public posts by email, one at a time. No spam.
               </p>
               <DigestBox quiet defaultOpen />
             </div>

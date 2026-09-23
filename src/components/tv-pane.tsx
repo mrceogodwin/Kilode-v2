@@ -128,7 +128,7 @@ function KilodeTvLiveBox({ live }: { live: TvLive }) {
                       <BangMark className="size-12 rounded-[14px] sm:size-14 sm:rounded-[16px]" />
                       <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-lime-2">Live soon</div>
                       <p className="max-w-[16rem] text-[11px] leading-snug text-white/70">
-                        Super sets the stream in ops
+                        Kilode sets the live stream
                       </p>
                     </>
                   )}
@@ -165,14 +165,14 @@ export function TvPane() {
         </div>
         <h1 className="mt-1.5 text-[22px] font-bold leading-tight sm:text-[32px]">Watch. Follow. Share.</h1>
         <p className="mt-1.5 max-w-md text-[12px] leading-relaxed text-muted sm:text-[13px]">
-          One tap to every Kilode channel. Super pastes the real URLs and thumbs from ops.
+          One tap to every Kilode channel. Live links and thumbs are curated by Kilode.
         </p>
       </section>
 
       <KilodeTvLiveBox live={tv} />
 
       {rows.length === 0 ? (
-        <p className="text-sm text-muted">No channels yet. Super adds them in ops.</p>
+        <p className="text-sm text-muted">No channels yet. Kilode will publish them here soon.</p>
       ) : (
         <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
           {rows.map((s) => (
@@ -209,7 +209,7 @@ export function TvPane() {
                       FOLLOW
                     </a>
                   ) : (
-                    <p className="text-[9px] leading-snug text-muted sm:text-[10px]">Super pastes the live URL in ops.</p>
+                    <p className="text-[9px] leading-snug text-muted sm:text-[10px]">Live soon — Kilode sets the stream.</p>
                   )}
                 </div>
               </div>

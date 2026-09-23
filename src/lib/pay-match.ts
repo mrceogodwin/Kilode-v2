@@ -162,7 +162,7 @@ export async function verifyCryptoTx(opts: {
   }
   const wallet = addrOf(opts.wallets, coin);
   if (!wallet) {
-    return { ok: false, coin, received: "", to: "", confirmed: false, reason: `No ${coin.toUpperCase()} wallet saved. Super must paste one in wallets.` };
+    return { ok: false, coin, received: "", to: "", confirmed: false, reason: `No ${coin.toUpperCase()} wallet saved. Kilode must paste one in wallets.` };
   }
   try {
     if (coin === "btc") return await matchBtc(hash, wallet);

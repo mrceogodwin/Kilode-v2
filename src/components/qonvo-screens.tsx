@@ -576,7 +576,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           </p>
           <div className="mt-2 rounded-xl border border-line bg-panel/80 px-3 py-2 text-[11px] leading-snug text-muted">
             <span className="font-bold text-lime-2">Pay path:</span> copy the Kilode wallet below, send crypto, paste the tx hash.{" "}
-            <span className="font-semibold text-white">NOWPayments</span> stays off until Super Admin pastes an API key in /ops — then it can auto-invoice. Manual wallets are live now.
+            <span className="font-semibold text-white">NOWPayments</span> stays off until Kilode enables auto-pay — then it can auto-invoice. Manual wallets are live now.
           </div>
           {ak === "brand" && canMarket ? (
             <button type="button" className="btn-3d mt-2 rounded-lg px-3 py-1.5 text-[11px] font-semibold" onClick={() => setPane("market")}>
@@ -1545,7 +1545,7 @@ function Ads({ store }: { store: Store }) {
   }
   if (!canKind(store.kind, "ads.submit")) {
     return (
-      <Screen kicker="ADS" title="Ads Poster accounts only" sub="You registered as a different type. Super admin can switch the type from the staff console.">
+      <Screen kicker="ADS" title="Ads Poster accounts only" sub="You registered as a different type. Ask Kilode support if you need a type change.">
         <p className="text-sm text-muted">Browse live ads on the Ads tab. To place one, you need an Ads Poster or Brand account.</p>
       </Screen>
     );
@@ -1582,7 +1582,7 @@ function Ads({ store }: { store: Store }) {
     <Screen kicker="ADS" title="Place an ad" sub="Pick a slot, creative type, and duration. Pay crypto. Staff approve. Then it appears on that slot.">
       <div className="mb-3 rounded-xl border border-lime-2/30 bg-lime-2/5 px-3 py-2 text-[11px] leading-snug text-muted">
         <span className="font-bold text-lime-2">1 · Slot</span> → <span className="font-bold text-lime-2">2 · Creative</span> → <span className="font-bold text-lime-2">3 · Copy wallet</span> → pay → paste tx → submit.{" "}
-        NOWPayments needs a Super Admin API key (not set) — use manual crypto wallets.
+        Auto-pay is not enabled yet — use manual crypto wallets.
       </div>
       <div className="mb-3 grid gap-1.5" role="group" aria-label="Ad slot">
         {AD_PLACEMENTS.map((p) => {

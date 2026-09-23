@@ -112,7 +112,7 @@ export function AdSlotOrEmpty({ id, label, className = "" }: { id: string; label
   return null;
 }
 
-/** Reserved flat strip. No label. Super fills it from the console. */
+/** Reserved flat strip. No label. Kilode fills it from the console. */
 export function FlatAdBox({ id, className = "" }: { id: string; className?: string }) {
   const rows = useAdSlots();
   const slot = rows.find((r) => r.id === id && r.enabled);
