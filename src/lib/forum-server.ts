@@ -118,6 +118,113 @@ export const getChatTtl = createServerFn({ method: "GET" }).handler(async () => 
   return { hours };
 });
 
+/** Far-future sentinel = "Until I reopen" (Super clears manually). */
+export const LIVE_PAUSE_OPEN_UNTIL = 9_999_999_999_999;
+
+const gPause = globalThis as typeof globalThis & {
+  __nfLivePause?: { at: number; chatUntil: number; cinemaUntil: number };
+};
+
+export function invalidateLivePause() {
+  gPause.__nfLivePause = undefined;
+}
+
+async function ensureLivePauseCols() {
+  const sql = await getSql();
+  try {
+    await sql`alter table nf_site add column if not exists live_chat_paused_until bigint not null default 0`;
+    await sql`alter table nf_site add column if not exists live_cinema_paused_until bigint not null default 0`;
+  } catch {
+    /* exists */
+  }
+  return sql;
+}
+
+export type LivePauseState = { chatUntil: number; cinemaUntil: number };
+
+export async function loadLivePause(): Promise<LivePauseState> {
+  if (gPause.__nfLivePause && Date.now() - gPause.__nfLivePause.at < 5_000) {
+    return { chatUntil: gPause.__nfLivePause.chatUntil, cinemaUntil: gPause.__nfLivePause.cinemaUntil };
+  }
+  try {
+    const sql = await ensureLivePauseCols();
+    const rows = await sql<{
+      live_chat_paused_until: number | string | null;
+      live_cinema_paused_until: number | string | null;
+    }>`select live_chat_paused_until, live_cinema_paused_until from nf_site where id = 1 limit 1`;
+    const chatUntil = Math.max(0, Number(rows[0]?.live_chat_paused_until ?? 0) || 0);
+    const cinemaUntil = Math.max(0, Number(rows[0]?.live_cinema_paused_until ?? 0) || 0);
+    gPause.__nfLivePause = { at: Date.now(), chatUntil, cinemaUntil };
+    return { chatUntil, cinemaUntil };
+  } catch {
+    return { chatUntil: 0, cinemaUntil: 0 };
+  }
+}
+
+export function isCinemaRoom(roomId: string) {
+  return roomId.startsWith("cinema:");
+}
+
+export function livePauseForRoom(
+  roomId: string,
+  state: LivePauseState,
+  now = Date.now(),
+): { paused: boolean; until: number; reason: string } {
+  const until = isCinemaRoom(roomId) ? state.cinemaUntil : state.chatUntil;
+  if (until > now) {
+    return {
+      paused: true,
+      until,
+      reason: isCinemaRoom(roomId)
+        ? "Live talk is on a short break — back soon."
+        : "Chat is on a short break — back soon.",
+    };
+  }
+  return { paused: false, until: 0, reason: "" };
+}
+
+export const getLivePause = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const { assertStaff } = await import("@/lib/staff-server");
+    await assertStaff(context.userId);
+    const state = await loadLivePause();
+    const now = Date.now();
+    return {
+      chatUntil: state.chatUntil > now ? state.chatUntil : 0,
+      cinemaUntil: state.cinemaUntil > now ? state.cinemaUntil : 0,
+      now,
+    };
+  });
+
+export const setLivePause = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { kind: "chat" | "cinema"; until: number }) => d)
+  .handler(async ({ context, data }) => {
+    const { assertStaff } = await import("@/lib/staff-server");
+    await assertStaff(context.userId, "super");
+    const until = Math.max(0, Math.floor(Number(data.until) || 0));
+    const sql = await ensureLivePauseCols();
+    const existing = await sql<{ id: number }>`select id from nf_site where id = 1 limit 1`;
+    if (!existing[0]) {
+      await sql`insert into nf_site (id, chat_ttl_hours, ts) values (1, 24, ${Date.now()})`;
+    }
+    if (data.kind === "cinema") {
+      await sql`update nf_site set live_cinema_paused_until = ${until}, ts = ${Date.now()} where id = 1`;
+    } else {
+      await sql`update nf_site set live_chat_paused_until = ${until}, ts = ${Date.now()} where id = 1`;
+    }
+    invalidateLivePause();
+    const state = await loadLivePause();
+    const now = Date.now();
+    return {
+      ok: true as const,
+      kind: data.kind,
+      chatUntil: state.chatUntil > now ? state.chatUntil : 0,
+      cinemaUntil: state.cinemaUntil > now ? state.cinemaUntil : 0,
+    };
+  });
+
 export const listPosts = createServerFn({ method: "GET" }).handler(async () => {
   try {
   const sql = await getSql();
@@ -502,8 +609,22 @@ export const listMsgs = createServerFn({ method: "GET" })
     try {
       return await withTimeout(async () => {
     const roomId = data.roomId;
-    const sql = await getSql();
     const hours = await loadChatTtlHours();
+    const pause = livePauseForRoom(roomId, await loadLivePause());
+    if (pause.paused) {
+      return {
+        msgs: [] as { n: string; t: string; ts: number; rx: Record<string, number>; parentTs?: number; parentN?: string; parentT?: string }[],
+        older: false,
+        newer: false,
+        hours,
+        online: [] as { handle: string; typing: boolean }[],
+        typing: [] as string[],
+        paused: true as const,
+        until: pause.until,
+        reason: pause.reason,
+      };
+    }
+    const sql = await getSql();
     const cut = hours > 0 ? Date.now() - hours * 3600_000 : 0;
     const now = Date.now();
     if (cut && (!gPurge.__nfChatPurgeAt || now - gPurge.__nfChatPurgeAt > 60_000)) {
@@ -590,11 +711,11 @@ export const listMsgs = createServerFn({ method: "GET" })
       newer = false;
     }
     const presence = await roomPresence(roomId);
-    return { msgs, older, newer, hours, online: presence.online, typing: presence.typing };
+    return { msgs, older, newer, hours, online: presence.online, typing: presence.typing, paused: false as const, until: 0 };
         }, DB_TIMEOUT_MS, "listMsgs");
     } catch (e) {
       const message = e instanceof Error ? e.message : "listMsgs failed";
-      return { msgs: [] as const, older: false, newer: false, hours: 24, online: [] as const, typing: [] as const, error: message };
+      return { msgs: [] as const, older: false, newer: false, hours: 24, online: [] as const, typing: [] as const, paused: false as const, until: 0, error: message };
     }
   });
 
@@ -605,6 +726,15 @@ export const saveMsg = createServerFn({ method: "POST" })
     try {
       return await withTimeout(async () => {
     if (!allowWrite(`msg:${context.userId}`, 30)) return { ok: false as const, reason: RATE_BLOCKED };
+    const pause = livePauseForRoom(data.roomId, await loadLivePause());
+    if (pause.paused) {
+      return {
+        ok: false as const,
+        reason: isCinemaRoom(data.roomId)
+          ? "Live talk is on a short break. Try again later."
+          : "Chat is on a short break. Try again later.",
+      };
+    }
     const text = data.text.trim();
     if (!text) return null;
     const hit = await restrictionOf(context.userId);
@@ -653,6 +783,15 @@ export const pingPresence = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     try {
       return await withTimeout(async () => {
+    const pause = livePauseForRoom(data.roomId, await loadLivePause());
+    if (pause.paused) {
+      return {
+        online: [] as { handle: string; typing: boolean }[],
+        typing: [] as string[],
+        paused: true as const,
+        until: pause.until,
+      };
+    }
     const sql = await getSql();
     const handle = await publicHandle(context.userId);
     const now = Date.now();

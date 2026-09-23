@@ -7,6 +7,175 @@ import { listAdCatalog, saveAdCatalog, type AdCatalog } from "@/lib/ad-catalog-s
 import { AD_PLACEMENTS } from "@/lib/qonvo-data";
 import { deleteRoom, listRoomsAdmin, renameRoom, saveCustomRoom, setRoomPaused } from "@/lib/rooms-server";
 import { ROOM_SECTION_ORDER } from "@/lib/qonvo-data";
+import { getLivePause, setLivePause, LIVE_PAUSE_OPEN_UNTIL } from "@/lib/forum-server";
+import { getPublicSite, saveSiteFlags } from "@/lib/site-server";
+
+
+type PauseKind = "chat" | "cinema";
+type PauseDur = "1h" | "6h" | "open";
+
+function untilLabel(until: number) {
+  if (!until || until <= Date.now()) return "";
+  if (until >= LIVE_PAUSE_OPEN_UNTIL - 1_000) return "Until you reopen";
+  try {
+    return new Date(until).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  } catch {
+    return new Date(until).toISOString();
+  }
+}
+
+function durToUntil(dur: PauseDur) {
+  const now = Date.now();
+  if (dur === "1h") return now + 3600_000;
+  if (dur === "6h") return now + 6 * 3600_000;
+  return LIVE_PAUSE_OPEN_UNTIL;
+}
+
+function LivePauseRow({
+  title,
+  kind,
+  until,
+  onSaved,
+}: {
+  title: string;
+  kind: PauseKind;
+  until: number;
+  onSaved: (next: { chatUntil: number; cinemaUntil: number }) => void;
+}) {
+  const [dur, setDur] = useState<PauseDur>("1h");
+  const [busy, setBusy] = useState(false);
+  const on = until > Date.now();
+  return (
+    <div className={`rounded-xl border p-3 ${on ? "border-danger/50 bg-danger/10" : "border-danger/25 bg-danger/5"}`}>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-sm font-extrabold text-danger">{title}</div>
+          <p className="mt-0.5 text-[11px] text-muted">
+            {on
+              ? `On · ${untilLabel(until)}`
+              : "Off · visitors see live Chat / talk as usual"}
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={busy}
+          className={`rounded-full px-3 py-1 text-[11px] font-bold disabled:opacity-50 ${
+            on ? "bg-danger text-white" : "border border-danger/40 text-danger"
+          }`}
+          onClick={() => {
+            setBusy(true);
+            const nextUntil = on ? 0 : durToUntil(dur);
+            void setLivePause({ data: { kind, until: nextUntil } })
+              .then((r) => {
+                if (r.ok) onSaved({ chatUntil: r.chatUntil, cinemaUntil: r.cinemaUntil });
+              })
+              .finally(() => setBusy(false));
+          }}
+        >
+          {busy ? "…" : on ? "Turn off" : "Turn on"}
+        </button>
+      </div>
+      {!on ? (
+        <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label={`${title} duration`}>
+          {(
+            [
+              ["1h", "1 hour"],
+              ["6h", "6 hours"],
+              ["open", "Until I reopen"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                dur === id ? "bg-danger/25 text-danger" : "border border-line text-muted"
+              }`}
+              onClick={() => setDur(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Super-only: pause live Chat / Cinema talk + Videos menu visibility. */
+export function LivePausePanel() {
+  const [chatUntil, setChatUntil] = useState(0);
+  const [cinemaUntil, setCinemaUntil] = useState(0);
+  const [videosOn, setVideosOn] = useState(true);
+  const [videosBusy, setVideosBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  function apply(next: { chatUntil: number; cinemaUntil: number }) {
+    setChatUntil(next.chatUntil);
+    setCinemaUntil(next.cinemaUntil);
+    setMsg("Saved");
+    setTimeout(() => setMsg(""), 1600);
+  }
+  useEffect(() => {
+    void getLivePause()
+      .then((r) => {
+        setChatUntil(r.chatUntil);
+        setCinemaUntil(r.cinemaUntil);
+      })
+      .catch(() => undefined);
+    void getPublicSite()
+      .then((s) => setVideosOn(s.videosMenuVisible !== false))
+      .catch(() => undefined);
+  }, []);
+  return (
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-2xl border border-danger/35 p-4 shadow-[0_0_24px_rgba(220,60,60,0.12)]">
+      <div className="min-w-0">
+        <div className="text-[10px] font-bold tracking-[0.18em] text-danger">SUPER · LIVE BREAK</div>
+        <h3 className="text-lg font-extrabold text-danger">Pause live Chat / Cinema talk</h3>
+        <p className="break-words text-[11px] text-muted">
+          Stops visitor live updates while you are away. They see a calm “on a short break” note — not staff words. Turn off (or wait out the timer) to reopen.
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <LivePauseRow title="Pause live Chat" kind="chat" until={chatUntil} onSaved={apply} />
+        <LivePauseRow title="Pause Cinema talk" kind="cinema" until={cinemaUntil} onSaved={apply} />
+      </div>
+      <div className="rounded-xl border border-line bg-panel p-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-sm font-extrabold">Videos in menu</div>
+            <p className="mt-0.5 text-[11px] text-muted">
+              {videosOn
+                ? "Shown · hamburger lists Videos (Clips on Kilode)"
+                : "Hidden · Videos is simply not in the menu"}
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={videosBusy}
+            className={`rounded-full px-3 py-1 text-[11px] font-bold disabled:opacity-50 ${
+              videosOn ? "border border-line" : "bg-panel-2 border border-line text-muted"
+            }`}
+            onClick={() => {
+              const next = !videosOn;
+              setVideosBusy(true);
+              void saveSiteFlags({ data: { videosMenuVisible: next } })
+                .then((r) => {
+                  if (r.ok) {
+                    setVideosOn(r.videosMenuVisible);
+                    setMsg(r.videosMenuVisible ? "Videos shown in menu" : "Videos hidden from menu");
+                    setTimeout(() => setMsg(""), 1600);
+                  }
+                })
+                .finally(() => setVideosBusy(false));
+            }}
+          >
+            {videosBusy ? "…" : videosOn ? "Hide Videos" : "Show Videos in menu"}
+          </button>
+        </div>
+      </div>
+      {msg ? <p className="text-[11px] text-danger">{msg}</p> : null}
+    </div>
+  );
+}
 
 export function OpsKeysPanel() {
   const [rows, setRows] = useState<(typeof AI_KEY_SLOTS[number] & { value: string; set: boolean })[]>([]);

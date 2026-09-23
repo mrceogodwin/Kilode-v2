@@ -640,6 +640,8 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
   const [xlate, setXlate] = useState<Record<string, string>>({});
   const [online, setOnline] = useState<{ handle: string; typing: boolean }[]>([]);
   const [chatHours, setChatHours] = useState(24);
+  const [pausedUntil, setPausedUntil] = useState(0);
+  const [pausedReason, setPausedReason] = useState("");
   const pendingRef = useRef<{ ts: number; t: string; n: string } | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const stickBottom = useRef(true);
@@ -652,7 +654,24 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
     liveMs >= 55 * 60_000 ? "last 60 min" : liveMs >= 3600_000 ? `last ${Math.round(liveMs / 3600_000)} h` : `last ${Math.max(1, Math.round(liveMs / 60_000))} min`;
 
   function applyPack(pack: unknown) {
-    const p = Array.isArray(pack) ? { msgs: pack as ChatMsg[] } : (pack as { msgs?: ChatMsg[]; hours?: number; online?: { handle: string; typing: boolean }[] });
+    const p = Array.isArray(pack)
+      ? { msgs: pack as ChatMsg[] }
+      : (pack as {
+          msgs?: ChatMsg[];
+          hours?: number;
+          online?: { handle: string; typing: boolean }[];
+          paused?: boolean;
+          until?: number;
+          reason?: string;
+        });
+    if (p.paused && typeof p.until === "number" && p.until > Date.now()) {
+      setPausedUntil(p.until);
+      setPausedReason(p.reason || "Live talk is on a short break — back soon.");
+      setOnline([]);
+      return;
+    }
+    setPausedUntil(0);
+    setPausedReason("");
     const server = p.msgs ?? [];
     if (typeof p.hours === "number") setChatHours(p.hours);
     if (Array.isArray(p.online)) setOnline(p.online);
@@ -683,6 +702,8 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
     setErr("");
     setXlate({});
     setOnline([]);
+    setPausedUntil(0);
+    setPausedReason("");
     pendingRef.current = null;
     stickBottom.current = true;
     lastLen.current = 0;
@@ -692,9 +713,20 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
       lastActivity = Date.now();
     };
 
+    let pausedUntilLocal = 0;
     const arm = () => {
       if (!on) return;
       if (timer !== undefined) window.clearTimeout(timer);
+      if (pausedUntilLocal > Date.now()) {
+        const wait = Math.min(Math.max(500, pausedUntilLocal - Date.now() + 400), 6 * 3600_000);
+        timer = window.setTimeout(() => {
+          pausedUntilLocal = 0;
+          setPausedUntil(0);
+          setPausedReason("");
+          pull(true);
+        }, wait);
+        return;
+      }
       const delay = pollDelayMs(lastActivity, CINEMA_POLL_ACTIVE_MS, CINEMA_POLL_IDLE_MS);
       if (!delay) return;
       timer = window.setTimeout(() => pull(false), delay);
@@ -702,6 +734,10 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
 
     const pull = (forceFull = false) => {
       if (typeof document !== "undefined" && document.hidden) return;
+      if (pausedUntilLocal > Date.now()) {
+        if (!forceFull) arm();
+        return;
+      }
       if (inFlight) {
         if (!forceFull) arm();
         return;
@@ -716,6 +752,21 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
       void listMsgs({ data: payload, signal })
         .then((r) => {
           if (!on || signal.aborted) return;
+          const peek = Array.isArray(r)
+            ? null
+            : (r as { paused?: boolean; until?: number; reason?: string } | null);
+          if (peek?.paused && typeof peek.until === "number" && peek.until > Date.now()) {
+            pausedUntilLocal = peek.until;
+            setPausedUntil(peek.until);
+            setPausedReason(peek.reason || "Live talk is on a short break — back soon.");
+            setOnline([]);
+            return;
+          }
+          if (pausedUntilLocal) {
+            pausedUntilLocal = 0;
+            setPausedUntil(0);
+            setPausedReason("");
+          }
           if (forceFull || !last) {
             applyPack(r);
             return;
@@ -766,6 +817,7 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
     let ac: AbortController | null = null;
     const bump = () => {
       if (typeof document !== "undefined" && document.hidden) return;
+      if (pausedUntil > Date.now()) return;
       const now = Date.now();
       if (now - lastPing.current < 90_000) return;
       lastPing.current = now;
@@ -792,7 +844,7 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
       clearInterval(t);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [roomId, signed]);
+  }, [roomId, signed, pausedUntil]);
 
   const cutoff = Date.now() - liveMs;
   const msgs = mode === "live" ? allMsgs.filter((m) => m.ts >= cutoff) : allMsgs;
@@ -904,10 +956,16 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
           </div>
         ))}
       </div>
+      {pausedUntil > Date.now() ? (
+        <div className="shrink-0 border-t border-white/5 px-2 py-1.5 text-center text-[11px] font-semibold text-muted">
+          {pausedReason || "Live talk is on a short break — back soon."}
+        </div>
+      ) : null}
       <form
         className="flex shrink-0 items-center gap-1 border-t border-white/5 px-2 py-1.5"
         onSubmit={(e) => {
           e.preventDefault();
+          if (pausedUntil > Date.now()) return;
           if (!signed) {
             window.location.href = "/login";
             return;
@@ -972,11 +1030,22 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
             setDraft(e.target.value);
             if (err) setErr("");
           }}
-          readOnly={!signed}
-          placeholder={signed ? "Say something about this scene…" : "Sign in to join live talk"}
+          readOnly={!signed || pausedUntil > Date.now()}
+          disabled={pausedUntil > Date.now()}
+          placeholder={
+            pausedUntil > Date.now()
+              ? "Live talk is on a short break"
+              : signed
+                ? "Say something about this scene…"
+                : "Sign in to join live talk"
+          }
           className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 py-1.5 text-base"
         />
-        {signed ? (
+        {pausedUntil > Date.now() ? (
+          <span className="inline-flex h-8 items-center rounded-lg border border-line px-2 text-[10px] font-bold text-muted">
+            Break
+          </span>
+        ) : signed ? (
           <button type="submit" className="btn-join grid size-8 place-items-center rounded-lg" aria-label="Send">
             <Send className="size-3.5" />
           </button>

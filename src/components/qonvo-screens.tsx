@@ -30,7 +30,7 @@ import { SocialsAdminPanel, TvPane } from "@/components/tv-pane";
 import { JoinCta, TelegramLink } from "@/components/get-app";
 import { BrandLockup } from "@/components/brand-lockup";
 import { MeDashboard } from "@/components/me-dashboard";
-import { AdCatalogPanel, AdSlotsPanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
+import { AdCatalogPanel, AdSlotsPanel, LivePausePanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { SiteFlagsPanel } from "@/components/site-chrome";
 import { matchAdPayments, matchOneAd } from "@/lib/pay-match-server";
 import { applyListing, listListings, saveListing, type Listing } from "@/lib/listings-server";
@@ -2008,6 +2008,7 @@ function Admin({ store }: { store: Store }) {
           Role {role} · id {userId}
         </p>
       </div>
+      {role === "super" ? <LivePausePanel /> : null}
       {role === "super" || role === "admin" ? (
         <div className="md:col-span-2">
           <div className="mb-1 text-[10px] font-bold tracking-[0.16em] text-lime-2">STAFF · ACCOUNT TYPE</div>

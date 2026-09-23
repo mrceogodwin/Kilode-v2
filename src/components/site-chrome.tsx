@@ -8,6 +8,7 @@ const GONE_KEY = "kilode-install-toast";
 const SID_KEY = "kilode-vid";
 export const EMPTY_PUBLIC_SITE: PublicSite = {
   installToast: true,
+  videosMenuVisible: true,
   visitorsToday: 0,
   visitorsAll: 0,
   members: 0,

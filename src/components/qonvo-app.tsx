@@ -73,7 +73,7 @@ import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
 import { PostBody } from "@/components/post-body";
 import { postBodyPlain } from "@/lib/post-body";
-import { InstallToast, PublicSiteProvider, SiteFooter, TrendingTicker } from "@/components/site-chrome";
+import { InstallToast, PublicSiteProvider, SiteFooter, TrendingTicker, usePublicSite } from "@/components/site-chrome";
 import type { PublicSite } from "@/lib/site-server";
 import { FeedsHero } from "@/components/feeds-hero";
 import { BrandLockup } from "@/components/brand-lockup";
@@ -208,6 +208,8 @@ export function QonvoApp({ initialSite }: { initialSite?: PublicSite } = {}) {
 
 function QonvoAppInner() {
   const store = useQonvo();
+  const { site } = usePublicSite();
+  const videosMenuVisible = site.videosMenuVisible !== false;
   const session = useCurrentUserState();
   const signedIn = Boolean(session.user);
   const [query, setQuery] = useState("");
@@ -297,7 +299,10 @@ function QonvoAppInner() {
     window.addEventListener("kilode:create", go);
     const goto = (e: Event) => {
       const d = (e as CustomEvent<{ screen?: string; tab?: string }>).detail || {};
-      if (d.tab) setHomeTab(d.tab as "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "downloads");
+      if (d.tab) {
+        const tab = d.tab as "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "downloads";
+        setHomeTab(tab === "videos" && site.videosMenuVisible === false ? "feeds" : tab);
+      }
       if (d.screen === "home" || d.tab) setScreen("home");
       else if (d.screen) setScreen(d.screen as MenuId);
     };
@@ -306,7 +311,7 @@ function QonvoAppInner() {
       window.removeEventListener("kilode:create", go);
       window.removeEventListener("kilode:goto", goto);
     };
-  }, [store.authed, session.user]);
+  }, [store.authed, session.user, site.videosMenuVisible]);
 
 
   useEffect(() => {
@@ -327,6 +332,10 @@ function QonvoAppInner() {
   useEffect(() => {
     store.setChatLive(homeTab === "chat" && screen === "home");
   }, [homeTab, screen]);
+
+  useEffect(() => {
+    if (!videosMenuVisible && homeTab === "videos") setHomeTab("feeds");
+  }, [videosMenuVisible, homeTab]);
 
   useEffect(() => {
     if (homeTab !== "feeds" || screen !== "home") setMarketDesk(null);
@@ -731,6 +740,11 @@ function QonvoAppInner() {
                 </button>
               ) : null}
               </div>
+              {store.livePausedUntil > Date.now() ? (
+                <div className="shrink-0 border-t border-line bg-panel px-3 py-2 text-center text-[12px] font-semibold text-muted">
+                  {store.livePausedReason || "Chat is on a short break — back soon."}
+                </div>
+              ) : null}
               <ChatTermsBar
                 accepted={chatOk}
                 onAccept={() => {
@@ -746,6 +760,7 @@ function QonvoAppInner() {
                 className="chat-compose relative flex shrink-0 gap-2 border-t border-line bg-panel/90 p-2 pb-2 mb-[calc(3.35rem+env(safe-area-inset-bottom))] backdrop-blur md:mb-0"
                 onSubmit={(e) => {
                   e.preventDefault();
+                  if (store.livePausedUntil > Date.now()) return;
                   if (!session.user) {
                     window.location.href = "/login";
                     return;
@@ -812,12 +827,23 @@ function QonvoAppInner() {
                     store.clearChatErr();
                     store.bumpPresence(true);
                   }}
-                  readOnly={!signedIn}
-                  placeholder={signedIn ? "Message + emoji" : "Sign in to chat"}
+                  readOnly={!signedIn || store.livePausedUntil > Date.now()}
+                  disabled={store.livePausedUntil > Date.now()}
+                  placeholder={
+                    store.livePausedUntil > Date.now()
+                      ? "Chat is on a short break"
+                      : signedIn
+                        ? "Message + emoji"
+                        : "Sign in to chat"
+                  }
                   data-chat-input="1"
                   className="min-h-11 flex-1 rounded-full border border-line bg-panel-3 px-4 text-base outline-none"
                 />
-                {signedIn ? (
+                {store.livePausedUntil > Date.now() ? (
+                  <span className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-line px-3.5 text-xs font-bold text-muted">
+                    On a break
+                  </span>
+                ) : signedIn ? (
                   <button type="submit" className="btn-join inline-flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-full px-3.5 text-xs font-bold">
                     <Send className="size-3.5" />
                     Send
@@ -1056,7 +1082,9 @@ function QonvoAppInner() {
                 <DrawerRow icon={Radio} label="Music" hint="Artist links. We embed." onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
                 <DrawerRow icon={Film} label="Cinema" hint="Vote and watch together" onClick={() => { setScreen("home"); setHomeTab("cinema"); setMenuOpen(false); }} on={homeTab === "cinema" && screen === "home"} />
                 <DrawerRow icon={Tv} label="Kilode TV" hint="Socials · follow in one place" onClick={() => { setScreen("tv"); setMenuOpen(false); }} on={screen === "tv"} />
-                <DrawerRow icon={Play} label="Videos" hint="Clips on Kilode" onClick={() => { setScreen("home"); setHomeTab("videos"); setMenuOpen(false); }} on={homeTab === "videos" && screen === "home"} />
+                {videosMenuVisible ? (
+                  <DrawerRow icon={Play} label="Videos" hint="Clips on Kilode" onClick={() => { setScreen("home"); setHomeTab("videos"); setMenuOpen(false); }} on={homeTab === "videos" && screen === "home"} />
+                ) : null}
                 <DrawerRow icon={Megaphone} label="Ads" hint="Live brand campaigns" onClick={() => { setScreen("home"); setHomeTab("advert"); setMenuOpen(false); }} on={homeTab === "advert" && screen === "home"} />
                 <DrawerRow icon={Download} label="Downloads" hint="Kilode products · buy with email" onClick={() => { setScreen("home"); setHomeTab("downloads"); setMenuOpen(false); }} on={homeTab === "downloads" && screen === "home"} />
               </DrawerGroup>

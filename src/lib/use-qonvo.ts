@@ -47,6 +47,9 @@ type MsgPack = {
   hours?: number;
   online?: PresenceUser[];
   typing?: string[];
+  paused?: boolean;
+  until?: number;
+  reason?: string;
   error?: string;
 };
 
@@ -57,6 +60,18 @@ function asPack(r: MsgPack | ChatMsg[]): MsgPack {
 /** Timed-out / failed listMsgs returns empty msgs + online — must not wipe UI or advance cursors. */
 function packFailed(pack: MsgPack): boolean {
   return typeof pack.error === "string" && pack.error.length > 0;
+}
+
+function packPaused(pack: MsgPack, now = Date.now()): { paused: boolean; until: number; reason: string } {
+  const until = typeof pack.until === "number" ? pack.until : 0;
+  if (pack.paused && until > now) {
+    return {
+      paused: true,
+      until,
+      reason: pack.reason || "Chat is on a short break — back soon.",
+    };
+  }
+  return { paused: false, until: 0, reason: "" };
 }
 
 /** Union by ts (server fields win); rx counts take max so optimistic taps are not wiped below pending saves. */
@@ -168,6 +183,8 @@ export function useQonvo() {
   const [hasOlder, setHasOlder] = useState(false);
   const [hasNewer, setHasNewer] = useState(false);
   const [chatHours, setChatHours] = useState(24);
+  const [livePausedUntil, setLivePausedUntil] = useState(0);
+  const [livePausedReason, setLivePausedReason] = useState("");
   const [kind, setKind] = useState<AccountKind>("member");
   const [stage, setStage] = useState("");
   const [genre, setGenre] = useState("");
@@ -390,6 +407,8 @@ export function useQonvo() {
     setOnline([]);
     setTyping([]);
     setChatErr("");
+    setLivePausedUntil(0);
+    setLivePausedReason("");
     setMsgsLoading(true);
     const loadGen = (roomLoadGenRef.current[want] ?? 0) + 1;
     roomLoadGenRef.current[want] = loadGen;
@@ -408,6 +427,20 @@ export function useQonvo() {
           msgsRef.current = fallback;
           setMsgs(fallback);
           return;
+        }
+        {
+          const br = packPaused(pack);
+          if (br.paused) {
+            setLivePausedUntil(br.until);
+            setLivePausedReason(br.reason);
+            setOnline([]);
+            setTyping([]);
+            if (typeof pack.hours === "number") setChatHours(pack.hours);
+            setMsgsLoading(false);
+            return;
+          }
+          setLivePausedUntil(0);
+          setLivePausedReason("");
         }
         // Prefer server page; always re-attach pending/confirmed sends missing from the pack.
         const incoming = pack.msgs ?? [];
@@ -472,6 +505,7 @@ export function useQonvo() {
     let lastActivity = Date.now();
     let pollN = 0;
     let forceReconcile = false;
+    let pausedUntilLocal = 0;
     const want = roomId;
 
     const markActivity = () => {
@@ -481,6 +515,17 @@ export function useQonvo() {
     const arm = () => {
       if (dead) return;
       if (timer !== undefined) window.clearTimeout(timer);
+      if (pausedUntilLocal > Date.now()) {
+        const wait = Math.min(Math.max(500, pausedUntilLocal - Date.now() + 400), 6 * 3600_000);
+        timer = window.setTimeout(() => {
+          pausedUntilLocal = 0;
+          setLivePausedUntil(0);
+          setLivePausedReason("");
+          forceReconcile = true;
+          tick();
+        }, wait);
+        return;
+      }
       const delay = pollDelayMs(lastActivity, CHAT_POLL_ACTIVE_MS, CHAT_POLL_IDLE_MS);
       if (!delay) return; // hidden → stop until visibilitychange
       timer = window.setTimeout(tick, delay);
@@ -488,6 +533,10 @@ export function useQonvo() {
 
     const tick = () => {
       if (dead || (typeof document !== "undefined" && document.hidden)) return;
+      if (pausedUntilLocal > Date.now()) {
+        arm();
+        return;
+      }
       if (inFlight) {
         arm();
         return;
@@ -513,6 +562,23 @@ export function useQonvo() {
           if (dead || signal.aborted || roomIdRef.current !== want) return;
           const pack = asPack(r);
           if (packFailed(pack)) return; // do not wipe online / msgs on Neon timeout
+          {
+            const br = packPaused(pack);
+            if (br.paused) {
+              pausedUntilLocal = br.until;
+              setLivePausedUntil(br.until);
+              setLivePausedReason(br.reason);
+              setOnline([]);
+              setTyping([]);
+              if (typeof pack.hours === "number") setChatHours(pack.hours);
+              return;
+            }
+            if (pausedUntilLocal || pack.paused === false) {
+              pausedUntilLocal = 0;
+              setLivePausedUntil(0);
+              setLivePausedReason("");
+            }
+          }
           if (pack.online) setOnline(pack.online);
           if (pack.typing) setTyping(pack.typing);
           if (typeof pack.hours === "number") setChatHours(pack.hours);
@@ -1546,6 +1612,8 @@ export function useQonvo() {
     hasOlder,
     hasNewer,
     chatHours,
+    livePausedUntil,
+    livePausedReason,
     react,
     purgeChat,
     pinRoom,
