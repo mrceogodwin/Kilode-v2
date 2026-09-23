@@ -1,7 +1,21 @@
 import { useEffect, useState } from "react";
-import { getCinemaExtra, rateMovie, saveCinemaQuiz, type CinemaQuiz } from "@/lib/cinema-server";
+import {
+  CINEMA_SECTIONS,
+  CINEMA_SEED,
+  fetchCinemaCatalog,
+  getCinemaExtra,
+  listCinema,
+  listCinemaQueue,
+  rateMovie,
+  saveCinemaQuiz,
+  setMovieStatus,
+  submitMovie,
+  voteMovie,
+  type CinemaMovie,
+  type CinemaQuiz,
+  type CinemaSection,
+} from "@/lib/cinema-server";
 import { Film, HelpCircle, Send, Star, X } from "lucide-react";
-import { CINEMA_SECTIONS, CINEMA_SEED, listCinema, listCinemaQueue, setMovieStatus, submitMovie, voteMovie, type CinemaMovie, type CinemaSection } from "@/lib/cinema-server";
 import { listMsgs, saveMsg, getProfile } from "@/lib/forum-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { timeLabel, type AccountKind, type ChatMsg } from "@/lib/qonvo-data";
@@ -414,6 +428,7 @@ function CinemaChat({ movieId, signed }: { movieId: string; signed: boolean }) {
 export function CinemaAdminPanel() {
   const [rows, setRows] = useState<CinemaMovie[]>([]);
   const [msg, setMsg] = useState("");
+  const [fetchBusy, setFetchBusy] = useState(false);
 
   function load() {
     void listCinemaQueue()
@@ -426,8 +441,28 @@ export function CinemaAdminPanel() {
 
   return (
     <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
-      <div className="text-[11px] font-medium text-muted">Cinema</div>
-      <p className="text-xs text-muted">Approve advertiser YouTube URLs. Pin Watching Now. Votes are 1 per user per title per UTC day. No YouTube search API — cached rows only.</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-[11px] font-medium text-muted">Cinema</div>
+        <button
+          type="button"
+          disabled={fetchBusy}
+          className="btn-join rounded-lg px-3 py-1.5 text-[11px] font-bold disabled:opacity-60"
+          onClick={() => {
+            setFetchBusy(true);
+            setMsg("");
+            void fetchCinemaCatalog()
+              .then((r) => {
+                setMsg(`Fetch ok · inserted ${r.inserted} · updated ${r.updated} · watching ${r.watching}`);
+                load();
+              })
+              .catch((e) => setMsg(e instanceof Error ? e.message : "Fetch failed"))
+              .finally(() => setFetchBusy(false));
+          }}
+        >
+          {fetchBusy ? "Fetching…" : "Fetch"}
+        </button>
+      </div>
+      <p className="text-xs text-muted">Approve advertiser YouTube URLs. Pin Watching Now. Votes are 1 per user per title per UTC day. Super Fetch upserts the curated trailer cache (CINEMA_SEED) — no YouTube search API. Daily cron: /api/cron/cinema (needs CRON_SECRET on Vercel).</p>
       {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
       {rows.length === 0 ? <p className="text-xs text-muted">No movies yet.</p> : null}
       {rows.map((m) => (

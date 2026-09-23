@@ -49,7 +49,7 @@ Owner wallets (already seeded in `migrations/0017_wallets_seed.sql`):
 - Only `cinema` kind submits YouTube URL → pending → staff approve → voting pool.
 - Users (any signed-in) vote **once per day per movie**.
 - Watching Now = approved + top votes (or Super override). YouTube **iframe embed**. Chat uses existing `nf_msgs` with `room_id = cinema:{movieId}` — **no new websocket**. Poll like current chat (6.5s).
-- Daily list: **Vercel Cron once/day** or Super “Fetch” in `/ops`. Cache in DB. Never call YouTube search on every page view.
+- Daily list: **Vercel Cron** `GET /api/cron/cinema` (`15 4 * * *` UTC in `vercel.json`, needs `CRON_SECRET` env) or Super **Fetch** in `/ops` Cinema panel. Upserts `CINEMA_SEED` into `nf_movies`. Cache in DB. Never call YouTube search on every page view.
 - Sections: Top, Trending, Watching Now, Nigerian, Global, Coming Soon (filter columns on `nf_movies`).
 - Mobile tabs: Feeds · Music · **Cinema** · Chat · More. Cinema next to Music.
 

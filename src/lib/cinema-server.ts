@@ -130,6 +130,72 @@ async function crownIfEmpty() {
   if (top[0]) await sql`update nf_movies set watching = 1 where id = ${top[0].id}`;
 }
 
+/**
+ * Upsert official trailer seeds into nf_movies (curated cache). Never calls
+ * YouTube search. Additive: leaves user-submitted pending/approved rows alone.
+ * Used by Super Fetch and the once-daily Vercel Cron.
+ */
+export async function runCinemaCatalogFetch(): Promise<{
+  ok: true;
+  inserted: number;
+  updated: number;
+  watching: number;
+}> {
+  await ensureMovies();
+  const sql = await getSql();
+  let inserted = 0;
+  let updated = 0;
+  for (const m of CINEMA_SEED) {
+    const byId = await sql<{
+      id: string;
+      youtube_id: string;
+      submitter: string | null;
+      user_id: string | null;
+    }>`select id, youtube_id, submitter, user_id from nf_movies where id = ${m.id} limit 1`;
+    if (byId[0]) {
+      await sql`update nf_movies set youtube_id = ${m.youtube_id}, title = ${m.title}, section = ${m.section}, status = ${"approved"}, submitter = ${m.submitter}
+        where id = ${m.id}`;
+      updated += 1;
+      continue;
+    }
+    const byYt = await sql<{
+      id: string;
+      submitter: string | null;
+      user_id: string | null;
+    }>`select id, submitter, user_id from nf_movies where youtube_id = ${m.youtube_id} limit 1`;
+    if (byYt[0]) {
+      const row = byYt[0];
+      const isSeedish = row.id.startsWith("seed-") || (row.submitter === "Kilode" && !row.user_id);
+      if (isSeedish) {
+        await sql`update nf_movies set title = ${m.title}, section = ${m.section}, status = ${"approved"}, submitter = ${m.submitter}
+          where id = ${row.id}`;
+        updated += 1;
+      }
+      /* user-submitted row with same youtube_id — leave untouched */
+      continue;
+    }
+    try {
+      await sql`insert into nf_movies (id, youtube_id, title, section, status, watching, votes, submitter, ts)
+        values (${m.id}, ${m.youtube_id}, ${m.title}, ${m.section}, ${"approved"}, ${m.watching ? 1 : 0}, ${m.votes}, ${m.submitter}, ${m.ts})`;
+      inserted += 1;
+    } catch {
+      /* race / unique — ignore */
+    }
+  }
+  await seedCinemaIfEmpty();
+  await crownIfEmpty();
+  const watchingRows = await sql<{ n: string | number }>`select count(*) as n from nf_movies where status = 'approved' and watching = 1`;
+  return { ok: true as const, inserted, updated, watching: Number(watchingRows[0]?.n ?? 0) };
+}
+
+export const fetchCinemaCatalog = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const role = await staffRole(context.userId);
+    if (role !== "super") throw new Error("Forbidden");
+    return runCinemaCatalogFetch();
+  });
+
 export const listCinema = createServerFn({ method: "GET" })
   .validator((d?: { section?: string }) => d ?? {})
   .handler(async ({ data }) => {
