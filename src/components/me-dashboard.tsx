@@ -27,6 +27,7 @@ import {
 import type { useQonvo } from "@/lib/use-qonvo";
 import { AvatarImg } from "@/components/account-kind";
 import { AdSlot } from "@/components/ad-slot";
+import { SiteFooter } from "@/components/site-chrome";
 import { listMyCinema, type CinemaMovie } from "@/lib/cinema-server";
 import { listListings, listMyApps, listMyListings, type Listing, type MyApp } from "@/lib/listings-server";
 
@@ -151,9 +152,7 @@ function GuestDash() {
           <li>Jobs / Market / Rent — showcase listings with contact.</li>
         </ul>
       </div>
-      <a href="/login?mode=up" className="btn-join block rounded-lg py-2.5 text-center text-[13px] font-bold">
-        Join Kilode
-      </a>
+      <SiteFooter />
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
           ["Feeds", "News and posts", () => goto({ tab: "feeds" })],

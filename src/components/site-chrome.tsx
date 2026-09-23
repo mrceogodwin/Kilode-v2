@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Share2, X } from "lucide-react";
 import { fmtCount, type Post } from "@/lib/qonvo-data";
 import { DigestBox, GetAppRow, TelegramLink } from "@/components/get-app";
@@ -6,7 +6,7 @@ import { getPublicSite, pingShare, pingVisit, saveSiteFlags, type PublicSite, ty
 
 const GONE_KEY = "kilode-install-toast";
 const SID_KEY = "kilode-vid";
-const EMPTY: PublicSite = {
+export const EMPTY_PUBLIC_SITE: PublicSite = {
   installToast: true,
   visitorsToday: 0,
   visitorsAll: 0,
@@ -15,6 +15,36 @@ const EMPTY: PublicSite = {
   subscribers: 0,
   shares: { x: 0, wa: 0, tg: 0, fb: 0, copy: 0 },
 };
+const EMPTY = EMPTY_PUBLIC_SITE;
+
+type PublicSiteCtx = { site: PublicSite; setSite: (s: PublicSite) => void; refresh: () => void };
+const PublicSiteContext = createContext<PublicSiteCtx>({
+  site: EMPTY,
+  setSite: () => undefined,
+  refresh: () => undefined,
+});
+
+/** SSR-friendly site stats. Prefers loader `initial`, then soft-refreshes client-side without wiping on failure. */
+export function PublicSiteProvider({ initial, children }: { initial?: PublicSite; children: ReactNode }) {
+  const [site, setSite] = useState<PublicSite>(initial ?? EMPTY);
+  const refresh = useCallback(() => {
+    void getPublicSite()
+      .then(setSite)
+      .catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    if (initial) setSite(initial);
+  }, [initial]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+  const value = useMemo(() => ({ site, setSite, refresh }), [site, refresh]);
+  return <PublicSiteContext.Provider value={value}>{children}</PublicSiteContext.Provider>;
+}
+
+export function usePublicSite() {
+  return useContext(PublicSiteContext);
+}
 
 function sid() {
   try {
@@ -90,12 +120,7 @@ function IconFb() {
 }
 
 export function SiteFooter() {
-  const [site, setSite] = useState<PublicSite>(EMPTY);
-  useEffect(() => {
-    void getPublicSite()
-      .then(setSite)
-      .catch(() => undefined);
-  }, []);
+  const { site, setSite } = usePublicSite();
   function share(kind: ShareKey) {
     const url = "https://kilode.ng";
     const text = "Kilode — Talk Nigeria. Live.";
@@ -110,22 +135,27 @@ export function SiteFooter() {
   }
   const n = site.shares ?? EMPTY.shares;
   const members = site.members || 0;
+  const subs = site.subscribers || site.digest || 0;
   const joinHint =
-    members <= 0
-      ? "Create a handle to post, chat, and save."
-      : members === 1
-        ? "1 member already here — pick a username and join."
-        : `${members.toLocaleString("en-US")} members — pick a username and join.`;
+    subs > 0
+      ? members === 1
+        ? `Join 1 subscriber · pick a username.`
+        : `Join ${subs.toLocaleString("en-US")} subscribers · pick a username.`
+      : members <= 0
+        ? "Create a handle to post, chat, and save."
+        : members === 1
+          ? "1 member already here — pick a username and join."
+          : `${members.toLocaleString("en-US")} members — pick a username and join.`;
   const stats: { key: string; label: string; value: number; live?: boolean }[] = [
-    { key: "today", label: "Today", value: site.visitorsToday, live: true },
-    { key: "visitors", label: "Visitors", value: site.visitorsAll },
-    { key: "joined", label: "Joined", value: site.members },
-    { key: "subs", label: "Subscribers", value: site.subscribers || site.digest || 0 },
+    { key: "today", label: "Today", value: site.visitorsToday ?? 0, live: true },
+    { key: "visitors", label: "Visitors", value: site.visitorsAll ?? 0 },
+    { key: "joined", label: "Joined", value: site.members ?? 0 },
+    { key: "subs", label: "Subscribers", value: subs },
   ];
   return (
     <footer className="site-foot mt-6 overflow-hidden rounded-2xl px-3.5 py-4 sm:px-4 sm:py-5">
       <div className="text-center">
-        <p className="text-[10px] font-semibold tracking-[0.12em] text-lime-2 uppercase">Kilode</p>
+        <p className="text-[10px] font-semibold tracking-[0.14em] text-lime-2/80 uppercase">Kilode</p>
         <h2 className="chrome-head mx-auto mt-1 max-w-[16rem] text-balance">Join with a username</h2>
         <p className="mt-1.5 text-[12px] leading-snug text-muted">Talk Nigeria. Live. Password only — no email to sign up.</p>
         <p className="mt-1 text-[11px] leading-snug text-muted/90">{joinHint}</p>
@@ -151,7 +181,7 @@ export function SiteFooter() {
               {s.live ? <span className="size-1.5 animate-pulse rounded-full bg-lime-2" /> : null}
               <span className="text-[15px] font-bold tabular-nums leading-none text-fg sm:text-[16px]">{fmtCount(s.value)}</span>
             </div>
-            <div className="mt-1 text-[9px] font-semibold tracking-[0.12em] text-lime-2/90 uppercase">{s.label}</div>
+            <div className="mt-1 text-[9px] font-semibold tracking-[0.12em] text-muted uppercase">{s.label}</div>
           </div>
         ))}
       </div>

@@ -73,7 +73,8 @@ import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
 import { PostBody } from "@/components/post-body";
 import { postBodyPlain } from "@/lib/post-body";
-import { InstallToast, SiteFooter, TrendingTicker } from "@/components/site-chrome";
+import { InstallToast, PublicSiteProvider, SiteFooter, TrendingTicker } from "@/components/site-chrome";
+import type { PublicSite } from "@/lib/site-server";
 import { FeedsHero } from "@/components/feeds-hero";
 import { BrandLockup } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
@@ -197,7 +198,15 @@ function mixChatAds(rows: ChatRow[], ads: Campaign[]): ChatRow[] {
 }
 
 
-export function QonvoApp() {
+export function QonvoApp({ initialSite }: { initialSite?: PublicSite } = {}) {
+  return (
+    <PublicSiteProvider initial={initialSite}>
+      <QonvoAppInner />
+    </PublicSiteProvider>
+  );
+}
+
+function QonvoAppInner() {
   const store = useQonvo();
   const session = useCurrentUserState();
   const signedIn = Boolean(session.user);

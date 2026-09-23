@@ -38,16 +38,28 @@ async function ensure() {
 }
 
 async function loadPublic(): Promise<PublicSite> {
+  const empty: PublicSite = {
+    installToast: true,
+    visitorsToday: 0,
+    visitorsAll: 0,
+    members: 0,
+    digest: 0,
+    subscribers: 0,
+    shares: { ...ZERO_SHARES },
+  };
   try {
     const sql = await ensure();
-    const flag = await sql<{ install_toast: number | string | boolean | null }>`select install_toast from nf_site where id = 1 limit 1`;
     const today = utcDay();
-    const dayRows = await sql<{ n: string | number }>`select n from nf_visits where day = ${today} limit 1`;
-    const allRows = await sql<{ n: string | number }>`select coalesce(sum(n), 0) as n from nf_visits`;
-    const members = await sql<{ n: string | number }>`select count(*) as n from "user"`;
-    const digestRows = await sql<{ n: string | number }>`select count(*) as n from nf_digest`;
-    const installToast = flag[0]?.install_toast !== 0 && flag[0]?.install_toast !== false && flag[0]?.install_toast !== "0";
-    const shareRows = await sql<{ k: string; n: string | number }>`select k, n from nf_shares`;
+    const [flag, dayRows, allRows, members, digestRows, shareRows] = await Promise.all([
+      sql<{ install_toast: number | string | boolean | null }>`select install_toast from nf_site where id = 1 limit 1`.catch(() => []),
+      sql<{ n: string | number }>`select n from nf_visits where day = ${today} limit 1`.catch(() => []),
+      sql<{ n: string | number }>`select coalesce(sum(n), 0) as n from nf_visits`.catch(() => []),
+      sql<{ n: string | number }>`select count(*) as n from "user"`.catch(() => []),
+      sql<{ n: string | number }>`select count(*) as n from nf_digest`.catch(() => []),
+      sql<{ k: string; n: string | number }>`select k, n from nf_shares`.catch(() => []),
+    ]);
+    const installToast =
+      !flag[0] || (flag[0].install_toast !== 0 && flag[0].install_toast !== false && flag[0].install_toast !== "0");
     const shares = { ...ZERO_SHARES };
     for (const r of shareRows) {
       if (r.k in shares) shares[r.k as ShareKey] = Number(r.n ?? 0);
@@ -64,7 +76,7 @@ async function loadPublic(): Promise<PublicSite> {
       shares,
     };
   } catch {
-    return { installToast: true, visitorsToday: 0, visitorsAll: 0, members: 0, digest: 0, subscribers: 0, shares: { ...ZERO_SHARES } };
+    return empty;
   }
 }
 
