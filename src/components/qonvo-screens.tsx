@@ -28,6 +28,7 @@ import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
 import { ShopAdminPanel } from "@/components/downloads-pane";
 import { SocialsAdminPanel, TvPane } from "@/components/tv-pane";
 import { JoinCta, TelegramLink } from "@/components/get-app";
+import { BrandLockup } from "@/components/brand-lockup";
 import { MeDashboard } from "@/components/me-dashboard";
 import { AdCatalogPanel, AdSlotsPanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { SiteFlagsPanel } from "@/components/site-chrome";
@@ -1175,7 +1176,7 @@ function Bookmarks({ store, onHome }: { store: Store; onHome: (id?: string) => v
       <div className="text-[11px] font-medium text-muted">Rooms</div>
       {store.pins.length === 0 ? (
         <div className="rounded-2xl border border-line bg-panel px-5 py-8 text-center">
-          <img src="/kilode-logo-green.png" alt="" className="mx-auto mb-3 h-8 w-auto max-w-[140px] object-contain" />
+          <div className="mx-auto mb-3 inline-flex justify-center"><BrandLockup size="sm" /></div>
           <p className="text-base font-semibold">No bookmarks yet</p>
           <p className="mt-1 text-sm text-muted">Pin a room from Chat to find it fast.</p>
           <button type="button" className="btn-join mt-4 rounded-lg px-4 py-2 text-sm font-bold" onClick={() => onHome()}>

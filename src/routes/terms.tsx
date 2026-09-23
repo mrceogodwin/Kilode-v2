@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ADS_LONG, CONTACT_LONG, CONTENT_LONG, COOKIES_LONG, LEGAL_NAV, LEGAL_UPDATED, PRIVACY_LONG, RULES_LONG, TERMS_LONG } from "@/lib/legal";
 import { HowToGuide } from "@/components/legal-shots";
 import { TelegramLink } from "@/components/get-app";
+import { BrandLockup } from "@/components/brand-lockup";
 
 export const Route = createFileRoute("/terms")({ component: TermsPage });
 
@@ -21,7 +22,7 @@ function TermsPage() {
       <header className="sticky top-0 z-10 border-b border-line bg-panel/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <Link to="/" className="shrink-0">
-            <img src="/kilode-logo-green.png" alt="Kilode" className="h-9 w-auto max-w-[160px] object-contain" />
+            <BrandLockup />
           </Link>
           <Link to="/login" search={{ mode: "up" }} className="btn-join rounded-lg px-3 py-1.5 text-[11px] font-bold">
             Join

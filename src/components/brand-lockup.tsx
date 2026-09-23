@@ -1,4 +1,4 @@
-function BangMark({ className }: { className: string }) {
+export function BangMark({ className }: { className: string }) {
   return (
     <span className={`brand-mark ${className}`} aria-hidden>
       {/* Glossy white bang on transparent — Create-a-post (btn-join) green plate provides contrast. */}

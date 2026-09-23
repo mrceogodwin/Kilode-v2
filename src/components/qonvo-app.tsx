@@ -2016,7 +2016,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
 function EmptyHero({ title, body, cta, onClick }: { title: string; body: string; cta: string; onClick?: () => void }) {
   return (
     <div className="mx-auto flex max-w-sm flex-col items-center px-6 py-10 text-center">
-      <img src="/kilode-logo-green.png" alt="" className="mb-4 h-9 w-auto max-w-[160px] object-contain opacity-90" />
+      <BrandLockup />
       <h3 className="text-base font-semibold">{title}</h3>
       <p className="mt-1 text-sm text-muted">{body}</p>
       {onClick ? (

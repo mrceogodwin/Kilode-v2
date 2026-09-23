@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { getPublicProfile } from "@/lib/social-server";
 import { seoHead } from "@/lib/seo";
 import { ACCOUNT_KINDS, fmtCount, handleColor, timeLabel } from "@/lib/qonvo-data";
+import { BrandLockup } from "@/components/brand-lockup";
 
 export const Route = createFileRoute("/u/$handle")({
   loader: async ({ params }) => {
@@ -30,7 +31,7 @@ function PublicProfile() {
     return (
       <main className="grid min-h-svh place-items-center bg-bg p-6 text-fg">
         <div className="max-w-sm text-center">
-          <img src="/kilode-logo-green.png" alt="Kilode" className="mx-auto mb-4 h-10 w-auto max-w-[180px] object-contain" />
+          <div className="mx-auto mb-4 inline-flex justify-center"><BrandLockup size="lg" /></div>
           <p className="text-base font-semibold">No profile for {handle}</p>
           <p className="mt-1 text-sm text-muted">That handle is not public yet.</p>
           <Link to="/" className="btn-join mt-4 inline-block rounded-lg px-4 py-2 text-sm font-bold">
@@ -45,7 +46,7 @@ function PublicProfile() {
     <main className="min-h-svh bg-bg text-fg">
       <header className="flex items-center gap-2 border-b border-line px-4 py-3">
         <Link to="/" className="inline-flex">
-          <img src="/kilode-logo-green.png" alt="Kilode" className="h-8 w-auto max-w-[160px] object-contain" />
+          <BrandLockup size="sm" />
         </Link>
       </header>
       <div className="mx-auto max-w-2xl space-y-4 px-4 py-6">

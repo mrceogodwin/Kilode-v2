@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { BrandLockup } from "@/components/brand-lockup";
 
 export const Route = createFileRoute("/install")({ component: InstallPage });
 
@@ -19,7 +20,7 @@ function InstallPage() {
     <main className="min-h-dvh overflow-y-auto bg-bg px-4 py-8 text-fg">
       <div className="mx-auto max-w-md pb-12">
         <Link to="/" className="inline-block">
-          <img src="/kilode-logo-green.png" alt="Kilode" className="h-9 w-auto max-w-[160px] object-contain" />
+          <BrandLockup />
         </Link>
         <p className="mt-6 text-[10px] font-medium tracking-[0.18em] text-lime-2">GET THE APP</p>
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight">Add Kilode to your home screen</h1>

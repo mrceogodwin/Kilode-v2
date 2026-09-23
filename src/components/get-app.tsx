@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { saveDigest } from "@/lib/ad-slots-server";
+import { BangMark } from "@/components/brand-lockup";
 
 export function JoinCta({ className = "" }: { className?: string }) {
   return (
@@ -12,7 +13,7 @@ export function JoinCta({ className = "" }: { className?: string }) {
 export function GetAppRow() {
   return (
     <a href="/install" className="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2 transition hover:bg-white/[0.04] active:bg-white/[0.06]">
-      <img src="/kilode-bang-icon.png" alt="" className="size-9 shrink-0 rounded-[10px] object-cover ring-1 ring-lime-2/35 shadow-[0_1px_4px_rgba(0,0,0,0.28)]" />
+      <BangMark className="size-9 shrink-0 rounded-[10px]" />
       <span className="min-w-0 flex-1 text-left">
         <span className="block text-[12px] font-bold leading-tight tracking-tight">Install Kilode</span>
         <span className="mt-0.5 block text-[10px] leading-snug text-muted">Add to home screen</span>
