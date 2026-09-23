@@ -191,6 +191,59 @@ function attr(xml: string, el: string, a: string): string {
   return m?.[1] ?? "";
 }
 
+function attrsAll(xml: string, el: string, a: string): string[] {
+  const re = new RegExp(`<${el}[^>]*\\s${a}=["']([^"']+)["'][^>]*/?>`, "gi");
+  const out: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) {
+    if (m[1]) out.push(m[1]);
+  }
+  return out;
+}
+
+/** Reject logos, favicons, avatars, tiny thumbs, tracking pixels, placeholders. */
+function isWeakCover(url: string): boolean {
+  if (!url || !/^https?:\/\//i.test(url)) return true;
+  const u = url.toLowerCase();
+  if (
+    /logo|favicon|\bicon\b|sprite|avatar|gravatar|wp-includes|emoji|pixel|spacer|1x1|doubleclick|picsum|placeholder/.test(
+      u,
+    )
+  ) {
+    return true;
+  }
+  // Common tiny WordPress / CMS size suffixes (branding thumbs)
+  if (/-(?:16x16|32x32|48x48|50x50|64x64|75x75|80x80|96x96|100x100|120x120|150x150)(?:\.\w+)?(?:[?#]|$)/.test(u)) {
+    return true;
+  }
+  // /thumb/ only when clearly tiny branding
+  if (/\/thumb\//.test(u) && /(?:logo|icon|avatar|favicon|small|tiny|mini)/.test(u)) return true;
+  return false;
+}
+
+function decodeAmp(s: string): string {
+  return s.replace(/&amp;/gi, "&").trim();
+}
+
+function firstStrongCover(urls: Array<string | null | undefined>): string | null {
+  for (const raw of urls) {
+    if (!raw) continue;
+    const u = decodeAmp(raw);
+    if (!isWeakCover(u)) return u;
+  }
+  return null;
+}
+
+function pickRssImage(block: string): string | null {
+  // Prefer media:content (non-weak) over thumbnail over enclosure over first <img>
+  return (
+    firstStrongCover(attrsAll(block, "media:content", "url")) ||
+    firstStrongCover(attrsAll(block, "media:thumbnail", "url")) ||
+    firstStrongCover([attr(block, "enclosure", "url")]) ||
+    firstStrongCover([block.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1]])
+  );
+}
+
 function parseRss(xml: string, sourceLabel: string): RssItem[] {
   const chunks = xml.split(/<item[\s>]/i).slice(1);
   const out: RssItem[] = [];
@@ -214,20 +267,14 @@ function parseRss(xml: string, sourceLabel: string): RssItem[] {
       const t = Date.parse(pubRaw);
       if (Number.isFinite(t)) pubDate = t;
     }
-    const image =
-      attr(block, "media:content", "url") ||
-      attr(block, "media:thumbnail", "url") ||
-      attr(block, "enclosure", "url") ||
-      (block.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1] ?? "") ||
-      null;
+    const image = pickRssImage(block);
     const srcName = tag(block, "source") || sourceLabel;
-    const imgOk = image && /^https?:\/\//i.test(image) && !/picsum|placeholder|1x1|spacer|pixel\.gif|doubleclick/i.test(image);
     out.push({
       title,
       link: link.trim(),
       snippet: snippet.slice(0, 600),
       pubDate,
-      image: imgOk ? image : null,
+      image,
       sourceLabel: srcName || sourceLabel,
     });
   }
@@ -245,7 +292,7 @@ function mapCategory(title: string, snippet: string, sourceId: string): string {
 }
 
 function coverFor(_title: string, _link: string, enclosure: string | null): string {
-  if (enclosure && /^https?:\/\//i.test(enclosure) && !/picsum|placeholder|1x1|spacer/i.test(enclosure)) return enclosure;
+  if (enclosure && !isWeakCover(enclosure)) return enclosure;
   return "";
 }
 
@@ -261,15 +308,37 @@ async function ogImage(url: string): Promise<string | null> {
     });
     if (!r.ok) return null;
     const html = (await r.text()).slice(0, 80_000);
-    const m =
+    const og =
       html.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i) ||
-      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::secure_url)?["']/i) ||
-      html.match(/<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i);
-    const u = (m?.[1] || "").replace(/&/g, "&").trim();
-    if (!u || !/^https?:\/\//i.test(u) || /picsum|placeholder|1x1/i.test(u)) return null;
-    return u;
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::secure_url)?["']/i);
+    const tw =
+      html.match(/<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image(?::src)?["']/i);
+    const candidates = [og?.[1], tw?.[1]].map((x) => (x ? decodeAmp(x) : "")).filter(Boolean);
+    for (const u of candidates) {
+      if (!isWeakCover(u)) return u;
+    }
+    return null;
   } catch {
     return null;
+  }
+}
+
+/** Enrich missing/weak covers via article og:image, capped to avoid Hobby timeouts. */
+async function enrichCoversWithOg<T extends { link: string; image: string | null }>(
+  items: T[],
+  cap = 40,
+): Promise<void> {
+  const need = items.filter((x) => !x.image || isWeakCover(x.image)).slice(0, cap);
+  for (let i = 0; i < need.length; i += 8) {
+    const batch = need.slice(i, i + 8);
+    const photos = await Promise.all(batch.map((x) => ogImage(x.link)));
+    photos.forEach((img, j) => {
+      if (!img) return;
+      const row = batch[j]!;
+      // Prefer og when RSS missing or weak
+      if (!row.image || isWeakCover(row.image)) row.image = img;
+    });
   }
 }
 
@@ -542,6 +611,9 @@ export const fetchNewsLatest = createServerFn({ method: "POST" })
     const errors: string[] = [];
     const stores: Array<"db" | "memory"> = [];
 
+    type Pending = { src: NewsSource; item: RssItem };
+    const pending: Pending[] = [];
+
     for (const src of sources) {
       try {
         const res = await fetch(src.url, {
@@ -565,35 +637,45 @@ export const fetchNewsLatest = createServerFn({ method: "POST" })
           if (seenTitles.has(nt)) continue;
           seenLinks.add(item.link);
           seenTitles.add(nt);
-          const llm = await humanizeWithLlm(item, src.name);
-          const rewritten = llm ?? humanizeDeterministic(item, src.name);
-          const now = Date.now();
-          const draft: NewsDraft = {
-            id: nid(),
-            source_id: src.id,
-            source_name: src.name,
-            source_url: src.url,
-            original_title: item.title,
-            original_link: item.link,
-            original_snippet: item.snippet,
-            pub_date: item.pubDate,
-            title: rewritten.title,
-            body: rewritten.body,
-            meta_description: rewritten.meta,
-            tags: rewritten.tags,
-            category: rewritten.category,
-            image: coverFor(rewritten.title, item.link, item.image),
-            status: "draft",
-            created_at: now,
-            updated_at: now,
-            approved_post_id: null,
-          };
-          stores.push(await saveDraftRow(draft));
-          created += 1;
+          pending.push({ src, item });
         }
       } catch (e) {
         errors.push(`${src.name}: ${e instanceof Error ? e.message : "fetch failed"}`);
       }
+    }
+
+    // Cap og lookups (~40); prefer article og:image when RSS cover missing or weak
+    await enrichCoversWithOg(
+      pending.map((p) => p.item),
+      40,
+    );
+
+    for (const { src, item } of pending) {
+      const llm = await humanizeWithLlm(item, src.name);
+      const rewritten = llm ?? humanizeDeterministic(item, src.name);
+      const now = Date.now();
+      const draft: NewsDraft = {
+        id: nid(),
+        source_id: src.id,
+        source_name: src.name,
+        source_url: src.url,
+        original_title: item.title,
+        original_link: item.link,
+        original_snippet: item.snippet,
+        pub_date: item.pubDate,
+        title: rewritten.title,
+        body: rewritten.body,
+        meta_description: rewritten.meta,
+        tags: rewritten.tags,
+        category: rewritten.category,
+        image: coverFor(rewritten.title, item.link, item.image),
+        status: "draft",
+        created_at: now,
+        updated_at: now,
+        approved_post_id: null,
+      };
+      stores.push(await saveDraftRow(draft));
+      created += 1;
     }
 
     return {
@@ -947,14 +1029,15 @@ async function ingestWeek(opts: { userId: string; limit: number; og: boolean }) 
   }
 
   if (opts.og) {
-    const needPhoto = pool.filter((x) => !x.item.image).slice(0, 40);
-    for (let i = 0; i < needPhoto.length; i += 8) {
-      const batch = needPhoto.slice(i, i + 8);
-      const photos = await Promise.all(batch.map((x) => ogImage(x.item.link)));
-      photos.forEach((img, j) => {
-        if (img) batch[j]!.item.image = img;
-      });
-    }
+    await enrichCoversWithOg(
+      pool.map((x) => x.item),
+      40,
+    );
+  }
+
+  // Drop weak leftovers (no og or og also weak)
+  for (const row of pool) {
+    if (row.item.image && isWeakCover(row.item.image)) row.item.image = null;
   }
 
   const ready = pool.filter((x) => x.item.image).slice(0, opts.limit);

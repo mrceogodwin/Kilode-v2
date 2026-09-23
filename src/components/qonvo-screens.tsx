@@ -2698,11 +2698,15 @@ function NewsEnginePanel({ store }: { store: Store }) {
                 <input value={edit.title} onChange={(e) => setEdit((x) => ({ ...x, title: e.target.value }))} className="w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base" placeholder="Title" />
                 <textarea value={edit.body} onChange={(e) => setEdit((x) => ({ ...x, body: e.target.value }))} rows={5} className="w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base" placeholder="Body" />
                 <input value={edit.meta_description} onChange={(e) => setEdit((x) => ({ ...x, meta_description: e.target.value }))} className="w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base" placeholder="Meta description" />
-                <div className="grid gap-2 sm:grid-cols-3">
+                <div className="grid gap-2 sm:grid-cols-2">
                   <input value={edit.tags} onChange={(e) => setEdit((x) => ({ ...x, tags: e.target.value }))} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base" placeholder="Tags" />
                   <input value={edit.category} onChange={(e) => setEdit((x) => ({ ...x, category: e.target.value }))} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base" placeholder="Category" />
-                  <input value={edit.image} onChange={(e) => setEdit((x) => ({ ...x, image: e.target.value }))} className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base" placeholder="Image URL" />
                 </div>
+                <label className="block text-[11px] text-muted">
+                  Cover URL
+                  <input value={edit.image} onChange={(e) => setEdit((x) => ({ ...x, image: e.target.value }))} className="mt-1 w-full rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-base text-fg" placeholder="https://… article cover image" />
+                </label>
+                {edit.image ? <img src={edit.image} alt="" className="max-h-28 rounded-lg object-cover" /> : null}
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
