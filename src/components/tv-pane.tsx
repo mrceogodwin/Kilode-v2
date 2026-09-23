@@ -21,48 +21,63 @@ export function TvPane() {
   }, []);
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
-      <section className="shop-hero mb-4 overflow-hidden rounded-2xl border border-line px-4 py-6">
+      <section className="shop-hero mb-3 overflow-hidden rounded-2xl border border-line px-3 py-4 sm:px-4 sm:py-6">
         <div className="flex items-center gap-2 text-lime-2">
-          <Tv className="size-5" />
+          <Tv className="size-4 sm:size-5" />
           <span className="text-[10px] font-medium tracking-[0.2em]">KILODE TV & SOCIALS</span>
         </div>
-        <h1 className="mt-2 text-[26px] font-bold leading-tight sm:text-[32px]">Watch. Follow. Share.</h1>
-        <p className="mt-2 max-w-md text-[13px] leading-relaxed text-muted">
+        <h1 className="mt-1.5 text-[22px] font-bold leading-tight sm:text-[32px]">Watch. Follow. Share.</h1>
+        <p className="mt-1.5 max-w-md text-[12px] leading-relaxed text-muted sm:text-[13px]">
           One tap to every Kilode channel. Super pastes the real URLs and thumbs from ops.
         </p>
       </section>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {rows.length === 0 ? <p className="text-sm text-muted sm:col-span-2">No channels yet. Super adds them in ops.</p> : null}
-        {rows.map((s) => (
-          <article key={s.id} className="raised overflow-hidden rounded-2xl">
-            {s.thumb ? (
-              <img src={s.thumb} alt="" className="aspect-[16/9] w-full object-cover" />
-            ) : (
-              <div className="grid aspect-[16/9] place-items-center" style={{ background: TINT[s.id] || "#1a2420" }}>
-                <span className="text-[28px] font-black tracking-tight text-white/90">{s.name.slice(0, 2).toUpperCase()}</span>
-              </div>
-            )}
-            <div className="p-3">
-              <div className="text-[9px] font-medium tracking-[0.16em] text-lime-2">{s.followers || s.name.toUpperCase()}</div>
-              <h2 className="mt-0.5 text-[15px] font-bold">{s.name}</h2>
-              {s.handle ? <p className="text-[12px] text-muted">{s.handle}</p> : null}
-              {s.blurb ? <p className="mt-1 text-[12px] leading-relaxed text-muted">{s.blurb}</p> : null}
-              {s.url ? (
-                <a
-                  href={s.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-join mt-3 inline-flex rounded-lg px-3 py-1.5 text-[10px] font-extrabold tracking-[0.12em]"
-                >
-                  FOLLOW
-                </a>
+
+      {rows.length === 0 ? (
+        <p className="text-sm text-muted">No channels yet. Super adds them in ops.</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+          {rows.map((s) => (
+            <article key={s.id} className="raised flex min-w-0 flex-col overflow-hidden rounded-lg">
+              {s.thumb ? (
+                <img src={s.thumb} alt="" className="aspect-[4/3] w-full object-cover" />
               ) : (
-                <p className="mt-3 text-[11px] text-muted">Super pastes the live URL in ops.</p>
+                <div
+                  className="grid aspect-[4/3] place-items-center border-b border-white/5"
+                  style={{ background: TINT[s.id] || "#1a2420" }}
+                >
+                  <span className="text-[15px] font-black tracking-tight text-white/90 sm:text-[20px]">
+                    {s.name.slice(0, 2).toUpperCase()}
+                  </span>
+                </div>
               )}
-            </div>
-          </article>
-        ))}
-      </div>
+              <div className="flex min-h-0 flex-1 flex-col px-1.5 py-1.5 sm:px-2 sm:py-2">
+                <div className="truncate text-[9px] font-medium tracking-[0.14em] text-lime-2">
+                  {s.followers || s.name.toUpperCase()}
+                </div>
+                <h2 className="mt-0.5 truncate text-[11px] font-bold leading-snug sm:text-[13px]">{s.name}</h2>
+                {s.handle ? <p className="truncate text-[10px] leading-snug text-muted">{s.handle}</p> : null}
+                {s.blurb ? (
+                  <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted sm:text-[11px]">{s.blurb}</p>
+                ) : null}
+                <div className="mt-auto pt-1.5">
+                  {s.url ? (
+                    <a
+                      href={s.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-join inline-flex w-full items-center justify-center rounded-md px-1.5 py-1 text-[9px] font-extrabold tracking-[0.1em] sm:text-[10px]"
+                    >
+                      FOLLOW
+                    </a>
+                  ) : (
+                    <p className="text-[9px] leading-snug text-muted sm:text-[10px]">Super pastes the live URL in ops.</p>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
