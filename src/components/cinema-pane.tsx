@@ -59,6 +59,13 @@ export function CinemaPane() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sec]);
 
+  /* listCinema needs userId for voted_today; first paint often runs while session is still pending. */
+  useEffect(() => {
+    if (session.isPending) return;
+    load(sec);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.user?.id, session.isPending]);
+
   useEffect(() => {
     if (!session.user) return;
     void getProfile()
@@ -69,6 +76,7 @@ export function CinemaPane() {
   const [how, setHow] = useState(false);
   const [topic, setTopic] = useState("All");
   const signed = !!session.user;
+  const authPending = session.isPending;
   const also = movies.filter((m) => m.id !== watching?.id && (topic === "All" || m.section === topic)).slice(0, shown);
 
   return (
@@ -132,6 +140,7 @@ export function CinemaPane() {
               <CinemaVoteBtn
                 movie={watching}
                 signed={signed}
+                authPending={authPending}
                 onErr={setErr}
                 onVoted={(votes) => {
                   setWatching((w) => (w ? { ...w, votes, voted_today: true } : w));
@@ -139,6 +148,16 @@ export function CinemaPane() {
                 }}
               />
             </div>
+            {err ? (
+              <p className="border-t border-white/5 bg-panel px-2 py-1 text-[10px] text-danger">
+                {err}{" "}
+                {/sign in/i.test(err) ? (
+                  <a href="/login?mode=up" className="font-semibold underline">
+                    Sign in
+                  </a>
+                ) : null}
+              </p>
+            ) : null}
             <CinemaRate
               movieId={watching.id}
               signed={signed}
@@ -258,6 +277,7 @@ export function CinemaPane() {
                 <CinemaVoteBtn
                   movie={m}
                   signed={signed}
+                  authPending={authPending}
                   compact
                   onErr={setErr}
                   onVoted={(votes) => {
@@ -325,61 +345,99 @@ function CinemaPlayer({ title, youtubeId }: { title: string; youtubeId: string }
 function CinemaVoteBtn({
   movie,
   signed,
+  authPending = false,
   onVoted,
   onErr,
   compact,
 }: {
   movie: CinemaMovie;
   signed: boolean;
+  authPending?: boolean;
   onVoted: (votes: number) => void;
   onErr: (reason: string) => void;
   compact?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
+  const [localErr, setLocalErr] = useState("");
   const voted = movie.voted_today;
+  useEffect(() => {
+    setLocalErr("");
+    setBusy(false);
+  }, [movie.id]);
   return (
-    <button
-      type="button"
-      disabled={busy || voted}
-      className={
-        voted
-          ? `inline-flex items-center justify-center gap-1 rounded-lg border border-lime-2/50 bg-lime-2/15 font-bold text-lime-2 ${compact ? "w-full px-1 py-1 text-[9px]" : "shrink-0 px-2.5 py-1.5 text-[10px]"}`
-          : `btn-join inline-flex items-center justify-center gap-1 rounded-lg font-extrabold tracking-wide text-white ${compact ? "w-full px-1 py-1 text-[9px]" : "shrink-0 px-2.5 py-1.5 text-[10px]"}`
-      }
-      onClick={() => {
-        if (!signed) {
-          onErr("Sign in to vote — one vote per title per day.");
-          return;
+    <div className={compact ? "w-full" : "shrink-0"}>
+      <button
+        type="button"
+        disabled={busy || voted || authPending}
+        className={
+          voted
+            ? `inline-flex items-center justify-center gap-1 rounded-lg border border-lime-2/50 bg-lime-2/15 font-bold text-lime-2 ${compact ? "w-full px-1 py-1 text-[9px]" : "w-full px-2.5 py-1.5 text-[10px]"}`
+            : `btn-join inline-flex items-center justify-center gap-1 rounded-lg font-extrabold tracking-wide text-white ${compact ? "w-full px-1 py-1 text-[9px]" : "w-full px-2.5 py-1.5 text-[10px]"}`
         }
-        if (voted || busy) return;
-        setBusy(true);
-        onErr("");
-        void voteMovie({ data: { id: movie.id } })
-          .then((r) => {
-            if (!r.ok) onErr(r.reason);
-            else onVoted("votes" in r && typeof r.votes === "number" ? r.votes : movie.votes + 1);
-          })
-          .catch((e: unknown) => {
-            const msg =
-              e instanceof Error && (e.message === "Unauthorized" || e.name === "UnauthorizedError")
-                ? "Sign in to vote — one vote per title per day."
-                : "Could not save your vote. Try again.";
+        onClick={() => {
+          if (authPending) {
+            const msg = "Checking sign-in… try again in a moment.";
+            setLocalErr(msg);
             onErr(msg);
-          })
-          .finally(() => setBusy(false));
-      }}
-    >
-      {voted ? (
-        <>
-          <Check className={compact ? "size-2.5" : "size-3"} />
-          Voted · {movie.votes}
-        </>
-      ) : busy ? (
-        "…"
-      ) : (
-        <>Vote · {movie.votes}</>
-      )}
-    </button>
+            return;
+          }
+          if (!signed) {
+            const msg = "Sign in to vote — one vote per title per day.";
+            setLocalErr(msg);
+            onErr(msg);
+            return;
+          }
+          if (voted || busy) return;
+          setBusy(true);
+          setLocalErr("");
+          onErr("");
+          void voteMovie({ data: { id: movie.id } })
+            .then((r) => {
+              if (!r.ok) {
+                setLocalErr(r.reason);
+                onErr(r.reason);
+                /* UTC-day PK already set: flip UI to Voted so the button does not look broken. */
+                if (/already voted/i.test(r.reason)) onVoted(movie.votes);
+              } else {
+                setLocalErr("");
+                onVoted("votes" in r && typeof r.votes === "number" ? r.votes : movie.votes + 1);
+              }
+            })
+            .catch((e: unknown) => {
+              const msg =
+                e instanceof Error && (e.message === "Unauthorized" || e.name === "UnauthorizedError")
+                  ? "Sign in to vote — one vote per title per day."
+                  : e instanceof Error && /cross-site/i.test(e.message)
+                    ? "Vote blocked (cross-site). Open Kilode in its own tab and try again."
+                    : "Could not save your vote. Try again.";
+              setLocalErr(msg);
+              onErr(msg);
+            })
+            .finally(() => setBusy(false));
+        }}
+      >
+        {voted ? (
+          <>
+            <Check className={compact ? "size-2.5" : "size-3"} />
+            Voted · {movie.votes}
+          </>
+        ) : busy ? (
+          "…"
+        ) : (
+          <>Vote · {movie.votes}</>
+        )}
+      </button>
+      {localErr ? (
+        <p className={`mt-1 text-danger ${compact ? "text-[8px] leading-snug" : "text-[10px]"}`}>
+          {localErr}{" "}
+          {/sign in/i.test(localErr) ? (
+            <a href="/login?mode=up" className="font-semibold underline">
+              Sign in
+            </a>
+          ) : null}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
@@ -455,7 +513,12 @@ function CinemaRate({
             }}
           >
             <Star
-              className={`size-4 ${s <= filled ? "fill-lime-2 text-lime-2 drop-shadow-[0_0_6px_rgba(107,158,120,0.45)]" : "text-white/25"}`}
+              className={
+                s <= filled
+                  ? "size-4 fill-lime-2 text-lime-2 drop-shadow-[0_0_6px_rgba(107,158,120,0.45)]"
+                  : "size-4 fill-none text-fg/55 stroke-fg/55"
+              }
+              strokeWidth={1.75}
             />
           </button>
         ))}

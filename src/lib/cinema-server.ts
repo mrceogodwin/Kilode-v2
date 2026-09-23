@@ -307,8 +307,13 @@ export const voteMovie = createServerFn({ method: "POST" })
     const day = todayUtc();
     try {
       await sql`insert into nf_votes (user_id, movie_id, day, ts) values (${context.userId}, ${id}, ${day}, ${Date.now()})`;
-    } catch {
-      return { ok: false as const, reason: "You already voted on this title today. Come back tomorrow." };
+    } catch (e: unknown) {
+      const code = typeof e === "object" && e && "code" in e ? String((e as { code: unknown }).code) : "";
+      const msg = e instanceof Error ? e.message : String(e ?? "");
+      if (code === "23505" || /duplicate key|unique/i.test(msg)) {
+        return { ok: false as const, reason: "You already voted on this title today. Come back tomorrow." };
+      }
+      return { ok: false as const, reason: "Could not save your vote. Try again." };
     }
     await sql`update nf_movies set votes = coalesce(votes, 0) + 1 where id = ${id} and status = 'approved'`;
     const after = await sql<{ votes: number | string | null }>`select votes from nf_movies where id = ${id} limit 1`;
