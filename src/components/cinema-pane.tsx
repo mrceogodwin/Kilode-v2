@@ -145,7 +145,7 @@ export function CinemaPane() {
             </div>
             <CinemaRate movieId={watching.id} signed={signed} />
             </div>
-            <div className="cinema-live-card mt-2 overflow-hidden rounded-xl border border-lime-2/40 bg-panel shadow-[0_0_28px_rgba(107,158,120,0.14)] md:mt-0 md:max-h-[70vh] md:overflow-y-auto">
+            <div className="cinema-live-card mt-2 flex shrink-0 flex-col overflow-hidden rounded-xl border border-lime-2/40 bg-panel shadow-[0_0_28px_rgba(107,158,120,0.14)] md:mt-0 md:max-h-[70vh]">
               <CinemaChat movieId={watching.id} title={watching.title} signed={signed} />
               <CinemaQuizBox movieId={watching.id} signed={signed} />
             </div>
@@ -494,8 +494,8 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
   }, [msgs, mode]);
 
   return (
-    <div className="border-t border-lime-2/15 bg-gradient-to-b from-lime-2/[0.06] to-bg">
-      <div className="flex items-center justify-between gap-1.5 border-b border-lime-2/20 px-2 py-1">
+    <div className="flex shrink-0 flex-col border-t border-lime-2/15 bg-gradient-to-b from-lime-2/[0.06] to-bg">
+      <div className="flex shrink-0 items-center justify-between gap-1.5 border-b border-lime-2/20 px-2 py-1">
         <div
           className="flex min-w-0 flex-1 items-center gap-1.5"
           title={
@@ -553,7 +553,7 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
       </div>
       <div
         ref={scroller}
-        className="min-h-40 max-h-72 overflow-y-auto px-2 py-2 sm:min-h-36 sm:max-h-64"
+        className="h-48 max-h-[40vh] overflow-y-auto overscroll-contain px-2 py-2 sm:h-56 sm:max-h-[44vh] md:h-64 md:max-h-[50vh]"
         onScroll={() => {
           const el = scroller.current;
           if (!el) return;
@@ -587,7 +587,7 @@ function CinemaChat({ movieId, title, signed }: { movieId: string; title?: strin
         ))}
       </div>
       <form
-        className="flex items-center gap-1 border-t border-white/5 px-2 py-1.5"
+        className="flex shrink-0 items-center gap-1 border-t border-white/5 px-2 py-1.5"
         onSubmit={(e) => {
           e.preventDefault();
           if (!signed) {
