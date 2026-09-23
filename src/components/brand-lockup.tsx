@@ -1,11 +1,11 @@
 function BangMark({ className }: { className: string }) {
   return (
     <span className={`brand-mark ${className}`} aria-hidden>
-      {/* Premium filled 3D bang (dark glass plate) — same asset night + ivory; ivory chrome is CSS */}
+      {/* Bang-only 3D mark (no embedded dark plate). Soft mint/dark chrome is CSS. */}
       <img
-        src="/kilode-bang-icon.png"
+        src="/kilode-bang-mark.png"
         alt=""
-        className="h-full w-full object-cover"
+        className="h-full w-full object-contain p-[12%]"
         draggable={false}
       />
     </span>
