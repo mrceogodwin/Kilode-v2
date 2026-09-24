@@ -36,6 +36,7 @@ import { matchAdPayments, matchOneAd } from "@/lib/pay-match-server";
 import { applyListing, listListings, saveListing, type Listing } from "@/lib/listings-server";
 import { submitMovie } from "@/lib/cinema-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
+import { SitePulsePanel } from "@/components/pulse-panel";
 import { PostRichEditor } from "@/components/post-rich-editor";
 import { postBodyPlain, sanitizePostHtml } from "@/lib/post-body";
 
@@ -2017,6 +2018,7 @@ function Admin({ store }: { store: Store }) {
       ) : null}
       <OpsKeysPanel />
       <OpsSeoPanel />
+      {role === "super" || role === "admin" ? <SitePulsePanel /> : null}
       <AdsQueuePanel store={store} />
       {role === "super" ? <SiteFlagsPanel /> : null}
       {role === "super" ? <AdCatalogPanel /> : null}

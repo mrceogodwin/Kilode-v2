@@ -80,6 +80,7 @@ import { BrandLockup } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
 import { MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
+import { SocialsFeed } from "@/components/socials-feed";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -2069,6 +2070,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(48);
   const [catsOpen, setCatsOpen] = useState(false);
+  const [lane, setLane] = useState<"latest" | "socials">("latest");
   const [repost, setRepost] = useState<(typeof store.posts)[number] | null>(null);
   const [cap, setCap] = useState("");
   const open = store.posts.find((p) => p.id === store.openPost);
@@ -2144,12 +2146,32 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           }}
         />
         <MarketRail onPick={onDesk} />
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">LATEST POST{cat !== "All" ? ` · ${cat.toUpperCase()}` : ""}</div>
+        <div className="mb-2 flex items-center gap-1">
           <button
             type="button"
-            className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[10px] font-semibold uppercase tracking-wide"
-            onClick={() => setCatsOpen((v) => !v)}
+            className={`shrink-0 rounded-[10px] px-1.5 py-1 text-[11px] font-semibold tracking-[0.06em] ${lane === "latest" ? "text-lime-2" : "text-muted"}`}
+            onClick={() => setLane("latest")}
+          >
+            LATEST POST
+          </button>
+          <button
+            type="button"
+            className={`inline-flex shrink-0 items-center rounded-[10px] border px-2 py-1 text-[11px] font-bold tracking-[0.08em] ${lane === "socials" ? "border-lime-2/50 bg-lime-2/15 text-lime-2" : "border-line bg-panel text-fg"}`}
+            onClick={() => {
+              setLane("socials");
+              setCatsOpen(false);
+            }}
+          >
+            SOCIALS
+            {lane === "socials" ? <span className="ml-1 inline-block size-1 rounded-full bg-lime-2" /> : null}
+          </button>
+          <button
+            type="button"
+            className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-[10px] border border-line px-2 py-1 text-[10px] font-semibold uppercase tracking-wide"
+            onClick={() => {
+              setLane("latest");
+              setCatsOpen((v) => !v);
+            }}
           >
             Categories
             <ChevronDown className={`size-3 transition ${catsOpen ? "rotate-180" : ""}`} />
@@ -2189,6 +2211,10 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
             ))}
           </ul>
         ) : null}
+        {lane === "socials" ? (
+          <SocialsFeed authed={store.authed} />
+        ) : (
+        <>
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
@@ -2236,6 +2262,8 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           <p className="mt-6 mb-6 text-center text-[11px] text-muted">End of feeds · {live.length} posts</p>
         ) : (
           <EmptyHero title="No posts yet" body="Be first — share a take for Nigeria." cta="Create a post" onClick={() => { window.dispatchEvent(new CustomEvent("kilode:create")); }} />
+        )}
+        </>
         )}
         {repost ? (
           <RepostModal
