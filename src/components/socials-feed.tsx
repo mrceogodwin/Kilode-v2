@@ -37,14 +37,16 @@ export function rememberTake(take: TakeRow, notify = true) {
   if (notify) window.dispatchEvent(new CustomEvent("kilode:take", { detail: take }));
 }
 
-export async function shareNewsToSocials(p: { title: string; excerpt?: string; author?: string; category?: string }) {
+export async function shareNewsToSocials(p: { title: string; excerpt?: string; author?: string; category?: string; caption?: string }) {
+  const caption = (p.caption || "").trim();
+  const body = (caption || p.title).slice(0, 280);
   const r = await saveTake({
     data: {
-      body: p.title.slice(0, 280),
+      body,
       kind: "quote",
       quoteName: (p.author || "Kilode").slice(0, 40),
       quoteHandle: (p.author || "kilode").toLowerCase().replace(/[^a-z0-9._-]+/g, "").slice(0, 24) || "kilode",
-      quoteBody: (p.excerpt || p.category || "From Feeds").slice(0, 180),
+      quoteBody: (caption ? p.title : p.excerpt || p.category || "From Feeds").slice(0, 180),
     },
   });
   if (r.ok) rememberTake(r.take);

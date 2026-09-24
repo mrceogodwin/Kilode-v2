@@ -1486,31 +1486,59 @@ function RepostModal({
   onSend,
   onClose,
 }: {
-  post: { id: string; title: string; slug?: string };
+  post: { id: string; title: string; slug?: string; excerpt?: string; author?: string; category?: string };
   handle: string;
   cap: string;
   onCap: (v: string) => void;
   onSend: () => void;
   onClose: () => void;
 }) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
   return (
     <div className="fixed inset-0 z-50 grid place-items-end bg-black/50 p-3 sm:place-items-center" onClick={onClose}>
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-line bg-panel p-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 text-lime-2">
           <Repeat2 className="size-4" />
-          <span className="text-[11px] font-bold tracking-[0.14em]">REPOST TO CHAT</span>
+          <span className="text-[11px] font-bold tracking-[0.14em]">REPOST</span>
         </div>
         <p className="mt-2 line-clamp-3 text-[14px] font-semibold leading-snug">{post.title}</p>
-        <p className="mt-1 text-[11px] text-muted">Goes to the chat you are in. People see “{handle || "You"} reposted”.</p>
+        <p className="mt-1 text-[11px] text-muted">Chat shows “{handle || "You"} reposted” in the room you are in. Socials posts it on your profile.</p>
         <textarea value={cap} onChange={(e) => onCap(e.target.value)} placeholder="Add a caption (optional)" className="mt-3 min-h-20 w-full rounded-lg border border-line bg-bg px-3 py-2 text-base" />
+        {note ? <p className="mt-2 text-[12px] font-semibold text-danger">{note}</p> : null}
         <div className="mt-3 flex gap-2">
           <button type="button" className="btn-join flex-1 rounded-lg py-2 text-[12px] font-bold" onClick={onSend}>
             Send to chat
           </button>
-          <button type="button" className="rounded-lg border border-line px-3 text-[12px]" onClick={onClose}>
-            Cancel
+          <button
+            type="button"
+            disabled={busy}
+            className="flex-1 rounded-lg border border-lime-2/50 py-2 text-[12px] font-bold text-lime-2 disabled:opacity-60"
+            onClick={() => {
+              setBusy(true);
+              setNote("");
+              void shareNewsToSocials({ title: post.title, excerpt: post.excerpt, author: post.author, category: post.category, caption: cap })
+                .then((r) => {
+                  if (!r.ok) setNote(r.reason);
+                  else {
+                    onClose();
+                    window.dispatchEvent(new Event("kilode:socials"));
+                  }
+                })
+                .catch((e) => {
+                  const m = e instanceof Error ? e.message : "";
+                  if (/unauthor|sign in|forbidden/i.test(m)) window.location.href = "/login?mode=up";
+                  else setNote("Could not post to Socials.");
+                })
+                .finally(() => setBusy(false));
+            }}
+          >
+            {busy ? "Sending" : "Post to Socials"}
           </button>
         </div>
+        <button type="button" className="mt-2 w-full rounded-lg border border-line py-2 text-[12px]" onClick={onClose}>
+          Cancel
+        </button>
       </div>
     </div>
   );
