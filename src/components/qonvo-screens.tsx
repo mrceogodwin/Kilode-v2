@@ -37,6 +37,7 @@ import { applyListing, listListings, saveListing, type Listing } from "@/lib/lis
 import { submitMovie } from "@/lib/cinema-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 import { SitePulsePanel } from "@/components/pulse-panel";
+import { HowKilodePage } from "@/components/how-kilode";
 import { PostRichEditor } from "@/components/post-rich-editor";
 import { postBodyPlain, sanitizePostHtml } from "@/lib/post-body";
 
@@ -71,6 +72,7 @@ export function QonvoScreen({
   else if (id === "market") view = <ListingsPane kind="market" />;
   else if (id === "rent") view = <ListingsPane kind="rent" />;
   else if (id === "help") view = <Help />;
+  else if (id === "how") view = <HowKilodePage />;
   else if (id === "dashboard")
     view = (
       <MeDashboard

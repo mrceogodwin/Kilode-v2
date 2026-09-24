@@ -68,7 +68,6 @@ import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account
 import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
 import { NotifyBell } from "@/components/notify-bell";
-import { HowKilode } from "@/components/how-kilode";
 import { MenuLegal, MenuPin } from "@/components/get-app";
 import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
@@ -109,6 +108,7 @@ const ICONS: Record<MenuId, typeof Home> = {
   admin: Shield,
   settings: Settings,
   help: HelpCircle,
+  how: Play,
 };
 
 const MENU_GROUPS: { label: string; ids: MenuId[] }[] = [
@@ -1215,16 +1215,7 @@ function QonvoAppInner() {
               ))}
 
               <DrawerGroup label="Help">
-                <HowKilode className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-panel-2">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-lime-2/10">
-                    <Play className="size-4 text-lime-2" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold">How Kilode works</span>
-                    <span className="block text-[10px] font-normal text-muted">Walkthrough · one minute</span>
-                  </span>
-                  <ChevronRight className="size-3.5 shrink-0 text-muted" />
-                </HowKilode>
+                <DrawerRow icon={Play} label="How Kilode works" hint="The page, not a popup" onClick={() => { setScreen("how"); setMenuOpen(false); }} on={screen === "how"} />
                 <DrawerRow icon={HelpCircle} label="Help & FAQ" hint="Terms, rules, how to use" onClick={() => { setScreen("help"); setMenuOpen(false); }} on={screen === "help"} />
                 <DrawerRow icon={Mail} label="Contact" hint="Talk to Kilode" onClick={() => { setScreen("contact"); setMenuOpen(false); }} on={screen === "contact"} />
                 {signedIn ? <DrawerRow icon={Settings} label="Settings" onClick={() => { setScreen("settings"); setMenuOpen(false); }} on={screen === "settings"} /> : null}

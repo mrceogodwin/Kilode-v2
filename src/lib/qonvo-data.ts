@@ -158,6 +158,7 @@ export const MENU = [
   ["admin", "Admin"],
   ["settings", "Settings"],
   ["help", "Help & FAQ"],
+  ["how", "How Kilode works"],
 ] as const;
 
 export type MenuId = (typeof MENU)[number][0];
