@@ -14,7 +14,7 @@ function fail(reason: string) {
 export const registerAccount = createServerFn({ method: "POST" })
   .validator((d: { name: string; password: string; kind: string; agree: boolean; face?: string; yearBorn?: number }) => d)
   .handler(async ({ data }) => {
-    if (!allowWrite(`reg:${(data.name || "").toLowerCase()}`, 5, 10 * 60_000)) return fail(RATE_BLOCKED);
+    if (!(await allowWrite(`reg:${(data.name || "").toLowerCase()}`, 5, 10 * 60_000))) return fail(RATE_BLOCKED);
     if (!data.agree) return fail("Tick the box to accept the Terms.");
     const handle = publicUsername(data.name);
     if (handle.length < 3) return fail("Username needs 3+ letters or numbers.");

@@ -326,7 +326,7 @@ export const savePost = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { title: string; body: string; excerpt?: string; category?: string; tags?: string; link?: string; image?: string; slug?: string; seoTitle?: string; seoDesc?: string; altText?: string; sourceName?: string; status?: "draft" | "publish"; commentsOn?: boolean }) => d)
   .handler(async ({ context, data }) => {
-    if (!allowWrite(`post:${context.userId}`, 8)) return { ok: false as const, reason: RATE_BLOCKED };
+    if (!(await allowWrite(`post:${context.userId}`, 8))) return { ok: false as const, reason: RATE_BLOCKED };
     const title = data.title.trim();
     const body = sanitizePostHtml(data.body.trim());
     if (!title || !postBodyPlain(body)) return null;
@@ -413,7 +413,7 @@ export const saveTrack = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { title: string; artist: string; url: string; platform: string; embed?: string; cover?: string; genre?: string; album?: string; note?: string; tags?: string }) => d)
   .handler(async ({ context, data }) => {
-    if (!allowWrite(`track:${context.userId}`, 8)) return { ok: false as const, reason: RATE_BLOCKED };
+    if (!(await allowWrite(`track:${context.userId}`, 8))) return { ok: false as const, reason: RATE_BLOCKED };
     const sql = await getSql();
     if ((await restrictionOf(context.userId)) === "ban") return { ok: false as const, reason: "This account is banned." };
     const blocked = await requireKind(context.userId, "music.submit");
@@ -547,7 +547,7 @@ export const saveAdRow = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { name: string; note: string; placement?: string; status?: string; amount?: string; txHash?: string; coin?: string; link?: string; image?: string; kind?: string; video?: string; days?: number }) => d)
   .handler(async ({ context, data }) => {
-    if (!allowWrite(`ad:${context.userId}`, 6)) return { ok: false as const, reason: RATE_BLOCKED };
+    if (!(await allowWrite(`ad:${context.userId}`, 6))) return { ok: false as const, reason: RATE_BLOCKED };
     const name = data.name.trim();
     if (!name) return null;
     const sql = await getSql();
@@ -725,7 +725,7 @@ export const saveMsg = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     try {
       return await withTimeout(async () => {
-    if (!allowWrite(`msg:${context.userId}`, 30)) return { ok: false as const, reason: RATE_BLOCKED };
+    if (!(await allowWrite(`msg:${context.userId}`, 30))) return { ok: false as const, reason: RATE_BLOCKED };
     const pause = livePauseForRoom(data.roomId, await loadLivePause());
     if (pause.paused) {
       return {
@@ -863,7 +863,7 @@ export const saveTeam = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { name: string }) => d)
   .handler(async ({ context, data }) => {
-    if (!allowWrite(`team:${context.userId}`, 6)) return { ok: false as const, reason: RATE_BLOCKED };
+    if (!(await allowWrite(`team:${context.userId}`, 6))) return { ok: false as const, reason: RATE_BLOCKED };
     const name = data.name.trim().slice(0, 40);
     if (name.length < 2) return { ok: false as const, reason: "Name needs 2+ characters." };
     const sql = await getSql();

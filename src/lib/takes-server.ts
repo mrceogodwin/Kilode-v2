@@ -121,9 +121,29 @@ export const listTakes = createServerFn({ method: "GET" })
           from nf_takes t where t.ts < ${before} order by t.ts desc limit 20`
       : await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
           from nf_takes t order by t.ts desc limit 20`;
-    const fellows = await sql<FellowRow>`select id, handle, name, role, line, verified from nf_fellows order by sort asc, name asc limit 12`;
     const takes = (rows as Record<string, unknown>[]).map(mapTake);
     const next = takes.length === 20 ? takes[takes.length - 1].ts : 0;
+    let fellows: FellowRow[] = [];
+    try {
+      const people = await sql<{ id: string; handle: string; role: string | null; line: string | null; verified: number | boolean | null }>`
+        select user_id as id, handle, kind as role, left(coalesce(bio, ''), 80) as line, verified
+        from nf_profiles
+        where handle is not null and length(trim(handle)) > 1
+        order by ts desc nulls last
+        limit 12`;
+      fellows = people
+        .filter((p) => p.handle && p.handle !== "member")
+        .map((p) => ({
+          id: p.id,
+          handle: p.handle,
+          name: p.handle,
+          role: p.role || "member",
+          line: (p.line || "").trim(),
+          verified: p.verified === true || Number(p.verified) === 1 ? 1 : 0,
+        }));
+    } catch {
+      fellows = [];
+    }
     return { takes, fellows, next };
   });
 
@@ -158,7 +178,7 @@ export const saveTake = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     try {
       const userId = context.userId;
-      if (!allowWrite(`take:${userId}`, 20)) return { ok: false as const, reason: RATE_BLOCKED };
+      if (!(await allowWrite(`take:${userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
       const kind = (KINDS.has(data.kind as TakeKind) ? data.kind : "take") as TakeKind;
       if (kind === "ghost") return { ok: false as const, reason: "That format is not open yet." };
       const body = (data.body || "").trim().slice(0, 280);
@@ -261,7 +281,7 @@ export const voteTake = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const side = data.side === "fact" || data.side === "cap" || data.side === "a" || data.side === "b" ? data.side : "";
     if (!side || !data.id) return { ok: false as const, reason: "Pick a side." };
-    if (!allowWrite(`vote:${context.userId}`, 30)) return { ok: false as const, reason: RATE_BLOCKED };
+    if (!(await allowWrite(`vote:${context.userId}`, 30))) return { ok: false as const, reason: RATE_BLOCKED };
     const sql = await getSql();
     const prev = await sql<{ side: string }>`select side from nf_take_votes where take_id = ${data.id} and user_id = ${context.userId} limit 1`;
     if (prev[0]?.side === side) return { ok: true as const };
@@ -300,7 +320,7 @@ export const replyTake = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const body = data.body.trim().slice(0, 180);
     if (!data.id || body.length < 1) return { ok: false as const, reason: "Write a reply." };
-    if (!allowWrite(`reply:${context.userId}`, 20)) return { ok: false as const, reason: RATE_BLOCKED };
+    if (!(await allowWrite(`reply:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
     const handle = await handleOf(context.userId);
     const checked = await gateText("comments", body, { userId: context.userId, author: handle });
     if (!checked.ok) return { ok: false as const, reason: checked.reason };
@@ -316,7 +336,7 @@ export const applyTake = createServerFn({ method: "POST" })
   .validator((d: { id: string }) => d)
   .handler(async ({ data, context }) => {
     if (!data.id) return { ok: false as const, reason: "That job is missing." };
-    if (!allowWrite(`apply:${context.userId}`, 12)) return { ok: false as const, reason: RATE_BLOCKED };
+    if (!(await allowWrite(`apply:${context.userId}`, 12))) return { ok: false as const, reason: RATE_BLOCKED };
     const sql = await getSql();
     await sql`create table if not exists nf_take_applies (
       take_id text not null,
@@ -344,7 +364,7 @@ export const repostTake = createServerFn({ method: "POST" })
   .validator((d: { id: string }) => d)
   .handler(async ({ data, context }) => {
     if (!data.id) return { ok: false as const, reposted: false };
-    if (!allowWrite(`repost:${context.userId}`, 20)) return { ok: false as const, reason: RATE_BLOCKED, reposted: false };
+    if (!(await allowWrite(`repost:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED, reposted: false };
     const sql = await getSql();
     if (!repostTableReady) {
       await sql`create table if not exists nf_take_reposts (take_id text not null, user_id text not null, primary key (take_id, user_id))`;
@@ -362,6 +382,12 @@ export const connectFellow = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!data.id) return { ok: false as const, reason: "Missing person." };
     const sql = await getSql();
+    await sql`create table if not exists nf_connects (
+      user_id text not null,
+      fellow_id text not null,
+      primary key (user_id, fellow_id)
+    )`;
+    if (data.id === context.userId) return { ok: false as const, reason: "That is you." };
     await sql`insert into nf_connects (user_id, fellow_id) values (${context.userId}, ${data.id}) on conflict do nothing`;
     return { ok: true as const };
   });
@@ -375,7 +401,7 @@ export const reportTake = createServerFn({ method: "POST" })
     const reason = REPORT_REASONS.has(data.reason) ? data.reason : "";
     const id = (data.id || "").trim().slice(0, 40);
     if (!reason || !id) return { ok: false as const, reason: "Pick a reason." };
-    if (!allowWrite(`report:${context.userId}`, 5)) return { ok: false as const, reason: "Slow down. Try again in a minute." };
+    if (!(await allowWrite(`report:${context.userId}`, 5))) return { ok: false as const, reason: "Slow down. Try again in a minute." };
     const sql = await getSql();
     const handle = await handleOf(context.userId);
     await sql`insert into nf_reports (id, post_id, user_id, author, reason, ts) values (${nid()}, ${"take:" + id}, ${context.userId}, ${handle}, ${reason}, ${Date.now()})`;

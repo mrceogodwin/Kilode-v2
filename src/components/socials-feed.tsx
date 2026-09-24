@@ -3,23 +3,17 @@ import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2,
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { connectFellow, applyTake, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 
-const KEY = "kilode-takes-v1";
-
-const STARTER_FELLOWS: FellowRow[] = [
-  { id: "f-tunde", handle: "tundeverse", name: "TundeVerse", role: "Tech Enthusiast", line: "Creators → Founders", verified: 1 },
-  { id: "f-lily", handle: "lilycoded", name: "LilyCoded", role: "Creator", line: "Creators → Collaborators", verified: 1 },
-  { id: "f-job", handle: "jobalertng", name: "JobAlertNG", role: "Recruiter", line: "Job Seekers → Recruiters", verified: 1 },
-];
+const KEY = "kilode-takes-v2";
 
 function bootCache(): { takes: TakeRow[]; fellows: FellowRow[] } {
-  if (typeof window === "undefined") return { takes: [], fellows: STARTER_FELLOWS };
+  if (typeof window === "undefined") return { takes: [], fellows: [] };
   try {
     const j = JSON.parse(localStorage.getItem(KEY) || "") as { takes?: TakeRow[]; fellows?: FellowRow[] };
-    if (Array.isArray(j.takes)) return { takes: j.takes, fellows: j.fellows?.length ? j.fellows : STARTER_FELLOWS };
+    if (Array.isArray(j.takes)) return { takes: j.takes, fellows: Array.isArray(j.fellows) ? j.fellows : [] };
   } catch {
     /* first open */
   }
-  return { takes: [], fellows: STARTER_FELLOWS };
+  return { takes: [], fellows: [] };
 }
 
 function writeCache(takes: TakeRow[], fellows: FellowRow[]) {
@@ -138,7 +132,7 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
           const merged = [...local, ...server];
           return merged.filter((t, i) => merged.findIndex((x) => x.id === t.id) === i);
         });
-        setFellows(r.fellows.length ? r.fellows : STARTER_FELLOWS);
+        setFellows(r.fellows);
         setNext(r.next);
         writeCache(r.takes, r.fellows);
       })
@@ -269,6 +263,7 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
         <div className="text-[11px] font-semibold tracking-[0.04em] text-fg">Connect with Fellows</div>
       </div>
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1">
+        {shownFellows.length === 0 ? <p className="px-1 text-[11px] text-muted">Real members show here after they join.</p> : null}
         {shownFellows.map((f) => (
           <div key={f.id} className="w-[148px] shrink-0 rounded-[12px] border border-line bg-panel px-2.5 py-2">
             <div className="flex items-center gap-1.5">

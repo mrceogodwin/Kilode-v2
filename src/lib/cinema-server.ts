@@ -261,7 +261,7 @@ export const submitMovie = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { title: string; url: string; section?: string }) => d)
   .handler(async ({ context, data }) => {
-    if (!allowWrite(`cin-sub:${context.userId}`, 8)) return { ok: false as const, reason: RATE_BLOCKED };
+    if (!(await allowWrite(`cin-sub:${context.userId}`, 8))) return { ok: false as const, reason: RATE_BLOCKED };
     const kind = await kindOf(context.userId);
     if (!canKind(kind, "cinema.submit")) return { ok: false as const, reason: kindActionHint("cinema.submit") };
     const yt = youtubeId(data.url);
@@ -290,7 +290,7 @@ export const voteMovie = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { id: string }) => d)
   .handler(async ({ context, data }) => {
-    if (!allowWrite(`cin-vote:${context.userId}`, 20)) return { ok: false as const, reason: RATE_BLOCKED };
+    if (!(await allowWrite(`cin-vote:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
     const sql = await getSql();
     try {
       await ensureMovies();
@@ -458,7 +458,7 @@ export const rateMovie = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { id: string; stars: number }) => d)
   .handler(async ({ context, data }) => {
-    if (!allowWrite(`cin-rate:${context.userId}`, 20)) return { ok: false as const, reason: RATE_BLOCKED };
+    if (!(await allowWrite(`cin-rate:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
     const stars = Math.min(5, Math.max(1, Math.round(Number(data.stars))));
     if (!Number.isFinite(stars) || stars < 1) return { ok: false as const, reason: "Pick 1–5 stars." };
     const id = (data.id || "").trim();

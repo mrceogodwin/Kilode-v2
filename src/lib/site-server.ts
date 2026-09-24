@@ -100,7 +100,7 @@ export const pingVisit = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const sid = data.sid.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 64);
     if (sid.length < 8) return loadPublic();
-    if (!allowWrite(`visit:${sid}`, 3, 60_000)) return { ...(await loadPublic()), reason: RATE_BLOCKED };
+    if (!(await allowWrite(`visit:${sid}`, 3, 60_000))) return { ...(await loadPublic()), reason: RATE_BLOCKED };
     const sql = await ensure();
     const day = utcDay();
     const k = createHash("sha256").update(`${sid}|${day}`).digest("hex").slice(0, 32);
@@ -151,7 +151,7 @@ export const pingShare = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const k = data.k;
     if (!["x", "wa", "tg", "fb", "copy"].includes(k)) return loadPublic();
-    if (!allowWrite(`share:${k}`, 20, 60_000)) return loadPublic();
+    if (!(await allowWrite(`share:${k}`, 20, 60_000))) return loadPublic();
     const sql = await ensure();
     await sql`insert into nf_shares (k, n) values (${k}, 1) on conflict (k) do update set n = nf_shares.n + 1`;
     return loadPublic();

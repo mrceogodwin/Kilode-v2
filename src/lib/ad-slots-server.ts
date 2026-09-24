@@ -134,7 +134,7 @@ export const saveDigest = createServerFn({ method: "POST" })
   .validator((d: { email: string }) => d)
   .handler(async ({ data }) => {
     const ip = "digest";
-    if (!allowWrite(ip, 6, 60_000)) return { ok: false as const, reason: RATE_BLOCKED };
+    if (!(await allowWrite(ip, 6, 60_000))) return { ok: false as const, reason: RATE_BLOCKED };
     const email = data.email.trim().toLowerCase().slice(0, 120);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false as const, reason: "That does not look like an email." };
     const sql = await ensure();
