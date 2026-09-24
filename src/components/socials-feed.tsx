@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { connectFellow, likeTake, listTakes, replyTake, repostTake, saveTake, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
-import { sendDm } from "@/lib/social-server";
+import { connectFellow, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 
 const KEY = "kilode-takes-v1";
 
@@ -52,6 +51,8 @@ export async function shareNewsToSocials(p: { title: string; excerpt?: string; a
   return r;
 }
 
+const REPORTS = ["Spam", "Scam or fraud", "Harassment or hate", "Nudity or sexual", "Misinformation", "Other"] as const;
+
 const KINDS: { id: TakeKind; label: string }[] = [
   { id: "news", label: "News" },
   { id: "take", label: "Take" },
@@ -86,6 +87,10 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
   const [reply, setReply] = useState("");
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [applied, setApplied] = useState<Record<string, boolean>>({});
+  const [q, setQ] = useState("");
+  const [people, setPeople] = useState<{ handle: string; name: string; role: string; line: string; verified: number }[]>([]);
+  const [reportId, setReportId] = useState("");
+  const [reportNote, setReportNote] = useState("");
 
   function goLogin() {
     window.location.href = "/login?mode=up";
@@ -115,6 +120,20 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
       window.removeEventListener("kilode:take", onTake);
     };
   }, []);
+
+  useEffect(() => {
+    const needle = q.trim();
+    if (needle.length < 2) {
+      setPeople([]);
+      return;
+    }
+    const t = window.setTimeout(() => {
+      void searchPeople({ data: { q: needle } })
+        .then(setPeople)
+        .catch(() => setPeople([]));
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [q]);
 
   async function post() {
     if (!authed) return goLogin();
@@ -156,13 +175,44 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
     }
   }
 
+  const needle = q.trim().toLowerCase();
+  const shownFellows = needle
+    ? fellows.filter((f) => `${f.name} ${f.handle} ${f.role}`.toLowerCase().includes(needle))
+    : fellows;
+  const shownTakes = needle
+    ? takes.filter((t) => `${t.name} ${t.handle} ${t.role} ${t.body}`.toLowerCase().includes(needle))
+    : takes;
+
   return (
     <div className="mb-3">
+      <label className="mb-3 block">
+        <span className="sr-only">Find a member</span>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Find @username"
+          className="w-full rounded-[12px] border border-line bg-panel px-3 py-2 outline-none"
+          style={{ fontSize: 16 }}
+        />
+      </label>
+      {people.length > 0 ? (
+        <div className="mb-3 overflow-hidden rounded-[12px] border border-line">
+          {people.map((p) => (
+            <a key={p.handle} href={`/u/${encodeURIComponent(p.handle)}`} className="flex items-center gap-2 border-b border-line px-3 py-2 last:border-0">
+              <img src={avatarUrl(p.handle)} alt="" className="size-7 rounded-full bg-panel-3" />
+              <span className="min-w-0">
+                <span className="block truncate text-[12px] font-semibold">@{p.handle}</span>
+                <span className="block truncate text-[10px] text-muted">{p.role}{p.line ? ` · ${p.line}` : ""}</span>
+              </span>
+            </a>
+          ))}
+        </div>
+      ) : null}
       <div className="mb-2 flex items-center justify-between">
         <div className="text-[11px] font-semibold tracking-[0.04em] text-fg">Connect with Fellows</div>
       </div>
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1">
-        {fellows.map((f) => (
+        {shownFellows.map((f) => (
           <div key={f.id} className="w-[148px] shrink-0 rounded-[12px] border border-line bg-panel px-2.5 py-2">
             <div className="flex items-center gap-1.5">
               <img src={avatarUrl(f.handle)} alt="" className="size-7 rounded-full bg-panel-3 object-cover" />
@@ -201,7 +251,7 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
             maxLength={280}
             rows={2}
             placeholder="What's happening?"
-            className="min-h-[40px] flex-1 resize-none bg-transparent text-[13px] leading-snug outline-none"
+            className="min-h-[80px] flex-1 resize-none bg-transparent text-[13px] leading-snug outline-none"
             style={{ fontSize: 16 }}
             onChange={(e) => setBody(e.target.value)}
           />
@@ -236,9 +286,9 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
         {err ? <p className="mt-1 text-[11px] text-danger">{err}</p> : null}
       </div>
 
-      {takes.length === 0 ? <p className="py-3 text-center text-[11px] text-muted">No takes yet. Be first.</p> : null}
+      {shownTakes.length === 0 ? <p className="py-3 text-center text-[11px] text-muted">No takes yet. Be first.</p> : null}
       <div className="space-y-2">
-        {takes.map((t) => (
+        {shownTakes.map((t) => (
           <TakeCard
             key={t.id}
             take={t}
@@ -249,6 +299,10 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
             onReveal={() => setRevealed((m) => ({ ...m, [t.id]: true }))}
             onApply={() => setApplied((m) => ({ ...m, [t.id]: true }))}
             onVote={(side) => void vote(t.id, side)}
+            onReport={() => {
+              setReportNote("");
+              setReportId(t.id);
+            }}
             onLike={() => {
               if (!authed) return goLogin();
               patch(t.id, (row) => ({ ...row, likes: row.likes + 1 }));
@@ -296,9 +350,45 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
             });
           }}
         >
-          More
+          Load more
         </button>
       ) : null}
+      {reportId ? (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setReportId("")}>
+          <div className="w-full rounded-t-2xl bg-[#141414] px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
+            <div className="text-[18px] font-bold">Report gist</div>
+            <p className="mt-1 text-[13px] text-muted">Why are you reporting this?</p>
+            <div className="mt-2">
+              {REPORTS.map((reason) => (
+                <button
+                  key={reason}
+                  type="button"
+                  className="block w-full border-b border-white/10 py-3 text-left text-[16px]"
+                  onClick={() => {
+                    if (!authed) return goLogin();
+                    void reportTake({ data: { id: reportId, reason } })
+                      .then((r) => {
+                        setReportId("");
+                        setReportNote(r.ok ? "Report sent. Staff will see it." : r.reason);
+                      })
+                      .catch((e) => {
+                        if (needLogin(e)) goLogin();
+                        else setReportNote("Could not send the report.");
+                      });
+                  }}
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="mt-1 w-full py-3 text-center text-[16px] text-muted" onClick={() => setReportId("")}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {reportNote ? <p className="mt-2 text-center text-[11px] text-muted">{reportNote}</p> : null}
     </div>
   );
 }
@@ -312,6 +402,7 @@ function TakeCard({
   onReveal,
   onApply,
   onVote,
+  onReport,
   onLike,
   onRepost,
   onShare,
@@ -327,6 +418,7 @@ function TakeCard({
   onReveal: () => void;
   onApply: () => void;
   onVote: (side: "fact" | "cap" | "a" | "b") => void;
+  onReport: () => void;
   onLike: () => void;
   onRepost: () => void;
   onShare: () => void;
@@ -340,9 +432,6 @@ function TakeCard({
   const banter = pct(take.voteA, take.voteB);
   const expires = typeof take.meta.expires === "number" ? take.meta.expires : 0;
   const hours = expires ? Math.max(0, Math.round((expires - Date.now()) / 3600000)) : 0;
-  const [dmOn, setDmOn] = useState(false);
-  const [dm, setDm] = useState("");
-  const [dmNote, setDmNote] = useState("");
   return (
     <article className={`rounded-[12px] border px-2.5 py-2 ${ghost ? "border-white/10 bg-panel" : "border-line bg-panel"}`}>
       <div className="flex items-start gap-2">
@@ -361,6 +450,9 @@ function TakeCard({
             {!ghost && take.verified ? <BadgeCheck className="size-3 shrink-0 text-lime-2" /> : null}
             {!ghost ? <span className="truncate text-[10px] text-muted">@{take.handle}</span> : null}
             <span className="shrink-0 text-[10px] text-muted">· {timeAgo(take.ts)}</span>
+            <button type="button" aria-label="Report gist" className="ml-auto shrink-0 px-1 text-[12px] font-bold tracking-widest text-muted" onClick={onReport}>
+              =
+            </button>
           </div>
           {take.role ? <div className="text-[10px] text-muted">{take.role}</div> : null}
           {ghost ? (
@@ -458,39 +550,10 @@ function TakeCard({
             </form>
           ) : null}
 
-          {dmOn && !ghost ? (
-            <form
-              className="mt-1.5 flex gap-1"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const text = dm.trim();
-                if (!text) return;
-                void sendDm({ data: { to: take.handle, body: text } })
-                  .then((r) => {
-                    setDmNote(r.ok ? "Sent." : r.reason);
-                    if (r.ok) {
-                      setDm("");
-                      setDmOn(false);
-                    }
-                  })
-                  .catch(() => setDmNote("Sign in to message a real member."));
-              }}
-            >
-              <input value={dm} onChange={(e) => setDm(e.target.value)} placeholder={`Message @${take.handle}`} className="min-w-0 flex-1 rounded-[10px] border border-line bg-bg px-2 py-1 outline-none" style={{ fontSize: 16 }} />
-              <button type="submit" className="text-[11px] font-semibold text-lime-2">Send</button>
-            </form>
-          ) : null}
-          {dmNote ? <p className="mt-1 text-[10px] text-muted">{dmNote}</p> : null}
-
           <div className="mt-1.5 flex items-center gap-3 text-[10px] text-muted">
             <button type="button" className="inline-flex items-center gap-1" onClick={onReplyOpen}>
               <MessageSquare className="size-3.5" /> {take.comments}
             </button>
-            {!ghost ? (
-              <button type="button" className="font-semibold text-lime-2" onClick={() => setDmOn((v) => !v)}>
-                Message
-              </button>
-            ) : null}
             <button type="button" className="inline-flex items-center gap-1" onClick={onRepost}>
               <Repeat2 className="size-3.5" /> {take.reposts}
             </button>

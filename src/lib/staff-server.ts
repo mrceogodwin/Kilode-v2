@@ -413,6 +413,39 @@ export const listReports = createServerFn({ method: "GET" })
     return rows.map((r) => ({ ...r, ts: Number(r.ts) }));
   });
 
+export const dismissReport = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    const me = await staffOf(context.userId);
+    if (!me) throw new Error("Forbidden");
+    if (!data.id) return { ok: false as const };
+    const sql = await getSql();
+    await sql`delete from nf_reports where id = ${data.id}`;
+    return { ok: true as const };
+  });
+
+export const deleteGist = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    const me = await staffOf(context.userId);
+    if (!me) throw new Error("Forbidden");
+    const id = (data.id || "").replace(/^take:/, "").trim().slice(0, 40);
+    if (!id) return { ok: false as const };
+    const sql = await getSql();
+    try {
+      await sql`delete from nf_take_votes where take_id = ${id}`;
+      await sql`delete from nf_take_replies where take_id = ${id}`;
+      await sql`delete from nf_take_likes where take_id = ${id}`;
+    } catch {
+      /* tables may be empty */
+    }
+    await sql`delete from nf_takes where id = ${id}`;
+    await sql`delete from nf_reports where post_id = ${"take:" + id}`;
+    return { ok: true as const };
+  });
+
 export const saveWallet = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { coin: string; address: string }) => d)

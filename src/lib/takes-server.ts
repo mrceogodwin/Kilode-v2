@@ -243,3 +243,43 @@ export const connectFellow = createServerFn({ method: "POST" })
     await sql`insert into nf_connects (user_id, fellow_id) values (${context.userId}, ${data.id}) on conflict do nothing`;
     return { ok: true as const };
   });
+
+const REPORT_REASONS = new Set(["Spam", "Scam or fraud", "Harassment or hate", "Nudity or sexual", "Misinformation", "Other"]);
+
+export const reportTake = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string; reason: string }) => d)
+  .handler(async ({ context, data }) => {
+    const reason = REPORT_REASONS.has(data.reason) ? data.reason : "";
+    const id = (data.id || "").trim().slice(0, 40);
+    if (!reason || !id) return { ok: false as const, reason: "Pick a reason." };
+    if (!allowWrite(`report:${context.userId}`, 5)) return { ok: false as const, reason: "Slow down. Try again in a minute." };
+    const sql = await getSql();
+    const handle = await handleOf(context.userId);
+    await sql`insert into nf_reports (id, post_id, user_id, author, reason, ts) values (${nid()}, ${"take:" + id}, ${context.userId}, ${handle}, ${reason}, ${Date.now()})`;
+    return { ok: true as const };
+  });
+
+export const searchPeople = createServerFn({ method: "GET" })
+  .validator((d: { q?: string }) => ({ q: (d?.q || "").slice(0, 24) }))
+  .handler(async ({ data }) => {
+    const q = data.q.trim().toLowerCase().replace(/^@/, "").replace(/[^a-z0-9._-]/g, "");
+    if (q.length < 2) return [];
+    const sql = await getSql();
+    try {
+      const rows = await sql<{ handle: string; kind: string | null; bio: string | null; verified: boolean | number | null }>`
+        select handle, kind, bio, verified from nf_profiles
+        where lower(handle) like ${q + "%"}
+        order by handle asc
+        limit 8`;
+      return rows.map((r) => ({
+        handle: r.handle,
+        name: r.handle,
+        role: r.kind || "member",
+        line: (r.bio || "").slice(0, 80),
+        verified: r.verified ? 1 : 0,
+      }));
+    } catch {
+      return [];
+    }
+  });

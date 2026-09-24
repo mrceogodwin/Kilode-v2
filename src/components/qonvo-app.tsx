@@ -8,6 +8,7 @@ import {
   Download,
   Eye,
   Film,
+  Globe,
   Hash,
   Heart,
   HelpCircle,
@@ -222,7 +223,7 @@ function QonvoAppInner() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [screen, setScreen] = useState<MenuId>("home");
   const [roomsOpen, setRoomsOpen] = useState(false);
-  const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "downloads">("feeds");
+  const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "downloads" | "socials">("feeds");
   const [marketDesk, setMarketDesk] = useState<MarketDesk | null>(null);
   const [feedQ, setFeedQ] = useState("");
   const [feedSearchOn, setFeedSearchOn] = useState(false);
@@ -301,16 +302,23 @@ function QonvoAppInner() {
     const goto = (e: Event) => {
       const d = (e as CustomEvent<{ screen?: string; tab?: string }>).detail || {};
       if (d.tab) {
-        const tab = d.tab as "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "downloads";
+        const tab = d.tab as "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "downloads" | "socials";
         setHomeTab(tab === "videos" && site.videosMenuVisible === false ? "feeds" : tab);
       }
       if (d.screen === "home" || d.tab) setScreen("home");
       else if (d.screen) setScreen(d.screen as MenuId);
     };
     window.addEventListener("kilode:goto", goto);
+    const openSocials = () => {
+      setScreen("home");
+      setHomeTab("socials");
+      setMarketDesk(null);
+    };
+    window.addEventListener("kilode:socials", openSocials);
     return () => {
       window.removeEventListener("kilode:create", go);
       window.removeEventListener("kilode:goto", goto);
+      window.removeEventListener("kilode:socials", openSocials);
     };
   }, [store.authed, session.user, site.videosMenuVisible]);
 
@@ -417,6 +425,7 @@ function QonvoAppInner() {
               <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home" && !marketDesk} onClick={() => { store.setOpenPost(null); setMarketDesk(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
               <HomeTab label="Chat" on={homeTab === "chat" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("chat"); setScreen("home"); setMenuOpen(false); }} />
               <HomeTab label="Music" on={homeTab === "music" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("music"); setScreen("home"); setMenuOpen(false); }} />
+              <HomeTab label="Socials" on={homeTab === "socials" && screen === "home"} onClick={() => { store.setOpenPost(null); setMarketDesk(null); setHomeTab("socials"); setScreen("home"); setMenuOpen(false); }} />
               <HomeTab label="Cinema" on={homeTab === "cinema" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("cinema"); setScreen("home"); setMenuOpen(false); }} />
               <HomeTab label="Ads" on={homeTab === "advert" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("advert"); setScreen("home"); setMenuOpen(false); }} />
               <HomeTab label="Downloads" on={homeTab === "downloads" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("downloads"); setScreen("home"); setMenuOpen(false); }} />
@@ -520,26 +529,6 @@ function QonvoAppInner() {
                 </span>
               ))}
           </div>
-          <button
-            type="button"
-            className="socials-top"
-            aria-label="Open Socials"
-            onClick={() => {
-              setScreen("home");
-              setHomeTab("feeds");
-              setMarketDesk(null);
-              window.dispatchEvent(new CustomEvent("kilode:lane", { detail: "socials" }));
-            }}
-          >
-            <span className="earth-spin" aria-hidden>
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <circle cx="12" cy="12" r="9" />
-                <ellipse cx="12" cy="12" rx="4" ry="9" />
-                <path d="M3 12h18M5 8h14M5 16h14" />
-              </svg>
-            </span>
-            SOCIALS
-          </button>
         </div>
       </header>
 
@@ -597,6 +586,10 @@ function QonvoAppInner() {
                 <MarketsDesk desk={marketDesk} onDesk={setMarketDesk} onBack={() => setMarketDesk(null)} />
               ) : homeTab === "feeds" ? (
                 <FeedPane store={store} q={feedQ} onDesk={setMarketDesk} />
+              ) : homeTab === "socials" ? (
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
+                  <SocialsFeed authed={store.authed || !!session.user} />
+                </div>
               ) : homeTab === "music" ? (
                 <MusicPane store={store} onAdd={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))} />
               ) : homeTab === "cinema" ? (
@@ -944,10 +937,11 @@ function QonvoAppInner() {
       )}
 
       <InstallToast />
-      <nav className="dock pointer-events-none absolute inset-x-0 bottom-0 z-30 grid grid-cols-7 px-1 pt-3 pb-[max(2px,env(safe-area-inset-bottom))] md:hidden">
+      <nav className="dock pointer-events-none absolute inset-x-0 bottom-0 z-30 grid grid-cols-8 px-1 pt-3 pb-[max(2px,env(safe-area-inset-bottom))] md:hidden">
         <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
         <Tab icon={<MessageSquare className="size-3.5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
         <Tab icon={<Radio className="size-3.5" />} label="Music" on={screen === "home" && homeTab === "music"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("music"); }} />
+        <Tab icon={<Globe className="size-3.5" />} label="Socials" on={screen === "home" && homeTab === "socials"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); store.setOpenPost(null); }} />
         <Tab icon={<Film className="size-3.5" />} label="Cinema" on={screen === "home" && homeTab === "cinema"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("cinema"); }} />
         <Tab icon={<Megaphone className="size-3.5" />} label="Ads" on={screen === "home" && homeTab === "advert"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("advert"); }} />
         <Tab icon={<Download className="size-3.5" />} label="Downloads" on={screen === "home" && homeTab === "downloads"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("downloads"); }} />
@@ -1101,6 +1095,7 @@ function QonvoAppInner() {
                 <DrawerRow icon={Home} label="Feeds" hint="News for Nigeria" onClick={() => { store.setOpenPost(null); setMarketDesk(null); setScreen("home"); setHomeTab("feeds"); setMenuOpen(false); }} on={homeTab === "feeds" && screen === "home" && !marketDesk} />
                 <DrawerRow icon={MessageSquare} label="Chat" hint="Live rooms · topics & places" onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }} on={homeTab === "chat" && screen === "home"} />
                 <DrawerRow icon={Radio} label="Music" hint="Artist links. We embed." onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
+                <DrawerRow icon={Globe} label="Socials" hint="Takes, fellows, gists" onClick={() => { setScreen("home"); setHomeTab("socials"); setMarketDesk(null); setMenuOpen(false); }} on={homeTab === "socials" && screen === "home"} />
                 <DrawerRow icon={Film} label="Cinema" hint="Vote and watch together" onClick={() => { setScreen("home"); setHomeTab("cinema"); setMenuOpen(false); }} on={homeTab === "cinema" && screen === "home"} />
                 <DrawerRow icon={Tv} label="Kilode TV" hint="Socials · follow in one place" onClick={() => { setScreen("tv"); setMenuOpen(false); }} on={screen === "tv"} />
                 {videosMenuVisible ? (
@@ -1459,7 +1454,7 @@ function Tab({
   onClick: () => void;
 }) {
   return (
-    <button type="button" onClick={onClick} className={`app-tab pointer-events-auto flex min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] font-semibold leading-tight ${on ? "on" : ""}`}>
+    <button type="button" onClick={onClick} className={`app-tab pointer-events-auto flex min-h-12 flex-col items-center justify-center gap-0.5 px-0.5 text-[8px] font-semibold leading-none ${on ? "on" : ""}`}>
       {icon}
       {label}
     </button>
@@ -2090,19 +2085,6 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(48);
   const [catsOpen, setCatsOpen] = useState(false);
-  const [lane, setLane] = useState<"latest" | "socials">("latest");
-  useEffect(() => {
-    const onLane = (e: Event) => {
-      const d = (e as CustomEvent<string>).detail;
-      setLane(d === "latest" ? "latest" : "socials");
-      if (d !== "latest") setCatsOpen(false);
-    };
-    window.addEventListener("kilode:lane", onLane);
-    return () => window.removeEventListener("kilode:lane", onLane);
-  }, []);
-  useEffect(() => {
-    document.documentElement.dataset.socials = lane === "socials" ? "1" : "0";
-  }, [lane]);
   const [repost, setRepost] = useState<(typeof store.posts)[number] | null>(null);
   const [cap, setCap] = useState("");
   const open = store.posts.find((p) => p.id === store.openPost);
@@ -2181,11 +2163,8 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
         <div className="mb-2 flex items-center gap-1">
           <button
             type="button"
-            className={`shrink-0 rounded-[10px] px-1.5 py-1 text-[11px] font-semibold tracking-[0.06em] ${lane === "latest" ? "text-lime-2" : "text-muted"}`}
-            onClick={() => {
-              setLane("latest");
-              window.dispatchEvent(new CustomEvent("kilode:lane", { detail: "latest" }));
-            }}
+            className="shrink-0 rounded-[10px] px-1.5 py-1 text-[11px] font-semibold tracking-[0.06em] text-lime-2"
+            onClick={() => setCatsOpen(false)}
           >
             LATEST POST
           </button>
@@ -2193,7 +2172,6 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
             type="button"
             className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-[10px] border border-line px-2 py-1 text-[10px] font-semibold uppercase tracking-wide"
             onClick={() => {
-              setLane("latest");
               setCatsOpen((v) => !v);
             }}
           >
@@ -2235,10 +2213,6 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
             ))}
           </ul>
         ) : null}
-        {lane === "socials" ? (
-          <SocialsFeed authed={store.authed} />
-        ) : (
-        <>
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
@@ -2266,7 +2240,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
                         return;
                       }
                       void shareNewsToSocials({ title: p.title, excerpt: p.excerpt, author: p.author, category: p.category }).then(() => {
-                        window.dispatchEvent(new CustomEvent("kilode:lane", { detail: "socials" }));
+                        window.dispatchEvent(new Event("kilode:socials"));
                       });
                     }}
                   >
@@ -2303,8 +2277,6 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           <p className="mt-6 mb-6 text-center text-[11px] text-muted">End of feeds · {live.length} posts</p>
         ) : (
           <EmptyHero title="No posts yet" body="Be first — share a take for Nigeria." cta="Create a post" onClick={() => { window.dispatchEvent(new CustomEvent("kilode:create")); }} />
-        )}
-        </>
         )}
         {repost ? (
           <RepostModal

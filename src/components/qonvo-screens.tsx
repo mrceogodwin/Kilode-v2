@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Eye, Mail, MessageSquare, Share2 } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, daysLeft, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
-import { claimOps, clearModUser, deletePost, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, listStaffPosts, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, staffMe, unhidePost } from "@/lib/staff-server";
+import { claimOps, clearModUser, deleteGist, deletePost, dismissReport, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, listStaffPosts, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, staffMe, unhidePost } from "@/lib/staff-server";
 import {
   approveNewsDraft,
   fetchNewsLatest,
@@ -2037,18 +2037,32 @@ function Admin({ store }: { store: Store }) {
       <div className="md:col-span-2 space-y-2">
         <div className="text-[11px] font-medium text-muted">Reports</div>
         {reports.length === 0 ? <p className="text-sm text-muted">No flags.</p> : null}
-        {reports.map((r) => (
+        {reports.map((r) => {
+          const gist = r.post_id.startsWith("take:");
+          return (
           <div key={r.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-panel p-3">
             <div className="min-w-0 break-words">
               <div className="text-xs font-semibold">{r.author}</div>
               <p className="break-words text-sm">{r.reason}</p>
-              <div className="text-[10px] text-muted">post {r.post_id}</div>
+              <div className="text-[10px] text-muted">{gist ? "gist" : "post"} {r.post_id.replace(/^take:/, "")}</div>
             </div>
-            <button type="button" className="shrink-0 text-xs text-danger" onClick={() => void hidePost({ data: r.post_id })}>
-              Hide post
-            </button>
+            <div className="flex shrink-0 gap-3">
+              <button type="button" className="text-xs text-muted" onClick={() => void dismissReport({ data: { id: r.id } }).then(() => setReports((rows) => rows.filter((x) => x.id !== r.id)))}>
+                Dismiss
+              </button>
+              {gist ? (
+                <button type="button" className="text-xs text-danger" onClick={() => void deleteGist({ data: { id: r.post_id } }).then(() => setReports((rows) => rows.filter((x) => x.post_id !== r.post_id)))}>
+                  Delete gist
+                </button>
+              ) : (
+                <button type="button" className="text-xs text-danger" onClick={() => void hidePost({ data: r.post_id })}>
+                  Hide post
+                </button>
+              )}
+            </div>
           </div>
-        ))}
+          );
+        })}
       </div>
       <FeedsDeskPanel store={store} />
       {role === "super" ? <ShopAdminPanel /> : null}
