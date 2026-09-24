@@ -850,12 +850,13 @@ export function useQonvo() {
     return false;
   }, [note, session.user]);
 
-  const rename = useCallback((name: string, extra?: { bio?: string; city?: string; kind?: AccountKind; stage?: string; genre?: string; website?: string; brand?: string; face?: string }) => {
+  const rename = useCallback(async (name: string, extra?: { bio?: string; city?: string; kind?: AccountKind; stage?: string; genre?: string; website?: string; brand?: string; face?: string }) => {
     const next = name.trim().slice(0, 24);
-    if (!next) return;
+    if (!next) return { ok: false as const, reason: "Add a username." };
+    const nextBio = (extra?.bio ?? bio).trim().slice(0, 280);
     setHandle(next);
     saveJson("me", next);
-    if (extra?.bio !== undefined) setBio(extra.bio);
+    setBio(nextBio);
     if (extra?.city !== undefined) setCity(extra.city);
     if (extra?.kind !== undefined) setKind(extra.kind);
     if (extra?.stage !== undefined) setStage(extra.stage);
@@ -863,21 +864,31 @@ export function useQonvo() {
     if (extra?.website !== undefined) setWebsite(extra.website);
     if (extra?.brand !== undefined) setBrand(extra.brand);
     if (extra?.face !== undefined) setFace(extra.face);
-    void saveProfile({
-      data: {
-        handle: next,
-        bio: extra?.bio ?? bio,
-        city: extra?.city ?? city,
-        kind: extra?.kind ?? kind,
-        stage: extra?.stage ?? stage,
-        genre: extra?.genre ?? genre,
-        website: extra?.website ?? website,
-        brand: extra?.brand ?? brand,
-        face: extra?.face ?? face,
-      },
-    }).catch(() => undefined);
-    recordJoin(next, roomId);
-    note(`Handle set to ${next}`);
+    try {
+      const r = await saveProfile({
+        data: {
+          handle: next,
+          bio: nextBio,
+          city: extra?.city ?? city,
+          kind: extra?.kind ?? kind,
+          stage: extra?.stage ?? stage,
+          genre: extra?.genre ?? genre,
+          website: extra?.website ?? website,
+          brand: extra?.brand ?? brand,
+          face: extra?.face ?? face,
+        },
+      });
+      if (!r?.ok) {
+        note(r?.reason || "Profile did not save.");
+        return { ok: false as const, reason: r?.reason || "Profile did not save." };
+      }
+      note("Profile saved.");
+      recordJoin(next, roomId);
+      return { ok: true as const };
+    } catch {
+      note("Profile did not save.");
+      return { ok: false as const, reason: "Profile did not save." };
+    }
   }, [bio, brand, city, face, genre, kind, note, recordJoin, roomId, stage, website]);
 
   const sendContact = useCallback(

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Eye, Mail, MessageSquare, Share2 } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, daysLeft, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
@@ -1179,7 +1179,11 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
   const [website, setWebsite] = useState(store.website);
   const [brand, setBrand] = useState(store.brand);
   const [face, setFace] = useState(store.face || KIND_FACE[store.kind]);
+  const [msg, setMsg] = useState("");
+  const [saving, setSaving] = useState(false);
+  const dirty = useRef(false);
   useEffect(() => {
+    if (dirty.current) return;
     setName(store.handle);
     setBio(store.bio);
     setCity(store.city);
@@ -1226,7 +1230,7 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
         <div className="mb-1 text-[11px] font-medium text-muted">Your avatar</div>
         <AvatarPicker value={face} handle={name} onChange={setFace} />
       </div>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Public username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <input value={name} onChange={(e) => { dirty.current = true; setName(e.target.value); }} placeholder="Public username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       <div>
         <div className="mb-1 text-[11px] font-medium text-muted">Account type (locked)</div>
         <p className="rounded-lg border border-line bg-panel px-3 py-2 text-base">
@@ -1255,15 +1259,24 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
       {kind === "artist" ? (
         <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Spotify / Apple / Audiomack URL" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       ) : null}
-      <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City (optional)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-      <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Bio" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <input value={city} onChange={(e) => { dirty.current = true; setCity(e.target.value); }} placeholder="City (optional)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <textarea value={bio} onChange={(e) => { dirty.current = true; setBio(e.target.value); }} maxLength={280} rows={3} placeholder="Bio" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <p className="text-[10px] text-muted">{bio.length}/280</p>
       <button
         type="button"
-        className="btn-3d rounded-lg px-3 py-2 text-sm"
-        onClick={() => store.rename(name, { bio, city, kind, stage, genre, website, brand, face })}
+        disabled={saving}
+        className="btn-3d rounded-lg px-3 py-2 text-sm disabled:opacity-60"
+        onClick={() => {
+          setSaving(true);
+          setMsg("");
+          void store.rename(name, { bio, city, kind, stage, genre, website, brand, face }).then((r) => {
+            setMsg(r.ok ? "Saved. Your bio is stored." : r.reason);
+          }).finally(() => setSaving(false));
+        }}
       >
-        Save profile
+        {saving ? "Saving" : "Save profile"}
       </button>
+      {msg ? <p className={`text-[12px] font-semibold ${msg.startsWith("Saved") ? "text-lime-2" : "text-danger"}`}>{msg}</p> : null}
       {kind === "artist" ? (
         <p className="text-[11px] text-muted">Artists list tracks from Music → Add. We never host audio files.</p>
       ) : null}

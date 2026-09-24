@@ -934,31 +934,41 @@ export const saveProfile = createServerFn({ method: "POST" })
   .validator((d: { handle: string; bio?: string; city?: string; kind?: string; stage?: string; genre?: string; website?: string; brand?: string; face?: string }) => d)
   .handler(async ({ context, data }) => {
     const handle = data.handle.trim().slice(0, 24);
-    if (!handle) return null;
-    const bio = data.bio ?? "";
-    const city = data.city ?? "";
+    if (!handle) return { ok: false as const, reason: "Add a username." };
+    const bio = (data.bio ?? "").trim().slice(0, 280);
+    const city = (data.city ?? "").trim().slice(0, 40);
     const stage = (data.stage ?? "").trim().slice(0, 80);
     const genre = (data.genre ?? "").trim().slice(0, 80);
     const website = (data.website ?? "").trim().slice(0, 200);
     const brand = (data.brand ?? "").trim().slice(0, 80);
     const face = (data.face ?? "").trim().slice(0, 32);
     const sql = await getSql();
-    const existing = await sql<{ user_id: string; kind: string | null }>`select user_id, kind from nf_profiles where user_id = ${context.userId} limit 1`;
-    const kind = existing[0]?.kind ? asAccountKind(existing[0].kind) : asAccountKind(data.kind);
+    let existing: { user_id: string; kind: string | null } | undefined;
     try {
-      if (existing[0]) {
+      const rows = await sql<{ user_id: string; kind: string | null }>`select user_id, kind from nf_profiles where user_id = ${context.userId} limit 1`;
+      existing = rows[0];
+    } catch {
+      return { ok: false as const, reason: "Profile did not save. Try again." };
+    }
+    const kind = existing?.kind ? asAccountKind(existing.kind) : asAccountKind(data.kind);
+    try {
+      if (existing) {
         await sql`update nf_profiles set handle = ${handle}, bio = ${bio}, city = ${city}, kind = ${kind}, stage = ${stage}, genre = ${genre}, website = ${website}, brand = ${brand}, face = ${face}, ts = ${Date.now()} where user_id = ${context.userId}`;
       } else {
         await sql`insert into nf_profiles (user_id, handle, bio, city, kind, stage, genre, website, brand, face, ts) values (${context.userId}, ${handle}, ${bio}, ${city}, ${kind}, ${stage}, ${genre}, ${website}, ${brand}, ${face}, ${Date.now()})`;
       }
     } catch {
-      if (existing[0]) {
-        await sql`update nf_profiles set handle = ${handle}, bio = ${bio}, city = ${city}, ts = ${Date.now()} where user_id = ${context.userId}`;
-      } else {
-        await sql`insert into nf_profiles (user_id, handle, bio, city, ts) values (${context.userId}, ${handle}, ${bio}, ${city}, ${Date.now()})`;
+      try {
+        if (existing) {
+          await sql`update nf_profiles set handle = ${handle}, bio = ${bio}, city = ${city}, ts = ${Date.now()} where user_id = ${context.userId}`;
+        } else {
+          await sql`insert into nf_profiles (user_id, handle, bio, city, ts) values (${context.userId}, ${handle}, ${bio}, ${city}, ${Date.now()})`;
+        }
+      } catch {
+        return { ok: false as const, reason: "That username may be taken, or the save failed. Try again." };
       }
     }
-    return { handle, kind, face };
+    return { ok: true as const, handle, kind, face, bio };
   });
 
 export const sendMail = createServerFn({ method: "POST" })
