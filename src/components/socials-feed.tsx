@@ -87,6 +87,10 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
   const [reply, setReply] = useState("");
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [applied, setApplied] = useState<Record<string, boolean>>({});
+  const [liked, setLiked] = useState<Record<string, boolean>>({});
+  const [reposted, setReposted] = useState<Record<string, boolean>>({});
+  const [voted, setVoted] = useState<Record<string, string>>({});
+  const [busyId, setBusyId] = useState("");
   const [q, setQ] = useState("");
   const [people, setPeople] = useState<{ handle: string; name: string; role: string; line: string; verified: number }[]>([]);
   const [reportId, setReportId] = useState("");
@@ -162,16 +166,30 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
 
   async function vote(id: string, side: "fact" | "cap" | "a" | "b") {
     if (!authed) return goLogin();
+    if (voted[id] === side || busyId === id) return;
+    const prev = voted[id];
+    setVoted((m) => ({ ...m, [id]: side }));
+    setBusyId(id);
     patch(id, (t) => {
-      if (side === "fact") return { ...t, fact: t.fact + 1 };
-      if (side === "cap") return { ...t, cap: t.cap + 1 };
-      if (side === "a") return { ...t, voteA: t.voteA + 1 };
-      return { ...t, voteB: t.voteB + 1 };
+      const next = { ...t };
+      if (prev === "fact") next.fact = Math.max(0, next.fact - 1);
+      if (prev === "cap") next.cap = Math.max(0, next.cap - 1);
+      if (prev === "a") next.voteA = Math.max(0, next.voteA - 1);
+      if (prev === "b") next.voteB = Math.max(0, next.voteB - 1);
+      if (side === "fact") next.fact += 1;
+      if (side === "cap") next.cap += 1;
+      if (side === "a") next.voteA += 1;
+      if (side === "b") next.voteB += 1;
+      return next;
     });
     try {
-      await voteTake({ data: { id, side } });
+      const r = await voteTake({ data: { id, side } });
+      if (!r.ok) setVoted((m) => ({ ...m, [id]: prev || "" }));
     } catch (e) {
+      setVoted((m) => ({ ...m, [id]: prev || "" }));
       if (needLogin(e)) goLogin();
+    } finally {
+      setBusyId("");
     }
   }
 
@@ -305,15 +323,44 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
             }}
             onLike={() => {
               if (!authed) return goLogin();
-              patch(t.id, (row) => ({ ...row, likes: row.likes + 1 }));
-              void likeTake({ data: { id: t.id } }).catch((e) => {
-                if (needLogin(e)) goLogin();
-              });
+              if (busyId === t.id) return;
+              const was = !!liked[t.id];
+              setBusyId(t.id);
+              setLiked((m) => ({ ...m, [t.id]: !was }));
+              patch(t.id, (row) => ({ ...row, likes: Math.max(0, row.likes + (was ? -1 : 1)) }));
+              void likeTake({ data: { id: t.id } })
+                .then((r) => {
+                  if (!r.ok || r.liked === was) {
+                    setLiked((m) => ({ ...m, [t.id]: was }));
+                    patch(t.id, (row) => ({ ...row, likes: Math.max(0, row.likes + (was ? 1 : -1)) }));
+                  } else {
+                    setLiked((m) => ({ ...m, [t.id]: r.liked }));
+                  }
+                })
+                .catch((e) => {
+                  setLiked((m) => ({ ...m, [t.id]: was }));
+                  patch(t.id, (row) => ({ ...row, likes: Math.max(0, row.likes + (was ? 1 : -1)) }));
+                  if (needLogin(e)) goLogin();
+                })
+                .finally(() => setBusyId(""));
             }}
             onRepost={() => {
               if (!authed) return goLogin();
-              patch(t.id, (row) => ({ ...row, reposts: row.reposts + 1 }));
-              void repostTake({ data: { id: t.id } }).catch(() => undefined);
+              if (reposted[t.id] || busyId === t.id) return;
+              setBusyId(t.id);
+              void repostTake({ data: { id: t.id } })
+                .then((r) => {
+                  if (r.ok && r.reposted) {
+                    setReposted((m) => ({ ...m, [t.id]: true }));
+                    patch(t.id, (row) => ({ ...row, reposts: row.reposts + 1 }));
+                  } else if (r.ok) {
+                    setReposted((m) => ({ ...m, [t.id]: true }));
+                  }
+                })
+                .catch((e) => {
+                  if (needLogin(e)) goLogin();
+                })
+                .finally(() => setBusyId(""));
             }}
             onShare={() => {
               const text = `${t.name}: ${t.body}`;
@@ -355,16 +402,21 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
       ) : null}
       {reportId ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setReportId("")}>
-          <div className="w-full rounded-t-2xl bg-[#141414] px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]" onClick={(e) => e.stopPropagation()}>
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
-            <div className="text-[18px] font-bold">Report gist</div>
-            <p className="mt-1 text-[13px] text-muted">Why are you reporting this?</p>
+          <div
+            className="w-full rounded-t-2xl px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]"
+            style={{ background: "var(--report-bg)", color: "var(--report-fg)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: "var(--report-line)" }} />
+            <div className="text-[18px] font-bold" style={{ color: "var(--report-fg)" }}>Report gist</div>
+            <p className="mt-1 text-[13px]" style={{ color: "var(--report-muted)" }}>Why are you reporting this?</p>
             <div className="mt-2">
               {REPORTS.map((reason) => (
                 <button
                   key={reason}
                   type="button"
-                  className="block w-full border-b border-white/10 py-3 text-left text-[16px]"
+                  className="block w-full border-b py-3 text-left text-[16px]"
+                  style={{ color: "var(--report-fg)", borderColor: "var(--report-line)" }}
                   onClick={() => {
                     if (!authed) return goLogin();
                     void reportTake({ data: { id: reportId, reason } })
@@ -382,7 +434,7 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
                 </button>
               ))}
             </div>
-            <button type="button" className="mt-1 w-full py-3 text-center text-[16px] text-muted" onClick={() => setReportId("")}>
+            <button type="button" className="mt-1 w-full py-3 text-center text-[16px]" style={{ color: "var(--report-muted)" }} onClick={() => setReportId("")}>
               Cancel
             </button>
           </div>

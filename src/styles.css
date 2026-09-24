@@ -15,6 +15,13 @@
   --radius: 0.75rem;
 }
 
+:root {
+  --report-bg: #161616;
+  --report-fg: #f4f4f2;
+  --report-muted: rgba(244, 244, 242, 0.72);
+  --report-line: rgba(255, 255, 255, 0.14);
+}
+
 @layer base {
   html,
   body {
@@ -406,6 +413,10 @@ html[data-skin="ivory"] {
   --color-lime: #2f6b3c;
   --color-lime-2: #1f7a40;
   --color-line: #c5d0c6;
+  --report-bg: #f6f4ef;
+  --report-fg: #1b1b1b;
+  --report-muted: #5c6560;
+  --report-line: rgba(20, 20, 20, 0.12);
   --color-danger: #b42318;
 }
 html[data-skin="ivory"] body {

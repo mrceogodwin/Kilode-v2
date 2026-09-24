@@ -224,14 +224,23 @@ export const replyTake = createServerFn({ method: "POST" })
     return { ok: true as const, body: clean };
   });
 
+let repostTableReady = false;
+
 export const repostTake = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { id: string }) => d)
-  .handler(async ({ data }) => {
-    if (!data.id) return { ok: false as const };
+  .handler(async ({ data, context }) => {
+    if (!data.id) return { ok: false as const, reposted: false };
+    if (!allowWrite(`repost:${context.userId}`, 20)) return { ok: false as const, reason: RATE_BLOCKED, reposted: false };
     const sql = await getSql();
+    if (!repostTableReady) {
+      await sql`create table if not exists nf_take_reposts (take_id text not null, user_id text not null, primary key (take_id, user_id))`;
+      repostTableReady = true;
+    }
+    const inserted = await sql<{ take_id: string }>`insert into nf_take_reposts (take_id, user_id) values (${data.id}, ${context.userId}) on conflict do nothing returning take_id`;
+    if (!inserted[0]) return { ok: true as const, reposted: false };
     await sql`update nf_takes set reposts = reposts + 1 where id = ${data.id}`;
-    return { ok: true as const };
+    return { ok: true as const, reposted: true };
   });
 
 export const connectFellow = createServerFn({ method: "POST" })
