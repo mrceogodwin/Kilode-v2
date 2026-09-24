@@ -111,7 +111,12 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
     void listTakes()
       .then((r) => {
         if (dead) return;
-        setTakes(r.takes);
+        setTakes((cur) => {
+          const server = r.takes;
+          const local = cur.filter((t) => !server.some((s) => s.id === t.id) && !t.id.startsWith("seed-"));
+          const merged = [...local, ...server];
+          return merged.filter((t, i) => merged.findIndex((x) => x.id === t.id) === i);
+        });
         setFellows(r.fellows.length ? r.fellows : STARTER_FELLOWS);
         setNext(r.next);
         writeCache(r.takes, r.fellows);
@@ -141,10 +146,19 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
 
   async function post() {
     if (!authed) return goLogin();
+    const text = body.trim();
+    if (!text) {
+      setErr("Write something first.");
+      return;
+    }
     setBusy(true);
     setErr("");
+    const pending = saveTake({ data: { body: text, kind, line } });
+    const timeout = new Promise<{ ok: false; reason: string }>((resolve) => {
+      window.setTimeout(() => resolve({ ok: false, reason: "The server took too long. Try Post again." }), 12000);
+    });
     try {
-      const r = await saveTake({ data: { body, kind, line } });
+      const r = await Promise.race([pending, timeout]);
       if (!r.ok) setErr(r.reason);
       else {
         setTakes((list) => [r.take, ...list.filter((t) => t.id !== r.take.id)]);
@@ -154,7 +168,7 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
       }
     } catch (e) {
       if (needLogin(e)) goLogin();
-      else setErr("Could not post.");
+      else setErr("Could not post. Try again.");
     } finally {
       setBusy(false);
     }
@@ -297,11 +311,11 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
             ))}
           </div>
           <span className="shrink-0 text-[9px] tabular-nums text-muted">{body.length}/280</span>
-          <button type="button" disabled={busy || body.trim().length < 2} className="shrink-0 rounded-[10px] bg-lime-2 px-2.5 py-1 text-[11px] font-bold text-[#102016] disabled:opacity-50" onClick={() => void post()}>
-            {busy ? "…" : "Post"}
+          <button type="button" disabled={busy || body.trim().length < 1} className="min-w-14 shrink-0 rounded-[10px] bg-lime-2 px-2.5 py-1 text-[11px] font-bold text-[#102016] disabled:opacity-50" onClick={() => void post()}>
+            {busy ? "Sending" : "Post"}
           </button>
         </div>
-        {err ? <p className="mt-1 text-[11px] text-danger">{err}</p> : null}
+        {err ? <p className="mt-1 text-[12px] font-semibold text-danger" role="alert">{err}</p> : null}
       </div>
 
       {shownTakes.length === 0 ? <p className="py-3 text-center text-[11px] text-muted">No takes yet. Be first.</p> : null}

@@ -128,44 +128,114 @@ export const listTakes = createServerFn({ method: "GET" })
   });
 
 async function handleOf(userId: string) {
-  const sql = await getSql();
-  const rows = await sql<{ handle: string }>`select handle from nf_profiles where user_id = ${userId} limit 1`;
-  return (rows[0]?.handle || "member").slice(0, 24);
+  const p = await profileOf(userId);
+  return p.handle;
+}
+
+async function profileOf(userId: string) {
+  try {
+    const sql = await getSql();
+    const rows = await sql<{ handle: string | null; kind: string | null; verified: number | boolean | null }>`
+      select handle, kind, verified from nf_profiles where user_id = ${userId} limit 1`;
+    const row = rows[0];
+    const handle = (row?.handle || "member").trim().slice(0, 24) || "member";
+    return { handle, role: (row?.kind || "member").slice(0, 24), verified: row?.verified ? 1 : 0 };
+  } catch {
+    return { handle: "member", role: "member", verified: 0 };
+  }
 }
 
 export const saveTake = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string }) => d)
   .handler(async ({ data, context }) => {
-    const userId = context.userId;
-    if (!allowWrite(`take:${userId}`, 12)) return { ok: false as const, reason: RATE_BLOCKED };
-    const kind = (KINDS.has(data.kind as TakeKind) ? data.kind : "take") as TakeKind;
-    if (kind === "ghost") return { ok: false as const, reason: "That format is not open yet." };
-    const body = data.body.trim().slice(0, 280);
-    if (body.length < 2) return { ok: false as const, reason: "Write a little more." };
-    const handle = await handleOf(userId);
-    const checked = await gateText("feeds", body, { userId, author: handle });
-    if (!checked.ok) return { ok: false as const, reason: checked.reason };
-    const clean = checked.text;
-    const meta: Record<string, string> = {};
-    if (kind === "job" && data.line) meta.line = data.line.trim().slice(0, 80);
-    if (kind === "music") meta.title = clean;
-    if (kind === "banter") {
-      meta.a = "For";
-      meta.b = "Against";
+    try {
+      const userId = context.userId;
+      if (!allowWrite(`take:${userId}`, 20)) return { ok: false as const, reason: RATE_BLOCKED };
+      const kind = (KINDS.has(data.kind as TakeKind) ? data.kind : "take") as TakeKind;
+      if (kind === "ghost") return { ok: false as const, reason: "That format is not open yet." };
+      const body = (data.body || "").trim().slice(0, 280);
+      if (body.length < 1) return { ok: false as const, reason: "Write something first." };
+      const who = await profileOf(userId);
+      const checked = await gateText("feeds", body, { userId, author: who.handle });
+      if (!checked.ok) return { ok: false as const, reason: checked.reason };
+      const clean = checked.text;
+      const meta: Record<string, string> = {};
+      if (kind === "job" && data.line) meta.line = data.line.trim().slice(0, 80);
+      if (kind === "music") meta.title = clean;
+      if (kind === "banter") {
+        meta.a = "For";
+        meta.b = "Against";
+      }
+      if (kind === "quote") {
+        meta.stance = "REPOST";
+        meta.quoteName = (data.quoteName || "Kilode").slice(0, 40);
+        meta.quoteHandle = (data.quoteHandle || "kilode").slice(0, 24);
+        meta.quoteBody = (data.quoteBody || clean).slice(0, 180);
+      }
+      const id = nid();
+      const ts = Date.now();
+      const sql = await getSql();
+      const write = async () => {
+        await sql`insert into nf_takes (id, user_id, handle, name, role, verified, kind, body, meta, fact, cap, vote_a, vote_b, comments, reposts, likes, ts)
+          values (${id}, ${userId}, ${who.handle.toLowerCase()}, ${who.handle}, ${who.role}, ${who.verified}, ${kind}, ${clean}, ${JSON.stringify(meta)}, ${0}, ${0}, ${0}, ${0}, ${0}, ${0}, ${0}, ${ts})`;
+      };
+      try {
+        await write();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (/does not exist/i.test(msg)) {
+          await sql`create table if not exists nf_takes (
+            id text primary key,
+            user_id text not null default '',
+            handle text not null,
+            name text not null,
+            role text not null default '',
+            verified integer not null default 0,
+            kind text not null default 'take',
+            body text not null default '',
+            meta text not null default '{}',
+            fact integer not null default 0,
+            cap integer not null default 0,
+            vote_a integer not null default 0,
+            vote_b integer not null default 0,
+            comments integer not null default 0,
+            reposts integer not null default 0,
+            likes integer not null default 0,
+            ts bigint not null
+          )`;
+          await write();
+        } else {
+          return { ok: false as const, reason: "Post did not save. Try again." };
+        }
+      }
+      return {
+        ok: true as const,
+        take: mapTake({
+          id,
+          handle: who.handle.toLowerCase(),
+          name: who.handle,
+          role: who.role,
+          verified: who.verified,
+          kind,
+          body: clean,
+          meta: JSON.stringify(meta),
+          fact: 0,
+          cap: 0,
+          vote_a: 0,
+          vote_b: 0,
+          comments: 0,
+          reposts: 0,
+          likes: 0,
+          ts,
+          last_reply: "",
+        }),
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/unauthor|forbidden/i.test(msg)) throw err;
+      return { ok: false as const, reason: "Post did not save. Try again." };
     }
-    if (kind === "quote") {
-      meta.stance = "REPOST";
-      meta.quoteName = (data.quoteName || "Kilode").slice(0, 40);
-      meta.quoteHandle = (data.quoteHandle || "kilode").slice(0, 24);
-      meta.quoteBody = (data.quoteBody || clean).slice(0, 180);
-    }
-    const id = nid();
-    const ts = Date.now();
-    const sql = await getSql();
-    await sql`insert into nf_takes (id, user_id, handle, name, role, verified, kind, body, meta, fact, cap, vote_a, vote_b, comments, reposts, likes, ts)
-      values (${id}, ${userId}, ${handle.toLowerCase()}, ${handle}, ${""}, ${0}, ${kind}, ${clean}, ${JSON.stringify(meta)}, ${0}, ${0}, ${0}, ${0}, ${0}, ${0}, ${0}, ${ts})`;
-    return { ok: true as const, take: mapTake({ id, handle: handle.toLowerCase(), name: handle, role: "", verified: 0, kind, body: clean, meta: JSON.stringify(meta), fact: 0, cap: 0, vote_a: 0, vote_b: 0, comments: 0, reposts: 0, likes: 0, ts, last_reply: "" }) };
   });
 
 export const voteTake = createServerFn({ method: "POST" })
