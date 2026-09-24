@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { getPublicProfile } from "@/lib/social-server";
+import { useState } from "react";
+import { getPublicProfile, sendDm } from "@/lib/social-server";
 import { seoHead } from "@/lib/seo";
 import { ACCOUNT_KINDS, fmtCount, handleColor, timeLabel } from "@/lib/qonvo-data";
 import { BrandLockup } from "@/components/brand-lockup";
@@ -60,6 +61,7 @@ function PublicProfile() {
             {profile.city ? ` · ${profile.city}` : ""}
           </div>
           {profile.bio ? <p className="mt-2 text-sm text-muted">{profile.bio}</p> : null}
+          <ProfileMessage to={profile.handle} />
           {profile.website ? (
             <a href={profile.website} className="mt-1 block text-xs text-lime-2" rel="noreferrer" target="_blank">
               {profile.website}
@@ -95,5 +97,38 @@ function PublicProfile() {
         ) : null}
       </div>
     </main>
+  );
+}
+
+function ProfileMessage({ to }: { to: string }) {
+  const [body, setBody] = useState("");
+  const [note, setNote] = useState("");
+  return (
+    <form
+      className="mt-3 flex gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const text = body.trim();
+        if (!text) return;
+        void sendDm({ data: { to, body: text } })
+          .then((r) => {
+            setNote(r.ok ? "Sent." : r.reason);
+            if (r.ok) setBody("");
+          })
+          .catch(() => setNote("Sign in to message this member."));
+      }}
+    >
+      <input
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        placeholder={`Message @${to}`}
+        className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-3 py-2 outline-none"
+        style={{ fontSize: 16 }}
+      />
+      <button type="submit" className="rounded-lg bg-lime-2 px-3 text-sm font-bold text-[#102016]">
+        Send
+      </button>
+      {note ? <span className="self-center text-[11px] text-muted">{note}</span> : null}
+    </form>
   );
 }
