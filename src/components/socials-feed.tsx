@@ -67,7 +67,7 @@ const HINT: Record<string, string> = {
   news: "A short news line. People mark Fact or Cap.",
   take: "Your take. People mark Fact or Cap.",
   job: "A role. Add pay and place. A seeker can apply once.",
-  music: "A track drop. Add a link if Listen should open it.",
+  music: "A track drop. Paste the song link and Play opens it.",
   banter: "A debate. People pick For or Against.",
 };
 
@@ -326,7 +326,7 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
           <input
             value={line}
             onChange={(e) => setLine(e.target.value)}
-            placeholder="Song link, optional"
+            placeholder="Song link from Spotify, Audiomack, Apple, or YouTube"
             className="mt-1 w-full bg-transparent text-[12px] outline-none"
             style={{ fontSize: 16 }}
           />
@@ -625,7 +625,7 @@ function TakeCard({
               </div>
               {typeof take.meta.url === "string" && /^https?:\/\//i.test(take.meta.url) ? (
                 <a href={take.meta.url} target="_blank" rel="noopener noreferrer" className="rounded-[10px] border border-line px-2 py-1 text-[10px] font-semibold text-lime-2">
-                  Listen
+                  Play
                 </a>
               ) : null}
             </div>
