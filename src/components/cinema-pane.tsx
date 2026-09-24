@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   CINEMA_SECTIONS,
-  CINEMA_SEED,
   fetchCinemaCatalog,
   getCinemaExtra,
   listCinema,
@@ -37,8 +36,8 @@ function thumb(id: string) {
 export function CinemaPane() {
   const session = useCurrentUserState();
   const [sec, setSec] = useState<CinemaSection>("watching");
-  const [watching, setWatching] = useState<CinemaMovie | null>(CINEMA_SEED[0]);
-  const [movies, setMovies] = useState<CinemaMovie[]>(CINEMA_SEED);
+  const [watching, setWatching] = useState<CinemaMovie | null>(null);
+  const [movies, setMovies] = useState<CinemaMovie[]>([]);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [title, setTitle] = useState("");
@@ -50,12 +49,12 @@ export function CinemaPane() {
   function load(section: CinemaSection = sec) {
     void listCinema({ data: { section } })
       .then((r) => {
-        setWatching(r.watching ?? CINEMA_SEED[0]);
-        setMovies(r.movies.length ? r.movies : CINEMA_SEED);
+        const real = r.movies.filter((m) => !m.id.startsWith("seed-"));
+        setWatching(real.find((m) => m.watching) ?? real[0] ?? null);
+        setMovies(real);
       })
       .catch(() => {
-        setWatching(CINEMA_SEED[0]);
-        setMovies(CINEMA_SEED);
+        setErr("Cinema did not load. Open the tab again.");
       });
   }
 
@@ -124,6 +123,11 @@ export function CinemaPane() {
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 dock-pad">
         <AdSlot id="cinema_banner" className="mb-2" quiet />
+        {!watching ? (
+          <p className="mb-3 rounded-xl border border-line bg-panel px-3 py-4 text-[12px] leading-relaxed text-muted">
+            No film yet. A cinema account submits a YouTube trailer. Staff approve it before it plays here.
+          </p>
+        ) : null}
         {watching ? (
           <div className="mb-3 md:grid md:grid-cols-[minmax(0,1.35fr)_minmax(280px,1fr)] md:items-start md:gap-3">
             <div className="overflow-hidden rounded-xl border border-line bg-black">
@@ -1106,7 +1110,7 @@ export function CinemaAdminPanel() {
           {fetchBusy ? "Fetching…" : "Fetch"}
         </button>
       </div>
-      <p className="text-xs text-muted">Approve advertiser YouTube URLs. Pin Watching Now. Votes are 1 per user per title per UTC day. Super Fetch upserts the curated trailer cache (CINEMA_SEED) — no YouTube search API. Daily cron: /api/cron/cinema (needs CRON_SECRET on Vercel).</p>
+      <p className="text-xs text-muted">Approve a submitted YouTube URL, then pin Watching Now. Votes are 1 per person per title per day. Sample trailers are not added back.</p>
       {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
       {rows.length === 0 ? <p className="text-xs text-muted">No movies yet.</p> : null}
       {rows.map((m) => (

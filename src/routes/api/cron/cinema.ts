@@ -3,7 +3,7 @@ import { runCinemaCatalogFetch } from "@/lib/cinema-server";
 import { env } from "@/lib/env.server";
 
 /**
- * Once-daily Vercel Cron — upserts curated CINEMA_SEED trailers into nf_movies.
+ * Once-daily Vercel Cron — clears leftover sample films and crowns a real approved title if none is pinned.
  * Schedule in vercel.json: `15 4 * * *` (04:15 UTC).
  *
  * Auth: `Authorization: Bearer ${CRON_SECRET}` (Vercel Cron default) or

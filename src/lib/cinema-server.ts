@@ -121,18 +121,13 @@ async function ensureMovies() {
   await sql.query(`CREATE UNIQUE INDEX IF NOT EXISTS nf_movies_yt ON nf_movies (youtube_id)`);
 }
 
+let cinemaSamplesCleared = false;
+
 async function seedCinemaIfEmpty() {
+  if (cinemaSamplesCleared) return;
   const sql = await getSql();
-  const n = await sql<{ n: string | number }>`select count(*) as n from nf_movies`;
-  if (Number(n[0]?.n ?? 0) > 0) return;
-  for (const m of CINEMA_SEED) {
-    try {
-      await sql`insert into nf_movies (id, youtube_id, title, section, status, watching, votes, submitter, ts)
-        values (${m.id}, ${m.youtube_id}, ${m.title}, ${m.section}, ${"approved"}, ${m.watching ? 1 : 0}, ${m.votes}, ${m.submitter}, ${m.ts})`;
-    } catch {
-      /* duplicate */
-    }
-  }
+  await sql`delete from nf_movies where id like ${"seed-%"}`;
+  cinemaSamplesCleared = true;
 }
 
 async function crownIfEmpty() {
@@ -143,11 +138,7 @@ async function crownIfEmpty() {
   if (top[0]) await sql`update nf_movies set watching = 1 where id = ${top[0].id}`;
 }
 
-/**
- * Upsert official trailer seeds into nf_movies (curated cache). Never calls
- * YouTube search. Additive: leaves user-submitted pending/approved rows alone.
- * Used by Super Fetch and the once-daily Vercel Cron.
- */
+/** Drops leftover sample films, then crowns a real approved title if none is pinned. */
 export async function runCinemaCatalogFetch(): Promise<{
   ok: true;
   inserted: number;
@@ -156,49 +147,10 @@ export async function runCinemaCatalogFetch(): Promise<{
 }> {
   await ensureMovies();
   const sql = await getSql();
-  let inserted = 0;
-  let updated = 0;
-  for (const m of CINEMA_SEED) {
-    const byId = await sql<{
-      id: string;
-      youtube_id: string;
-      submitter: string | null;
-      user_id: string | null;
-    }>`select id, youtube_id, submitter, user_id from nf_movies where id = ${m.id} limit 1`;
-    if (byId[0]) {
-      await sql`update nf_movies set youtube_id = ${m.youtube_id}, title = ${m.title}, section = ${m.section}, status = ${"approved"}, submitter = ${m.submitter}
-        where id = ${m.id}`;
-      updated += 1;
-      continue;
-    }
-    const byYt = await sql<{
-      id: string;
-      submitter: string | null;
-      user_id: string | null;
-    }>`select id, submitter, user_id from nf_movies where youtube_id = ${m.youtube_id} limit 1`;
-    if (byYt[0]) {
-      const row = byYt[0];
-      const isSeedish = row.id.startsWith("seed-") || (row.submitter === "Kilode" && !row.user_id);
-      if (isSeedish) {
-        await sql`update nf_movies set title = ${m.title}, section = ${m.section}, status = ${"approved"}, submitter = ${m.submitter}
-          where id = ${row.id}`;
-        updated += 1;
-      }
-      /* user-submitted row with same youtube_id — leave untouched */
-      continue;
-    }
-    try {
-      await sql`insert into nf_movies (id, youtube_id, title, section, status, watching, votes, submitter, ts)
-        values (${m.id}, ${m.youtube_id}, ${m.title}, ${m.section}, ${"approved"}, ${m.watching ? 1 : 0}, ${m.votes}, ${m.submitter}, ${m.ts})`;
-      inserted += 1;
-    } catch {
-      /* race / unique — ignore */
-    }
-  }
   await seedCinemaIfEmpty();
   await crownIfEmpty();
-  const watchingRows = await sql<{ n: string | number }>`select count(*) as n from nf_movies where status = 'approved' and watching = 1`;
-  return { ok: true as const, inserted, updated, watching: Number(watchingRows[0]?.n ?? 0) };
+  const watchingRows = await sql<{ n: string | number }>`select count(*) as n from nf_movies where status = 'approved' and watching = 1 and id not like ${"seed-%"}`;
+  return { ok: true as const, inserted: 0, updated: 0, watching: Number(watchingRows[0]?.n ?? 0) };
 }
 
 export const fetchCinemaCatalog = createServerFn({ method: "POST" })
@@ -219,7 +171,7 @@ export const listCinema = createServerFn({ method: "GET" })
       await seedCinemaIfEmpty();
       await crownIfEmpty();
     } catch {
-      return { watching: CINEMA_SEED.find((m) => m.watching) ?? CINEMA_SEED[0], movies: CINEMA_SEED };
+      return { watching: null, movies: [] };
     }
     const sql = await getSql();
     const userId = context.userId;
@@ -246,7 +198,7 @@ export const listCinema = createServerFn({ method: "GET" })
             select 1 from nf_votes v
             where v.movie_id = nf_movies.id and v.user_id = ${userId ?? ""} and v.day = ${day}
           ) then 1 else 0 end as voted_today
-      from nf_movies where status = 'approved' order by watching desc, votes desc, ts desc limit 80`;
+      from nf_movies where status = 'approved' and id not like ${"seed-%"} order by watching desc, votes desc, ts desc limit 80`;
     const movies = rows.map(mapRow);
     const watching = movies.find((m) => m.watching) ?? movies[0] ?? null;
     const sec = data.section || "watching";
@@ -421,7 +373,7 @@ export const getCinemaExtra = createServerFn({ method: "GET" })
     try {
       await ensureCinemaExtra();
     } catch {
-      return { avg: 0, n: 0, mine: 0, quiz: QUIZ_SEED.filter((q) => q.movie_id === data.movieId) };
+      return { avg: 0, n: 0, mine: 0, quiz: [] };
     }
     const sql = await getSql();
     const movieId = data.movieId.trim();
@@ -433,18 +385,6 @@ export const getCinemaExtra = createServerFn({ method: "GET" })
       mine = Number(mineRows[0]?.stars ?? 0);
     }
     let quiz = await sql<CinemaQuiz>`select id, movie_id, topic, q, a, b, c, d, e, answer from nf_cinema_quiz where movie_id = ${movieId} limit 12`;
-    if (!quiz.length) {
-      for (const q of QUIZ_SEED) {
-        try {
-          await sql`insert into nf_cinema_quiz (id, movie_id, topic, q, a, b, c, d, e, answer)
-            values (${q.id}, ${q.movie_id}, ${q.topic}, ${q.q}, ${q.a}, ${q.b}, ${q.c}, ${q.d}, ${q.e}, ${q.answer})`;
-        } catch {
-          /* dup */
-        }
-      }
-      quiz = await sql<CinemaQuiz>`select id, movie_id, topic, q, a, b, c, d, e, answer from nf_cinema_quiz where movie_id = ${movieId} limit 12`;
-      if (!quiz.length) quiz = QUIZ_SEED.filter((q) => q.movie_id === movieId);
-    }
     const avg = Number(n[0]?.avg ?? 0);
     return {
       avg: Number.isFinite(avg) ? avg : 0,

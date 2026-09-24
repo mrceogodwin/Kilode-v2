@@ -55,35 +55,16 @@ function metaOf(raw: string) {
   }
 }
 
+let samplesCleared = false;
+
 async function ensureSeed() {
-  const sql = await getSql();
-  const n = await sql<{ n: string | number }>`select count(*) as n from nf_takes`;
-  if (num(n[0]?.n) > 0) return;
-  const now = Date.now();
-  const rows: Array<[string, string, string, string, number, TakeKind, string, Record<string, string | number | boolean>, number, number, number, number, number, number, number, number]> = [
-    ["seed-take-1", "tundeverse", "TundeVerse", "Tech Enthusiast", 1, "take", "The new Lagos tech scene is different this year. More real builders, less talk.\n\nWhat's your take?", { street: true }, 81, 19, 0, 0, 4, 2, 18, now - 12 * 60_000],
-    ["seed-quote-1", "lilycoded", "LilyCoded", "Creator", 1, "quote", "This is the part people skip. The builders are already shipping.", { stance: "AGREED", quoteName: "TundeVerse", quoteHandle: "tundeverse", quoteBody: "More real builders, less talk." }, 12, 3, 0, 0, 1, 0, 6, now - 40 * 60_000],
-    ["seed-ghost-1", "ghost", "Anonymous", "", 0, "ghost", "Some of una still dey fake am for the group chat. The work is outside.", { expires: now + 18 * 3600_000 }, 0, 0, 0, 0, 3, 1, 9, now - 2 * 3600_000],
-    ["seed-job-1", "jobalertng", "JobAlertNG", "Recruiter", 1, "job", "We're hiring — Senior Frontend Developer", { line: "Remote · $20–35/hr · 2–5 yrs" }, 0, 0, 0, 0, 2, 1, 7, now - 5 * 3600_000],
-    ["seed-music-1", "lilycoded", "LilyCoded", "Music", 1, "music", "Late Night Lekki", { artist: "LilyCoded", title: "Late Night Lekki" }, 0, 0, 0, 0, 0, 2, 11, now - 8 * 3600_000],
-    ["seed-banter-1", "adablog", "AdaBlog", "Writer", 0, "banter", "Where is the real tech scene right now?", { a: "Lagos Tech", b: "Abuja Tech" }, 0, 0, 62, 38, 5, 1, 4, now - 26 * 3600_000],
-    ["seed-lock-1", "tundeverse", "TundeVerse", "Tech Enthusiast", 1, "news", "The shortlist for the Yaba residency just dropped. Names are inside.", { lock: true }, 20, 6, 0, 0, 0, 0, 3, now - 3 * 3600_000],
-  ];
-  for (const r of rows) {
-    await sql`insert into nf_takes (id, user_id, handle, name, role, verified, kind, body, meta, fact, cap, vote_a, vote_b, comments, reposts, likes, ts)
-      values (${r[0]}, ${"seed"}, ${r[1]}, ${r[2]}, ${r[3]}, ${r[4]}, ${r[5]}, ${r[6]}, ${JSON.stringify(r[7])}, ${r[8]}, ${r[9]}, ${r[10]}, ${r[11]}, ${r[12]}, ${r[13]}, ${r[14]}, ${r[15]})
-      on conflict (id) do nothing`;
-  }
-  const fellows: FellowRow[] = [
-    { id: "f-tunde", handle: "tundeverse", name: "TundeVerse", role: "Tech Enthusiast", line: "Creators → Founders", verified: 1 },
-    { id: "f-lily", handle: "lilycoded", name: "LilyCoded", role: "Creator", line: "Creators → Collaborators", verified: 1 },
-    { id: "f-job", handle: "jobalertng", name: "JobAlertNG", role: "Recruiter", line: "Job Seekers → Recruiters", verified: 1 },
-    { id: "f-ada", handle: "adablog", name: "AdaBlog", role: "Writer", line: "Writers → Readers", verified: 0 },
-  ];
-  for (const [i, f] of fellows.entries()) {
-    await sql`insert into nf_fellows (id, handle, name, role, line, verified, sort)
-      values (${f.id}, ${f.handle}, ${f.name}, ${f.role}, ${f.line}, ${f.verified}, ${i})
-      on conflict (id) do nothing`;
+  if (samplesCleared) return;
+  try {
+    const sql = await getSql();
+    await sql`delete from nf_takes where user_id = ${"seed"} or id like ${"seed-%"}`;
+    samplesCleared = true;
+  } catch {
+    /* table not ready yet — the list query still hides sample ids */
   }
 }
 
@@ -118,9 +99,9 @@ export const listTakes = createServerFn({ method: "GET" })
     const before = Number(data?.before || 0);
     const rows = before
       ? await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
-          from nf_takes t where t.ts < ${before} order by t.ts desc limit 20`
+          from nf_takes t where t.ts < ${before} and t.user_id <> ${"seed"} and t.id not like ${"seed-%"} order by t.ts desc limit 20`
       : await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
-          from nf_takes t order by t.ts desc limit 20`;
+          from nf_takes t where t.user_id <> ${"seed"} and t.id not like ${"seed-%"} order by t.ts desc limit 20`;
     const takes = (rows as Record<string, unknown>[]).map(mapTake);
     const next = takes.length === 20 ? takes[takes.length - 1].ts : 0;
     let fellows: FellowRow[] = [];

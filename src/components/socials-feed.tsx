@@ -3,7 +3,7 @@ import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2,
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { connectFellow, applyTake, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 
-const KEY = "kilode-takes-v2";
+const KEY = "kilode-takes-v3";
 
 function bootCache(): { takes: TakeRow[]; fellows: FellowRow[] } {
   if (typeof window === "undefined") return { takes: [], fellows: [] };
