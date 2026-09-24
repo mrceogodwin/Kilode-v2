@@ -135,12 +135,12 @@ async function handleOf(userId: string) {
 
 export const saveTake = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { body: string; kind: string; line?: string }) => d)
+  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string }) => d)
   .handler(async ({ data, context }) => {
     const userId = context.userId;
     if (!allowWrite(`take:${userId}`, 12)) return { ok: false as const, reason: RATE_BLOCKED };
     const kind = (KINDS.has(data.kind as TakeKind) ? data.kind : "take") as TakeKind;
-    if (kind === "ghost" || kind === "quote") return { ok: false as const, reason: "That format is not open yet." };
+    if (kind === "ghost") return { ok: false as const, reason: "That format is not open yet." };
     const body = data.body.trim().slice(0, 280);
     if (body.length < 2) return { ok: false as const, reason: "Write a little more." };
     const handle = await handleOf(userId);
@@ -153,6 +153,12 @@ export const saveTake = createServerFn({ method: "POST" })
     if (kind === "banter") {
       meta.a = "For";
       meta.b = "Against";
+    }
+    if (kind === "quote") {
+      meta.stance = "REPOST";
+      meta.quoteName = (data.quoteName || "Kilode").slice(0, 40);
+      meta.quoteHandle = (data.quoteHandle || "kilode").slice(0, 24);
+      meta.quoteBody = (data.quoteBody || clean).slice(0, 180);
     }
     const id = nid();
     const ts = Date.now();

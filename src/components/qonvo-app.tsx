@@ -80,7 +80,7 @@ import { BrandLockup } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
 import { MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
-import { SocialsFeed } from "@/components/socials-feed";
+import { SocialsFeed, shareNewsToSocials } from "@/components/socials-feed";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -520,6 +520,26 @@ function QonvoAppInner() {
                 </span>
               ))}
           </div>
+          <button
+            type="button"
+            className="socials-top"
+            aria-label="Open Socials"
+            onClick={() => {
+              setScreen("home");
+              setHomeTab("feeds");
+              setMarketDesk(null);
+              window.dispatchEvent(new CustomEvent("kilode:lane", { detail: "socials" }));
+            }}
+          >
+            <span className="earth-spin" aria-hidden>
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <circle cx="12" cy="12" r="9" />
+                <ellipse cx="12" cy="12" rx="4" ry="9" />
+                <path d="M3 12h18M5 8h14M5 16h14" />
+              </svg>
+            </span>
+            SOCIALS
+          </button>
         </div>
       </header>
 
@@ -2071,6 +2091,18 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
   const [shown, setShown] = useState(48);
   const [catsOpen, setCatsOpen] = useState(false);
   const [lane, setLane] = useState<"latest" | "socials">("latest");
+  useEffect(() => {
+    const onLane = (e: Event) => {
+      const d = (e as CustomEvent<string>).detail;
+      setLane(d === "latest" ? "latest" : "socials");
+      if (d !== "latest") setCatsOpen(false);
+    };
+    window.addEventListener("kilode:lane", onLane);
+    return () => window.removeEventListener("kilode:lane", onLane);
+  }, []);
+  useEffect(() => {
+    document.documentElement.dataset.socials = lane === "socials" ? "1" : "0";
+  }, [lane]);
   const [repost, setRepost] = useState<(typeof store.posts)[number] | null>(null);
   const [cap, setCap] = useState("");
   const open = store.posts.find((p) => p.id === store.openPost);
@@ -2150,20 +2182,12 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           <button
             type="button"
             className={`shrink-0 rounded-[10px] px-1.5 py-1 text-[11px] font-semibold tracking-[0.06em] ${lane === "latest" ? "text-lime-2" : "text-muted"}`}
-            onClick={() => setLane("latest")}
-          >
-            LATEST POST
-          </button>
-          <button
-            type="button"
-            className={`inline-flex shrink-0 items-center rounded-[10px] border px-2 py-1 text-[11px] font-bold tracking-[0.08em] ${lane === "socials" ? "border-lime-2/50 bg-lime-2/15 text-lime-2" : "border-line bg-panel text-fg"}`}
             onClick={() => {
-              setLane("socials");
-              setCatsOpen(false);
+              setLane("latest");
+              window.dispatchEvent(new CustomEvent("kilode:lane", { detail: "latest" }));
             }}
           >
-            SOCIALS
-            {lane === "socials" ? <span className="ml-1 inline-block size-1 rounded-full bg-lime-2" /> : null}
+            LATEST POST
           </button>
           <button
             type="button"
@@ -2230,6 +2254,23 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
                   <span className="inline-flex items-center gap-0.5">
                     <MessageSquare className="size-2.5" />
                     {p.comments?.length ?? 0}
+                  </span>
+                  <span
+                    role="button"
+                    aria-label="Repost to Socials"
+                    className="inline-flex items-center"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!store.authed) {
+                        window.location.href = "/login?mode=up";
+                        return;
+                      }
+                      void shareNewsToSocials({ title: p.title, excerpt: p.excerpt, author: p.author, category: p.category }).then(() => {
+                        window.dispatchEvent(new CustomEvent("kilode:lane", { detail: "socials" }));
+                      });
+                    }}
+                  >
+                    <Repeat2 className="size-2.5" />
                   </span>
                   <span
                     role="button"

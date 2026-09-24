@@ -2,6 +2,55 @@ import { useEffect, useState } from "react";
 import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { connectFellow, likeTake, listTakes, replyTake, repostTake, saveTake, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { sendDm } from "@/lib/social-server";
+
+const KEY = "kilode-takes-v1";
+
+const STARTER_FELLOWS: FellowRow[] = [
+  { id: "f-tunde", handle: "tundeverse", name: "TundeVerse", role: "Tech Enthusiast", line: "Creators → Founders", verified: 1 },
+  { id: "f-lily", handle: "lilycoded", name: "LilyCoded", role: "Creator", line: "Creators → Collaborators", verified: 1 },
+  { id: "f-job", handle: "jobalertng", name: "JobAlertNG", role: "Recruiter", line: "Job Seekers → Recruiters", verified: 1 },
+];
+
+function bootCache(): { takes: TakeRow[]; fellows: FellowRow[] } {
+  if (typeof window === "undefined") return { takes: [], fellows: STARTER_FELLOWS };
+  try {
+    const j = JSON.parse(localStorage.getItem(KEY) || "") as { takes?: TakeRow[]; fellows?: FellowRow[] };
+    if (Array.isArray(j.takes)) return { takes: j.takes, fellows: j.fellows?.length ? j.fellows : STARTER_FELLOWS };
+  } catch {
+    /* first open */
+  }
+  return { takes: [], fellows: STARTER_FELLOWS };
+}
+
+function writeCache(takes: TakeRow[], fellows: FellowRow[]) {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({ takes: takes.slice(0, 40), fellows }));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function rememberTake(take: TakeRow, notify = true) {
+  const cur = bootCache();
+  const takes = [take, ...cur.takes.filter((t) => t.id !== take.id)].slice(0, 40);
+  writeCache(takes, cur.fellows);
+  if (notify) window.dispatchEvent(new CustomEvent("kilode:take", { detail: take }));
+}
+
+export async function shareNewsToSocials(p: { title: string; excerpt?: string; author?: string; category?: string }) {
+  const r = await saveTake({
+    data: {
+      body: p.title.slice(0, 280),
+      kind: "quote",
+      quoteName: (p.author || "Kilode").slice(0, 40),
+      quoteHandle: (p.author || "kilode").toLowerCase().replace(/[^a-z0-9._-]+/g, "").slice(0, 24) || "kilode",
+      quoteBody: (p.excerpt || p.category || "From Feeds").slice(0, 180),
+    },
+  });
+  if (r.ok) rememberTake(r.take);
+  return r;
+}
 
 const KINDS: { id: TakeKind; label: string }[] = [
   { id: "news", label: "News" },
@@ -23,11 +72,11 @@ function needLogin(e: unknown) {
 }
 
 export function SocialsFeed({ authed }: { authed: boolean }) {
-  const [takes, setTakes] = useState<TakeRow[]>([]);
-  const [fellows, setFellows] = useState<FellowRow[]>([]);
+  const boot = bootCache();
+  const [takes, setTakes] = useState<TakeRow[]>(boot.takes);
+  const [fellows, setFellows] = useState<FellowRow[]>(boot.fellows);
   const [next, setNext] = useState(0);
   const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(true);
   const [body, setBody] = useState("");
   const [line, setLine] = useState("");
   const [kind, setKind] = useState<TakeKind>("take");
@@ -43,22 +92,27 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
   }
 
   useEffect(() => {
+    const onTake = (e: Event) => {
+      const take = (e as CustomEvent<TakeRow>).detail;
+      if (!take?.id) return;
+      setTakes((list) => [take, ...list.filter((t) => t.id !== take.id)]);
+    };
+    window.addEventListener("kilode:take", onTake);
     let dead = false;
     void listTakes()
       .then((r) => {
         if (dead) return;
         setTakes(r.takes);
-        setFellows(r.fellows);
+        setFellows(r.fellows.length ? r.fellows : STARTER_FELLOWS);
         setNext(r.next);
+        writeCache(r.takes, r.fellows);
       })
       .catch(() => {
-        if (!dead) setErr("Could not load Socials.");
-      })
-      .finally(() => {
-        if (!dead) setLoading(false);
+        if (!dead && takes.length === 0) setErr("Socials will retry. You can still write.");
       });
     return () => {
       dead = true;
+      window.removeEventListener("kilode:take", onTake);
     };
   }, []);
 
@@ -70,7 +124,8 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
       const r = await saveTake({ data: { body, kind, line } });
       if (!r.ok) setErr(r.reason);
       else {
-        setTakes((list) => [r.take, ...list]);
+        setTakes((list) => [r.take, ...list.filter((t) => t.id !== r.take.id)]);
+        rememberTake(r.take, false);
         setBody("");
         setLine("");
       }
@@ -181,7 +236,7 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
         {err ? <p className="mt-1 text-[11px] text-danger">{err}</p> : null}
       </div>
 
-      {loading ? <p className="py-6 text-center text-[11px] text-muted">Loading takes…</p> : null}
+      {takes.length === 0 ? <p className="py-3 text-center text-[11px] text-muted">No takes yet. Be first.</p> : null}
       <div className="space-y-2">
         {takes.map((t) => (
           <TakeCard
@@ -285,13 +340,24 @@ function TakeCard({
   const banter = pct(take.voteA, take.voteB);
   const expires = typeof take.meta.expires === "number" ? take.meta.expires : 0;
   const hours = expires ? Math.max(0, Math.round((expires - Date.now()) / 3600000)) : 0;
+  const [dmOn, setDmOn] = useState(false);
+  const [dm, setDm] = useState("");
+  const [dmNote, setDmNote] = useState("");
   return (
     <article className={`rounded-[12px] border px-2.5 py-2 ${ghost ? "border-white/10 bg-panel" : "border-line bg-panel"}`}>
       <div className="flex items-start gap-2">
         <img src={avatarUrl(ghost ? "ghost" : take.handle)} alt="" className="size-7 rounded-full bg-panel-3 object-cover" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
-            <span className="truncate text-[12px] font-semibold">{ghost ? "Anonymous" : take.name}</span>
+            <span className="truncate text-[12px] font-semibold">
+              {ghost ? (
+                "Anonymous"
+              ) : (
+                <a href={`/u/${encodeURIComponent(take.handle)}`} className="hover:underline">
+                  {take.name}
+                </a>
+              )}
+            </span>
             {!ghost && take.verified ? <BadgeCheck className="size-3 shrink-0 text-lime-2" /> : null}
             {!ghost ? <span className="truncate text-[10px] text-muted">@{take.handle}</span> : null}
             <span className="shrink-0 text-[10px] text-muted">· {timeAgo(take.ts)}</span>
@@ -392,10 +458,39 @@ function TakeCard({
             </form>
           ) : null}
 
+          {dmOn && !ghost ? (
+            <form
+              className="mt-1.5 flex gap-1"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const text = dm.trim();
+                if (!text) return;
+                void sendDm({ data: { to: take.handle, body: text } })
+                  .then((r) => {
+                    setDmNote(r.ok ? "Sent." : r.reason);
+                    if (r.ok) {
+                      setDm("");
+                      setDmOn(false);
+                    }
+                  })
+                  .catch(() => setDmNote("Sign in to message a real member."));
+              }}
+            >
+              <input value={dm} onChange={(e) => setDm(e.target.value)} placeholder={`Message @${take.handle}`} className="min-w-0 flex-1 rounded-[10px] border border-line bg-bg px-2 py-1 outline-none" style={{ fontSize: 16 }} />
+              <button type="submit" className="text-[11px] font-semibold text-lime-2">Send</button>
+            </form>
+          ) : null}
+          {dmNote ? <p className="mt-1 text-[10px] text-muted">{dmNote}</p> : null}
+
           <div className="mt-1.5 flex items-center gap-3 text-[10px] text-muted">
             <button type="button" className="inline-flex items-center gap-1" onClick={onReplyOpen}>
               <MessageSquare className="size-3.5" /> {take.comments}
             </button>
+            {!ghost ? (
+              <button type="button" className="font-semibold text-lime-2" onClick={() => setDmOn((v) => !v)}>
+                Message
+              </button>
+            ) : null}
             <button type="button" className="inline-flex items-center gap-1" onClick={onRepost}>
               <Repeat2 className="size-3.5" /> {take.reposts}
             </button>
