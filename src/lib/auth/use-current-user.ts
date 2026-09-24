@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { authClient, authEnabled } from "./client";
 
 /** Normalized user shape used across the app, auth on or off. */
@@ -59,18 +60,27 @@ export function useCurrentUserState(): CurrentUserState {
   // eslint-disable-next-line react-hooks/rules-of-hooks -- authEnabled is constant for the app's lifetime
   const { data, isPending } = authClient.useSession();
   const user = data?.user;
-  return {
-    user: user
-      ? {
-          id: user.id,
-          displayName: user.name ?? null,
-          primaryEmail: user.email ?? null,
-          profileImageUrl: user.image ?? null,
-          isDevFallback: false,
-        }
-      : null,
-    isPending,
-  };
+  const id = user?.id ?? "";
+  const displayName = user?.name ?? null;
+  const primaryEmail = user?.email ?? null;
+  const profileImageUrl = user?.image ?? null;
+  // Same fields must be the same object. A fresh object every render retriggered
+  // the signed-in effect and burned millions of Vercel function calls.
+  return useMemo(
+    () => ({
+      user: id
+        ? {
+            id,
+            displayName,
+            primaryEmail,
+            profileImageUrl,
+            isDevFallback: false,
+          }
+        : null,
+      isPending,
+    }),
+    [id, displayName, primaryEmail, profileImageUrl, isPending],
+  );
 }
 
 /**

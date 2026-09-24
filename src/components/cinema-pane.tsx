@@ -76,7 +76,7 @@ export function CinemaPane() {
     void getProfile()
       .then((p) => setKind(p.kind))
       .catch(() => undefined);
-  }, [session.user]);
+  }, [session.user?.id]);
 
   const [how, setHow] = useState(false);
   const [topic, setTopic] = useState("All");

@@ -762,7 +762,7 @@ export function useQonvo() {
     } else {
       setAuthed(false);
     }
-  }, [session.isPending, session.user, localSignedOut]);
+  }, [session.isPending, session.user?.id, localSignedOut]);
 
   const recordJoin = useCallback((name: string, room?: string) => {
     setJoins((prev) => [{ name, ts: Date.now(), room }, ...prev.filter((j) => j.name !== name)].slice(0, 20));

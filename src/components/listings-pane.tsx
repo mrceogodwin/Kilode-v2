@@ -166,7 +166,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
     void getProfile()
       .then((p) => setMeKind(p.kind))
       .catch(() => undefined);
-  }, [session.user]);
+  }, [session.user?.id]);
 
   const cities = useMemo(() => {
     const set = new Set<string>();

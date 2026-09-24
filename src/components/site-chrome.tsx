@@ -37,8 +37,9 @@ export function PublicSiteProvider({ initial, children }: { initial?: PublicSite
     if (initial) setSite(initial);
   }, [initial]);
   useEffect(() => {
+    if (initial) return;
     refresh();
-  }, [refresh]);
+  }, [refresh, initial]);
   const value = useMemo(() => ({ site, setSite, refresh }), [site, refresh]);
   return <PublicSiteContext.Provider value={value}>{children}</PublicSiteContext.Provider>;
 }

@@ -3,11 +3,11 @@
  * Active tab + recent input → snappy; idle → slow; hidden → stop.
  * Realtime can come later via PartyKit/Ably — do not migrate to WebSockets/Supabase here.
  */
-/** Invocation triage 2026-09-23: stretch Hobby fn cap further (no Pro). */
-export const CHAT_POLL_ACTIVE_MS = 50_000;
-export const CHAT_POLL_IDLE_MS = 120_000;
-export const CINEMA_POLL_ACTIVE_MS = 50_000;
-export const CINEMA_POLL_IDLE_MS = 120_000;
+/** Invocation triage: a left-open Chat tab must not eat a Hobby month. */
+export const CHAT_POLL_ACTIVE_MS = 90_000;
+export const CHAT_POLL_IDLE_MS = 180_000;
+export const CINEMA_POLL_ACTIVE_MS = 90_000;
+export const CINEMA_POLL_IDLE_MS = 180_000;
 /** No pointer/key activity for this long → use idle interval. */
 export const POLL_IDLE_AFTER_MS = 35_000;
 
