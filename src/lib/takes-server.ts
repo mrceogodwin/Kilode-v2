@@ -127,6 +127,13 @@ export const listTakes = createServerFn({ method: "GET" })
     return { takes, fellows, next };
   });
 
+function kindsForAccount(account: string): TakeKind[] {
+  if (account === "artist") return ["take", "music", "banter", "quote"];
+  if (account === "job_poster") return ["take", "job", "banter", "quote"];
+  if (account === "writer") return ["take", "news", "banter", "quote"];
+  return ["take", "news", "banter", "quote"];
+}
+
 async function handleOf(userId: string) {
   const p = await profileOf(userId);
   return p.handle;
@@ -157,12 +164,22 @@ export const saveTake = createServerFn({ method: "POST" })
       const body = (data.body || "").trim().slice(0, 280);
       if (body.length < 1) return { ok: false as const, reason: "Write something first." };
       const who = await profileOf(userId);
+      const allowed = kindsForAccount(who.role);
+      if (!allowed.includes(kind)) return { ok: false as const, reason: "That format is not your account type." };
       const checked = await gateText("feeds", body, { userId, author: who.handle });
       if (!checked.ok) return { ok: false as const, reason: checked.reason };
       const clean = checked.text;
       const meta: Record<string, string> = {};
-      if (kind === "job" && data.line) meta.line = data.line.trim().slice(0, 80);
-      if (kind === "music") meta.title = clean;
+      if (kind === "job") {
+        const line = (data.line || "").trim().slice(0, 80);
+        if (line.length < 2) return { ok: false as const, reason: "Add the role details. Pay, place, or years." };
+        meta.line = line;
+      }
+      if (kind === "music") {
+        meta.title = clean;
+        const url = (data.line || "").trim().slice(0, 200);
+        if (url && /^https?:\/\//i.test(url)) meta.url = url;
+      }
       if (kind === "banter") {
         meta.a = "For";
         meta.b = "Against";
@@ -292,6 +309,32 @@ export const replyTake = createServerFn({ method: "POST" })
     await sql`insert into nf_take_replies (id, take_id, user_id, handle, body, ts) values (${nid()}, ${data.id}, ${context.userId}, ${handle}, ${clean}, ${Date.now()})`;
     await sql`update nf_takes set comments = comments + 1 where id = ${data.id}`;
     return { ok: true as const, body: clean };
+  });
+
+export const applyTake = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ data, context }) => {
+    if (!data.id) return { ok: false as const, reason: "That job is missing." };
+    if (!allowWrite(`apply:${context.userId}`, 12)) return { ok: false as const, reason: RATE_BLOCKED };
+    const sql = await getSql();
+    await sql`create table if not exists nf_take_applies (
+      take_id text not null,
+      user_id text not null,
+      handle text not null default '',
+      ts bigint not null,
+      primary key (take_id, user_id)
+    )`;
+    const row = await sql<{ kind: string }>`select kind from nf_takes where id = ${data.id} limit 1`;
+    if (row[0]?.kind !== "job") return { ok: false as const, reason: "That is not a job." };
+    const who = await profileOf(context.userId);
+    if (who.role === "job_poster") return { ok: false as const, reason: "Job posters apply from a seeker account." };
+    const ins = await sql`insert into nf_take_applies (take_id, user_id, handle, ts)
+      values (${data.id}, ${context.userId}, ${who.handle}, ${Date.now()})
+      on conflict (take_id, user_id) do nothing
+      returning take_id`;
+    if (!ins[0]) return { ok: true as const, sent: false };
+    return { ok: true as const, sent: true };
   });
 
 let repostTableReady = false;

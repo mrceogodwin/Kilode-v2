@@ -588,7 +588,7 @@ function QonvoAppInner() {
                 <FeedPane store={store} q={feedQ} onDesk={setMarketDesk} />
               ) : homeTab === "socials" ? (
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
-                  <SocialsFeed authed={store.authed || !!session.user} />
+                  <SocialsFeed authed={store.authed || !!session.user} account={store.kind} />
                 </div>
               ) : homeTab === "music" ? (
                 <MusicPane store={store} onAdd={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))} />

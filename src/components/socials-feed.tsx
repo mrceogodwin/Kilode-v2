@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { connectFellow, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, applyTake, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 
 const KEY = "kilode-takes-v1";
 
@@ -63,6 +63,21 @@ const KINDS: { id: TakeKind; label: string }[] = [
   { id: "banter", label: "Debate" },
 ];
 
+const HINT: Record<string, string> = {
+  news: "A short news line. People mark Fact or Cap.",
+  take: "Your take. People mark Fact or Cap.",
+  job: "A role. Add pay and place. A seeker can apply once.",
+  music: "A track drop. Add a link if Listen should open it.",
+  banter: "A debate. People pick For or Against.",
+};
+
+function pillsFor(account: string) {
+  if (account === "artist") return KINDS.filter((k) => k.id === "take" || k.id === "music" || k.id === "banter");
+  if (account === "job_poster") return KINDS.filter((k) => k.id === "take" || k.id === "job" || k.id === "banter");
+  if (account === "writer") return KINDS.filter((k) => k.id === "news" || k.id === "take" || k.id === "banter");
+  return KINDS.filter((k) => k.id === "news" || k.id === "take" || k.id === "banter");
+}
+
 function pct(a: number, b: number) {
   const t = a + b;
   if (!t) return 50;
@@ -74,7 +89,8 @@ function needLogin(e: unknown) {
   return /unauthor|sign in|forbidden/i.test(m);
 }
 
-export function SocialsFeed({ authed }: { authed: boolean }) {
+export function SocialsFeed({ authed, account = "member" }: { authed: boolean; account?: string }) {
+  const pills = pillsFor(account);
   const boot = bootCache();
   const [takes, setTakes] = useState<TakeRow[]>(boot.takes);
   const [fellows, setFellows] = useState<FellowRow[]>(boot.fellows);
@@ -83,6 +99,9 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
   const [body, setBody] = useState("");
   const [line, setLine] = useState("");
   const [kind, setKind] = useState<TakeKind>("take");
+  useEffect(() => {
+    if (!pillsFor(account).some((k) => k.id === kind)) setKind("take");
+  }, [account, kind]);
   const [busy, setBusy] = useState(false);
   const [linked, setLinked] = useState<Record<string, boolean>>({});
   const [openReply, setOpenReply] = useState("");
@@ -151,6 +170,10 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
     const text = body.trim();
     if (!text) {
       setErr("Write something first.");
+      return;
+    }
+    if (kind === "job" && line.trim().length < 2) {
+      setErr("Add the role details. Pay, place, or years.");
       return;
     }
     setBusy(true);
@@ -294,14 +317,24 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
           <input
             value={line}
             onChange={(e) => setLine(e.target.value)}
-            placeholder="Remote · pay · years"
+            placeholder="Pay · place · years"
             className="mt-1 w-full bg-transparent text-[12px] outline-none"
             style={{ fontSize: 16 }}
           />
         ) : null}
+        {kind === "music" ? (
+          <input
+            value={line}
+            onChange={(e) => setLine(e.target.value)}
+            placeholder="Song link, optional"
+            className="mt-1 w-full bg-transparent text-[12px] outline-none"
+            style={{ fontSize: 16 }}
+          />
+        ) : null}
+        <p className="mt-1 text-[10px] text-muted">{HINT[kind]}</p>
         <div className="mt-1.5 flex items-center gap-1">
           <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
-            {KINDS.map((k) => (
+            {pills.map((k) => (
               <button
                 key={k.id}
                 type="button"
@@ -331,7 +364,20 @@ export function SocialsFeed({ authed }: { authed: boolean }) {
             replyOpen={openReply === t.id}
             reply={openReply === t.id ? reply : ""}
             onReveal={() => setRevealed((m) => ({ ...m, [t.id]: true }))}
-            onApply={() => setApplied((m) => ({ ...m, [t.id]: true }))}
+            onApply={() => {
+              if (!authed) return goLogin();
+              setBusyId(t.id);
+              void applyTake({ data: { id: t.id } })
+                .then((r) => {
+                  if (!r.ok) setErr(r.reason);
+                  else setApplied((m) => ({ ...m, [t.id]: true }));
+                })
+                .catch((e) => {
+                  if (needLogin(e)) goLogin();
+                  else setErr("Could not apply.");
+                })
+                .finally(() => setBusyId(""));
+            }}
             onVote={(side) => void vote(t.id, side)}
             onReport={() => {
               setReportNote("");
@@ -523,6 +569,7 @@ function TakeCard({
             </button>
           </div>
           {take.role ? <div className="text-[10px] text-muted">{take.role}</div> : null}
+          {take.kind === "news" ? <div className="mt-1 text-[10px] font-semibold text-lime-2">News</div> : null}
           {ghost ? (
             <div className="mt-0.5 flex items-center justify-between text-[10px] text-violet-300/80">
               <span>Ghost Take</span>
@@ -539,7 +586,7 @@ function TakeCard({
               <Headphones className="size-3" /> Music
             </div>
           ) : null}
-          {take.kind === "banter" ? <div className="mt-1 text-[10px] font-semibold tracking-[0.08em] text-muted">BANTER BATTLE</div> : null}
+          {take.kind === "banter" ? <div className="mt-1 text-[10px] font-semibold tracking-[0.08em] text-muted">DEBATE</div> : null}
           {take.kind === "quote" && typeof take.meta.stance === "string" ? (
             <div className="mt-1 text-[10px] font-semibold tracking-[0.08em] text-lime-2">{take.meta.stance}</div>
           ) : null}
@@ -563,7 +610,7 @@ function TakeCard({
           {take.kind === "job" && typeof take.meta.line === "string" ? <div className="mt-1 text-[11px] text-muted">{take.meta.line}</div> : null}
           {take.kind === "job" ? (
             <button type="button" disabled={applied} className="mt-1.5 rounded-[10px] border border-lime-2/40 px-2 py-1 text-[10px] font-semibold text-lime-2 disabled:opacity-60" onClick={onApply}>
-              {applied ? "Sent" : "1-Tap Express Apply"}
+              {applied ? "Applied" : "Apply"}
             </button>
           ) : null}
 
@@ -576,11 +623,15 @@ function TakeCard({
                 <div className="truncate text-[12px] font-semibold">{String(take.meta.title || take.body)}</div>
                 <div className="text-[10px] text-muted">{String(take.meta.artist || take.name)}</div>
               </div>
-              <span className="rounded-[10px] border border-line px-2 py-1 text-[10px] font-semibold">Listen</span>
+              {typeof take.meta.url === "string" && /^https?:\/\//i.test(take.meta.url) ? (
+                <a href={take.meta.url} target="_blank" rel="noopener noreferrer" className="rounded-[10px] border border-line px-2 py-1 text-[10px] font-semibold text-lime-2">
+                  Listen
+                </a>
+              ) : null}
             </div>
           ) : null}
 
-          {(take.kind === "take" || take.kind === "news" || take.kind === "quote") && (take.fact + take.cap > 0 || take.kind === "take") ? (
+          {(take.kind === "take" || take.kind === "news" || take.kind === "quote") ? (
             <div className="mt-2">
               <div className="mb-1 flex justify-between text-[10px] font-semibold">
                 <button type="button" className="text-lime-2" onClick={() => onVote("fact")}>FACT {fact}%</button>
