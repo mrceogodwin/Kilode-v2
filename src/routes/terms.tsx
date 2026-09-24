@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ADS_LONG, CONTACT_LONG, CONTENT_LONG, COOKIES_LONG, LEGAL_NAV, LEGAL_UPDATED, PRIVACY_LONG, RULES_LONG, TERMS_LONG } from "@/lib/legal";
+import { ABOUT_LONG, ADS_LONG, CONTACT_LONG, CONTENT_LONG, COOKIES_LONG, LEGAL_NAV, LEGAL_UPDATED, PRIVACY_LONG, RULES_LONG, TERMS_LONG } from "@/lib/legal";
 import { HowToGuide } from "@/components/legal-shots";
 import { TelegramLink } from "@/components/get-app";
 import { BrandLockup } from "@/components/brand-lockup";
@@ -7,6 +7,7 @@ import { BrandLockup } from "@/components/brand-lockup";
 export const Route = createFileRoute("/terms")({ component: TermsPage });
 
 const BLOCKS = [
+  { id: "about", title: "About Kilode", body: ABOUT_LONG },
   { id: "terms", title: "Terms of Use", body: TERMS_LONG },
   { id: "rules", title: "Community Rules", body: RULES_LONG },
   { id: "content", title: "Content & liability", body: CONTENT_LONG },

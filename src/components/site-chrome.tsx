@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { Share2, X } from "lucide-react";
 import { fmtCount, type Post } from "@/lib/qonvo-data";
 import { DigestBox, GetAppRow, TelegramLink } from "@/components/get-app";
+import { ABOUT_SHORT } from "@/lib/legal";
 import { getPublicSite, pingShare, pingVisit, saveSiteFlags, type PublicSite, type ShareKey } from "@/lib/site-server";
 
 const GONE_KEY = "kilode-install-toast";
@@ -186,6 +187,14 @@ export function SiteFooter() {
             <div className="mt-0.5 text-[8px] font-semibold tracking-[0.1em] text-muted uppercase">{s.label}</div>
           </div>
         ))}
+      </div>
+
+      <div className="foot-section mt-3 border-t pt-2.5 text-center">
+        <p className="text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">About Kilode</p>
+        <p className="mt-1 text-[11px] leading-snug text-muted">{ABOUT_SHORT}</p>
+        <a href="/terms#about" className="mt-1 inline-block text-[11px] font-semibold text-lime-2 underline-offset-2 hover:underline">
+          Read the full about
+        </a>
       </div>
 
       <div className="foot-section mt-3 border-t pt-2.5">

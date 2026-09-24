@@ -2,7 +2,7 @@ import { useState } from "react";
 import { HOWTO, HOWTO_MORE } from "@/lib/legal";
 
 const SHOT: Record<string, string[]> = {
-  guest: ["Open Feeds, Chat, Music, Cinema, Ads without an account.", "Me, Create, Messages stay locked until you Join."],
+  guest: ["Open Feeds, Chat, Music, KMDB, Ads without an account.", "Me, Create, Messages stay locked until you Join."],
   member: ["Pick Normal user at Join. Chat, comment, vote, apply to jobs.", "You cannot list music, place ads, or submit movies."],
   writer: ["Feeds is your desk: title, body, image, tags, SEO.", "You are the publisher. Kilode is not the editor."],
   artist: ["Paste a Spotify / SoundCloud / Audiomack URL. We embed their player.", "No audio files on Kilode. Artwork comes from that platform."],

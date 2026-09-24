@@ -1,6 +1,7 @@
-export const LEGAL_UPDATED = "21 September 2026";
+export const LEGAL_UPDATED = "24 September 2026";
 
 export const LEGAL_NAV = [
+  { id: "about", label: "About" },
   { id: "terms", label: "Terms of Use" },
   { id: "rules", label: "Community Rules" },
   { id: "content", label: "Content & liability" },
@@ -10,6 +11,31 @@ export const LEGAL_NAV = [
   { id: "cookies", label: "Cookies" },
   { id: "contact", label: "Contact" },
 ] as const;
+
+export const ABOUT_SHORT =
+  "Kilode is an interactive media and community app. Feeds, chat, music, KMDB, jobs, market, rent, and ads sit in one place. Votes and polls are free. They have no cash value, no prizes, and are not gambling.";
+
+export const ABOUT_LONG = `About Kilode
+
+Kilode (kilode.ng) is a community and media app. People read Feeds, talk in Chat, share music links, vote on KMDB, and post jobs, market goods, rent, and ads.
+
+KMDB is the Kilode Media Database. It shows YouTube trailers and official clips, plus ratings and votes from people on Kilode. Kilode does not host the video file.
+
+What is on the app
+- Feeds, Chat, and Socials for posts and conversation.
+- Music links that play on Spotify, Audiomack, and the other platforms you paste.
+- KMDB for trailers, ratings, and community votes.
+- Jobs, Market, Rent, and Downloads for listings you submit.
+- Ads that staff review before they run.
+
+Votes and polls
+Any vote, rating, or poll on Kilode is a free community feature. It has no cash value, no prize, and it is not a bet. Kilode is not a lottery, a casino, or a sportsbook.
+
+Money
+Fees for ads and paid listings, when they are charged, are for a place on the page. They are not a wager. Staff can refuse a listing. A listing that already ran is not a refund.
+
+Privacy in one line
+Join is a username and a password. We do not ask for your real name, BVN, bank, or home address. If you type an email for updates or a download, we keep that email for that request only. We do not sell accounts.`;
 
 export const HOWTO = [
   {
@@ -39,8 +65,8 @@ export const HOWTO = [
   },
   {
     id: "cinema",
-    title: "Cinema Poster",
-    body: "Submit a YouTube watch URL and title. Staff approve. Signed-in users vote. The top title (or a staff pin) becomes Watching Now — a YouTube embed on Kilode, not a file we host.",
+    title: "KMDB poster",
+    body: "Submit a YouTube watch URL and title. Staff approve. Signed-in users vote. The top title (or a staff pin) becomes Watching Now — a YouTube embed on Kilode, not a file we host. A vote has no cash value.",
   },
   {
     id: "job_poster",
@@ -111,42 +137,45 @@ export const TERMS_LONG = `Kilode Terms of Use
 
 Last updated ${LEGAL_UPDATED}
 
-These Terms are a contract between you and the operator of Kilode (kilode.ng). By creating an account, ticking the boxes on Join, or using post, comment, chat, music, cinema, ads, jobs, marketplace, rent, or teams, you agree.
+These Terms are a contract between you and the operator of Kilode (kilode.ng). By creating an account, ticking the boxes on Join, or using the app, you agree.
 
 1. The service
-Kilode is a public community for conversation, news-style posts, music links, cinema voting, and classified-style listings. It is not a bank, lawyer, employer, streaming host, or payment processor.
+Kilode is an interactive media and community app: conversation, posts, music links, KMDB (trailers, ratings, and votes), and classified-style listings. It is not a bank, a lawyer, an employer, a streaming host, a casino, or a sportsbook.
 
-2. Eligibility
-You must be 15 or older. You pick the year you were born at register. Kilode is not for children under 15. If you are under 18, a parent or guardian must agree that you may use the service.
+2. Votes are not bets
+Ratings, votes, and any poll on Kilode are free community features. They carry no cash value, no prize, and no real-world stake. Nothing on KMDB is a wager.
 
-3. Account
-You register with a username and password. We do not collect a public email. You pick one account type at register. You cannot change it. The operator may override a type if you registered as the wrong one. You are responsible for your password. There is no email reset. If you forget it, only the operator can set a new one after you prove the handle is yours in chat or contact.
+3. Paid listings and ads
+A fee, when one is charged, pays for space on the page. It is not a bet. Staff review a listing before it goes live and may remove anything fraudulent or unlawful. Chain fees are never refunded. A listing that already ran is not refunded.
 
-4. One person, one handle
+4. Account
+You register with a username and a password. We do not ask you to type an email to join. The login system stores a private address made from your username so the password can work. You never see that address. You pick one account type at register. You cannot change it. You are responsible for your password. There is no public email reset. If you forget it, only the operator can set a new one after you prove the handle is yours.
+
+5. One person, one handle
 Do not sell handles, run bots that spam, or impersonate Kilode or another person.
 
-5. Licence you give us
+6. Licence you give us
 You keep ownership of your words and images. You grant Kilode a worldwide licence to host, display, and distribute them on the service so other people can read them. If you delete an account, cached copies and lawful backups may remain for a time.
 
-6. Our licence to you
+7. Our licence to you
 We grant you a personal, non-exclusive, revocable right to use Kilode. You do not buy the software, the name, or the data of other people.
 
-7. Termination
+8. Termination
 We may hide content, lock a handle, or refuse the service if you break these Terms or the Rules. You may stop using Kilode at any time.
 
-8. As-is
+9. As-is
 The service is provided as-is. Chat is not advice. Listings are not verified beyond staff review of the form. We do not warrant uninterrupted uptime.
 
-9. Limitation
+10. Limitation
 To the maximum the law allows, Kilode and its operator are not liable for what users post, for lost crypto sent to a wrong address, or for indirect loss. Our total liability to you is limited to the amount you paid Kilode in the 12 months before the claim, or USD 0 if you paid nothing.
 
-10. Indemnity
+11. Indemnity
 You will defend and hold Kilode harmless from claims that arise from your content, your ads, your music URLs, or your listings.
 
-11. Law
-These Terms are governed by the laws of Nigeria, without regard to conflict rules. Courts of competent jurisdiction in Nigeria may hear disputes, unless a mandatory consumer law says otherwise.
+12. Law
+These Terms are governed by the laws of Nigeria, without regard to conflict rules. Courts of competent jurisdiction in Nigeria may hear disputes, unless a mandatory consumer law says otherwise. Kilode is not for children under 15.
 
-12. Changes
+13. Changes
 We may update these Terms. The date at the top will change. Continued use after that date is acceptance.`;
 
 export const RULES_LONG = `Community Rules
@@ -233,13 +262,13 @@ export const PRIVACY_LONG = `Privacy
 Last updated ${LEGAL_UPDATED}
 
 1. What we collect
-Username, password (stored hashed), account type, avatar seed, optional bio/city, posts and chat you type, ad forms, and basic device logs (IP, browser) needed to run the site and stop abuse. We do not ask for a public email.
+A username and a password, stored as a hash. A private login address made from that username, which you do not type and which is not your real inbox. The account type you pick. What you post, chat, vote, and list. If you type an email for updates or a download, we store that email for that request. Basic logs (IP and browser) to run the site and stop abuse.
 
 2. What we do not collect
-We do not sell your handle list. We do not run a public follower graph.
+We do not ask for your real name, phone number, BVN, NIN, bank details, or home address in order to join. We do not sell handles or build an ad profile of you to sell to brokers.
 
 3. Why
-To operate the community, approve ads, moderate, and keep you signed in.
+To run the community, keep you signed in, approve listings, and moderate. This is data minimisation under the Nigeria Data Protection Act. It is not a claim that the site stores nothing.
 
 4. Cookies
 A session cookie keeps you signed in. The light/night skin is stored on your device (localStorage).

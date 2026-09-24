@@ -107,14 +107,14 @@ export function CinemaPane() {
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/55 p-3 sm:items-center" onClick={() => setHow(false)}>
           <div className="w-full max-w-md rounded-2xl border border-line bg-panel p-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">CINEMA</div>
+              <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">KMDB</div>
               <button type="button" onClick={() => setHow(false)} aria-label="Close"><X className="size-4" /></button>
             </div>
-            <h3 className="mt-1 text-base font-extrabold">Watch together. Kilode never hosts the file.</h3>
+            <h3 className="mt-1 text-base font-extrabold">KMDB. Trailers and votes. Kilode never hosts the file.</h3>
             <ul className="mt-3 space-y-2 text-[12px] leading-snug text-muted">
               <li>YouTube embed only. Trailer or official clip.</li>
               <li>Join to vote once a day, rate 1–5 stars, and take the Kilode A–E quiz.</li>
-              <li>Cinema Posters submit URLs. Staff approve. Votes can send it to Watching Now.</li>
+              <li>KMDB posters submit a YouTube URL. Staff approve. Votes can send it to Watching Now. A vote is not a prize and not a bet.</li>
               <li>Live talk beside the player is a watch-party chat — join this hour's discussion while it plays.</li>
             </ul>
           </div>
@@ -125,7 +125,7 @@ export function CinemaPane() {
         <AdSlot id="cinema_banner" className="mb-2" quiet />
         {!watching ? (
           <p className="mb-3 rounded-xl border border-line bg-panel px-3 py-4 text-[12px] leading-relaxed text-muted">
-            No film yet. A cinema account submits a YouTube trailer. Staff approve it before it plays here.
+            No title yet. A KMDB account submits a YouTube trailer. Staff approve it before it plays here. Votes are free and pay nothing.
           </p>
         ) : null}
         {watching ? (
