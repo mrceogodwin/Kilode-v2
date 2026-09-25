@@ -349,8 +349,15 @@ function QonvoAppInner() {
   }, [homeTab, store.roomId]);
 
   useEffect(() => {
-    store.setChatLive(homeTab === "chat" && screen === "home");
-  }, [homeTab, screen]);
+    const onChat = homeTab === "chat" && screen === "home";
+    store.setChatLive(onChat);
+    if (onChat) store.loadChatClock();
+    if (homeTab === "music" && screen === "home") store.loadTracks();
+  }, [homeTab, screen, store.setChatLive, store.loadChatClock, store.loadTracks]);
+
+  useEffect(() => {
+    if (screen === "leaderboard") store.loadScores();
+  }, [screen, store.loadScores]);
 
   useEffect(() => {
     if (!videosMenuVisible && homeTab === "videos") setHomeTab("feeds");
@@ -375,6 +382,7 @@ function QonvoAppInner() {
 
   const purged = useRef(false);
   useEffect(() => {
+    if (homeTab !== "chat" || screen !== "home") return;
     purged.current = false;
     const tick = () => {
       const hours = store.chatHours;
@@ -394,7 +402,7 @@ function QonvoAppInner() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [store.chatHours, store.msgs, store.roomId]);
+  }, [store.chatHours, store.msgs, store.roomId, homeTab, screen]);
 
   function goHome(roomId?: string) {
     if (roomId) {

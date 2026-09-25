@@ -123,15 +123,12 @@ function useDesk<T>(desk: MarketDesk, empty: T): T | null {
         });
     };
     load();
-    // Cost hygiene: 120s → 180s; pause when tab hidden (server still caches per desk).
-    const t = window.setInterval(load, 180_000);
     const onVis = () => {
       if (!document.hidden) load();
     };
     document.addEventListener("visibilitychange", onVis);
     return () => {
       on = false;
-      window.clearInterval(t);
       document.removeEventListener("visibilitychange", onVis);
     };
   }, [desk]);

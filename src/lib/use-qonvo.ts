@@ -320,8 +320,8 @@ export function useQonvo() {
     setTracks(tracks);
     saveJson("tracks", tracks);
     setReady(true);
-    void Promise.all([listPosts(), listTracks(), listAds()])
-      .then(([dbPosts, dbTracks, dbAds]) => {
+    void Promise.all([listPosts(), listAds()])
+      .then(([dbPosts, dbAds]) => {
         const applyPosts = (dbPosts: Awaited<ReturnType<typeof listPosts>>) => {
           if (!dbPosts.length) return;
           const mapped = dbPosts
@@ -344,36 +344,13 @@ export function useQonvo() {
           ]);
         };
         applyPosts(dbPosts);
-        if (dbTracks.length) {
-          const mapped = dbTracks
-            .filter((t): t is NonNullable<typeof t> => !!t && typeof (t as { id?: string }).id === "string")
-            .map((t) => ({
-              ...t,
-              embed: t.embed ?? undefined,
-              cover: t.cover ?? undefined,
-              genre: t.genre ?? undefined,
-              album: t.album ?? undefined,
-              note: t.note ?? undefined,
-              tags: t.tags ?? undefined,
-            }));
-          setTracks([
-            ...DEMO_TRACKS.filter((d) => !!d?.id && !mapped.some((t) => t.id === d.id)),
-            ...mapped,
-          ].filter((t) => !!t && !!parseMusicUrl(t.url)));
-        }
         if (dbAds.length) setCampaigns(dbAds.filter((a) => !!a && typeof a.id === "string") as Campaign[]);
       })
-      .catch(() => undefined);
-    void listScores()
-      .then(setBoard)
       .catch(() => undefined);
     void listJoins()
       .then((rows) => {
         if (rows.length) setJoins(rows);
       })
-      .catch(() => undefined);
-    void getChatTtl()
-      .then((r) => setChatHours(r.hours))
       .catch(() => undefined);
   }, []);
 
@@ -389,6 +366,56 @@ export function useQonvo() {
   const noteServerTip = useCallback((id: string, ts: number) => {
     if (!ts || ts <= 0) return;
     tipTsByRoomRef.current[id] = Math.max(tipTsByRoomRef.current[id] ?? 0, ts);
+  }, []);
+
+  const tracksOnce = useRef(false);
+  const loadTracks = useCallback(() => {
+    if (tracksOnce.current) return;
+    tracksOnce.current = true;
+    void listTracks()
+      .then((dbTracks) => {
+        if (!dbTracks.length) return;
+        const mapped = dbTracks
+          .filter((t): t is NonNullable<typeof t> => !!t && typeof (t as { id?: string }).id === "string")
+          .map((t) => ({
+            ...t,
+            embed: t.embed ?? undefined,
+            cover: t.cover ?? undefined,
+            genre: t.genre ?? undefined,
+            album: t.album ?? undefined,
+            note: t.note ?? undefined,
+            tags: t.tags ?? undefined,
+          }));
+        setTracks([
+          ...DEMO_TRACKS.filter((d) => !!d?.id && !mapped.some((t) => t.id === d.id)),
+          ...mapped,
+        ].filter((t) => !!t && !!parseMusicUrl(t.url)));
+      })
+      .catch(() => {
+        tracksOnce.current = false;
+      });
+  }, []);
+
+  const clockOnce = useRef(false);
+  const loadChatClock = useCallback(() => {
+    if (clockOnce.current) return;
+    clockOnce.current = true;
+    void getChatTtl()
+      .then((r) => setChatHours(r.hours))
+      .catch(() => {
+        clockOnce.current = false;
+      });
+  }, []);
+
+  const scoresOnce = useRef(false);
+  const loadScores = useCallback(() => {
+    if (scoresOnce.current) return;
+    scoresOnce.current = true;
+    void listScores()
+      .then(setBoard)
+      .catch(() => {
+        scoresOnce.current = false;
+      });
   }, []);
 
   useEffect(() => {
@@ -1608,6 +1635,9 @@ export function useQonvo() {
     openTrack,
     setOpenTrack,
     scores,
+    loadTracks,
+    loadChatClock,
+    loadScores,
     badges,
     openRoom,
     rename,
