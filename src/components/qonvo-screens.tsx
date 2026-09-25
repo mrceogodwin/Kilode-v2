@@ -1382,7 +1382,7 @@ function Inbox() {
     reload();
   }, []);
   return (
-    <Screen kicker="YOU" title="Messages" sub="Private DMs. Username only. Staff cannot read these.">
+    <Screen kicker="YOU" title="Messages" sub="Private DMs. They appear when this page is opened. Kilode does not check in the background.">
       <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Their username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Message" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       {msg ? <p className="text-sm text-muted">{msg}</p> : null}

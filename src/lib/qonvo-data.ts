@@ -448,7 +448,7 @@ export const AD_COINS = [
 ] as const;
 
 export type Join = { name: string; ts: number; room?: string };
-export type Note = { id: string; text: string; ts: number; href?: string };
+export type Note = { id: string; text: string; ts: number; href?: string; seen?: number };
 
 export const PREFIX = "qonvo.v6.";
 

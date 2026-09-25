@@ -3,6 +3,7 @@ import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 import { gateText } from "@/lib/mod-cache";
+import { pushNote } from "@/lib/social-server";
 
 export type TakeKind = "take" | "news" | "quote" | "ghost" | "job" | "music" | "banter";
 
@@ -369,7 +370,13 @@ export const connectFellow = createServerFn({ method: "POST" })
       primary key (user_id, fellow_id)
     )`;
     if (data.id === context.userId) return { ok: false as const, reason: "That is you." };
-    await sql`insert into nf_connects (user_id, fellow_id) values (${context.userId}, ${data.id}) on conflict do nothing`;
+    const inserted = await sql<{ fellow_id: string }>`insert into nf_connects (user_id, fellow_id) values (${context.userId}, ${data.id}) on conflict do nothing returning fellow_id`;
+    if (inserted[0]) {
+      const me = await profileOf(context.userId);
+      if (me.handle && me.handle !== "member") {
+        await pushNote(data.id, `@${me.handle} connected with you`, "/?open=inbox");
+      }
+    }
     return { ok: true as const };
   });
 

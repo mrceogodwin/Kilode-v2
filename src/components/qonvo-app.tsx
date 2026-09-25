@@ -279,6 +279,16 @@ function QonvoAppInner() {
   );
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("open") !== "inbox") return;
+    setScreen("inbox");
+    params.delete("open");
+    const next = params.toString();
+    window.history.replaceState({}, "", `${window.location.pathname}${next ? `?${next}` : ""}${window.location.hash}`);
+  }, []);
+
+  useEffect(() => {
     void listRoomOverlay()
       .then(setRoomOverlay)
       .catch(() => undefined);
@@ -439,8 +449,13 @@ function QonvoAppInner() {
               <NotifyBell
                 signedIn={signedIn}
                 posts={store.posts}
+                unread={store.notes.filter((n) => n.seen === 0).length}
                 onOpenNotes={() => {
                   setScreen("notifications");
+                  setMenuOpen(false);
+                }}
+                onOpenInbox={() => {
+                  setScreen("inbox");
                   setMenuOpen(false);
                 }}
                 onOpenPost={(id) => {

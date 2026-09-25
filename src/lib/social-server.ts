@@ -3,6 +3,7 @@ import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { asAccountKind } from "@/lib/qonvo-data";
 import { gateText } from "@/lib/mod-cache";
+import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 import { LANGS, type LangId } from "@/lib/i18n";
 import { readAiKey } from "@/lib/keys-server";
 
@@ -33,13 +34,45 @@ export async function userIdByHandle(handle: string) {
   return u[0]?.id ?? null;
 }
 
+let notesReady = false;
+let dmReady = false;
+
+async function ensureNotes(sql: Awaited<ReturnType<typeof getSql>>) {
+  if (notesReady) return;
+  await sql`create table if not exists nf_notes (
+    id text primary key,
+    user_id text not null,
+    text text not null,
+    href text,
+    ts bigint not null,
+    seen integer not null default 0
+  )`;
+  notesReady = true;
+}
+
+async function ensureDm(sql: Awaited<ReturnType<typeof getSql>>) {
+  if (dmReady) return;
+  await sql`create table if not exists nf_dm (
+    id text primary key,
+    from_id text not null,
+    from_handle text not null,
+    to_handle text not null,
+    to_user_id text,
+    body text not null,
+    ts bigint not null
+  )`;
+  await sql`alter table nf_dm add column if not exists to_user_id text`;
+  dmReady = true;
+}
+
 export async function pushNote(userId: string, text: string, href?: string) {
   if (!userId) return;
   try {
     const sql = await getSql();
+    await ensureNotes(sql);
     await sql`insert into nf_notes (id, user_id, text, href, ts, seen) values (${nid()}, ${userId}, ${text.slice(0, 240)}, ${href ?? ""}, ${Date.now()}, ${0})`;
   } catch {
-    /* table may not exist on first boot */
+    /* a missed note must never break the action that created it */
   }
 }
 
@@ -152,6 +185,7 @@ export const listNotes = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const sql = await getSql();
     try {
+      await ensureNotes(sql);
       const rows = await sql<{ id: string; text: string; href: string | null; ts: number | string; seen: number }>`
         select id, text, href, ts, seen from nf_notes where user_id = ${context.userId} order by ts desc limit 40`;
       return rows.map((r) => ({ id: r.id, text: r.text, href: r.href || undefined, ts: Number(r.ts), seen: Number(r.seen) }));
@@ -160,15 +194,29 @@ export const listNotes = createServerFn({ method: "GET" })
     }
   });
 
+export const markNotesRead = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    try {
+      await ensureNotes(sql);
+      await sql`update nf_notes set seen = 1 where user_id = ${context.userId} and seen = 0`;
+    } catch {
+      /* ignore */
+    }
+    return { ok: true as const };
+  });
+
 export const listInbox = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
     const me = await publicHandle(context.userId);
     try {
+      await ensureDm(sql);
       const rows = await sql<{ id: string; from_handle: string; to_handle: string; body: string; ts: number | string }>`
         select id, from_handle, to_handle, body, ts from nf_dm
-        where from_id = ${context.userId} or lower(to_handle) = ${me.toLowerCase()} or to_user_id = ${context.userId}
+        where from_id = ${context.userId} or to_user_id = ${context.userId} or lower(to_handle) = ${me.toLowerCase()}
         order by ts desc limit 40`;
       return rows.map((r) => ({ id: r.id, from: r.from_handle, to: r.to_handle, body: r.body, ts: Number(r.ts) }));
     } catch {
@@ -180,9 +228,10 @@ export const sendDm = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { to: string; body: string }) => d)
   .handler(async ({ context, data }) => {
-    const to = data.to.trim().slice(0, 24);
+    const to = data.to.trim().replace(/^@/, "").slice(0, 24);
     const body = data.body.trim().slice(0, 500);
     if (!to || !body) return { ok: false as const, reason: "Need a username and a message." };
+    if (!(await allowWrite(`dm:${context.userId}`, 12))) return { ok: false as const, reason: RATE_BLOCKED };
     const sql = await getSql();
     const from = await publicHandle(context.userId);
     if (to.toLowerCase() === from.toLowerCase()) return { ok: false as const, reason: "That is you." };
@@ -190,13 +239,17 @@ export const sendDm = createServerFn({ method: "POST" })
     if (!gate.ok) return { ok: false as const, reason: gate.reason };
     const toId = await userIdByHandle(to);
     if (!toId) return { ok: false as const, reason: "No user with that handle." };
+    if (toId === context.userId) return { ok: false as const, reason: "That is you." };
+    const toHandle = await publicHandle(toId);
     const id = nid();
     try {
+      await ensureDm(sql);
       await sql`insert into nf_dm (id, from_id, from_handle, to_handle, to_user_id, body, ts)
-        values (${id}, ${context.userId}, ${from}, ${to}, ${toId}, ${gate.text}, ${Date.now()})`;
+        values (${id}, ${context.userId}, ${from}, ${toHandle}, ${toId}, ${gate.text}, ${Date.now()})`;
     } catch {
-      return { ok: false as const, reason: "Inbox is not ready." };
+      return { ok: false as const, reason: "Inbox is not ready. Try once more." };
     }
-    await pushNote(toId, `DM from ${from}`, "/");
+    const preview = gate.text.length > 80 ? `${gate.text.slice(0, 77)}…` : gate.text;
+    await pushNote(toId, `DM from @${from}: ${preview}`, "/?open=inbox");
     return { ok: true as const, id };
   });

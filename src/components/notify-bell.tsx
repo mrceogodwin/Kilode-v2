@@ -1,20 +1,25 @@
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
-import { listNotes } from "@/lib/social-server";
+import { listNotes, markNotesRead } from "@/lib/social-server";
 import { timeAgo, type Post } from "@/lib/qonvo-data";
 
 export function NotifyBell({
   signedIn,
   posts,
+  unread = 0,
   onOpenNotes,
+  onOpenInbox,
   onOpenPost,
 }: {
   signedIn: boolean;
   posts: Post[];
+  unread?: number;
   onOpenNotes: () => void;
+  onOpenInbox?: () => void;
   onOpenPost: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [acked, setAcked] = useState(false);
   const [perm, setPerm] = useState<NotificationPermission | "unsupported">("default");
   const [notes, setNotes] = useState<{ id: string; text: string; href?: string; ts: number; seen?: number }[]>([]);
   useEffect(() => {
@@ -23,12 +28,33 @@ export function NotifyBell({
   }, []);
   useEffect(() => {
     if (!signedIn || !open) return;
+    let dead = false;
     void listNotes()
-      .then(setNotes)
-      .catch(() => setNotes([]));
+      .then((rows) => {
+        if (dead) return;
+        setNotes(rows.map((n) => ({ ...n, seen: 1 })));
+        setAcked(true);
+        void markNotesRead();
+      })
+      .catch(() => {
+        if (!dead) setNotes([]);
+      });
+    return () => {
+      dead = true;
+    };
   }, [signedIn, open]);
   const latest = posts.filter((p) => p.status !== "draft").slice(0, 8);
-  const badge = signedIn ? notes.filter((n) => !n.seen).length : 0;
+  const liveUnread = notes.filter((n) => !n.seen).length;
+  const badge = !signedIn ? 0 : acked ? liveUnread : Math.max(unread, liveUnread);
+
+  function openNote(n: { href?: string }) {
+    setOpen(false);
+    if (n.href?.includes("open=inbox")) {
+      onOpenInbox?.();
+      return;
+    }
+    if (n.href && n.href !== "/" && n.href !== "#") window.location.href = n.href;
+  }
 
   async function allow() {
     if (typeof Notification === "undefined") {
@@ -85,11 +111,11 @@ export function NotifyBell({
           <div className="max-h-72 overflow-y-auto">
             {signedIn
               ? (notes.length ? notes.slice(0, 12).map((n) => (
-                  <a key={n.id} href={n.href || "#"} className="block border-b border-white/5 px-3 py-2 text-[12px] hover:bg-panel-2">
+                  <button key={n.id} type="button" onClick={() => openNote(n)} className="block w-full border-b border-white/5 px-3 py-2 text-left text-[12px] hover:bg-panel-2">
                     {n.text}
                     <span className="mt-0.5 block text-[9px] text-muted">{timeAgo(n.ts)}</span>
-                  </a>
-                )) : <p className="px-3 py-4 text-[12px] text-muted">Quiet. Replies land here.</p>)
+                  </button>
+                )) : <p className="px-3 py-4 text-[12px] text-muted">Quiet. Messages and replies land here.</p>)
               : latest.map((p) => (
                   <button
                     key={p.id}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { connectFellow, applyTake, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { sendDm } from "@/lib/social-server";
 
 const KEY = "kilode-takes-v3";
 
@@ -98,6 +99,10 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
   }, [account, kind]);
   const [busy, setBusy] = useState(false);
   const [linked, setLinked] = useState<Record<string, boolean>>({});
+  const [dmFor, setDmFor] = useState<FellowRow | null>(null);
+  const [dmBody, setDmBody] = useState("");
+  const [dmNote, setDmNote] = useState("");
+  const [dmBusy, setDmBusy] = useState(false);
   const [openReply, setOpenReply] = useState("");
   const [reply, setReply] = useState("");
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
@@ -277,23 +282,82 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
               </div>
             </div>
             <div className="mt-1 line-clamp-2 text-[10px] leading-snug text-muted">{f.line}</div>
-            <button
-              type="button"
-              disabled={linked[f.id]}
-              className="mt-1.5 rounded-[10px] border border-lime-2/40 px-2 py-0.5 text-[10px] font-semibold text-lime-2 disabled:opacity-60"
-              onClick={() => {
-                if (!authed) return goLogin();
-                setLinked((m) => ({ ...m, [f.id]: true }));
-                void connectFellow({ data: { id: f.id } }).catch((e) => {
-                  if (needLogin(e)) goLogin();
-                });
-              }}
-            >
-              {linked[f.id] ? "Connected" : "Connect"}
-            </button>
+            <div className="mt-1.5 flex gap-1">
+              <button
+                type="button"
+                disabled={linked[f.id]}
+                className="rounded-[10px] border border-lime-2/40 px-2 py-0.5 text-[10px] font-semibold text-lime-2 disabled:opacity-60"
+                onClick={() => {
+                  if (!authed) return goLogin();
+                  setLinked((m) => ({ ...m, [f.id]: true }));
+                  void connectFellow({ data: { id: f.id } }).catch((e) => {
+                    if (needLogin(e)) goLogin();
+                  });
+                }}
+              >
+                {linked[f.id] ? "Connected" : "Connect"}
+              </button>
+              <button
+                type="button"
+                className="rounded-[10px] border border-line px-2 py-0.5 text-[10px] font-semibold text-fg"
+                onClick={() => {
+                  if (!authed) return goLogin();
+                  setDmFor(f);
+                  setDmBody("");
+                  setDmNote("");
+                }}
+              >
+                Message
+              </button>
+            </div>
           </div>
         ))}
       </div>
+      {dmFor ? (
+        <form
+          className="mb-3 rounded-[12px] border border-line bg-panel px-2.5 py-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const text = dmBody.trim();
+            if (!text || dmBusy) return;
+            setDmBusy(true);
+            setDmNote("");
+            void sendDm({ data: { to: dmFor.handle, body: text } })
+              .then((r) => {
+                if (r.ok) {
+                  setDmBody("");
+                  setDmNote(`Sent to @${dmFor.handle}. They see it when they open the bell or Messages.`);
+                } else setDmNote(r.reason);
+              })
+              .catch((err) => {
+                if (needLogin(err)) goLogin();
+                else setDmNote("Could not send. Try once more.");
+              })
+              .finally(() => setDmBusy(false));
+          }}
+        >
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-[11px] font-semibold">Message @{dmFor.handle}</span>
+            <button type="button" className="text-[10px] text-muted" onClick={() => setDmFor(null)}>
+              Close
+            </button>
+          </div>
+          <div className="flex gap-1.5">
+            <input
+              value={dmBody}
+              onChange={(e) => setDmBody(e.target.value)}
+              maxLength={500}
+              placeholder="Write a message"
+              className="min-w-0 flex-1 rounded-[10px] border border-line bg-bg px-2 py-1.5 outline-none"
+              style={{ fontSize: 16 }}
+            />
+            <button type="submit" disabled={dmBusy} className="rounded-[10px] bg-lime-2 px-2.5 text-[11px] font-bold text-[#102016] disabled:opacity-60">
+              {dmBusy ? "…" : "Send"}
+            </button>
+          </div>
+          {dmNote ? <p className="mt-1 text-[10px] leading-snug text-muted">{dmNote}</p> : null}
+        </form>
+      ) : null}
 
       <div className="mb-3 rounded-[12px] border border-line bg-panel px-2.5 py-2">
         <div className="flex items-start gap-2">
