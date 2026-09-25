@@ -1252,25 +1252,14 @@ export function useQonvo() {
       const key = `${roomId}|${ts}|${kind}`;
       if (rxInFlightRef.current.has(key)) return;
       rxInFlightRef.current.add(key);
-      setMsgs((prev) => {
-        const next = prev.map((m) => {
-          if (m.ts !== ts) return m;
-          const rx = { ...(m.rx ?? {}) };
-          rx[kind] = (rx[kind] ?? 0) + 1;
-          return { ...m, rx };
-        });
-        msgsRef.current = next;
-        if (roomId) msgsByRoomRef.current[roomId] = next;
-        return next;
-      });
       void saveRx({ data: { roomId, ts, kind } })
-        .catch(() => {
+        .then((r) => {
+          const n = r && typeof r === "object" && "n" in r ? Number(r.n) : NaN;
+          if (!Number.isFinite(n)) return;
           setMsgs((prev) => {
             const next = prev.map((m) => {
               if (m.ts !== ts) return m;
-              const rx = { ...(m.rx ?? {}) };
-              rx[kind] = Math.max(0, (rx[kind] ?? 0) - 1);
-              return { ...m, rx };
+              return { ...m, rx: { ...(m.rx ?? {}), [kind]: n } };
             });
             msgsRef.current = next;
             if (roomId) msgsByRoomRef.current[roomId] = next;
@@ -1429,7 +1418,10 @@ export function useQonvo() {
 
   const likePost = useCallback((id: string) => {
     setLikes((prev) => {
-      const next = { ...prev, [id]: (prev[id] ?? 0) + 1 };
+      const mine = loadJson<string[]>("likedIds", []);
+      const has = mine.includes(id);
+      saveJson("likedIds", has ? mine.filter((x) => x !== id) : [...mine, id]);
+      const next = { ...prev, [id]: Math.max(0, (prev[id] ?? 0) + (has ? -1 : 1)) };
       saveJson("postLikes", next);
       return next;
     });

@@ -283,17 +283,21 @@ export const likeTake = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { id: string }) => d)
   .handler(async ({ data, context }) => {
-    if (!data.id) return { ok: false as const, liked: false };
+    if (!data.id) return { ok: false as const, liked: false, likes: 0 };
     const sql = await getSql();
-    const hit = await sql<{ take_id: string }>`select take_id from nf_take_likes where take_id = ${data.id} and user_id = ${context.userId} limit 1`;
-    if (hit[0]) {
-      await sql`delete from nf_take_likes where take_id = ${data.id} and user_id = ${context.userId}`;
-      await sql`update nf_takes set likes = greatest(likes - 1, 0) where id = ${data.id}`;
-      return { ok: true as const, liked: false };
+    await sql`create table if not exists nf_take_likes (
+      take_id text not null,
+      user_id text not null,
+      primary key (take_id, user_id)
+    )`;
+    const inserted = await sql<{ take_id: string }>`insert into nf_take_likes (take_id, user_id) values (${data.id}, ${context.userId}) on conflict do nothing returning take_id`;
+    if (inserted[0]) {
+      const rows = await sql<{ likes: number | string }>`update nf_takes set likes = coalesce(likes, 0) + 1 where id = ${data.id} returning likes`;
+      return { ok: true as const, liked: true, likes: Number(rows[0]?.likes ?? 0) };
     }
-    await sql`insert into nf_take_likes (take_id, user_id) values (${data.id}, ${context.userId}) on conflict do nothing`;
-    await sql`update nf_takes set likes = likes + 1 where id = ${data.id}`;
-    return { ok: true as const, liked: true };
+    await sql`delete from nf_take_likes where take_id = ${data.id} and user_id = ${context.userId}`;
+    const rows = await sql<{ likes: number | string }>`update nf_takes set likes = greatest(coalesce(likes, 0) - 1, 0) where id = ${data.id} returning likes`;
+    return { ok: true as const, liked: false, likes: Number(rows[0]?.likes ?? 0) };
   });
 
 export const replyTake = createServerFn({ method: "POST" })
@@ -397,25 +401,30 @@ export const listConnects = createServerFn({ method: "GET" })
         left join nf_profiles pt on pt.user_id = c.fellow_id
         where c.user_id = ${context.userId} or c.fellow_id = ${context.userId}
         limit 80`;
-      const out: ConnectRow[] = [];
+      const best = new Map<string, ConnectRow>();
+      const put = (row: ConnectRow) => {
+        const prev = best.get(row.id);
+        if (!prev || (prev.dir !== "friend" && row.dir === "friend")) best.set(row.id, row);
+      };
       for (const r of rows) {
-        const pending = (r.status || "pending") !== "accepted";
+        const status = String(r.status || "").trim().toLowerCase();
+        const pending = status !== "accepted";
         const mine = r.user_id === context.userId;
         if (!pending) {
           const other = mine ? r.fellow_id : r.user_id;
-          out.push({
+          put({
             id: other,
             handle: (mine ? r.to_handle : r.from_handle) || "member",
             role: (mine ? r.to_kind : r.from_kind) || "member",
             dir: "friend",
           });
         } else if (mine) {
-          out.push({ id: r.fellow_id, handle: r.to_handle || "member", role: r.to_kind || "member", dir: "out" });
+          put({ id: r.fellow_id, handle: r.to_handle || "member", role: r.to_kind || "member", dir: "out" });
         } else {
-          out.push({ id: r.user_id, handle: r.from_handle || "member", role: r.from_kind || "member", dir: "in" });
+          put({ id: r.user_id, handle: r.from_handle || "member", role: r.from_kind || "member", dir: "in" });
         }
       }
-      return out;
+      return [...best.values()];
     } catch {
       return [] as ConnectRow[];
     }
@@ -430,9 +439,16 @@ export const replyConnect = createServerFn({ method: "POST" })
     const sql = await getSql();
     await ensureConnects(sql);
     if (data.accept) {
-      await sql`update nf_connects set status = ${"accepted"} where user_id = ${id} and fellow_id = ${context.userId}`;
+      const updated = await sql<{ user_id: string }>`update nf_connects set status = ${"accepted"}
+        where (
+          (user_id = ${id} and fellow_id = ${context.userId})
+          or (user_id = ${context.userId} and fellow_id = ${id})
+          or (fellow_id = ${context.userId} and user_id in (select user_id from nf_profiles where lower(handle) = lower(${id})))
+        )
+        returning user_id`;
+      if (!updated.length) return { ok: false as const, reason: "That request is not on this account." };
       const me = await profileOf(context.userId);
-      if (me.handle && me.handle !== "member") await pushNote(id, `@${me.handle} accepted your connect`, "/?open=me");
+      if (me.handle && me.handle !== "member") await pushNote(updated[0].user_id, `@${me.handle} accepted your connect`, "/?open=me");
     } else {
       await sql`delete from nf_connects where user_id = ${id} and fellow_id = ${context.userId}`;
     }
@@ -448,6 +464,9 @@ export const connectFellow = createServerFn({ method: "POST" })
     const sql = await getSql();
     await ensureConnects(sql);
     if (data.id === context.userId) return { ok: false as const, reason: "That is you." };
+    const existing = await sql<{ status: string | null }>`select status from nf_connects where user_id = ${context.userId} and fellow_id = ${data.id} limit 1`;
+    if (String(existing[0]?.status || "").toLowerCase() === "accepted") return { ok: true as const, status: "accepted" as const };
+    if (existing[0]) return { ok: true as const, status: "pending" as const };
     const inserted = await sql<{ fellow_id: string }>`insert into nf_connects (user_id, fellow_id, status) values (${context.userId}, ${data.id}, ${"pending"}) on conflict (user_id, fellow_id) do nothing returning fellow_id`;
     if (inserted[0]) {
       const me = await profileOf(context.userId);

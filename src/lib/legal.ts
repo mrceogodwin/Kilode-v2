@@ -12,8 +12,7 @@ export const LEGAL_NAV = [
   { id: "contact", label: "Contact" },
 ] as const;
 
-export const ABOUT_SHORT =
-  "Kilode is an interactive media and community app. Feeds, chat, music, events, jobs, market, rent, and ads sit in one place. Votes and RSVPs are free. They have no cash value, no prizes, and are not gambling.";
+export const ABOUT_SHORT = "Feeds, chat, music, events, jobs, market, rent, and ads in one app.";
 
 export const ABOUT_LONG = `About Kilode
 

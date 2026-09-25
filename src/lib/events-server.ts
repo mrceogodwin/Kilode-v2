@@ -127,26 +127,38 @@ export async function archiveExpiredEvents() {
 export const listEvents = createServerFn({ method: "GET" })
   .middleware([optionalAuthMiddleware])
   .handler(async ({ context }): Promise<{ hero: EEvent | null; events: EEvent[] }> => {
+    const empty = { hero: null as EEvent | null, events: [] as EEvent[] };
     try {
       await ensure();
+      const sql = await getSql();
+      const now = Date.now();
+      const userId = context.userId ?? "";
+      const rows = await sql<Record<string, unknown>>`
+        select id, title, blurb, category, place, link, cover, starts_at, ends_at, status, flagship, submitter, user_id
+        from nf_events
+        where status = 'approved' and ends_at > ${now}
+        order by flagship desc, starts_at asc
+        limit 48`;
+      const ids = rows.map((r) => String(r.id));
+      const counts = new Map<string, number>();
+      const mine = new Set<string>();
+      if (ids.length) {
+        const rsv = await sql<{ event_id: string; user_id: string }>`select event_id, user_id from nf_event_rsvp limit 2000`;
+        for (const row of rsv) {
+          if (!ids.includes(String(row.event_id))) continue;
+          counts.set(String(row.event_id), (counts.get(String(row.event_id)) ?? 0) + 1);
+          if (userId && row.user_id === userId) mine.add(String(row.event_id));
+        }
+      }
+      const events = rows.map((r) => {
+        const id = String(r.id);
+        return mapRow({ ...r, rsvps: counts.get(id) ?? 0, mine: mine.has(id) ? 1 : 0 }, mine.has(id));
+      });
+      const hero = events.find((e) => e.flagship) ?? events[0] ?? null;
+      return { hero, events };
     } catch {
-      return { hero: null, events: [] };
+      return empty;
     }
-    const sql = await getSql();
-    const now = Date.now();
-    const userId = context.userId ?? "";
-    const rows = await sql<Record<string, unknown>>`
-      select e.*,
-        (select count(*) from nf_event_rsvp r where r.event_id = e.id) as rsvps,
-        case when ${userId} = '' then 0
-          when exists (select 1 from nf_event_rsvp r where r.event_id = e.id and r.user_id = ${userId}) then 1 else 0 end as mine
-      from nf_events e
-      where e.status = 'approved' and e.ends_at > ${now}
-      order by e.flagship desc, e.starts_at asc
-      limit 48`;
-    const events = rows.map((r) => mapRow(r, num(r.mine) === 1));
-    const hero = events.find((e) => e.flagship) ?? events[0] ?? null;
-    return { hero, events };
   });
 
 export const submitEvent = createServerFn({ method: "POST" })

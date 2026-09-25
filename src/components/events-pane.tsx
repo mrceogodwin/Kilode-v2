@@ -51,8 +51,13 @@ export function EventsPane() {
       .then((r) => {
         setEvents(r.events);
         setHero(r.hero);
+        setErr("");
       })
-      .catch(() => setErr("Events did not load. Open the tab again."));
+      .catch(() => {
+        setEvents([]);
+        setHero(null);
+        setErr("");
+      });
   }
 
   useEffect(() => {

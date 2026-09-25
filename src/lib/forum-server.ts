@@ -1053,14 +1053,28 @@ export const listScores = createServerFn({ method: "GET" }).handler(async () => 
 export const saveRx = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { roomId: string; ts: number; kind: string }) => d)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const kind = data.kind === "up" || data.kind === "fire" ? data.kind : "";
+    if (!kind || !data.roomId) return { n: 0, on: false as const };
     const sql = await getSql();
-    const existing = await sql<{ n: number | string }>`select n from nf_rx where room_id = ${data.roomId} and ts = ${data.ts} and kind = ${data.kind} limit 1`;
-    if (existing[0]) {
-      await sql`update nf_rx set n = ${Number(existing[0].n) + 1} where room_id = ${data.roomId} and ts = ${data.ts} and kind = ${data.kind}`;
+    await sql`create table if not exists nf_rx_user (
+      room_id text not null,
+      ts bigint not null,
+      user_id text not null,
+      kind text not null,
+      primary key (room_id, ts, user_id, kind)
+    )`;
+    const added = await sql<{ kind: string }>`insert into nf_rx_user (room_id, ts, user_id, kind) values (${data.roomId}, ${data.ts}, ${context.userId}, ${kind}) on conflict do nothing returning kind`;
+    if (added[0]) {
+      const existing = await sql<{ n: number | string }>`select n from nf_rx where room_id = ${data.roomId} and ts = ${data.ts} and kind = ${kind} limit 1`;
+      if (existing[0]) await sql`update nf_rx set n = ${Number(existing[0].n) + 1} where room_id = ${data.roomId} and ts = ${data.ts} and kind = ${kind}`;
+      else await sql`insert into nf_rx (room_id, ts, kind, n) values (${data.roomId}, ${data.ts}, ${kind}, ${1})`;
     } else {
-      await sql`insert into nf_rx (room_id, ts, kind, n) values (${data.roomId}, ${data.ts}, ${data.kind}, ${1})`;
+      await sql`delete from nf_rx_user where room_id = ${data.roomId} and ts = ${data.ts} and user_id = ${context.userId} and kind = ${kind}`;
+      await sql`update nf_rx set n = greatest(n - 1, 0) where room_id = ${data.roomId} and ts = ${data.ts} and kind = ${kind}`;
     }
+    const rows = await sql<{ n: number | string }>`select n from nf_rx where room_id = ${data.roomId} and ts = ${data.ts} and kind = ${kind} limit 1`;
+    return { n: Number(rows[0]?.n ?? 0), on: Boolean(added[0]) };
   });
 
 export const reportPost = createServerFn({ method: "POST" })

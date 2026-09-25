@@ -54,7 +54,6 @@ import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTION
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
 import { EventsPane } from "@/components/events-pane";
-import { OnboardSheet } from "@/components/onboard-sheet";
 import { ChatTermsBar, ForumClock, ForumWhy } from "@/components/forum-why";
 import { PremiumSquareAd, PremiumStoryAd, MenuPremiumAd, PortraitAd } from "@/components/premium-ad";
 import { AdvertPane } from "@/components/advert-pane";
@@ -72,6 +71,7 @@ import { NotifyBell } from "@/components/notify-bell";
 import { MenuLegal, MenuPin } from "@/components/get-app";
 import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
+import { LinkText } from "@/components/link-text";
 import { PostBody } from "@/components/post-body";
 import { postBodyPlain } from "@/lib/post-body";
 import { InstallToast, PublicSiteProvider, SiteFooter, TrendingTicker, usePublicSite } from "@/components/site-chrome";
@@ -419,9 +419,6 @@ function QonvoAppInner() {
 
   return (
     <div className="kilode-shell relative flex h-full min-h-dvh flex-col bg-bg text-fg md:h-dvh md:max-h-dvh md:overflow-hidden">
-      {signedIn && store.onboarded === 0 ? (
-        <OnboardSheet kind={store.kind} onDone={(d) => store.finishOnboard(d)} />
-      ) : null}
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule">
           <div className="flex min-h-12 min-w-0 items-center gap-1 px-2.5 py-2 sm:min-h-[3.25rem] sm:gap-3 sm:px-3.5 sm:py-2.5">
@@ -568,6 +565,17 @@ function QonvoAppInner() {
                 <input
                   value={feedQ}
                   onChange={(e) => setFeedQ(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    const n = feedQ.trim().toLowerCase();
+                    if (n.length < 2) return;
+                    const hit = store.posts.find((p) => {
+                      if (!p?.id || p.status === "draft") return false;
+                      const blob = `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase();
+                      return blob.includes(n);
+                    });
+                    if (hit) store.setOpenPost(hit.id);
+                  }}
                   placeholder="Search feeds"
                   className="min-h-11 flex-1 rounded-md border border-line bg-panel px-2 text-base"
                   autoFocus
@@ -2163,7 +2171,8 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
         !!p?.id &&
         p.status !== "draft" &&
         (cat === "All" || p.category === cat) &&
-        (!needle || p.title.toLowerCase().includes(needle) || (p.excerpt || "").toLowerCase().includes(needle)),
+        (!needle ||
+          `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase().includes(needle)),
     )
     .sort((a, b) => b.ts - a.ts);
   const catCounts = useMemo(() => {
@@ -2213,21 +2222,27 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
-        <FeedsHero
-          posts={store.posts}
-          ads={store.campaigns}
-          onOpen={(id) => store.setOpenPost(id)}
-          onViewAd={(id) => store.see("ads", id)}
-          onRepost={(p) => {
-            if (!store.authed) {
-              window.location.href = "/login?mode=up";
-              return;
-            }
-            setRepost(p);
-            setCap("");
-          }}
-        />
-        <MarketRail onPick={onDesk} />
+        {needle ? (
+          <p className="mb-2 text-[12px] text-muted">{live.length} stories for “{q.trim()}”. Press enter to open the first.</p>
+        ) : (
+          <>
+            <FeedsHero
+              posts={store.posts}
+              ads={store.campaigns}
+              onOpen={(id) => store.setOpenPost(id)}
+              onViewAd={(id) => store.see("ads", id)}
+              onRepost={(p) => {
+                if (!store.authed) {
+                  window.location.href = "/login?mode=up";
+                  return;
+                }
+                setRepost(p);
+                setCap("");
+              }}
+            />
+            <MarketRail onPick={onDesk} />
+          </>
+        )}
         <div className="mb-2 flex items-center gap-1">
           <button
             type="button"
@@ -2519,13 +2534,9 @@ function ChatLine({
           <span>
             {repost.title ? <span className="font-medium text-fg/90">{repost.title}</span> : null}
             {repost.lines.map((line, i) =>
-              line.startsWith("/p/") ? (
-                <a key={i} href={line} className="mt-1 block text-[12px] font-semibold text-lime-2 underline">
-                  Open story
-                </a>
-              ) : line.trim() ? (
+              line.trim() ? (
                 <span key={i} className="mt-1 block text-[12px] text-fg/80">
-                  {line}
+                  <LinkText text={line} />
                 </span>
               ) : null,
             )}
@@ -2537,7 +2548,9 @@ function ChatLine({
                 {p.t}
               </span>
             ) : (
-              <span key={i}>{p.t}</span>
+              <span key={i}>
+                <LinkText text={p.t} />
+              </span>
             ),
           )
         )}

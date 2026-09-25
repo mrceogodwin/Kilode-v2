@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { connectFellow, listConnects, applyTake, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
+import { LinkText } from "@/components/link-text";
 
 const KEY = "kilode-takes-v3";
 
@@ -99,6 +100,7 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
   }, [account, kind]);
   const [busy, setBusy] = useState(false);
   const [linked, setLinked] = useState<Record<string, "out" | "in">>({});
+  const likeLock = useRef(new Set<string>());
   const [dmFor, setDmFor] = useState<FellowRow | null>(null);
   const [dmBody, setDmBody] = useState("");
   const [dmNote, setDmNote] = useState("");
@@ -156,8 +158,11 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
       .then((rows) => {
         const next: Record<string, "out" | "in"> = {};
         for (const r of rows) {
-          if (r.dir === "friend") next[r.id] = "in";
-          else if (r.dir === "out") next[r.id] = "out";
+          const state = r.dir === "friend" ? "in" : r.dir === "out" ? "out" : undefined;
+          if (!state) continue;
+          if (next[r.id] !== "in") next[r.id] = state;
+          const handle = (r.handle || "").toLowerCase();
+          if (handle && next[handle] !== "in") next[handle] = state;
         }
         setLinked(next);
       })
@@ -245,6 +250,10 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
     }
   }
 
+  function linkState(f: FellowRow) {
+    return linked[f.id] || linked[(f.handle || "").toLowerCase()];
+  }
+
   const needle = q.trim().toLowerCase();
   const shownFellows = needle
     ? fellows.filter((f) => `${f.name} ${f.handle} ${f.role}`.toLowerCase().includes(needle))
@@ -280,6 +289,13 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
       ) : null}
       <div className="mb-2 flex items-center justify-between">
         <div className="text-[11px] font-semibold tracking-[0.04em] text-fg">Connect with Fellows</div>
+        <button
+          type="button"
+          className="rounded-full border border-line px-2 py-0.5 text-[10px] font-bold text-lime-2"
+          onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "teams" } }))}
+        >
+          Teams
+        </button>
       </div>
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1">
         {shownFellows.length === 0 ? <p className="px-1 text-[11px] text-muted">Real members show here after they join.</p> : null}
@@ -299,12 +315,24 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
             <div className="mt-1.5 flex gap-1">
               <button
                 type="button"
-                disabled={linked[f.id] === "in" || linked[f.id] === "out"}
+                disabled={linkState(f) === "in" || linkState(f) === "out"}
                 className="rounded-[10px] border border-lime-2/40 px-2 py-0.5 text-[10px] font-semibold text-lime-2 disabled:opacity-60"
                 onClick={() => {
                   if (!authed) return goLogin();
-                  setLinked((m) => ({ ...m, [f.id]: "out" }));
-                  void connectFellow({ data: { id: f.id } }).catch((e) => {
+                  setLinked((m) => ({ ...m, [f.id]: "out", [(f.handle || "").toLowerCase()]: "out" }));
+                  void connectFellow({ data: { id: f.id } }).then((r) => {
+                    if (!r.ok) {
+                      setLinked((m) => {
+                        const next = { ...m };
+                        delete next[f.id];
+                        return next;
+                      });
+                      return;
+                    }
+                    if (r.status === "accepted") {
+                      setLinked((m) => ({ ...m, [f.id]: "in", [(f.handle || "").toLowerCase()]: "in" }));
+                    }
+                  }).catch((e) => {
                     if (needLogin(e)) goLogin();
                     setLinked((m) => {
                       const next = { ...m };
@@ -314,7 +342,7 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
                   });
                 }}
               >
-                {linked[f.id] === "in" ? "Friends" : linked[f.id] === "out" ? "Requested" : "Connect"}
+                {linkState(f) === "in" ? "Friends" : linkState(f) === "out" ? "Requested" : "Connect"}
               </button>
               <button
                 type="button"
@@ -463,26 +491,22 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
             }}
             onLike={() => {
               if (!authed) return goLogin();
-              if (busyId === t.id) return;
+              if (likeLock.current.has(t.id)) return;
+              likeLock.current.add(t.id);
               const was = !!liked[t.id];
-              setBusyId(t.id);
               setLiked((m) => ({ ...m, [t.id]: !was }));
               patch(t.id, (row) => ({ ...row, likes: Math.max(0, row.likes + (was ? -1 : 1)) }));
               void likeTake({ data: { id: t.id } })
                 .then((r) => {
-                  if (!r.ok || r.liked === was) {
-                    setLiked((m) => ({ ...m, [t.id]: was }));
-                    patch(t.id, (row) => ({ ...row, likes: Math.max(0, row.likes + (was ? 1 : -1)) }));
-                  } else {
-                    setLiked((m) => ({ ...m, [t.id]: r.liked }));
-                  }
+                  setLiked((m) => ({ ...m, [t.id]: !!r.liked }));
+                  if (typeof r.likes === "number") patch(t.id, (row) => ({ ...row, likes: r.likes }));
                 })
                 .catch((e) => {
                   setLiked((m) => ({ ...m, [t.id]: was }));
                   patch(t.id, (row) => ({ ...row, likes: Math.max(0, row.likes + (was ? 1 : -1)) }));
                   if (needLogin(e)) goLogin();
                 })
-                .finally(() => setBusyId(""));
+                .finally(() => likeLock.current.delete(t.id));
             }}
             onRepost={() => {
               if (!authed) return goLogin();
@@ -675,7 +699,9 @@ function TakeCard({
               <Lock className="size-3" /> Tap to reveal
             </button>
           ) : (
-            <p className={`mt-1 whitespace-pre-wrap text-[13px] leading-snug ${ghost ? "text-white/80" : ""}`}>{take.body}</p>
+            <p className={`mt-1 whitespace-pre-wrap text-[13px] leading-snug ${ghost ? "text-white/80" : ""}`}>
+              <LinkText text={take.body} />
+            </p>
           )}
 
           {take.kind === "quote" ? (

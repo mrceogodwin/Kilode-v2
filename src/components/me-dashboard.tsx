@@ -117,7 +117,10 @@ function FriendsBlock({ rows, onChange }: { rows: ConnectRow[]; onChange: () => 
               type="button"
               className="rounded-lg bg-lime-2 px-2 py-1 text-[11px] font-bold text-[#102016]"
               onClick={() => {
-                void replyConnect({ data: { id: r.id, accept: true } }).then(() => onChange());
+                void replyConnect({ data: { id: r.id, accept: true } }).then((res) => {
+                  if (res && "ok" in res && res.ok === false) return;
+                  onChange();
+                });
               }}
             >
               Accept
