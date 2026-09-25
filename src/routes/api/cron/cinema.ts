@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { runCinemaCatalogFetch } from "@/lib/cinema-server";
+import { archiveExpiredEvents } from "@/lib/events-server";
 import { env } from "@/lib/env.server";
 
 /**
@@ -37,7 +38,13 @@ async function handle(request: Request) {
   }
   try {
     const result = await runCinemaCatalogFetch();
-    return Response.json(result);
+    let events = { archived: 0 };
+    try {
+      events = await archiveExpiredEvents();
+    } catch {
+      /* events table may not exist yet */
+    }
+    return Response.json({ ...result, events });
   } catch (e) {
     const message = e instanceof Error ? e.message : "cinema fetch failed";
     return Response.json({ ok: false, error: message }, { status: 500 });

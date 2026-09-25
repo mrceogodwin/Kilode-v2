@@ -771,6 +771,24 @@ html[data-skin="ivory"] .brand-mark {
     0 2px 0 #243d2c,
     0 3px 8px rgba(0, 0, 0, 0.22);
 }
+.e-mark {
+  display: inline-grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border-radius: 0.45rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #f3faf5;
+  background: linear-gradient(160deg, #9ed4ae 0%, #3d7a4e 48%, #173222 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 2px 0 #102216;
+}
+.e-hero {
+  background:
+    linear-gradient(180deg, rgba(107, 158, 120, 0.16), transparent 55%),
+    var(--color-panel, #141414);
+}
 .dock {
   background: linear-gradient(180deg, rgba(10, 10, 10, 0) 0%, rgba(10, 10, 10, 0.72) 42%, rgba(10, 10, 10, 0.94) 100%);
 }

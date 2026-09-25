@@ -24,6 +24,7 @@ import { authClient, signOut } from "@/lib/auth/client";
 import { AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { canKind, createSheetTitle } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
+import { EventsAdminPanel } from "@/components/events-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
 import { ShopAdminPanel } from "@/components/downloads-pane";
 import { SocialsAdminPanel, TvPane } from "@/components/tv-pane";
@@ -2084,6 +2085,7 @@ function Admin({ store }: { store: Store }) {
       {role === "super" ? <SocialsAdminPanel /> : null}
       {role === "super" ? <ChatTtlPanel /> : null}
       {role === "super" ? <NewsEnginePanel store={store} /> : null}
+      {role === "super" || role === "admin" ? <EventsAdminPanel /> : null}
       {role === "super" || role === "admin" ? <CinemaAdminPanel /> : null}
       {role === "super" || role === "admin" ? <ListingsAdminPanel /> : null}
       {role === "super" ? <DbPanel /> : null}

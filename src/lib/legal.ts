@@ -13,18 +13,18 @@ export const LEGAL_NAV = [
 ] as const;
 
 export const ABOUT_SHORT =
-  "Kilode is an interactive media and community app. Feeds, chat, music, KMDB, jobs, market, rent, and ads sit in one place. Votes and polls are free. They have no cash value, no prizes, and are not gambling.";
+  "Kilode is an interactive media and community app. Feeds, chat, music, events, jobs, market, rent, and ads sit in one place. Votes and RSVPs are free. They have no cash value, no prizes, and are not gambling.";
 
 export const ABOUT_LONG = `About Kilode
 
-Kilode (kilode.ng) is a community and media app. People read Feeds, talk in Chat, share music links, vote on KMDB, and post jobs, market goods, rent, and ads.
+Kilode (kilode.ng) is a community and media app. People read Feeds, talk in Chat, share music links, RSVP to Events, and post jobs, market goods, rent, and ads.
 
-KMDB is the Kilode Media Database. It shows YouTube trailers and official clips, plus ratings and votes from people on Kilode. Kilode does not host the video file.
+Events is the public what's-on desk. A person submits a title, a time, and an optional link. Staff approve it. RSVP is free. It is not a ticket and it pays nothing. YouTube trailers, when staff still pin one, play from YouTube. Kilode does not host the video file.
 
 What is on the app
 - Feeds, Chat, and Socials for posts and conversation.
 - Music links that play on Spotify, Audiomack, and the other platforms you paste.
-- KMDB for trailers, ratings, and community votes.
+- Events for what is on, with a free RSVP.
 - Jobs, Market, Rent, and Downloads for listings you submit.
 - Ads that staff review before they run.
 
@@ -143,7 +143,7 @@ These Terms are a contract between you and the operator of Kilode (kilode.ng). B
 Kilode is an interactive media and community app: conversation, posts, music links, KMDB (trailers, ratings, and votes), and classified-style listings. It is not a bank, a lawyer, an employer, a streaming host, a casino, or a sportsbook.
 
 2. Votes are not bets
-Ratings, votes, and any poll on Kilode are free community features. They carry no cash value, no prize, and no real-world stake. Nothing on KMDB is a wager.
+Ratings, votes, and any RSVP on Kilode are free community features. They carry no cash value, no prize, and no real-world stake. Nothing on Events is a wager.
 
 3. Paid listings and ads
 A fee, when one is charged, pays for space on the page. It is not a bet. Staff review a listing before it goes live and may remove anything fraudulent or unlawful. Chain fees are never refunded. A listing that already ran is not refunded.
