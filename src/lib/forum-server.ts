@@ -7,7 +7,7 @@ import { gateText } from "@/lib/mod-cache";
 import { postBodyPlain, sanitizePostHtml } from "@/lib/post-body";
 import { pushNote, userIdByHandle } from "@/lib/social-server";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
-import { applyMatch } from "@/lib/pay-match";
+import { claimTx, releaseTx } from "@/lib/tx-ledger";
 import { DB_TIMEOUT_MS, withTimeout } from "@/lib/with-timeout";
 
 async function kindOf(userId: string): Promise<AccountKind> {
@@ -581,14 +581,22 @@ export const saveAdRow = createServerFn({ method: "POST" })
     const days = [1, 7, 14, 30].includes(Number(data.days)) ? Number(data.days) : 7;
     const txHash = (data.txHash ?? "").trim();
     if (txHash) {
-      const dup = await sql<{ id: string }>`select id from nf_ads where tx_hash = ${txHash} and status in ('paid', 'approved') limit 1`;
-      if (dup[0]) return { ok: false as const, reason: "This transaction hash is already used." };
+      const claimed = await claimTx({
+        hash: txHash,
+        kind: "ad",
+        refId: id,
+        userId: context.userId,
+        coin: data.coin ?? "",
+        amount: data.amount ?? "",
+      });
+      if (!claimed.ok) return { ok: false as const, reason: claimed.reason };
     }
-    await sql`insert into nf_ads (id, user_id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts, days)
-      values (${id}, ${context.userId}, ${name}, ${data.note}, ${data.placement ?? "board"}, ${"pending"}, ${data.amount ?? ""}, ${txHash}, ${data.coin ?? ""}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.kind ?? "image-text"}, ${data.video ?? ""}, ${0}, ${ts}, ${days})`;
-    if (txHash) {
-      const matched = await applyMatch(id, data.coin ?? "", txHash).catch(() => null);
-      if (matched) return { id, status: matched.status, match: matched.reason };
+    try {
+      await sql`insert into nf_ads (id, user_id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts, days)
+        values (${id}, ${context.userId}, ${name}, ${data.note}, ${data.placement ?? "board"}, ${"pending"}, ${data.amount ?? ""}, ${txHash}, ${data.coin ?? ""}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.kind ?? "image-text"}, ${data.video ?? ""}, ${0}, ${ts}, ${days})`;
+    } catch (e) {
+      if (txHash) await releaseTx(txHash, id);
+      throw e;
     }
     return { id, status: "pending" as const };
   });

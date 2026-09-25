@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { listEvents, rsvpEvent, submitEvent, adminEvents, setEvent, purgeEvents, type EEvent, type EventCat } from "@/lib/events-server";
+import { listEvents, rsvpEvent, submitEvent, adminEvents, setEvent, purgeEvents, matchEventPay, type EEvent, type EventCat } from "@/lib/events-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { AD_COINS } from "@/lib/qonvo-data";
+import { listWallets } from "@/lib/forum-server";
 
 const CATS: Array<EventCat | "all"> = ["all", "tech", "music", "culture", "cinema"];
 
@@ -39,6 +41,10 @@ export function EventsPane() {
   const [category, setCategory] = useState<EventCat>("culture");
   const [start, setStart] = useState("");
   const [busy, setBusy] = useState(false);
+  const [coin, setCoin] = useState("btc");
+  const [amount, setAmount] = useState("");
+  const [txHash, setTxHash] = useState("");
+  const [wallets, setWallets] = useState<{ coin: string; address: string }[]>([]);
 
   function load() {
     void listEvents()
@@ -57,6 +63,13 @@ export function EventsPane() {
     const t = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    if (!form || wallets.length) return;
+    void listWallets()
+      .then((rows) => setWallets(Array.isArray(rows) ? rows : []))
+      .catch(() => setWallets([]));
+  }, [form, wallets.length]);
 
   const list = useMemo(
     () => events.filter((e) => e.id !== hero?.id && (cat === "all" || e.category === cat)),
@@ -87,15 +100,17 @@ export function EventsPane() {
     setBusy(true);
     setErr("");
     void submitEvent({
-      data: { title, blurb, category, place, link, startsAt, endsAt: startsAt + 3 * 3_600_000 },
+      data: { title, blurb, category, place, link, startsAt, endsAt: startsAt + 3 * 3_600_000, coin, amount, txHash },
     })
       .then(() => {
-        setMsg("Sent. Staff approve it before it shows.");
+        setMsg("Sent. Staff check the hash, then approve it.");
         setForm(false);
         setTitle("");
         setBlurb("");
         setPlace("");
         setLink("");
+        setAmount("");
+        setTxHash("");
       })
       .catch((e) => setErr(e instanceof Error ? e.message : "Could not submit."))
       .finally(() => setBusy(false));
@@ -141,7 +156,7 @@ export function EventsPane() {
         </article>
       ) : (
         <p className="mb-3 rounded-xl border border-line bg-panel px-3 py-4 text-[12px] text-muted">
-          No event yet. A signed-in person submits one. Staff approve it before it sits here. RSVP is free. It is not a ticket and it pays nothing.
+          No event yet. Pay the Kilode wallet, paste the hash, and staff approve it. RSVP stays free. A hash can be used once.
         </p>
       )}
 
@@ -168,6 +183,25 @@ export function EventsPane() {
           <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="City or Online" className="min-h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
           <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https link, optional" className="min-h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
           <textarea value={blurb} onChange={(e) => setBlurb(e.target.value)} placeholder="Short note" rows={3} className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-base" />
+          <p className="text-[11px] leading-snug text-muted">Copy the wallet, pay, then paste the hash. Kilode never DMs a wallet. One hash works once.</p>
+          <select value={coin} onChange={(e) => setCoin(e.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-bg px-2 text-base">
+            {AD_COINS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+          <div className="break-all rounded-lg border border-line bg-bg px-2 py-2 text-[11px]">
+            {wallets.find((w) => w.coin === coin)?.address || "No wallet saved for this coin yet."}
+          </div>
+          <button
+            type="button"
+            className="btn-3d rounded-lg px-2.5 py-1 text-[11px] font-bold"
+            onClick={() => {
+              const addr = wallets.find((w) => w.coin === coin)?.address;
+              if (addr) void navigator.clipboard?.writeText(addr);
+            }}
+          >
+            Copy wallet
+          </button>
+          <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount you sent" className="min-h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
+          <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash" className="min-h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
           <button type="submit" disabled={busy} className="btn-join w-full rounded-xl py-2.5 text-sm font-bold disabled:opacity-60">{busy ? "Sending…" : "Submit for review"}</button>
         </form>
       ) : null}
@@ -235,7 +269,12 @@ export function EventsAdminPanel() {
           <div key={e.id} className="rounded-lg border border-line p-2">
             <div className="text-[12px] font-bold">{e.title}</div>
             <p className="text-[10px] text-muted">{e.status}{e.flagship ? " · spotlight" : ""} · {e.category} · {e.rsvps} RSVPs · {e.submitter}</p>
+            {e.txHash ? <p className="mt-0.5 break-all text-[10px] text-muted">{e.coin} {e.amount} · {e.txHash}</p> : null}
+            {e.matchNote ? <p className="text-[10px] text-lime-2">{e.matchNote}</p> : null}
             <div className="mt-1 flex flex-wrap gap-2">
+              {e.txHash ? (
+                <button type="button" className="text-[10px] font-semibold" onClick={() => void matchEventPay({ data: { id: e.id } }).then((r) => setMsg(r.reason)).then(load).catch((err) => setMsg(err instanceof Error ? err.message : "Match failed"))}>Check hash</button>
+              ) : null}
               {e.status !== "approved" ? (
                 <button type="button" className="text-[10px] font-bold text-lime-2" onClick={() => void setEvent({ data: { id: e.id, status: "approved" } }).then(load)}>Approve</button>
               ) : null}

@@ -183,8 +183,10 @@ export async function verifyCryptoTx(opts: {
 export async function applyMatch(id: string, coin: string, txHash: string): Promise<MatchResult & { id: string; status: string }> {
   const sql = await getSql();
   const hash = txHash.trim();
-  const dup = await sql<{ id: string }>`select id from nf_ads where tx_hash = ${hash} and id <> ${id} and status in ('paid', 'approved') limit 1`;
-  if (dup[0]) {
+  const key = hash.toLowerCase();
+  const dup = await sql<{ id: string }>`select id from nf_ads where lower(coalesce(tx_hash, '')) = ${key} and id <> ${id} limit 1`;
+  const ledger = await sql<{ hash: string }>`select hash from nf_tx where hash = ${key} and ref_id <> ${id} limit 1`.catch(() => []);
+  if (dup[0] || ledger[0]) {
     return { id, status: "pending", ok: false, coin, received: "", to: "", confirmed: false, reason: "This tx hash is already used on another ad." };
   }
   const rows = await sql<WalletRow>`select coin, address from nf_wallets`;

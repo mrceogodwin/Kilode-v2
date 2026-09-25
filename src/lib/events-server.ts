@@ -4,6 +4,8 @@ import { authMiddleware, optionalAuthMiddleware } from "@/lib/auth/middleware";
 import { safeHttpUrl } from "@/lib/qonvo-data";
 import { gateText } from "@/lib/mod-cache";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
+import { claimTx, releaseTx } from "@/lib/tx-ledger";
+import { verifyCryptoTx } from "@/lib/pay-match";
 
 const CATS = ["tech", "music", "culture", "cinema"] as const;
 export type EventCat = (typeof CATS)[number];
@@ -23,6 +25,10 @@ export type EEvent = {
   submitter: string;
   rsvps: number;
   mine: boolean;
+  coin: string;
+  amount: string;
+  txHash: string;
+  matchNote: string;
 };
 
 function nid() {
@@ -72,6 +78,10 @@ async function ensure() {
     user_id TEXT,
     ts BIGINT NOT NULL
   )`);
+  await sql.query(`ALTER TABLE nf_events ADD COLUMN IF NOT EXISTS coin TEXT NOT NULL DEFAULT ''`);
+  await sql.query(`ALTER TABLE nf_events ADD COLUMN IF NOT EXISTS amount TEXT NOT NULL DEFAULT ''`);
+  await sql.query(`ALTER TABLE nf_events ADD COLUMN IF NOT EXISTS tx_hash TEXT NOT NULL DEFAULT ''`);
+  await sql.query(`ALTER TABLE nf_events ADD COLUMN IF NOT EXISTS match_note TEXT NOT NULL DEFAULT ''`);
   await sql.query(`CREATE TABLE IF NOT EXISTS nf_event_rsvp (
     event_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
@@ -96,6 +106,10 @@ function mapRow(r: Record<string, unknown>, mine: boolean): EEvent {
     submitter: String(r.submitter || ""),
     rsvps: num(r.rsvps),
     mine,
+    coin: String(r.coin || ""),
+    amount: String(r.amount || ""),
+    txHash: String(r.tx_hash || ""),
+    matchNote: String(r.match_note || ""),
   };
 }
 
@@ -137,7 +151,7 @@ export const listEvents = createServerFn({ method: "GET" })
 
 export const submitEvent = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { title?: string; blurb?: string; category?: string; place?: string; link?: string; cover?: string; startsAt?: number; endsAt?: number }) => d)
+  .validator((d: { title?: string; blurb?: string; category?: string; place?: string; link?: string; cover?: string; startsAt?: number; endsAt?: number; coin?: string; amount?: string; txHash?: string }) => d)
   .handler(async ({ data, context }) => {
     if (!(await allowWrite(`e-sub:${context.userId}`, 3, 3_600_000))) throw new Error(RATE_BLOCKED);
     const title = String(data.title || "").trim().slice(0, 80);
@@ -157,11 +171,23 @@ export const submitEvent = createServerFn({ method: "POST" })
     if (data.link && !link) throw new Error("Link must start with https.");
     const cover = data.cover ? safeHttpUrl(data.cover) || "" : "";
     if (data.cover && !cover) throw new Error("Cover must be an https image link.");
+    const coin = String(data.coin || "").trim().toLowerCase().slice(0, 12);
+    const amount = String(data.amount || "").trim().slice(0, 40);
+    const txHash = String(data.txHash || "").trim();
+    if (!coin) throw new Error("Pick the coin you paid with.");
+    if (!amount) throw new Error("Type the amount you sent.");
     await ensure();
     const sql = await getSql();
     const id = nid();
-    await sql`insert into nf_events (id, title, blurb, category, place, link, cover, starts_at, ends_at, status, flagship, submitter, user_id, ts)
-      values (${id}, ${title}, ${blurb}, ${catOf(String(data.category || ""))}, ${String(data.place || "").trim().slice(0, 60)}, ${link}, ${cover}, ${startsAt}, ${endsAt}, ${"pending"}, ${0}, ${handle}, ${context.userId}, ${now})`;
+    const claimed = await claimTx({ hash: txHash, kind: "event", refId: id, userId: context.userId, coin, amount });
+    if (!claimed.ok) throw new Error(claimed.reason);
+    try {
+      await sql`insert into nf_events (id, title, blurb, category, place, link, cover, starts_at, ends_at, status, flagship, submitter, user_id, ts, coin, amount, tx_hash)
+        values (${id}, ${title}, ${blurb}, ${catOf(String(data.category || ""))}, ${String(data.place || "").trim().slice(0, 60)}, ${link}, ${cover}, ${startsAt}, ${endsAt}, ${"pending"}, ${0}, ${handle}, ${context.userId}, ${now}, ${coin}, ${amount}, ${txHash})`;
+    } catch (e) {
+      await releaseTx(txHash, id);
+      throw e;
+    }
     return { ok: true as const, id };
   });
 
@@ -225,6 +251,26 @@ export const setEvent = createServerFn({ method: "POST" })
       if (data.status !== "approved") await sql`update nf_events set flagship = 0 where id = ${id}`;
     }
     return { ok: true as const };
+  });
+
+export const matchEventPay = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id?: string }) => d)
+  .handler(async ({ data, context }) => {
+    const role = await staffRole(context.userId);
+    if (role !== "super" && role !== "admin") throw new Error("Forbidden");
+    if (!(await allowWrite(`e-match:${context.userId}`, 8, 60_000))) throw new Error(RATE_BLOCKED);
+    const id = String(data.id || "").slice(0, 40);
+    await ensure();
+    const sql = await getSql();
+    const rows = await sql<{ coin: string; tx_hash: string }>`select coin, tx_hash from nf_events where id = ${id} limit 1`;
+    const row = rows[0];
+    if (!row?.tx_hash) throw new Error("No hash on this event.");
+    const wallets = await sql<{ coin: string; address: string }>`select coin, address from nf_wallets`;
+    const result = await verifyCryptoTx({ coin: row.coin || "", txHash: row.tx_hash, wallets });
+    const note = result.reason.slice(0, 280);
+    await sql`update nf_events set match_note = ${note} where id = ${id}`;
+    return { ok: result.ok, reason: note };
   });
 
 export const purgeEvents = createServerFn({ method: "POST" })
