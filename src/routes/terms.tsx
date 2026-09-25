@@ -52,12 +52,24 @@ function TermsPage() {
           <section key={b.id} id={b.id} className="mt-10 scroll-mt-20">
             <h2 className="text-xl font-extrabold">{b.title}</h2>
             <div className="raised mt-3 whitespace-pre-wrap rounded-2xl p-4 text-[13px] leading-6 text-fg/90">{b.body}</div>
+            {b.id === "contact" ? (
+              <p className="mt-3 text-[13px]">
+                Company:{" "}
+                <Link to="/company" className="font-semibold text-lime-2">
+                  Squadglobal Dynasty Ltd.
+                </Link>
+              </p>
+            ) : null}
           </section>
         ))}
 
         <p className="mt-10 text-center text-[11px] text-muted">
           <Link to="/" className="text-lime-2">
             Back to Kilode
+          </Link>
+          {" · "}
+          <Link to="/company" className="text-lime-2">
+            Squadglobal Dynasty Ltd.
           </Link>
           {" · "}
           <TelegramLink />

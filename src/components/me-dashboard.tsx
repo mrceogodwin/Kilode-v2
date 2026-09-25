@@ -35,6 +35,7 @@ import { DigestBox } from "@/components/get-app";
 import { SiteFooter } from "@/components/site-chrome";
 import { listMyCinema, type CinemaMovie } from "@/lib/cinema-server";
 import { deleteListing, listListings, listMyApps, listMyApplicants, listMyListings, updateListing, type Listing, type MyApp, type MyApplicant } from "@/lib/listings-server";
+import { listConnects, replyConnect, type ConnectRow } from "@/lib/takes-server";
 
 type Store = ReturnType<typeof useQonvo>;
 
@@ -91,6 +92,59 @@ function EmptyBlock({ body, cta, onClick }: { body: string; cta?: string; onClic
         </button>
       ) : null}
     </div>
+  );
+}
+
+function FriendsBlock({ rows, onChange }: { rows: ConnectRow[]; onChange: () => void }) {
+  const incoming = rows.filter((r) => r.dir === "in");
+  const friends = rows.filter((r) => r.dir === "friend");
+  const sent = rows.filter((r) => r.dir === "out");
+  return (
+    <section className="mb-4 rounded-2xl border border-line bg-panel p-3">
+      <h3 className="text-[13px] font-extrabold">Friends</h3>
+      <p className="mt-0.5 text-[11px] text-muted">Requests land here. Open Me to accept. Nothing checks in the background.</p>
+      {incoming.length === 0 && friends.length === 0 && sent.length === 0 ? (
+        <p className="mt-2 text-[12px] text-muted">No requests yet. Connect from Socials.</p>
+      ) : null}
+      {incoming.map((r) => (
+        <div key={`in-${r.id}`} className="mt-2 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="truncate text-[13px] font-semibold">@{r.handle}</div>
+            <div className="text-[10px] text-muted">{r.role} · wants to connect</div>
+          </div>
+          <div className="flex shrink-0 gap-1">
+            <button
+              type="button"
+              className="rounded-lg bg-lime-2 px-2 py-1 text-[11px] font-bold text-[#102016]"
+              onClick={() => {
+                void replyConnect({ data: { id: r.id, accept: true } }).then(() => onChange());
+              }}
+            >
+              Accept
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-line px-2 py-1 text-[11px]"
+              onClick={() => {
+                void replyConnect({ data: { id: r.id, accept: false } }).then(() => onChange());
+              }}
+            >
+              Decline
+            </button>
+          </div>
+        </div>
+      ))}
+      {sent.map((r) => (
+        <div key={`out-${r.id}`} className="mt-2 text-[12px] text-muted">
+          Waiting on @{r.handle}
+        </div>
+      ))}
+      {friends.map((r) => (
+        <a key={`ok-${r.id}`} href={`/u/${encodeURIComponent(r.handle)}`} className="mt-2 block text-[13px] font-semibold">
+          @{r.handle} <span className="text-[10px] font-normal text-muted">· friend</span>
+        </a>
+      ))}
+    </section>
   );
 }
 
@@ -395,6 +449,13 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   const [myApps, setMyApps] = useState<MyApp[]>([]);
   const [myApplicants, setMyApplicants] = useState<MyApplicant[]>([]);
   const [signingOut, setSigningOut] = useState(false);
+  const [connects, setConnects] = useState<ConnectRow[]>([]);
+
+  function loadConnects() {
+    void listConnects()
+      .then((rows) => setConnects(Array.isArray(rows) ? rows : []))
+      .catch(() => setConnects([]));
+  }
 
   useEffect(() => {
     if (!signed) return;
@@ -419,6 +480,9 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
     void listMyApplicants()
       .then((rows) => setMyApplicants(Array.isArray(rows) ? rows : []))
       .catch(() => setMyApplicants([]));
+    void listConnects()
+      .then((rows) => setConnects(Array.isArray(rows) ? rows : []))
+      .catch(() => setConnects([]));
   }, [signed, store.handle]);
 
   function refreshMyMarket() {
@@ -578,28 +642,31 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
 
   return (
     <div className="mx-auto max-w-2xl p-4 pb-24">
-      <div className="mb-4">
-        <div className="text-[10px] font-bold tracking-[0.2em] text-lime-2">ME · DASHBOARD</div>
-        <h2 className="text-2xl font-extrabold tracking-tight">{hubTitleFor(kind)}</h2>
-        <p className="mt-1 text-sm text-muted">{purpose}</p>
-      </div>
-
-      <div className="raised mb-4 overflow-hidden rounded-2xl">
-        <div className="flex items-start gap-3 p-4">
-          <AvatarImg handle={store.handle} face={store.face} size={64} className="ring-2 ring-lime-2/40" />
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-lg font-extrabold">@{store.handle}</div>
-            <div className="mt-1 inline-flex items-center gap-1.5">
+      <div className="relative mb-4 overflow-hidden rounded-2xl border border-line bg-panel">
+        <div className="h-20 bg-gradient-to-br from-lime-2/35 via-lime-2/10 to-transparent" />
+        <div className="-mt-8 flex items-end gap-3 px-4">
+          <AvatarImg handle={store.handle} face={store.face} size={76} className="rounded-full ring-2 ring-bg" />
+          <div className="min-w-0 pb-1">
+            <div className="truncate text-xl font-extrabold tracking-tight">@{store.handle}</div>
+            <div className="mt-0.5 flex items-center gap-1.5">
               <span className="rounded-full bg-lime-2/15 px-2 py-0.5 text-[10px] font-bold text-lime-2">{kindLabel}</span>
-              <span className="text-[10px] text-muted">locked</span>
+              {store.city ? <span className="truncate text-[11px] text-muted">{store.city}</span> : null}
             </div>
-            {store.city ? <div className="mt-1 text-[11px] text-muted">{store.city}</div> : null}
-            <p className="mt-2 line-clamp-3 text-[12px] leading-snug text-muted">
-              {store.bio?.trim() || "No bio yet — tap Edit profile to add one."}
-            </p>
           </div>
         </div>
-        <div className="flex gap-2 border-t border-line/70 bg-black/20 px-3 py-2.5">
+        <p className="px-4 pt-3 text-[10px] font-bold tracking-[0.16em] text-lime-2">{hubTitleFor(kind)}</p>
+        <p className="px-4 pt-1 text-[13px] leading-snug text-fg/90">{store.bio?.trim() || "No bio yet. Edit profile to add one."}</p>
+        {store.interests ? <p className="px-4 pt-1 text-[11px] text-muted">{store.interests.split(",").join(" · ")}</p> : null}
+        {store.website ? (
+          <a href={store.website} target="_blank" rel="noreferrer" className="mt-1 block truncate px-4 text-[11px] font-semibold text-lime-2">
+            {store.website.replace(/^https?:\/\//, "")}
+          </a>
+        ) : null}
+        <div className="mt-3 flex gap-4 px-4 text-[11px]">
+          <span><b className="text-fg">{connects.filter((c) => c.dir === "friend").length}</b> <span className="text-muted">friends</span></span>
+          <span><b className="text-fg">{connects.filter((c) => c.dir === "in").length}</b> <span className="text-muted">requests</span></span>
+        </div>
+        <div className="mt-3 flex gap-2 px-3 pb-3">
           <button
             type="button"
             className="btn-3d inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-bold"
@@ -617,28 +684,30 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             {cta.label}
           </button>
         </div>
-        {onLogout ? (
-          <div className="border-t border-line/70 px-3 py-2.5">
-            <button
-              type="button"
-              disabled={signingOut}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-panel px-3 py-2 text-[12px] font-semibold text-muted hover:border-danger/40 hover:text-ink disabled:cursor-wait"
-              onClick={() => {
-                setSigningOut(true);
-                void Promise.resolve(onLogout())
-                  .catch(() => {
-                    /* parent notes failure; GuestDash already shown via store.logout() */
-                  })
-                  .finally(() => setSigningOut(false));
-              }}
-            >
-              <LogOut className="size-3.5" />
-              {signingOut ? "Signing out…" : "Sign out"}
-            </button>
-            <p className="mt-1.5 text-center text-[10px] text-muted">Sign out only on Me · Dashboard — never next to the header mark.</p>
-          </div>
-        ) : null}
       </div>
+      <p className="mb-4 text-sm text-muted">{purpose}</p>
+      <FriendsBlock rows={connects} onChange={loadConnects} />
+      {onLogout ? (
+        <div className="mb-4 rounded-2xl border border-line bg-panel px-3 py-2.5">
+          <button
+            type="button"
+            disabled={signingOut}
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-panel px-3 py-2 text-[12px] font-semibold text-muted hover:border-danger/40 hover:text-ink disabled:cursor-wait"
+            onClick={() => {
+              setSigningOut(true);
+              void Promise.resolve(onLogout())
+                .catch(() => {
+                  /* parent notes failure; GuestDash already shown via store.logout() */
+                })
+                .finally(() => setSigningOut(false));
+            }}
+          >
+            <LogOut className="size-3.5" />
+            {signingOut ? "Signing out…" : "Sign out"}
+          </button>
+          <p className="mt-1.5 text-center text-[10px] text-muted">Sign out only on Me · Dashboard — never next to the header mark.</p>
+        </div>
+      ) : null}
 
       <div className="mb-5 grid grid-cols-4 gap-1.5">
         {stats.map((s) => (

@@ -358,26 +358,104 @@ export const repostTake = createServerFn({ method: "POST" })
     return { ok: true as const, reposted: true };
   });
 
+async function ensureConnects(sql: Awaited<ReturnType<typeof getSql>>) {
+  await sql`create table if not exists nf_connects (
+    user_id text not null,
+    fellow_id text not null,
+    status text not null default 'pending',
+    primary key (user_id, fellow_id)
+  )`;
+  await sql`alter table nf_connects add column if not exists status text not null default 'pending'`;
+}
+
+export type ConnectRow = {
+  id: string;
+  handle: string;
+  role: string;
+  dir: "in" | "out" | "friend";
+};
+
+export const listConnects = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    try {
+      await ensureConnects(sql);
+      const rows = await sql<{
+        user_id: string;
+        fellow_id: string;
+        status: string | null;
+        from_handle: string | null;
+        from_kind: string | null;
+        to_handle: string | null;
+        to_kind: string | null;
+      }>`select c.user_id, c.fellow_id, c.status,
+          pf.handle as from_handle, pf.kind as from_kind,
+          pt.handle as to_handle, pt.kind as to_kind
+        from nf_connects c
+        left join nf_profiles pf on pf.user_id = c.user_id
+        left join nf_profiles pt on pt.user_id = c.fellow_id
+        where c.user_id = ${context.userId} or c.fellow_id = ${context.userId}
+        limit 80`;
+      const out: ConnectRow[] = [];
+      for (const r of rows) {
+        const pending = (r.status || "pending") !== "accepted";
+        const mine = r.user_id === context.userId;
+        if (!pending) {
+          const other = mine ? r.fellow_id : r.user_id;
+          out.push({
+            id: other,
+            handle: (mine ? r.to_handle : r.from_handle) || "member",
+            role: (mine ? r.to_kind : r.from_kind) || "member",
+            dir: "friend",
+          });
+        } else if (mine) {
+          out.push({ id: r.fellow_id, handle: r.to_handle || "member", role: r.to_kind || "member", dir: "out" });
+        } else {
+          out.push({ id: r.user_id, handle: r.from_handle || "member", role: r.from_kind || "member", dir: "in" });
+        }
+      }
+      return out;
+    } catch {
+      return [] as ConnectRow[];
+    }
+  });
+
+export const replyConnect = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string; accept: boolean }) => d)
+  .handler(async ({ context, data }) => {
+    const id = (data.id || "").trim().slice(0, 80);
+    if (!id) return { ok: false as const, reason: "Missing person." };
+    const sql = await getSql();
+    await ensureConnects(sql);
+    if (data.accept) {
+      await sql`update nf_connects set status = ${"accepted"} where user_id = ${id} and fellow_id = ${context.userId}`;
+      const me = await profileOf(context.userId);
+      if (me.handle && me.handle !== "member") await pushNote(id, `@${me.handle} accepted your connect`, "/?open=me");
+    } else {
+      await sql`delete from nf_connects where user_id = ${id} and fellow_id = ${context.userId}`;
+    }
+    return { ok: true as const };
+  });
+
 export const connectFellow = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { id: string }) => d)
   .handler(async ({ data, context }) => {
     if (!data.id) return { ok: false as const, reason: "Missing person." };
+    if (!(await allowWrite(`connect:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
     const sql = await getSql();
-    await sql`create table if not exists nf_connects (
-      user_id text not null,
-      fellow_id text not null,
-      primary key (user_id, fellow_id)
-    )`;
+    await ensureConnects(sql);
     if (data.id === context.userId) return { ok: false as const, reason: "That is you." };
-    const inserted = await sql<{ fellow_id: string }>`insert into nf_connects (user_id, fellow_id) values (${context.userId}, ${data.id}) on conflict do nothing returning fellow_id`;
+    const inserted = await sql<{ fellow_id: string }>`insert into nf_connects (user_id, fellow_id, status) values (${context.userId}, ${data.id}, ${"pending"}) on conflict (user_id, fellow_id) do nothing returning fellow_id`;
     if (inserted[0]) {
       const me = await profileOf(context.userId);
       if (me.handle && me.handle !== "member") {
-        await pushNote(data.id, `@${me.handle} connected with you`, "/?open=inbox");
+        await pushNote(data.id, `@${me.handle} wants to connect. Open Me to accept.`, "/?open=me");
       }
     }
-    return { ok: true as const };
+    return { ok: true as const, status: "pending" as const };
   });
 
 const REPORT_REASONS = new Set(["Spam", "Scam or fraud", "Harassment or hate", "Nudity or sexual", "Misinformation", "Other"]);

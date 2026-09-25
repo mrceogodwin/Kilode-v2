@@ -54,6 +54,7 @@ import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTION
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
 import { EventsPane } from "@/components/events-pane";
+import { OnboardSheet } from "@/components/onboard-sheet";
 import { ChatTermsBar, ForumClock, ForumWhy } from "@/components/forum-why";
 import { PremiumSquareAd, PremiumStoryAd, MenuPremiumAd, PortraitAd } from "@/components/premium-ad";
 import { AdvertPane } from "@/components/advert-pane";
@@ -281,8 +282,9 @@ function QonvoAppInner() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("open") !== "inbox") return;
-    setScreen("inbox");
+    if (params.get("open") === "inbox") setScreen("inbox");
+    if (params.get("open") === "me") setScreen("dashboard");
+    if (params.get("open") !== "inbox" && params.get("open") !== "me") return;
     params.delete("open");
     const next = params.toString();
     window.history.replaceState({}, "", `${window.location.pathname}${next ? `?${next}` : ""}${window.location.hash}`);
@@ -417,6 +419,9 @@ function QonvoAppInner() {
 
   return (
     <div className="kilode-shell relative flex h-full min-h-dvh flex-col bg-bg text-fg md:h-dvh md:max-h-dvh md:overflow-hidden">
+      {signedIn && store.onboarded === 0 ? (
+        <OnboardSheet kind={store.kind} onDone={(d) => store.finishOnboard(d)} />
+      ) : null}
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule">
           <div className="flex min-h-12 min-w-0 items-center gap-1 px-2.5 py-2 sm:min-h-[3.25rem] sm:gap-3 sm:px-3.5 sm:py-2.5">
@@ -1754,7 +1759,24 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
                 type="button"
                 className="music-rail w-[132px] shrink-0 overflow-hidden rounded-xl text-left"
                 style={{ ["--rail" as string]: r.color }}
-                onClick={onAdd}
+                onClick={() => {
+                  const genreFor: Record<string, (typeof MUSIC_GENRES)[number]> = {
+                    made: "Afrobeats",
+                    charts: "All",
+                    new: "All",
+                    mood: "R&B",
+                    party: "Afrobeats",
+                    focus: "Jazz",
+                    gospel: "Gospel",
+                    throwback: "Highlife",
+                  };
+                  const next = genreFor[r.id] ?? "All";
+                  setGenre(next);
+                  setMineShown(8);
+                  setDigShown(8);
+                  const target = r.id === "new" ? "music-fresh" : r.id === "charts" ? "music-charts" : "music-library";
+                  document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
               >
                 <div className="p-2.5">
                   <div className="text-[11px] font-bold leading-tight text-fg">{r.title}</div>
@@ -1765,11 +1787,15 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
           </div>
         </section>
 
-        <Rail title="Naija charts" items={chart} />
-        <Rail title="New & trending" items={fresh} />
+        <section id="music-charts">
+          <Rail title="Naija charts" items={chart} />
+        </section>
+        <section id="music-fresh">
+          <Rail title="New & trending" items={fresh} />
+        </section>
         <Rail title="Made for Kilode" items={[...DIGITAL_TRACKS].filter((t) => !!t?.id).sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, 10)} />
 
-        <div className="mb-1.5 text-[11px] font-bold">Library split</div>
+        <div id="music-library" className="mb-1.5 text-[11px] font-bold">Library split</div>
         <div className="grid grid-cols-2 gap-2">
           <section className="min-w-0">
             <h3 className="mb-1.5 text-[9px] font-medium tracking-normal text-lime-2">On Kilode</h3>

@@ -19,7 +19,7 @@ import {
   type Team,
 } from "@/lib/qonvo-data";
 import { DEMO_ADS, DEMO_JOINS, DEMO_NOTES, DEMO_POSTS, DEMO_TRACKS, MORE_DEMO_ADS } from "@/lib/qonvo-seed";
-import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, savePin, savePost, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
+import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, savePin, savePost, savePrefs, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
 import { postBodyPlain } from "@/lib/post-body";
 import { listNotes } from "@/lib/social-server";
 import { hidePost as hidePostRow, setAdPlacement, setAdStatus, setAdWindow } from "@/lib/staff-server";
@@ -189,6 +189,9 @@ export function useQonvo() {
   const [stage, setStage] = useState("");
   const [genre, setGenre] = useState("");
   const [website, setWebsite] = useState("");
+  const [interests, setInterests] = useState("");
+  const [langs, setLangs] = useState("");
+  const [onboarded, setOnboarded] = useState<number | null>(null);
   const [brand, setBrand] = useState("");
   const [face, setFace] = useState(KIND_FACE.member);
   const [board, setBoard] = useState<{ name: string; n: number }[]>([]);
@@ -753,6 +756,9 @@ export function useQonvo() {
           setGenre(p.genre ?? "");
           setWebsite(p.website ?? "");
           setBrand(p.brand ?? "");
+          setInterests(p.interests ?? "");
+          setLangs(p.langs ?? "");
+          setOnboarded(p.onboarded === 1 ? 1 : 0);
           setFace(p.face || KIND_FACE[asAccountKind(p.kind)]);
           try {
             const pending = sessionStorage.getItem("nf_account");
@@ -876,6 +882,16 @@ export function useQonvo() {
     note("Sign in to do that.");
     return false;
   }, [note, session.user]);
+
+  const finishOnboard = useCallback(async (d: { interests?: string; langs?: string; website?: string; skip?: boolean }) => {
+    const r = await savePrefs({ data: d });
+    if (!r.ok) return r;
+    setInterests(r.interests);
+    setLangs(r.langs);
+    if (typeof r.website === "string") setWebsite(r.website);
+    setOnboarded(1);
+    return r;
+  }, []);
 
   const rename = useCallback(async (name: string, extra?: { bio?: string; city?: string; kind?: AccountKind; stage?: string; genre?: string; website?: string; brand?: string; face?: string }) => {
     const next = name.trim().slice(0, 24);
@@ -1692,6 +1708,10 @@ export function useQonvo() {
     stage,
     genre,
     website,
+    interests,
+    langs,
+    onboarded,
+    finishOnboard,
     brand,
   };
 }

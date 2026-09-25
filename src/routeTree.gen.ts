@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as OpsRouteImport } from './routes/ops'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as CompanyRouteImport } from './routes/company'
 import { Route as ApiIndexnowRouteImport } from './routes/api/indexnow'
 import { Route as ApiSitemapRouteImport } from './routes/api/sitemap'
 import { Route as PIdRouteImport } from './routes/p.$id'
@@ -57,6 +58,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanyRoute = CompanyRouteImport.update({
+  id: '/company',
+  path: '/company',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiIndexnowRoute = ApiIndexnowRouteImport.update({
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/ops': typeof OpsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/company': typeof CompanyRoute
   '/api/indexnow': typeof ApiIndexnowRoute
   '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/ops': typeof OpsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/company': typeof CompanyRoute
   '/api/indexnow': typeof ApiIndexnowRoute
   '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/ops': typeof OpsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/company': typeof CompanyRoute
   '/api/indexnow': typeof ApiIndexnowRoute
   '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/ops'
     | '/sitemap.xml'
     | '/terms'
+    | '/company'
     | '/api/indexnow'
     | '/api/sitemap'
     | '/p/$id'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/ops'
     | '/sitemap.xml'
     | '/terms'
+    | '/company'
     | '/api/indexnow'
     | '/api/sitemap'
     | '/p/$id'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/ops'
     | '/sitemap.xml'
     | '/terms'
+    | '/company'
     | '/api/indexnow'
     | '/api/sitemap'
     | '/p/$id'
@@ -203,6 +215,7 @@ export interface RootRouteChildren {
   OpsRoute: typeof OpsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  CompanyRoute: typeof CompanyRoute
   ApiIndexnowRoute: typeof ApiIndexnowRoute
   ApiSitemapRoute: typeof ApiSitemapRoute
   PIdRoute: typeof PIdRoute
@@ -261,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company': {
+      id: '/company'
+      path: '/company'
+      fullPath: '/company'
+      preLoaderRoute: typeof CompanyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/indexnow': {
@@ -323,6 +343,7 @@ const rootRouteChildren: RootRouteChildren = {
   OpsRoute: OpsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  CompanyRoute: CompanyRoute,
   ApiIndexnowRoute: ApiIndexnowRoute,
   ApiSitemapRoute: ApiSitemapRoute,
   PIdRoute: PIdRoute,

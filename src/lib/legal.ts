@@ -297,4 +297,5 @@ Use Contact in the signed-in menu, or Telegram @Builtbystacks for the developer 
 
 Operator: Kilode
 Site: kilode.ng
-Developer credit: @Builtbystacks`;
+Developer credit: @Builtbystacks
+Company: Squadglobal Dynasty Ltd.`;

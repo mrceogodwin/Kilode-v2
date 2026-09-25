@@ -67,6 +67,28 @@ export const FACE_EMOJIS = ["😎", "🙂", "😁", "🤓", "👑", "🎵", "✍
 
 export const AVATAR_SEEDS = ["Ada", "Tunde", "Amaka", "Chidi", "Zara", "Femi", "Ngozi", "Kemi", "Ife", "Sade", "Yemi", "Baba"] as const;
 
+export const LANG_CHOICES = [
+  { id: "en", label: "English" },
+  { id: "pcm", label: "Pidgin" },
+  { id: "yo", label: "Yoruba" },
+  { id: "ig", label: "Igbo" },
+  { id: "ha", label: "Hausa" },
+] as const;
+
+/** Topics shown once, after Join, matched to the account type they already picked. */
+export const KIND_INTERESTS: Record<AccountKind, string[]> = {
+  member: ["News", "Sports", "Music", "Chat", "Jobs", "Market"],
+  writer: ["Politics", "Tech", "Sports", "Entertainment", "Business"],
+  artist: ["Afrobeats", "Amapiano", "Hip-Hop", "Highlife", "Gospel", "R&B"],
+  advertiser: ["Shops", "Events", "Brands", "Food", "Fashion"],
+  cinema: ["Nollywood", "Trailers", "Comedy", "Music videos"],
+  job_poster: ["Hiring", "Tech", "Sales", "Creative", "Remote"],
+  job_seeker: ["Jobs", "Tech", "Creative", "Remote", "Lagos"],
+  vendor: ["Fashion", "Food", "Phones", "Beauty", "Home"],
+  renter: ["Flats", "Shops", "Short let", "Lagos", "Abuja"],
+  brand: ["Ads", "Products", "Events", "Music", "Fashion"],
+};
+
 export const KIND_FACE: Record<AccountKind, string> = {
   member: "av:Ada",
   writer: "av:Chidi",

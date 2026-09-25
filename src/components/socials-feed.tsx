@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { connectFellow, applyTake, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, applyTake, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 
 const KEY = "kilode-takes-v3";
@@ -98,7 +98,7 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
     if (!pillsFor(account).some((k) => k.id === kind)) setKind("take");
   }, [account, kind]);
   const [busy, setBusy] = useState(false);
-  const [linked, setLinked] = useState<Record<string, boolean>>({});
+  const [linked, setLinked] = useState<Record<string, "out" | "in">>({});
   const [dmFor, setDmFor] = useState<FellowRow | null>(null);
   const [dmBody, setDmBody] = useState("");
   const [dmNote, setDmNote] = useState("");
@@ -149,6 +149,20 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
       window.removeEventListener("kilode:take", onTake);
     };
   }, []);
+
+  useEffect(() => {
+    if (!authed) return;
+    void listConnects()
+      .then((rows) => {
+        const next: Record<string, "out" | "in"> = {};
+        for (const r of rows) {
+          if (r.dir === "friend") next[r.id] = "in";
+          else if (r.dir === "out") next[r.id] = "out";
+        }
+        setLinked(next);
+      })
+      .catch(() => undefined);
+  }, [authed]);
 
   useEffect(() => {
     const needle = q.trim();
@@ -285,17 +299,22 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
             <div className="mt-1.5 flex gap-1">
               <button
                 type="button"
-                disabled={linked[f.id]}
+                disabled={linked[f.id] === "in" || linked[f.id] === "out"}
                 className="rounded-[10px] border border-lime-2/40 px-2 py-0.5 text-[10px] font-semibold text-lime-2 disabled:opacity-60"
                 onClick={() => {
                   if (!authed) return goLogin();
-                  setLinked((m) => ({ ...m, [f.id]: true }));
+                  setLinked((m) => ({ ...m, [f.id]: "out" }));
                   void connectFellow({ data: { id: f.id } }).catch((e) => {
                     if (needLogin(e)) goLogin();
+                    setLinked((m) => {
+                      const next = { ...m };
+                      delete next[f.id];
+                      return next;
+                    });
                   });
                 }}
               >
-                {linked[f.id] ? "Connected" : "Connect"}
+                {linked[f.id] === "in" ? "Friends" : linked[f.id] === "out" ? "Requested" : "Connect"}
               </button>
               <button
                 type="button"

@@ -904,7 +904,7 @@ export const getProfile = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
-    const empty = { handle: "", bio: "", city: "", kind: "member" as AccountKind, stage: "", genre: "", website: "", brand: "", face: "", verified: false };
+    const empty = { handle: "", bio: "", city: "", kind: "member" as AccountKind, stage: "", genre: "", website: "", brand: "", face: "", verified: false, interests: "", langs: "", onboarded: 0 };
     try {
       const rows = await sql<{
         handle: string;
@@ -917,7 +917,10 @@ export const getProfile = createServerFn({ method: "GET" })
         brand: string | null;
         face: string | null;
         verified?: number | string | boolean | null;
-      }>`select handle, bio, city, kind, stage, genre, website, brand, face, verified from nf_profiles where user_id = ${context.userId} limit 1`;
+        interests?: string | null;
+        langs?: string | null;
+        onboarded?: number | string | null;
+      }>`select handle, bio, city, kind, stage, genre, website, brand, face, verified, interests, langs, onboarded from nf_profiles where user_id = ${context.userId} limit 1`;
       if (!rows[0]) return empty;
       return {
         handle: rows[0].handle,
@@ -930,10 +933,13 @@ export const getProfile = createServerFn({ method: "GET" })
         brand: rows[0].brand ?? "",
         face: rows[0].face ?? "",
         verified: Number(rows[0].verified) === 1 || rows[0].verified === true,
+        interests: rows[0].interests ?? "",
+        langs: rows[0].langs ?? "",
+        onboarded: Number(rows[0].onboarded) === 1 ? 1 : 0,
       };
     } catch {
       const rows = await sql<{ handle: string; bio: string | null; city: string | null }>`select handle, bio, city from nf_profiles where user_id = ${context.userId} limit 1`;
-      return rows[0] ? { ...empty, handle: rows[0].handle, bio: rows[0].bio ?? "", city: rows[0].city ?? "" } : empty;
+      return rows[0] ? { ...empty, handle: rows[0].handle, bio: rows[0].bio ?? "", city: rows[0].city ?? "", onboarded: 1 } : empty;
     }
   });
 
@@ -977,6 +983,52 @@ export const saveProfile = createServerFn({ method: "POST" })
       }
     }
     return { ok: true as const, handle, kind, face, bio };
+  });
+
+function safeSite(raw: string) {
+  const v = raw.trim().slice(0, 200);
+  if (!v) return "";
+  try {
+    const u = new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return "";
+    return u.toString().slice(0, 200);
+  } catch {
+    return "";
+  }
+}
+
+export const savePrefs = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { interests?: string; langs?: string; website?: string; skip?: boolean }) => d)
+  .handler(async ({ context, data }) => {
+    const interests = (data.interests || "")
+      .split(",")
+      .map((s) => s.trim().slice(0, 24))
+      .filter(Boolean)
+      .slice(0, 5)
+      .join(",");
+    const langs = (data.langs || "en")
+      .split(",")
+      .map((s) => s.trim().slice(0, 8))
+      .filter(Boolean)
+      .slice(0, 5)
+      .join(",") || "en";
+    const website = data.website !== undefined ? safeSite(data.website) : undefined;
+    if (data.website && data.website.trim() && !website) return { ok: false as const, reason: "Use a normal http or https link." };
+    const sql = await getSql();
+    try {
+      await sql`alter table nf_profiles add column if not exists interests text not null default ''`;
+      await sql`alter table nf_profiles add column if not exists langs text not null default ''`;
+      await sql`alter table nf_profiles add column if not exists onboarded integer not null default 0`;
+      if (website !== undefined) {
+        await sql`update nf_profiles set interests = ${interests}, langs = ${langs}, website = ${website}, onboarded = ${1} where user_id = ${context.userId}`;
+      } else {
+        await sql`update nf_profiles set interests = ${data.skip ? "" : interests}, langs = ${langs}, onboarded = ${1} where user_id = ${context.userId}`;
+      }
+    } catch {
+      return { ok: false as const, reason: "Could not save. Try again." };
+    }
+    return { ok: true as const, interests: data.skip ? "" : interests, langs, website };
   });
 
 export const sendMail = createServerFn({ method: "POST" })
