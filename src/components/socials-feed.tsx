@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { connectFellow, listConnects, applyTake, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, disconnectFellow, listConnects, applyTake, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { LinkText } from "@/components/link-text";
 
@@ -62,11 +62,11 @@ const KINDS: { id: TakeKind; label: string }[] = [
 ];
 
 const HINT: Record<string, string> = {
-  news: "A short news line. People mark Fact or Cap.",
-  take: "Your take. People mark Fact or Cap.",
-  job: "A role. Add pay and place. A seeker can apply once.",
-  music: "A track drop. Paste the song link and Play opens it.",
-  banter: "A debate. People pick For or Against.",
+  news: "News is one short line. People mark it Fact or Cap.",
+  take: "Take is your opinion. People mark it Fact or Cap.",
+  job: "Job is a role. Add pay and place. A seeker can apply once.",
+  music: "Music is a song link. Play opens Spotify, Audiomack, Apple, or YouTube.",
+  banter: "Debate is two sides. People pick For or Against.",
 };
 
 function pillsFor(account: string) {
@@ -87,7 +87,7 @@ function needLogin(e: unknown) {
   return /unauthor|sign in|forbidden/i.test(m);
 }
 
-export function SocialsFeed({ authed, account = "member" }: { authed: boolean; account?: string }) {
+export function SocialsFeed({ authed, account = "member", me = "" }: { authed: boolean; account?: string; me?: string }) {
   const pills = pillsFor(account);
   const boot = bootCache();
   const [takes, setTakes] = useState<TakeRow[]>(boot.takes);
@@ -256,10 +256,14 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
     return linked[f.id] || linked[(f.handle || "").toLowerCase()];
   }
 
+  const [fellowCap, setFellowCap] = useState(8);
   const needle = q.trim().toLowerCase();
-  const shownFellows = needle
-    ? fellows.filter((f) => `${f.name} ${f.handle} ${f.role}`.toLowerCase().includes(needle))
-    : fellows;
+  const mineHandle = me.trim().toLowerCase();
+  const pool = fellows.filter((f) => f.handle && f.handle.toLowerCase() !== mineHandle);
+  const matched = needle
+    ? pool.filter((f) => `${f.name} ${f.handle} ${f.role}`.toLowerCase().includes(needle))
+    : pool;
+  const shownFellows = matched.slice(0, fellowCap);
   const shownTakes = needle
     ? takes.filter((t) => `${t.name} ${t.handle} ${t.role} ${t.body}`.toLowerCase().includes(needle))
     : takes;
@@ -291,13 +295,22 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
       ) : null}
       <div className="mb-2 flex items-center justify-between">
         <div className="text-[11px] font-semibold tracking-[0.04em] text-fg">Connect with Fellows</div>
-        <button
-          type="button"
-          className="rounded-full border border-line px-2 py-0.5 text-[10px] font-bold text-lime-2"
-          onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "teams" } }))}
-        >
-          Groups
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            className="rounded-full border border-lime-2/40 bg-panel px-2.5 py-1 text-[10px] font-bold text-lime-2"
+            onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))}
+          >
+            Marketplace
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-lime-2/40 bg-panel px-2.5 py-1 text-[10px] font-bold text-lime-2"
+            onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "teams" } }))}
+          >
+            Groups
+          </button>
+        </div>
       </div>
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1">
         {shownFellows.length === 0 ? <p className="px-1 text-[11px] text-muted">Real members show here after they join.</p> : null}
@@ -308,7 +321,7 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
               <div className="min-w-0">
                 <div className="flex items-center gap-0.5 truncate text-[11px] font-semibold">
                   {f.name}
-                  {f.verified ? <BadgeCheck className="size-3 shrink-0 text-lime-2" /> : null}
+                  {f.verified ? <span className="verified-mark">✓</span> : null}
                 </div>
                 <div className="truncate text-[9px] text-muted">{f.role}</div>
               </div>
@@ -317,10 +330,21 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
             <div className="mt-1.5 flex gap-1">
               <button
                 type="button"
-                disabled={linkState(f) === "in" || linkState(f) === "out"}
+                disabled={linkState(f) === "out"}
                 className="rounded-full border border-lime-2/50 px-2.5 py-1 text-[10px] font-bold text-lime-2 disabled:opacity-70"
                 onClick={() => {
                   if (!authed) return goLogin();
+                  if (linkState(f) === "in") {
+                    void disconnectFellow({ data: { id: f.id } }).then(() => {
+                      setLinked((m) => {
+                        const next = { ...m };
+                        delete next[f.id];
+                        delete next[(f.handle || "").toLowerCase()];
+                        return next;
+                      });
+                    });
+                    return;
+                  }
                   setLinked((m) => ({ ...m, [f.id]: "out", [(f.handle || "").toLowerCase()]: "out" }));
                   void connectFellow({ data: { id: f.id } }).then((r) => {
                     if (!r.ok) {
@@ -344,11 +368,11 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
                   });
                 }}
               >
-                {linkState(f) === "in" ? "My Paddy" : linkState(f) === "out" ? "Connection" : "Connect"}
+                {linkState(f) === "in" ? "Connected" : linkState(f) === "out" ? "Asked" : "Connect"}
               </button>
               <button
                 type="button"
-                className="rounded-[10px] border border-line px-2 py-0.5 text-[10px] font-semibold text-fg"
+                className="btn-join rounded-full px-2.5 py-1 text-[10px] font-bold"
                 onClick={() => {
                   if (!authed) return goLogin();
                   setDmFor(f);
@@ -361,6 +385,11 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
             </div>
           </div>
         ))}
+        {fellowCap < matched.length ? (
+          <button type="button" className="w-[88px] shrink-0 rounded-[12px] border border-line text-[11px] font-bold text-lime-2" onClick={() => setFellowCap((n) => n + 8)}>
+            Load more
+          </button>
+        ) : null}
       </div>
       {dmFor ? (
         <form
@@ -665,7 +694,7 @@ function TakeCard({
                 </a>
               )}
             </span>
-            {!ghost && take.verified ? <BadgeCheck className="size-3 shrink-0 text-lime-2" /> : null}
+            {!ghost && take.verified ? <span className="verified-mark">✓</span> : null}
             {!ghost ? <span className="truncate text-[10px] text-muted">@{take.handle}</span> : null}
             <span className="shrink-0 text-[10px] text-muted">· {timeAgo(take.ts)}</span>
             <button type="button" aria-label="Report gist" className="ml-auto shrink-0 px-1 text-[12px] font-bold tracking-widest text-muted" onClick={onReport}>
@@ -708,11 +737,15 @@ function TakeCard({
 
           {take.kind === "quote" ? (
             typeof take.meta.quoteHref === "string" && take.meta.quoteHref.startsWith("/p/") ? (
-              <a href={take.meta.quoteHref} className="mt-1.5 block rounded-[10px] border border-line px-2 py-1.5">
+              <button
+                type="button"
+                className="mt-1.5 block w-full rounded-[10px] border border-line px-2 py-1.5 text-left"
+                onClick={() => window.dispatchEvent(new CustomEvent("kilode:read", { detail: take.meta.quoteHref }))}
+              >
                 <div className="text-[10px] text-muted">{String(take.meta.quoteName || "")} @{String(take.meta.quoteHandle || "")}</div>
                 <div className="text-[12px] leading-snug text-fg/80">{String(take.meta.quoteBody || "")}</div>
                 <div className="mt-1 text-[10px] font-semibold text-lime-2">Open story</div>
-              </a>
+              </button>
             ) : (
               <div className="mt-1.5 rounded-[10px] border border-line px-2 py-1.5">
                 <div className="text-[10px] text-muted">{String(take.meta.quoteName || "")} @{String(take.meta.quoteHandle || "")}</div>

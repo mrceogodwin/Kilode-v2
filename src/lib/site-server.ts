@@ -13,6 +13,8 @@ export type PublicSite = {
   videosMenuVisible: boolean;
   /** When false, pasted profile photo links are not shown. Default true. */
   photosOn: boolean;
+  /** Account desks that skip crypto for now. Comma list: ads,events */
+  payOff: string;
   visitorsToday: number;
   visitorsAll: number;
   members: number;
@@ -33,6 +35,7 @@ async function ensure() {
     await sql`alter table nf_site add column if not exists install_toast integer not null default 1`;
     await sql`alter table nf_site add column if not exists videos_menu_visible integer not null default 1`;
     await sql`alter table nf_site add column if not exists photos_on integer not null default 1`;
+    await sql`alter table nf_site add column if not exists pay_off text not null default ''`;
   } catch {
     /* exists */
   }
@@ -48,6 +51,7 @@ async function loadPublic(): Promise<PublicSite> {
     installToast: true,
     videosMenuVisible: true,
     photosOn: true,
+    payOff: "",
     visitorsToday: 0,
     visitorsAll: 0,
     members: 0,
@@ -63,7 +67,8 @@ async function loadPublic(): Promise<PublicSite> {
         install_toast: number | string | boolean | null;
         videos_menu_visible: number | string | boolean | null;
         photos_on: number | string | boolean | null;
-      }>`select install_toast, videos_menu_visible, photos_on from nf_site where id = 1 limit 1`.catch(() => []),
+        pay_off: string | null;
+      }>`select install_toast, videos_menu_visible, photos_on, pay_off from nf_site where id = 1 limit 1`.catch(() => []),
       sql<{ n: string | number }>`select n from nf_visits where day = ${today} limit 1`.catch(() => []),
       sql<{ n: string | number }>`select coalesce(sum(n), 0) as n from nf_visits`.catch(() => []),
       sql<{ n: string | number }>`select count(*) as n from "user"`.catch(() => []),
@@ -89,6 +94,7 @@ async function loadPublic(): Promise<PublicSite> {
       installToast,
       videosMenuVisible,
       photosOn,
+      payOff: String(flag[0]?.pay_off || ""),
       visitorsToday: Number(dayRows[0]?.n ?? 0),
       visitorsAll: Number(allRows[0]?.n ?? 0),
       members: membersN,
@@ -127,7 +133,7 @@ export const pingVisit = createServerFn({ method: "POST" })
 
 export const saveSiteFlags = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { installToast?: boolean; videosMenuVisible?: boolean; photosOn?: boolean }) => d)
+  .validator((d: { installToast?: boolean; videosMenuVisible?: boolean; photosOn?: boolean; payOff?: string }) => d)
   .handler(async ({ context, data }) => {
     await assertStaff(context.userId, "super");
     const sql = await ensure();
@@ -136,7 +142,8 @@ export const saveSiteFlags = createServerFn({ method: "POST" })
       install_toast: number | string | boolean | null;
       videos_menu_visible: number | string | boolean | null;
       photos_on: number | string | boolean | null;
-    }>`select id, install_toast, videos_menu_visible, photos_on from nf_site where id = 1 limit 1`.catch(() => []);
+      pay_off: string | null;
+    }>`select id, install_toast, videos_menu_visible, photos_on, pay_off from nf_site where id = 1 limit 1`.catch(() => []);
     const curToast =
       !existing[0] ||
       (existing[0].install_toast !== 0 && existing[0].install_toast !== false && existing[0].install_toast !== "0");
@@ -148,12 +155,13 @@ export const saveSiteFlags = createServerFn({ method: "POST" })
     const toast = data.installToast === undefined ? (curToast ? 1 : 0) : data.installToast === false ? 0 : 1;
     const videos = data.videosMenuVisible === undefined ? (curVideos ? 1 : 0) : data.videosMenuVisible === false ? 0 : 1;
     const photos = data.photosOn === undefined ? (!existing[0] || (existing[0].photos_on !== 0 && existing[0].photos_on !== false && existing[0].photos_on !== "0") ? 1 : 0) : data.photosOn === false ? 0 : 1;
+    const payOff = (data.payOff === undefined ? String(existing[0]?.pay_off || "") : data.payOff).split(",").map((s) => s.trim()).filter((s) => s === "ads" || s === "events").join(",");
     if (existing[0]) {
-      await sql`update nf_site set install_toast = ${toast}, videos_menu_visible = ${videos}, photos_on = ${photos}, ts = ${Date.now()} where id = 1`;
+      await sql`update nf_site set install_toast = ${toast}, videos_menu_visible = ${videos}, photos_on = ${photos}, pay_off = ${payOff}, ts = ${Date.now()} where id = 1`;
     } else {
-      await sql`insert into nf_site (id, chat_ttl_hours, install_toast, videos_menu_visible, photos_on, ts) values (1, 24, ${toast}, ${videos}, ${photos}, ${Date.now()})`;
+      await sql`insert into nf_site (id, chat_ttl_hours, install_toast, videos_menu_visible, photos_on, pay_off, ts) values (1, 24, ${toast}, ${videos}, ${photos}, ${payOff}, ${Date.now()})`;
     }
-    return { ok: true as const, installToast: toast === 1, videosMenuVisible: videos === 1, photosOn: photos === 1 };
+    return { ok: true as const, installToast: toast === 1, videosMenuVisible: videos === 1, photosOn: photos === 1, payOff };
   });
 
 export const pingShare = createServerFn({ method: "POST" })

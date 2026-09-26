@@ -62,7 +62,7 @@ import { listRoomOverlay } from "@/lib/rooms-server";
 import { Link } from "@tanstack/react-router";
 import { SignedIn, SignedOut } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { listWallets } from "@/lib/forum-server";
+import { getPublicPost, listWallets } from "@/lib/forum-server";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
@@ -304,6 +304,46 @@ function QonvoAppInner() {
       /* ignore */
     }
   }, []);
+
+  useEffect(() => {
+    const open = (e: Event) => {
+      const raw = String((e as CustomEvent).detail || "");
+      const slug = decodeURIComponent(raw.replace(/^\/p\//, "")).trim();
+      if (!slug) return;
+      const hit = store.posts.find((p) => p.slug === slug || p.id === slug);
+      const show = (id: string) => {
+        store.setOpenPost(id);
+        setScreen("home");
+        setHomeTab("feeds");
+      };
+      if (hit) {
+        show(hit.id);
+        return;
+      }
+      void getPublicPost({ data: slug }).then((p) => {
+        if (!p) return;
+        store.pushPost({
+          id: p.id,
+          title: p.title,
+          body: p.body,
+          excerpt: p.excerpt || "",
+          author: p.author,
+          ts: Number(p.ts),
+          comments: p.comments || [],
+          category: p.category || "News",
+          tags: p.tags || "",
+          link: p.link || "",
+          image: p.image || "",
+          slug: p.slug || p.id,
+          status: "publish",
+          views: Number(p.views || 0),
+        });
+        show(p.id);
+      });
+    };
+    window.addEventListener("kilode:read", open);
+    return () => window.removeEventListener("kilode:read", open);
+  }, [store]);
 
   useEffect(() => {
     const go = () => {
@@ -624,7 +664,7 @@ function QonvoAppInner() {
                 <FeedPane store={store} q={feedQ} onDesk={setMarketDesk} />
               ) : homeTab === "socials" ? (
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
-                  <SocialsFeed authed={store.authed || !!session.user} account={store.kind} />
+                  <SocialsFeed authed={store.authed || !!session.user} account={store.kind} me={store.handle} />
                 </div>
               ) : homeTab === "music" ? (
                 <MusicPane store={store} onAdd={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))} />
@@ -766,13 +806,13 @@ function QonvoAppInner() {
                         </button>
                         {open
                           ? row.hidden.map((m) => (
-                              <ChatLine key={m.ts + m.n} m={m} handle={store.handle} xlate={chatXlate[String(m.ts)]} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} />
+                              <ChatLine key={m.ts + m.n} m={m} handle={store.handle} xlate={chatXlate[String(m.ts)]} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} onDelete={store.dropMsg} />
                             ))
                           : null}
                       </div>
                     );
                   }
-                  return <ChatLine key={row.key} m={row.m} handle={store.handle} xlate={chatXlate[String(row.m.ts)]} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} />;
+                  return <ChatLine key={row.key} m={row.m} handle={store.handle} xlate={chatXlate[String(row.m.ts)]} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} onDelete={store.dropMsg} />;
                 })}
                 </div>
               </div>
@@ -2493,12 +2533,14 @@ function ChatLine({
   xlate,
   onReact,
   onReply,
+  onDelete,
 }: {
   m: ChatMsg;
   handle: string;
   xlate?: string;
   onReact: (ts: number, kind: "up" | "fire") => void;
   onReply: (m: ChatMsg) => void;
+  onDelete?: (ts: number) => void;
 }) {
   const mine = Boolean(handle && m.n === handle);
   const repost = parseRepost(m.t || "");
@@ -2528,6 +2570,11 @@ function ChatLine({
         ) : null}
         <span className="text-[11px] text-muted">{timeLabel(m.ts)}</span>
         {mine ? <span className="text-[11px] font-semibold text-lime-2">you</span> : null}
+        {mine && onDelete ? (
+          <button type="button" className="ml-auto text-[11px] font-bold text-muted" onClick={() => onDelete(m.ts)}>
+            Delete
+          </button>
+        ) : null}
       </div>
       <div className="mt-0.5 text-[12px] leading-snug text-fg">
         {repost ? (

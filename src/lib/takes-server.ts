@@ -112,7 +112,7 @@ export const listTakes = createServerFn({ method: "GET" })
         from nf_profiles
         where handle is not null and length(trim(handle)) > 1
         order by ts desc nulls last
-        limit 12`;
+        limit 24`;
       fellows = people
         .filter((p) => p.handle && p.handle !== "member")
         .map((p) => ({
@@ -453,6 +453,18 @@ export const replyConnect = createServerFn({ method: "POST" })
     } else {
       await sql`delete from nf_connects where user_id = ${id} and fellow_id = ${context.userId}`;
     }
+    return { ok: true as const };
+  });
+
+export const disconnectFellow = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    const id = (data.id || "").trim().slice(0, 80);
+    if (!id) return { ok: false as const, reason: "Missing person." };
+    const sql = await getSql();
+    await ensureConnects(sql);
+    await sql`delete from nf_connects where (user_id = ${context.userId} and fellow_id = ${id}) or (user_id = ${id} and fellow_id = ${context.userId})`;
     return { ok: true as const };
   });
 

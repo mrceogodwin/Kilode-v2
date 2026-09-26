@@ -107,6 +107,7 @@ export function LivePausePanel() {
   const [cinemaUntil, setCinemaUntil] = useState(0);
   const [videosOn, setVideosOn] = useState(true);
   const [photosOn, setPhotosOn] = useState(true);
+  const [payOff, setPayOff] = useState("");
   const [videosBusy, setVideosBusy] = useState(false);
   const [msg, setMsg] = useState("");
   function apply(next: { chatUntil: number; cinemaUntil: number }) {
@@ -126,6 +127,7 @@ export function LivePausePanel() {
       .then((s) => {
         setVideosOn(s.videosMenuVisible !== false);
         setPhotosOn(s.photosOn !== false);
+        setPayOff(s.payOff || "");
       })
       .catch(() => undefined);
   }, []);
@@ -200,6 +202,37 @@ export function LivePausePanel() {
           >
             {photosOn ? "Pause photos" : "Allow photos"}
           </button>
+        </div>
+      </div>
+      <div className="rounded-xl border border-line bg-panel p-3">
+        <div className="text-sm font-extrabold">Crypto required</div>
+        <p className="mt-0.5 text-[11px] text-muted">Off means that desk can submit without a transaction hash. Staff still approve. Paystack and Flutterwave are not connected.</p>
+        <div className="mt-2 flex gap-2">
+          {(["ads", "events"] as const).map((k) => {
+            const off = payOff.split(",").includes(k);
+            return (
+              <button
+                key={k}
+                type="button"
+                className={`rounded-full border px-3 py-1 text-[11px] font-bold ${off ? "border-line text-muted" : "border-lime-2/50 text-lime-2"}`}
+                onClick={() => {
+                  const set = new Set(payOff.split(",").filter(Boolean));
+                  if (set.has(k)) set.delete(k);
+                  else set.add(k);
+                  const next = [...set].join(",");
+                  void saveSiteFlags({ data: { payOff: next } }).then((r) => {
+                    if (r.ok) {
+                      setPayOff(r.payOff);
+                      setMsg(r.payOff ? `Crypto off for ${r.payOff}` : "Crypto required again");
+                      setTimeout(() => setMsg(""), 1600);
+                    }
+                  });
+                }}
+              >
+                {k} {off ? "off" : "on"}
+              </button>
+            );
+          })}
         </div>
       </div>
       {msg ? <p className="text-[11px] text-danger">{msg}</p> : null}

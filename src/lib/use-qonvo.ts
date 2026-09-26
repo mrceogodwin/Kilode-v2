@@ -19,7 +19,7 @@ import {
   type Team,
 } from "@/lib/qonvo-data";
 import { DEMO_ADS, DEMO_JOINS, DEMO_NOTES, DEMO_POSTS, DEMO_TRACKS, MORE_DEMO_ADS } from "@/lib/qonvo-seed";
-import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, savePin, savePost, savePrefs, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
+import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, deleteOwnMsg, savePin, savePost, savePrefs, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
 import { postBodyPlain } from "@/lib/post-body";
 import { listNotes } from "@/lib/social-server";
 import { hidePost as hidePostRow, setAdPlacement, setAdStatus, setAdWindow } from "@/lib/staff-server";
@@ -159,6 +159,7 @@ export function useQonvo() {
   const session = useCurrentUserState();
   const [ready, setReady] = useState(false);
   const [handle, setHandle] = useState("");
+  const [verified, setVerified] = useState(false);
   const [roomId, setRoomId] = useState("lounge");
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -760,6 +761,7 @@ export function useQonvo() {
           setLangs(p.langs ?? "");
           setOnboarded(p.onboarded === 1 ? 1 : 0);
           setFace(p.face || KIND_FACE[asAccountKind(p.kind)]);
+          setVerified(p.verified === true);
           try {
             const pending = sessionStorage.getItem("nf_account");
             if (pending) {
@@ -1429,6 +1431,19 @@ export function useQonvo() {
     });
   }, []);
 
+  const dropMsg = useCallback((ts: number) => {
+    const room = roomId;
+    setMsgs((prev) => {
+      const next = prev.filter((m) => m.ts !== ts);
+      msgsRef.current = next;
+      msgsByRoomRef.current[room] = next;
+      return next;
+    });
+    void deleteOwnMsg({ data: { roomId: room, ts } }).then((r) => {
+      if (!r.ok) note("That message stayed. Try again.");
+    }).catch(() => note("That message stayed. Try again."));
+  }, [note, roomId]);
+
   const savePostMark = useCallback((id: string) => {
     setSavedPosts((prev) => {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [id, ...prev];
@@ -1629,6 +1644,7 @@ export function useQonvo() {
   return {
     ready,
     handle,
+    verified,
     roomId,
     msgs,
     msgsLoading,
@@ -1652,6 +1668,7 @@ export function useQonvo() {
     openRoom,
     rename,
     send,
+    dropMsg,
     chatErr,
     clearChatErr: () => setChatErr(""),
     bumpPresence,

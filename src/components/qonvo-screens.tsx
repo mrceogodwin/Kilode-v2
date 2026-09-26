@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Eye, Mail, MessageSquare, Share2 } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, daysLeft, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
-import { getProfile, reportPost } from "@/lib/forum-server";
-import { claimOps, clearModUser, deleteGist, deletePost, dismissReport, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, listStaffPosts, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, staffMe, unhidePost } from "@/lib/staff-server";
+import { approveTeamAsk, getProfile, leaveTeam, postTeamNote, reportPost, requestJoinTeam, teamDesk } from "@/lib/forum-server";
+import { claimOps, clearModUser, deleteGist, deletePost, dismissReport, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, listStaffPosts, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, scoreMembers, staffMe, unhidePost } from "@/lib/staff-server";
 import {
   approveNewsDraft,
   fetchNewsLatest,
@@ -30,6 +30,7 @@ import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
 import { ShopAdminPanel } from "@/components/downloads-pane";
 import { SocialsAdminPanel, TvPane } from "@/components/tv-pane";
 import { JoinCta, TelegramLink } from "@/components/get-app";
+import { usePublicSite } from "@/components/site-chrome";
 import { BrandLockup } from "@/components/brand-lockup";
 import { MeDashboard } from "@/components/me-dashboard";
 import { AdCatalogPanel, AdSlotsPanel, LivePausePanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
@@ -1275,9 +1276,9 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
       ) : null}
       <input value={city} onChange={(e) => { dirty.current = true; setCity(e.target.value); }} placeholder="City (optional)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       <label className="block">
-        <span className="mb-1 block text-[11px] font-medium text-muted">Gender (optional)</span>
+        <span className="mb-1 block text-[11px] font-medium text-muted">Gender</span>
         <select value={gender} onChange={(e) => setGender(e.target.value)} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base">
-          <option value="">Skip</option>
+          <option value="">Choose</option>
           <option value="woman">Woman</option>
           <option value="man">Man</option>
         </select>
@@ -1396,69 +1397,117 @@ function Inbox() {
   const [body, setBody] = useState("");
   const [msg, setMsg] = useState("");
   const [rows, setRows] = useState<{ id: string; from: string; to: string; body: string; ts: number }[]>([]);
+  const [me, setMe] = useState("");
   function reload() {
     void listInbox()
       .then(setRows)
       .catch(() => setRows([]));
+    void getProfile()
+      .then((p) => setMe((p.handle || "").toLowerCase()))
+      .catch(() => undefined);
   }
   useEffect(() => {
     reload();
   }, []);
+  const people = new Map<string, { handle: string; last: string; ts: number }>();
+  for (const r of rows) {
+    const other = r.from.toLowerCase() === me || r.from.toLowerCase() === "kilode africa" ? r.to : r.from;
+    const key = other.toLowerCase();
+    const cur = people.get(key);
+    if (!cur || r.ts > cur.ts) people.set(key, { handle: other, last: r.body, ts: r.ts });
+  }
+  const threads = [...people.values()].sort((a, b) => b.ts - a.ts);
+  const open = to.trim();
+  const thread = open
+    ? rows
+        .filter((r) => r.from.toLowerCase() === open.toLowerCase() || r.to.toLowerCase() === open.toLowerCase())
+        .sort((a, b) => a.ts - b.ts)
+    : [];
   return (
-    <Screen kicker="YOU" title="Messages" sub="Private DMs. They appear when this page is opened. Kilode does not check in the background.">
-      <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="Their username" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-      <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Message" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-      {msg ? <p className="text-sm text-muted">{msg}</p> : null}
-      <button
-        type="button"
-        className="btn-3d rounded-lg px-3 py-2 text-sm"
-        onClick={() => {
-          void sendDm({ data: { to, body } }).then((r) => {
-            if (r.ok) {
-              setBody("");
-              setMsg("Sent.");
-              reload();
-            } else setMsg(r.reason);
-          });
-        }}
-      >
-        Send
-      </button>
-      {rows.map((r) => (
-        <div key={r.id} className="rounded-xl border border-line bg-panel p-3">
-          <div className="text-xs text-lime-2">
-            {r.from} → {r.to}
+    <Screen kicker="YOU" title="Messages" sub="Tap a person. Write back. No username box.">
+      {threads.length === 0 ? <p className="text-sm text-muted">No messages yet. Message someone from Socials.</p> : null}
+      <div className="space-y-2">
+        {threads.map((p) => (
+          <button
+            key={p.handle}
+            type="button"
+            className={`flex w-full items-center gap-2 rounded-2xl border px-3 py-2 text-left ${open.toLowerCase() === p.handle.toLowerCase() ? "border-lime-2 bg-lime-2/10" : "border-line bg-panel"}`}
+            onClick={() => {
+              setTo(p.handle);
+              setMsg("");
+            }}
+          >
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-panel-3 text-[12px] font-bold">{p.handle.slice(0, 1).toUpperCase()}</span>
+            <span className="min-w-0">
+              <span className="block truncate text-[13px] font-bold">@{p.handle}</span>
+              <span className="block truncate text-[11px] text-muted">{p.last}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      {open ? (
+        <div className="mt-3 rounded-2xl border border-line bg-panel p-3">
+          <div className="text-[12px] font-bold">@{open}</div>
+          <div className="mt-2 space-y-2">
+            {thread.map((r) => (
+              <div key={r.id} className={`rounded-xl px-2.5 py-1.5 text-[13px] ${r.from.toLowerCase() === me ? "bg-lime-2/10" : "bg-panel-2"}`}>
+                <div className="text-[10px] text-muted">{r.from}</div>
+                <p>{r.body}</p>
+              </div>
+            ))}
           </div>
-          <p className="mt-1 text-sm">{r.body}</p>
-          <div className="text-[10px] text-muted">{new Date(r.ts).toLocaleString()}</div>
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={2} placeholder={`Reply to @${open}`} className="mt-2 w-full rounded-xl border border-line bg-bg px-3 py-2 text-base" />
+          {msg ? <p className="mt-1 text-[12px] text-muted">{msg}</p> : null}
+          <button
+            type="button"
+            className="btn-join mt-2 rounded-full px-4 py-2 text-[12px] font-bold"
+            onClick={() => {
+              void sendDm({ data: { to: open, body } }).then((r) => {
+                if (r.ok) {
+                  setBody("");
+                  setMsg("Sent.");
+                  reload();
+                } else setMsg(r.reason);
+              });
+            }}
+          >
+            Send
+          </button>
         </div>
-      ))}
+      ) : null}
     </Screen>
   );
 }
 
-function Teams({ store, onHome }: { store: Store; onHome: (id?: string) => void }) {
+function Teams({ store }: { store: Store; onHome?: (id?: string) => void }) {
   const [name, setName] = useState("");
+  const [find, setFind] = useState("");
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
+  const [askFor, setAskFor] = useState("");
+  const [askNote, setAskNote] = useState("");
+  const [openId, setOpenId] = useState("");
+  const [desk, setDesk] = useState<{ name: string; owner: boolean; inside: boolean; members: string[]; asks: { id: string; handle: string; note: string }[]; notes: { id: string; handle: string; body: string; ts: number }[] } | null>(null);
+  const [line, setLine] = useState("");
   const mine = store.teams.filter((t) => (t.members ?? [])[0] === store.handle).length;
+  function loadDesk(id: string) {
+    setOpenId(id);
+    void teamDesk({ data: id }).then((d) => setDesk(d)).catch(() => setDesk(null));
+  }
+  const list = store.teams.filter((t) => !!t?.id && t.name.toLowerCase().includes(find.trim().toLowerCase()));
   return (
-    <Screen kicker="CREW" title="Groups" sub="Your people. Open one to chat.">
+    <Screen kicker="CREW" title="Groups" sub="Private. You ask, they approve, then you talk inside the group.">
       {!store.handle ? (
         <JoinCta />
       ) : (
         <>
-          <p className="mb-3 text-[12px] text-lime-2">You made {mine}/3 groups.</p>
+          <p className="mb-2 text-[12px] text-lime-2">You made {mine}/3.</p>
+          <input value={find} onChange={(e) => setFind(e.target.value)} placeholder="Search groups" className="mb-2 w-full rounded-xl border border-line bg-panel px-3 py-2 text-base" />
           <div className="flex gap-2">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Group name"
-              className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 text-base"
-            />
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Group name" className="flex-1 rounded-xl border border-line bg-panel px-3 py-2 text-base" />
             <button
               type="button"
-              className="btn-3d rounded-lg px-3 py-2 text-sm font-bold"
+              className="btn-join rounded-full px-4 text-sm font-bold"
               onClick={() => {
                 setErr("");
                 if (mine >= 3) {
@@ -1474,40 +1523,83 @@ function Teams({ store, onHome }: { store: Store; onHome: (id?: string) => void 
           </div>
           {err ? <p className="mt-2 text-sm text-danger">{err}</p> : null}
           {note ? <p className="mt-2 text-sm text-lime-2">{note}</p> : null}
-          {store.teams.length === 0 ? <p className="mt-3 text-sm text-muted">No groups yet.</p> : null}
-          {store.teams.filter((t) => !!t?.id).map((t) => {
+          {list.length === 0 ? <p className="mt-3 text-sm text-muted">No groups yet.</p> : null}
+          {list.map((t) => {
             const members = t.members ?? [];
-            const mineGroup = members[0] === store.handle || members.includes(store.handle);
             const owner = members[0] === store.handle;
+            const inside = owner || members.some((m) => m.toLowerCase() === store.handle.toLowerCase());
             return (
-              <div key={t.id} className="raised mt-3 rounded-2xl p-4">
+              <div key={t.id} className="mt-3 rounded-2xl border border-line bg-panel p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <div className="text-base font-extrabold">{t.name}</div>
-                    <div className="text-[11px] text-muted">{members.length}/40{owner ? " · yours" : mineGroup ? " · in" : ""}</div>
+                    <div className="text-[15px] font-extrabold">{t.name}</div>
+                    <div className="text-[11px] text-muted">{members.length}/40 · {owner ? "You made this" : inside ? "You're in" : "Ask to join"}</div>
                   </div>
-                  <button
-                    type="button"
-                    className="text-[11px] font-semibold text-muted"
-                    onClick={() => {
-                      const reason = window.prompt("Why report this group?")?.trim();
-                      if (!reason) return;
-                      void reportPost({ data: { postId: `group:${t.id}`, reason: reason.slice(0, 280) } }).then(() => setNote("Report sent."));
-                    }}
-                  >
-                    Report
-                  </button>
+                  <button type="button" className="text-[11px] text-muted" onClick={() => {
+                    const reason = window.prompt("Why report this group?")?.trim();
+                    if (!reason) return;
+                    void reportPost({ data: { postId: `group:${t.id}`, reason: reason.slice(0, 280) } }).then(() => setNote("Report sent."));
+                  }}>Report</button>
                 </div>
-                <div className="mt-3 flex gap-2">
-                  {mineGroup ? null : (
-                    <button type="button" className="rounded-full border border-line px-3 py-1.5 text-[12px] font-bold" onClick={() => store.joinTeam(t.id)}>
-                      Join
-                    </button>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {inside ? (
+                    <button type="button" className="btn-join rounded-full px-3 py-1.5 text-[12px] font-bold" onClick={() => loadDesk(t.id)}>Open</button>
+                  ) : (
+                    <button type="button" className="rounded-full border border-lime-2/50 px-3 py-1.5 text-[12px] font-bold text-lime-2" onClick={() => { setAskFor(t.id); setAskNote(""); }}>Ask to join</button>
                   )}
-                  <button type="button" className="btn-join rounded-full px-3 py-1.5 text-[12px] font-bold" onClick={() => onHome(`tm-${t.id}`)}>
-                    Open chat
-                  </button>
+                  {inside && !owner ? (
+                    <button type="button" className="rounded-full border border-line px-3 py-1.5 text-[12px]" onClick={() => void leaveTeam({ data: t.id }).then(() => setNote("You left."))}>Leave</button>
+                  ) : null}
                 </div>
+                {askFor === t.id ? (
+                  <div className="mt-2">
+                    <textarea value={askNote} onChange={(e) => setAskNote(e.target.value)} rows={2} placeholder="Why should they let you in?" className="w-full rounded-xl border border-line bg-bg px-3 py-2 text-base" />
+                    <button type="button" className="btn-join mt-1 rounded-full px-3 py-1.5 text-[12px] font-bold" onClick={() => {
+                      void requestJoinTeam({ data: { id: t.id, note: askNote } }).then((r) => {
+                        setNote(r.ok ? (r.status === "in" ? "You are already in." : "Asked. They have to approve.") : r.reason);
+                        setAskFor("");
+                      });
+                    }}>Send ask</button>
+                  </div>
+                ) : null}
+                {openId === t.id && desk ? (
+                  <div className="mt-3 border-t border-line pt-2">
+                    {desk.owner && desk.asks.length > 0 ? (
+                      <div className="mb-2 space-y-2">
+                        {desk.asks.map((a) => (
+                          <div key={a.id} className="rounded-xl bg-panel-2 p-2">
+                            <div className="text-[12px] font-bold">@{a.handle}</div>
+                            <p className="text-[12px] text-muted">{a.note}</p>
+                            <div className="mt-1 flex gap-2">
+                              <button type="button" className="text-[11px] font-bold text-lime-2" onClick={() => void approveTeamAsk({ data: { id: a.id, accept: true } }).then(() => loadDesk(t.id))}>Approve</button>
+                              <button type="button" className="text-[11px] text-muted" onClick={() => void approveTeamAsk({ data: { id: a.id, accept: false } }).then(() => loadDesk(t.id))}>No</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    {desk.inside ? (
+                      <>
+                        {desk.notes.length === 0 ? <p className="text-[12px] text-muted">No notes in this group yet.</p> : null}
+                        {desk.notes.map((n) => (
+                          <div key={n.id} className="mt-1 text-[12px]"><b>@{n.handle}</b> <span className="text-muted">{n.body}</span></div>
+                        ))}
+                        <div className="mt-2 flex gap-2">
+                          <input value={line} onChange={(e) => setLine(e.target.value)} placeholder="Say something in the group" className="flex-1 rounded-full border border-line bg-bg px-3 py-2 text-base" />
+                          <button type="button" className="btn-join rounded-full px-3 text-[12px] font-bold" onClick={() => {
+                            void postTeamNote({ data: { id: t.id, body: line } }).then((r) => {
+                              if (!r.ok) setErr(r.reason);
+                              else {
+                                setLine("");
+                                loadDesk(t.id);
+                              }
+                            });
+                          }}>Send</button>
+                        </div>
+                      </>
+                    ) : <p className="text-[12px] text-muted">Wait until they approve you.</p>}
+                  </div>
+                ) : null}
               </div>
             );
           })}
@@ -1562,6 +1654,7 @@ function Ads({ store }: { store: Store }) {
   const [days, setDays] = useState<number>(7);
   const [coin, setCoin] = useState("usdt");
   const [txHash, setTxHash] = useState("");
+  const adsPay = !usePublicSite().site.payOff.split(",").includes("ads");
   const [amount, setAmount] = useState("");
   const [agree, setAgree] = useState(false);
   const [err, setErr] = useState("");
@@ -1766,8 +1859,8 @@ function Ads({ store }: { store: Store }) {
             setErr("Accept the Terms.");
             return;
           }
-          if (!name.trim() || !txHash.trim()) {
-            setErr("Name and payment tx are required.");
+          if (!name.trim() || (adsPay && !txHash.trim())) {
+            setErr(adsPay ? "Name and payment tx are required." : "Name is required.");
             return;
           }
           const img = kind.includes("image") ? (image.startsWith("data:") ? image : safeHttpUrl(image)) : undefined;
@@ -2391,6 +2484,7 @@ function VerifyKindPanel({
   const [handle, setHandle] = useState("");
   const [kind, setKind] = useState<AccountKind>("member");
   const [msg, setMsg] = useState("");
+  const [scores, setScores] = useState<{ handle: string; score: number; takes: number; chats: number }[]>([]);
   const picked = members.find((m) => m.handle.toLowerCase() === handle.trim().toLowerCase());
   return (
     <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-xl p-3">
@@ -2425,7 +2519,27 @@ function VerifyKindPanel({
         >
           Remove badge
         </button>
+        <button
+          type="button"
+          className="rounded-lg border border-line px-3 py-2 text-[11px]"
+          onClick={() => {
+            void scoreMembers().then(setScores).catch(() => setScores([]));
+          }}
+        >
+          Who is active
+        </button>
       </div>
+      {scores.length > 0 ? (
+        <div className="space-y-1">
+          <p className="text-[11px] text-muted">Counted when you tap. Not a background job. Posts in Socials + chat lines.</p>
+          {scores.map((s) => (
+            <div key={s.handle} className="flex items-center justify-between gap-2 text-[12px]">
+              <span>@{s.handle} · {s.score} ({s.takes} socials, {s.chats} chat)</span>
+              <button type="button" className="font-bold text-lime-2" onClick={() => void setVerified({ data: { handle: s.handle, on: true } }).then(() => { setMsg(`Verified @${s.handle}`); onReload(); })}>Verify</button>
+            </div>
+          ))}
+        </div>
+      ) : null}
       {canChangeKind ? (
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-stretch">
           <select value={kind} onChange={(e) => setKind(e.target.value as AccountKind)} className="w-full max-w-full min-w-0 flex-1 rounded-lg border border-line bg-panel px-3 py-2 text-base">
@@ -2725,6 +2839,70 @@ function NewsEnginePanel({ store }: { store: Store }) {
         </button>
       </div>
 
+      <div className="flex flex-wrap gap-1">
+        {[
+          ["Nollywood", "Nollywood movie"],
+          ["Hollywood", "Hollywood movie"],
+          ["Upcoming films", "upcoming movie"],
+          ["Music", "album release Nigeria"],
+          ["Breaking", "breaking news Nigeria"],
+          ["War", "war news"],
+          ["Sports", "sports Nigeria"],
+          ["Mixed", ""],
+        ].map(([label, words]) => (
+          <button key={label} type="button" className="rounded-full border border-line px-2 py-1 text-[10px] font-bold" onClick={() => setInclude(words)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {[1, 5, 10, 20].map((n) => (
+          <button
+            key={n}
+            type="button"
+            disabled={busy}
+            className="rounded-full border border-lime-2/40 px-2 py-1 text-[10px] font-bold text-lime-2 disabled:opacity-50"
+            onClick={() => {
+              const batch = drafts.slice(0, n);
+              if (!batch.length) {
+                setMsg("Fetch first. Nothing is waiting.");
+                return;
+              }
+              setBusy(true);
+              void (async () => {
+                let posted = 0;
+                for (const d of batch) {
+                  const r = await approveNewsDraft({ data: d.id });
+                  if (r.ok && "post" in r && r.post) {
+                    posted += 1;
+                    store.pushPost({
+                      id: r.post.id,
+                      title: r.post.title,
+                      body: r.post.body,
+                      excerpt: r.post.excerpt,
+                      author: r.post.author,
+                      ts: r.post.ts,
+                      comments: [],
+                      category: r.post.category,
+                      tags: r.post.tags,
+                      link: r.post.link,
+                      image: r.post.image,
+                      slug: r.post.slug,
+                      status: "publish",
+                      views: 0,
+                    });
+                  }
+                }
+                setMsg(`Posted ${posted} real drafts. One by one, not a dump.`);
+                reload();
+                setBusy(false);
+              })();
+            }}
+          >
+            Post {n}
+          </button>
+        ))}
+      </div>
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="text-xs text-muted">
           Include keywords

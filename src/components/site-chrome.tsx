@@ -11,6 +11,7 @@ export const EMPTY_PUBLIC_SITE: PublicSite = {
   installToast: true,
   videosMenuVisible: true,
   photosOn: true,
+  payOff: "",
   visitorsToday: 0,
   visitorsAll: 0,
   members: 0,

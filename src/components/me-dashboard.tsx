@@ -35,7 +35,7 @@ import { DigestBox } from "@/components/get-app";
 import { SiteFooter } from "@/components/site-chrome";
 import { listMyCinema, type CinemaMovie } from "@/lib/cinema-server";
 import { deleteListing, listListings, listMyApps, listMyApplicants, listMyListings, updateListing, type Listing, type MyApp, type MyApplicant } from "@/lib/listings-server";
-import { listConnects, replyConnect, type ConnectRow } from "@/lib/takes-server";
+import { disconnectFellow, listConnects, replyConnect, type ConnectRow } from "@/lib/takes-server";
 
 type Store = ReturnType<typeof useQonvo>;
 
@@ -101,8 +101,8 @@ function FriendsBlock({ rows, onChange }: { rows: ConnectRow[]; onChange: () => 
   const sent = rows.filter((r) => r.dir === "out");
   return (
     <section className="mb-4 rounded-2xl border border-line bg-panel p-3">
-      <h3 className="text-[13px] font-extrabold">My Paddy</h3>
-      <p className="mt-0.5 text-[11px] text-muted">Requests land here. Open Me to accept. Nothing checks in the background.</p>
+      <h3 className="text-[13px] font-extrabold">Connected</h3>
+      <p className="mt-0.5 text-[11px] text-muted">People who accepted. Open Me to accept a new ask.</p>
       {incoming.length === 0 && friends.length === 0 && sent.length === 0 ? (
         <p className="mt-2 text-[12px] text-muted">No requests yet. Connect from Socials.</p>
       ) : null}
@@ -139,12 +139,22 @@ function FriendsBlock({ rows, onChange }: { rows: ConnectRow[]; onChange: () => 
       ))}
       {sent.map((r) => (
         <div key={`out-${r.id}`} className="mt-2 text-[12px] text-muted">
-          Waiting · Connection @{r.handle}
+          Asked @{r.handle}
         </div>
       ))}
       {friends.map((r) => (
-        <a key={`ok-${r.id}`} href={`/u/${encodeURIComponent(r.handle)}`} className="mt-2 block text-[13px] font-semibold">
-          @{r.handle} <span className="text-[10px] font-normal text-muted">· My Paddy</span>
+        <a key={`ok-${r.id}`} href={`/u/${encodeURIComponent(r.handle)}`} className="mt-2 flex items-center justify-between text-[13px] font-semibold">
+          <span>@{r.handle} <span className="text-[10px] font-normal text-muted">· Connected</span></span>
+          <button
+            type="button"
+            className="text-[11px] font-semibold text-muted"
+            onClick={(e) => {
+              e.preventDefault();
+              void disconnectFellow({ data: { id: r.id } }).then(() => onChange());
+            }}
+          >
+            Disconnect
+          </button>
         </a>
       ))}
     </section>
@@ -650,7 +660,10 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         <div className="-mt-8 flex items-end gap-3 px-4">
           <AvatarImg handle={store.handle} face={store.face} size={76} className="rounded-full ring-2 ring-bg" />
           <div className="min-w-0 pb-1">
-            <div className="truncate text-xl font-extrabold tracking-tight">@{store.handle}</div>
+            <div className="flex items-center gap-1 truncate text-xl font-extrabold tracking-tight">
+              @{store.handle}
+              {store.verified ? <span className="verified-mark" title="Kilode Verified">✓</span> : null}
+            </div>
             <div className="mt-0.5 flex items-center gap-1.5">
               <span className="rounded-full bg-lime-2/15 px-2 py-0.5 text-[10px] font-bold text-lime-2">{kindLabel}</span>
               {store.city ? <span className="truncate text-[11px] text-muted">{store.city}</span> : null}
@@ -666,7 +679,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           </a>
         ) : null}
         <div className="mt-3 flex gap-4 px-4 text-[11px]">
-          <span><b className="text-fg">{connects.filter((c) => c.dir === "friend").length}</b> <span className="text-muted">friends</span></span>
+          <span><b className="text-fg">{connects.filter((c) => c.dir === "friend").length}</b> <span className="text-muted">connected</span></span>
           <span><b className="text-fg">{connects.filter((c) => c.dir === "in").length}</b> <span className="text-muted">requests</span></span>
         </div>
         <div className="mt-3 flex gap-2 px-3 pb-3">
@@ -1375,7 +1388,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             <button
               key={id}
               type="button"
-              className="rounded-full border border-line bg-panel px-3 py-1.5 text-[11px] font-semibold"
+              className="rounded-full border border-lime-2/30 bg-panel px-3 py-1.5 text-[11px] font-bold"
               onClick={() => {
                 store.openRoom?.(id);
                 goto({ tab: "chat" });
@@ -1385,7 +1398,6 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             </button>
           ))}
         </div>
-        {store.pins.length === 0 ? <p className="mt-2 text-[11px] text-muted">Pin rooms from Chat to pin them here. Showing Global for now.</p> : null}
       </Section>
 
       <Section kicker="SAVED" title="Bookmarks" action="All saved" onAction={() => goto({ screen: "bookmarks" })}>

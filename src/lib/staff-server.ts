@@ -224,8 +224,60 @@ export const setVerified = createServerFn({ method: "POST" })
     } catch {
       /* exists */
     }
-    await sql`update nf_profiles set verified = ${data.on ? 1 : 0} where lower(handle) = ${handle.toLowerCase()}`;
+    const named = await sql<{ id: string }>`
+      select u.id from "user" u
+      left join nf_profiles p on p.user_id = u.id
+      where lower(p.handle) = ${handle.toLowerCase()} or lower(u.name) = ${handle.toLowerCase()}
+      limit 1`;
+    const uid = named[0]?.id ?? "";
+    if (uid) {
+      await sql`update nf_profiles set verified = ${data.on ? 1 : 0} where user_id = ${uid}`;
+    } else {
+      await sql`update nf_profiles set verified = ${data.on ? 1 : 0} where lower(handle) = ${handle.toLowerCase()}`;
+    }
+    if (data.on && uid) {
+      const note = "Kilode Africa: You are verified. You showed up — active, straight, and useful to other people here. The badge stays until staff take it off.";
+      try {
+        await sql`insert into nf_notes (id, user_id, text, href, ts, seen) values (${`n-${Date.now().toString(36)}`}, ${uid}, ${note}, ${"/?open=inbox"}, ${Date.now()}, ${0})`;
+      } catch {
+        /* bell can miss */
+      }
+      try {
+        await sql`insert into nf_dm (id, from_id, from_handle, to_handle, to_user_id, body, ts)
+          values (${`d-${Date.now().toString(36)}`}, ${"kilode"}, ${"Kilode Africa"}, ${handle}, ${uid}, ${note}, ${Date.now()})`;
+      } catch {
+        /* inbox can miss; the badge still stands */
+      }
+    }
     return { ok: true as const };
+  });
+
+export const scoreMembers = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const me = await staffOf(context.userId);
+    if (me?.role !== "super" && me?.role !== "admin") throw new Error("Forbidden");
+    const sql = await getSql();
+    try {
+      const rows = await sql<{ handle: string; takes: string | number; chats: string | number }>`
+        select p.handle,
+          coalesce(t.n, 0) as takes,
+          coalesce(m.n, 0) as chats
+        from nf_profiles p
+        left join (select user_id, count(*) as n from nf_takes group by user_id) t on t.user_id = p.user_id
+        left join (select user_id, count(*) as n from nf_msgs group by user_id) m on m.user_id = p.user_id
+        where coalesce(p.verified, 0) = 0 and length(trim(p.handle)) > 1
+        order by (coalesce(t.n, 0) + coalesce(m.n, 0)) desc
+        limit 12`;
+      return rows.map((r) => ({
+        handle: r.handle,
+        score: Number(r.takes) + Number(r.chats),
+        takes: Number(r.takes),
+        chats: Number(r.chats),
+      }));
+    } catch {
+      return [];
+    }
   });
 
 export const setAccountKind = createServerFn({ method: "POST" })

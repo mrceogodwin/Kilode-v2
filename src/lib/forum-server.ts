@@ -283,7 +283,7 @@ export const listPosts = createServerFn({ method: "GET" }).handler(async () => {
 export const getPublicPost = createServerFn({ method: "GET" })
   .validator((id: string) => id)
   .handler(async ({ data: id }) => {
-    const key = id.trim();
+    const key = decodeURIComponent(id.trim());
     if (!key) return null;
     const sql = await getSql();
     const posts = await sql<{
@@ -785,6 +785,22 @@ export const saveMsg = createServerFn({ method: "POST" })
     }
   });
 
+export const deleteOwnMsg = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { roomId: string; ts: number }) => d)
+  .handler(async ({ context, data }) => {
+    const ts = Number(data.ts);
+    const roomId = String(data.roomId || "").slice(0, 80);
+    if (!roomId || !ts) return { ok: false as const, reason: "Missing message." };
+    if (!(await allowWrite(`delmsg:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
+    const sql = await getSql();
+    const me = await publicHandle(context.userId);
+    const gone = await sql<{ id: string }>`delete from nf_msgs
+      where room_id = ${roomId} and ts = ${ts} and (user_id = ${context.userId} or lower(n) = ${me.toLowerCase()})
+      returning id`;
+    return { ok: gone.length > 0 };
+  });
+
 export const pingPresence = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { roomId: string; typing?: boolean }) => d)
@@ -898,6 +914,144 @@ export const joinTeamRow = createServerFn({ method: "POST" })
     }
     await sql`update nf_teams set members = ${members.join(",")} where id = ${id}`;
     return { id, members };
+  });
+
+export const requestJoinTeam = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string; note: string }) => d)
+  .handler(async ({ context, data }) => {
+    const id = String(data.id || "").slice(0, 40);
+    const note = String(data.note || "").trim().slice(0, 240);
+    if (!id) return { ok: false as const, reason: "Missing group." };
+    if (note.length < 2) return { ok: false as const, reason: "Tell them why you want in. One line is enough." };
+    if (!(await allowWrite(`teamask:${context.userId}`, 8))) return { ok: false as const, reason: RATE_BLOCKED };
+    const sql = await getSql();
+    await sql.query(`CREATE TABLE IF NOT EXISTS nf_team_asks (
+      id TEXT PRIMARY KEY, team_id TEXT NOT NULL, user_id TEXT NOT NULL, handle TEXT NOT NULL,
+      note TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending', ts BIGINT NOT NULL)`);
+    const team = await sql<{ user_id: string; members: string; name: string }>`select user_id, members, name from nf_teams where id = ${id} limit 1`;
+    if (!team[0]) return { ok: false as const, reason: "That group is gone." };
+    const who = await publicHandle(context.userId);
+    const members = team[0].members.split(",").filter(Boolean);
+    if (members.some((m) => m.toLowerCase() === who.toLowerCase())) return { ok: true as const, status: "in" as const };
+    const existing = await sql<{ status: string }>`select status from nf_team_asks where team_id = ${id} and user_id = ${context.userId} limit 1`;
+    if (existing[0]?.status === "pending") return { ok: true as const, status: "asked" as const };
+    if (existing[0]) {
+      await sql`update nf_team_asks set note = ${note}, status = ${"pending"}, ts = ${Date.now()} where team_id = ${id} and user_id = ${context.userId}`;
+    } else {
+      await sql`insert into nf_team_asks (id, team_id, user_id, handle, note, status, ts)
+        values (${nid()}, ${id}, ${context.userId}, ${who}, ${note}, ${"pending"}, ${Date.now()})`;
+    }
+    try {
+      await sql`insert into nf_notes (id, user_id, text, href, ts, seen)
+        values (${nid()}, ${team[0].user_id}, ${`@${who} asked to join ${team[0].name}`}, ${"/?open=teams"}, ${Date.now()}, ${0})`;
+    } catch {
+      /* bell can miss */
+    }
+    return { ok: true as const, status: "asked" as const };
+  });
+
+export const teamDesk = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator((id: string) => id)
+  .handler(async ({ context, data: id }) => {
+    const sql = await getSql();
+    const team = await sql<{ user_id: string; name: string; members: string }>`select user_id, name, members from nf_teams where id = ${id} limit 1`;
+    if (!team[0]) return null;
+    const who = await publicHandle(context.userId);
+    const members = team[0].members.split(",").filter(Boolean);
+    const owner = team[0].user_id === context.userId;
+    const inside = owner || members.some((m) => m.toLowerCase() === who.toLowerCase());
+    let asks: { id: string; handle: string; note: string }[] = [];
+    if (owner) {
+      try {
+        asks = await sql<{ id: string; handle: string; note: string }>`
+          select id, handle, note from nf_team_asks where team_id = ${id} and status = ${"pending"} order by ts desc limit 30`;
+      } catch {
+        asks = [];
+      }
+    }
+    let notes: { id: string; handle: string; body: string; ts: number }[] = [];
+    if (inside) {
+      try {
+        await sql.query(`CREATE TABLE IF NOT EXISTS nf_team_notes (
+          id TEXT PRIMARY KEY, team_id TEXT NOT NULL, user_id TEXT NOT NULL, handle TEXT NOT NULL, body TEXT NOT NULL, ts BIGINT NOT NULL)`);
+        const rows = await sql<{ id: string; handle: string; body: string; ts: number | string }>`
+          select id, handle, body, ts from nf_team_notes where team_id = ${id} order by ts desc limit 40`;
+        notes = rows.map((r) => ({ id: r.id, handle: r.handle, body: r.body, ts: Number(r.ts) }));
+      } catch {
+        notes = [];
+      }
+    }
+    return { name: team[0].name, owner, inside, members, asks, notes };
+  });
+
+export const approveTeamAsk = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string; accept: boolean }) => d)
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const ask = await sql<{ id: string; team_id: string; user_id: string; handle: string }>`
+      select id, team_id, user_id, handle from nf_team_asks where id = ${data.id} limit 1`;
+    if (!ask[0]) return { ok: false as const, reason: "That ask is gone." };
+    const team = await sql<{ user_id: string; members: string; name: string }>`select user_id, members, name from nf_teams where id = ${ask[0].team_id} limit 1`;
+    if (!team[0] || team[0].user_id !== context.userId) return { ok: false as const, reason: "Only the person who made the group can approve." };
+    if (!data.accept) {
+      await sql`delete from nf_team_asks where id = ${data.id}`;
+      return { ok: true as const };
+    }
+    const members = team[0].members.split(",").filter(Boolean);
+    if (!members.some((m) => m.toLowerCase() === ask[0].handle.toLowerCase())) {
+      if (members.length >= 40) return { ok: false as const, reason: "This group is full (40)." };
+      members.push(ask[0].handle);
+    }
+    await sql`update nf_teams set members = ${members.join(",")} where id = ${ask[0].team_id}`;
+    await sql`update nf_team_asks set status = ${"in"} where id = ${data.id}`;
+    try {
+      await sql`insert into nf_notes (id, user_id, text, href, ts, seen)
+        values (${nid()}, ${ask[0].user_id}, ${`You are in ${team[0].name}`}, ${"/?open=teams"}, ${Date.now()}, ${0})`;
+    } catch {
+      /* ignore */
+    }
+    return { ok: true as const };
+  });
+
+export const leaveTeam = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((id: string) => id)
+  .handler(async ({ context, data: id }) => {
+    const sql = await getSql();
+    const team = await sql<{ user_id: string; members: string }>`select user_id, members from nf_teams where id = ${id} limit 1`;
+    if (!team[0]) return { ok: false as const, reason: "That group is gone." };
+    if (team[0].user_id === context.userId) return { ok: false as const, reason: "You made this group. It stays with you." };
+    const who = (await publicHandle(context.userId)).toLowerCase();
+    const members = team[0].members.split(",").filter((m) => m.toLowerCase() !== who);
+    await sql`update nf_teams set members = ${members.join(",")} where id = ${id}`;
+    return { ok: true as const };
+  });
+
+export const postTeamNote = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string; body: string }) => d)
+  .handler(async ({ context, data }) => {
+    const body = data.body.trim().slice(0, 280);
+    if (body.length < 1) return { ok: false as const, reason: "Write something." };
+    if (!(await allowWrite(`teamnote:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
+    const sql = await getSql();
+    const team = await sql<{ user_id: string; members: string }>`select user_id, members from nf_teams where id = ${data.id} limit 1`;
+    if (!team[0]) return { ok: false as const, reason: "That group is gone." };
+    const who = await publicHandle(context.userId);
+    const members = team[0].members.split(",").filter(Boolean);
+    const inside = team[0].user_id === context.userId || members.some((m) => m.toLowerCase() === who.toLowerCase());
+    if (!inside) return { ok: false as const, reason: "Ask to join first." };
+    const gate = await gateText("chat", body, { userId: context.userId, author: who });
+    if (!gate.ok) return { ok: false as const, reason: gate.reason };
+    await sql.query(`CREATE TABLE IF NOT EXISTS nf_team_notes (
+      id TEXT PRIMARY KEY, team_id TEXT NOT NULL, user_id TEXT NOT NULL, handle TEXT NOT NULL, body TEXT NOT NULL, ts BIGINT NOT NULL)`);
+    const id = nid();
+    const ts = Date.now();
+    await sql`insert into nf_team_notes (id, team_id, user_id, handle, body, ts) values (${id}, ${data.id}, ${context.userId}, ${who}, ${gate.text}, ${ts})`;
+    return { ok: true as const, id, handle: who, body: gate.text, ts };
   });
 
 export const getProfile = createServerFn({ method: "GET" })

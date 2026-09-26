@@ -3,6 +3,7 @@ import { listEvents, rsvpEvent, submitEvent, adminEvents, setEvent, purgeEvents,
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { AD_COINS } from "@/lib/qonvo-data";
 import { listWallets } from "@/lib/forum-server";
+import { usePublicSite } from "@/components/site-chrome";
 
 const CATS: Array<EventCat | "all"> = ["all", "tech", "music", "culture", "cinema"];
 
@@ -44,6 +45,7 @@ export function EventsPane() {
   const [coin, setCoin] = useState("btc");
   const [amount, setAmount] = useState("");
   const [txHash, setTxHash] = useState("");
+  const pay = !usePublicSite().site.payOff.split(",").includes("events");
   const [wallets, setWallets] = useState<{ coin: string; address: string }[]>([]);
 
   function load() {
@@ -108,7 +110,7 @@ export function EventsPane() {
       data: { title, blurb, category, place, link, startsAt, endsAt: startsAt + 3 * 3_600_000, coin, amount, txHash },
     })
       .then(() => {
-        setMsg("Sent. Staff check the hash, then approve it.");
+        setMsg(pay ? "Sent. Staff check the hash, then approve it." : "Sent for review. Crypto is off for events.");
         setForm(false);
         setTitle("");
         setBlurb("");
@@ -188,6 +190,8 @@ export function EventsPane() {
           <input value={place} onChange={(e) => setPlace(e.target.value)} placeholder="City or Online" className="min-h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
           <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https link, optional" className="min-h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
           <textarea value={blurb} onChange={(e) => setBlurb(e.target.value)} placeholder="Short note" rows={3} className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-base" />
+          {pay ? (
+            <>
           <p className="text-[11px] leading-snug text-muted">Copy the wallet, pay, then paste the hash. Kilode never DMs a wallet. One hash works once.</p>
           <select value={coin} onChange={(e) => setCoin(e.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-bg px-2 text-base">
             {AD_COINS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
@@ -207,6 +211,8 @@ export function EventsPane() {
           </button>
           <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount you sent" className="min-h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
           <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash" className="min-h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
+            </>
+          ) : <p className="text-[11px] text-lime-2">Crypto is off for events. Staff still approve before it goes live.</p>}
           <button type="submit" disabled={busy} className="btn-join w-full rounded-xl py-2.5 text-sm font-bold disabled:opacity-60">{busy ? "Sending…" : "Submit for review"}</button>
         </form>
       ) : null}

@@ -14,9 +14,14 @@ export function LinkText({ text }: { text: string }) {
         }
         if (part.startsWith("/p/")) {
           return (
-            <a key={i} href={part} className="font-semibold text-lime-2 underline">
+            <button
+              key={i}
+              type="button"
+              className="font-semibold text-lime-2 underline"
+              onClick={() => window.dispatchEvent(new CustomEvent("kilode:read", { detail: part }))}
+            >
               Open story
-            </a>
+            </button>
           );
         }
         return <span key={i}>{part}</span>;

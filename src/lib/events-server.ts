@@ -186,18 +186,29 @@ export const submitEvent = createServerFn({ method: "POST" })
     const coin = String(data.coin || "").trim().toLowerCase().slice(0, 12);
     const amount = String(data.amount || "").trim().slice(0, 40);
     const txHash = String(data.txHash || "").trim();
-    if (!coin) throw new Error("Pick the coin you paid with.");
-    if (!amount) throw new Error("Type the amount you sent.");
-    await ensure();
     const sql = await getSql();
+    let payOff = false;
+    try {
+      const flag = await sql<{ pay_off: string | null }>`select pay_off from nf_site where id = 1 limit 1`;
+      payOff = String(flag[0]?.pay_off || "").split(",").includes("events");
+    } catch {
+      payOff = false;
+    }
+    if (!payOff) {
+      if (!coin) throw new Error("Pick the coin you paid with.");
+      if (!amount) throw new Error("Type the amount you sent.");
+    }
+    await ensure();
     const id = nid();
-    const claimed = await claimTx({ hash: txHash, kind: "event", refId: id, userId: context.userId, coin, amount });
-    if (!claimed.ok) throw new Error(claimed.reason);
+    if (!payOff) {
+      const claimed = await claimTx({ hash: txHash, kind: "event", refId: id, userId: context.userId, coin, amount });
+      if (!claimed.ok) throw new Error(claimed.reason);
+    }
     try {
       await sql`insert into nf_events (id, title, blurb, category, place, link, cover, starts_at, ends_at, status, flagship, submitter, user_id, ts, coin, amount, tx_hash)
         values (${id}, ${title}, ${blurb}, ${catOf(String(data.category || ""))}, ${String(data.place || "").trim().slice(0, 60)}, ${link}, ${cover}, ${startsAt}, ${endsAt}, ${"pending"}, ${0}, ${handle}, ${context.userId}, ${now}, ${coin}, ${amount}, ${txHash})`;
     } catch (e) {
-      await releaseTx(txHash, id);
+      if (!payOff) await releaseTx(txHash, id);
       throw e;
     }
     return { ok: true as const, id };
