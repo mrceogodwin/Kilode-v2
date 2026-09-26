@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getPublicProfile, sendDm } from "@/lib/social-server";
 import { deleteOwnPost, reportPost } from "@/lib/forum-server";
+import { listUserTakes, type TakeRow } from "@/lib/takes-server";
 import { seoHead } from "@/lib/seo";
 import { ACCOUNT_KINDS, avatarUrl, fmtCount, handleColor, timeAgo, timeLabel } from "@/lib/qonvo-data";
 import { BrandLockup } from "@/components/brand-lockup";
@@ -38,6 +39,11 @@ function PublicProfile() {
   };
   const session = useCurrentUserState();
   const [gone, setGone] = useState<Record<string, boolean>>({});
+  const [takes, setTakes] = useState<TakeRow[]>([]);
+  useEffect(() => {
+    if (!profile?.handle) return;
+    void listUserTakes({ data: profile.handle }).then(setTakes).catch(() => setTakes([]));
+  }, [profile?.handle]);
   if (!profile) {
     return (
       <main className="grid min-h-svh place-items-center bg-bg p-6 text-fg">
@@ -102,6 +108,18 @@ function PublicProfile() {
         >
           Report account
         </button>
+        <section className="mt-5">
+          <h2 className="text-[11px] font-bold tracking-[0.14em] text-lime-2">TIMELINE</h2>
+          <div className="mt-2 space-y-2">
+            {takes.length === 0 ? <p className="text-sm text-muted">No posts from this user yet.</p> : null}
+            {takes.map((t) => (
+              <article key={t.id} className="rounded-xl border border-line bg-panel px-3 py-2">
+                <p className="whitespace-pre-wrap text-[13px] leading-snug">{t.body}</p>
+                <p className="mt-1 text-[11px] text-muted">{timeAgo(t.ts)} · {t.likes} likes · {t.reposts} reposts · {t.comments} replies</p>
+              </article>
+            ))}
+          </div>
+        </section>
         <section className="mt-5">
           <h2 className="text-[11px] font-bold tracking-[0.14em] text-lime-2">POSTS</h2>
           <div className="mt-2 grid grid-cols-2 gap-2">

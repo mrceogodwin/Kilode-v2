@@ -30,6 +30,7 @@ import {
 import type { useQonvo } from "@/lib/use-qonvo";
 import { canKind } from "@/lib/permissions";
 import { AvatarImg } from "@/components/account-kind";
+import { VerifiedMark } from "@/components/handle-link";
 import { AdSlot } from "@/components/ad-slot";
 import { DigestBox } from "@/components/get-app";
 import { SiteFooter } from "@/components/site-chrome";
@@ -468,6 +469,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   const [connects, setConnects] = useState<ConnectRow[]>([]);
   const [staffRole, setStaffRole] = useState<string | null>(null);
   const [photo, setPhoto] = useState("");
+  const [mePane, setMePane] = useState<null | "friends">(null);
   const { site } = usePublicSite();
 
   function loadConnects() {
@@ -679,7 +681,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           <div className="min-w-0 pb-1">
             <div className="flex items-center gap-1 truncate text-xl font-extrabold tracking-tight">
               @{store.handle}
-              {store.verified ? <span className="verified-mark" title="Kilode Verified">✓</span> : null}
+              {store.verified ? <VerifiedMark /> : null}
             </div>
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
               {staffLabel ? <span className="rounded-full bg-lime-2 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#102016]">{staffLabel}</span> : null}
@@ -724,26 +726,34 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         <section className="mb-3 rounded-2xl border border-lime-2/40 bg-panel p-3">
           <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">YOUR POWER</div>
           <p className="mt-1 text-[12px] leading-snug text-muted">{staffPowers}</p>
-          <a href="/ops" className="btn-join mt-2 inline-flex rounded-lg px-3 py-2 text-[11px] font-extrabold uppercase tracking-wide">
-            Open staff desk
+          <a href="/ops" className="btn-join mt-2 inline-flex rounded-lg px-3 py-2 text-[13px] font-bold">
+            Staff desk
           </a>
         </section>
       ) : null}
-      <div className="mb-3 grid grid-cols-4 gap-1.5">
+      <div className="mb-3 grid grid-cols-2 gap-2">
         {(
           [
-            ["FRIENDS", () => document.getElementById("me-friends")?.scrollIntoView({ behavior: "smooth", block: "start" })],
-            ["GROUPS", () => goto({ screen: "teams" })],
-            ["MARKETPLACE", () => goto({ screen: "market" })],
-            ["MESSAGE", () => goto({ screen: "inbox" })],
+            ["Friends", () => setMePane("friends")],
+            ["Groups", () => goto({ screen: "teams" })],
+            ["Marketplace", () => goto({ screen: "market" })],
+            ["Messages", () => goto({ screen: "inbox" })],
           ] as const
         ).map(([label, go]) => (
-          <button key={label} type="button" onClick={go} className="btn-join rounded-xl px-0.5 py-3 text-[8px] font-extrabold uppercase leading-tight tracking-wide sm:text-[10px]">
+          <button key={label} type="button" onClick={go} className="btn-join rounded-xl px-2 py-2.5 text-[13px] font-bold">
             {label}
           </button>
         ))}
       </div>
-      <FriendsBlock rows={connects} onChange={loadConnects} />
+      {mePane === "friends" ? (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-bg px-3 pt-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+          <button type="button" className="mb-3 text-[14px] font-semibold text-lime-2" onClick={() => setMePane(null)}>
+            ← Back to Me
+          </button>
+          <h2 className="mb-2 text-lg font-extrabold">Friends</h2>
+          <FriendsBlock rows={connects} onChange={loadConnects} />
+        </div>
+      ) : null}
 
       <div className="mb-5 grid grid-cols-4 gap-1.5">
         {stats.map((s) => (

@@ -1018,7 +1018,7 @@ function QonvoAppInner() {
 
       <InstallToast />
       {signedIn && store.onboarded === 0 ? <OnboardSheet kind={store.kind} onDone={store.finishOnboard} /> : null}
-      <nav className="dock pointer-events-auto absolute inset-x-0 bottom-0 z-40 grid grid-cols-8 px-1 pt-1.5 pb-[max(4px,env(safe-area-inset-bottom))] md:hidden">
+      <nav className="dock pointer-events-auto fixed inset-x-0 bottom-0 z-40 grid grid-cols-8 px-1 pt-1 pb-[env(safe-area-inset-bottom,0px)] md:hidden">
         <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
         <Tab icon={<MessageSquare className="size-3.5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
         <Tab icon={<Radio className="size-3.5" />} label="Music" on={screen === "home" && homeTab === "music"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("music"); }} />

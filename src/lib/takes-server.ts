@@ -34,6 +34,7 @@ export type FellowRow = {
   role: string;
   line: string;
   verified: number;
+  photo?: string;
 };
 
 const KINDS = new Set<TakeKind>(["take", "news", "quote", "ghost", "job", "music", "banter"]);
@@ -107,8 +108,13 @@ export const listTakes = createServerFn({ method: "GET" })
     const next = takes.length === 20 ? takes[takes.length - 1].ts : 0;
     let fellows: FellowRow[] = [];
     try {
-      const people = await sql<{ id: string; handle: string; role: string | null; line: string | null; verified: number | boolean | null }>`
-        select user_id as id, handle, kind as role, left(coalesce(bio, ''), 80) as line, verified
+      const people = await sql<{ id: string; handle: string; role: string | null; line: string | null; verified: number | boolean | null; photo: string | null }>`
+        select user_id as id, handle, kind as role, left(coalesce(bio, ''), 80) as line, verified,
+          case
+            when photo like 'https://%' then left(photo, 400)
+            when left(coalesce(photo, ''), 23) = 'data:image/jpeg;base64,' and length(photo) < 70000 then photo
+            else ''
+          end as photo
         from nf_profiles
         where handle is not null and length(trim(handle)) > 1
         order by ts desc nulls last
@@ -122,9 +128,46 @@ export const listTakes = createServerFn({ method: "GET" })
           role: p.role || "member",
           line: (p.line || "").trim(),
           verified: p.verified === true || Number(p.verified) === 1 ? 1 : 0,
+          photo: p.photo || "",
         }));
     } catch {
-      fellows = [];
+      try {
+        const people = await sql<{ id: string; handle: string; role: string | null; line: string | null; verified: number | boolean | null }>`
+          select user_id as id, handle, kind as role, left(coalesce(bio, ''), 80) as line, verified
+          from nf_profiles
+          where handle is not null and length(trim(handle)) > 1
+          order by ts desc nulls last
+          limit 24`;
+        fellows = people
+          .filter((p) => p.handle && p.handle !== "member")
+          .map((p) => ({
+            id: p.id,
+            handle: p.handle,
+            name: p.handle,
+            role: p.role || "member",
+            line: (p.line || "").trim(),
+            verified: p.verified === true || Number(p.verified) === 1 ? 1 : 0,
+            photo: "",
+          }));
+      } catch {
+        fellows = [];
+      }
+    }
+    let faces: Record<string, string> = {};
+    try {
+      const pics = await sql<{ h: string; photo: string }>`
+        select lower(handle) as h,
+          case
+            when photo like 'https://%' then left(photo, 400)
+            when left(coalesce(photo, ''), 23) = 'data:image/jpeg;base64,' and length(photo) < 70000 then photo
+            else ''
+          end as photo
+        from nf_profiles
+        where photo is not null and length(photo) > 12
+        limit 60`;
+      for (const p of pics) if (p.h && p.photo) faces[p.h] = p.photo;
+    } catch {
+      faces = {};
     }
     let live: string[] = [];
     try {
@@ -133,7 +176,65 @@ export const listTakes = createServerFn({ method: "GET" })
     } catch {
       live = [];
     }
-    return { takes, fellows, next, live };
+    return { takes, fellows, next, live, faces };
+  });
+
+export const listTrending = createServerFn({ method: "GET" })
+  .validator((d: { offset?: number; filter?: string } | undefined) => d ?? {})
+  .handler(async ({ data }) => {
+    const sql = await getSql();
+    const offset = Math.max(0, Math.min(180, Number(data?.offset || 0)));
+    const filter = data?.filter === "news" || data?.filter === "debate" ? data.filter : "hot";
+    const since = Date.now() - 48 * 3600_000;
+    try {
+      const rows =
+        filter === "news"
+          ? await sql`select t.*, (coalesce(t.likes,0)*2 + coalesce(t.reposts,0)*3 + coalesce(t.comments,0)*2 + coalesce(t.fact,0) + coalesce(t.cap,0) + coalesce(t.vote_a,0) + coalesce(t.vote_b,0)) as score
+              from nf_takes t where t.ts > ${since} and t.kind = ${"news"} and t.user_id <> ${"seed"} and t.id not like ${"seed-%"}
+              order by score desc, t.ts desc limit 15 offset ${offset}`
+          : filter === "debate"
+            ? await sql`select t.*, (coalesce(t.likes,0)*2 + coalesce(t.reposts,0)*3 + coalesce(t.comments,0)*2 + coalesce(t.fact,0) + coalesce(t.cap,0) + coalesce(t.vote_a,0) + coalesce(t.vote_b,0)) as score
+              from nf_takes t where t.ts > ${since} and (t.kind = ${"banter"} or coalesce(t.fact,0) + coalesce(t.cap,0) > 0) and t.user_id <> ${"seed"} and t.id not like ${"seed-%"}
+              order by score desc, t.ts desc limit 15 offset ${offset}`
+            : await sql`select t.*, (coalesce(t.likes,0)*2 + coalesce(t.reposts,0)*3 + coalesce(t.comments,0)*2 + coalesce(t.fact,0) + coalesce(t.cap,0) + coalesce(t.vote_a,0) + coalesce(t.vote_b,0)) as score
+              from nf_takes t where t.ts > ${since} and t.user_id <> ${"seed"} and t.id not like ${"seed-%"}
+              order by score desc, t.ts desc limit 15 offset ${offset}`;
+      const takes = (rows as Record<string, unknown>[]).map((r) => ({ ...mapTake(r), score: num(r.score) }));
+      const words = await sql<{ body: string }>`select body from nf_takes where ts > ${since} and user_id <> ${"seed"} order by ts desc limit 80`;
+      return { takes, next: takes.length === 15 ? offset + 15 : 0, topics: topicCounts(words.map((w) => w.body)) };
+    } catch {
+      return { takes: [] as (TakeRow & { score: number })[], next: 0, topics: [] as { word: string; n: number }[] };
+    }
+  });
+
+const TOPIC_STOP = new Set(["the", "and", "that", "this", "with", "from", "your", "have", "just", "what", "when", "they", "them", "been", "were", "will", "into", "about", "after", "before", "their", "there", "would", "could", "should", "kilode", "repost"]);
+
+function topicCounts(bodies: string[]) {
+  const bag = new Map<string, number>();
+  for (const body of bodies) {
+    for (const w of body.toLowerCase().split(/[^a-z0-9]+/)) {
+      if (w.length < 4 || TOPIC_STOP.has(w)) continue;
+      bag.set(w, (bag.get(w) || 0) + 1);
+    }
+  }
+  return [...bag.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([word, n]) => ({ word, n }));
+}
+
+export const listUserTakes = createServerFn({ method: "GET" })
+  .validator((handle: string) => handle)
+  .handler(async ({ data }) => {
+    const handle = String(data || "").trim().replace(/^@/, "").slice(0, 24).toLowerCase();
+    if (!handle) return [] as TakeRow[];
+    try {
+      const sql = await getSql();
+      const rows = await sql`select t.* from nf_takes t where lower(t.handle) = ${handle} and t.user_id <> ${"seed"} order by t.ts desc limit 20`;
+      return (rows as Record<string, unknown>[]).map(mapTake);
+    } catch {
+      return [] as TakeRow[];
+    }
   });
 
 function kindsForAccount(account: string): TakeKind[] {

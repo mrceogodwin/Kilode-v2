@@ -1,80 +1,120 @@
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { connectFellow, disconnectFellow, listConnects, applyTake, deleteOwnTake, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, disconnectFellow, listConnects, applyTake, deleteOwnTake, likeTake, listTakes, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { LinkText } from "@/components/link-text";
+import { VerifiedMark } from "@/components/handle-link";
 
-const STOP = new Set(["the", "and", "that", "this", "with", "from", "your", "have", "just", "what", "when", "they", "them", "been", "were", "will", "into", "about", "after", "before", "their", "there", "would", "could", "should", "kilode"]);
 
 function heatOf(t: TakeRow) {
   return t.likes * 3 + t.reposts * 4 + t.comments * 2 + t.fact + t.cap + t.voteA + t.voteB;
 }
 
-function TrendingDesk({ takes, fellows, live }: { takes: TakeRow[]; fellows: FellowRow[]; live: string[] }) {
-  const hot = [...takes].filter((t) => t.kind !== "ghost").sort((a, b) => heatOf(b) - heatOf(a)).slice(0, 6);
-  const bag = new Map<string, number>();
-  for (const t of takes) {
-    for (const w of t.body.toLowerCase().split(/[^a-z0-9]+/)) {
-      if (w.length < 4 || STOP.has(w)) continue;
-      bag.set(w, (bag.get(w) || 0) + 1);
-    }
-  }
-  const topics = [...bag.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  const people = new Map<string, { name: string; handle: string; heat: number; verified: number }>();
-  for (const t of takes) {
-    if (!t.handle || t.kind === "ghost") continue;
-    const cur = people.get(t.handle.toLowerCase()) || { name: t.name, handle: t.handle, heat: 0, verified: t.verified };
-    cur.heat += heatOf(t);
-    people.set(t.handle.toLowerCase(), cur);
-  }
-  const movers = [...people.values()].sort((a, b) => b.heat - a.heat).slice(0, 6);
-  const quiet = hot.every((t) => heatOf(t) === 0);
+function Face({ handle, photo, size = 28 }: { handle: string; photo?: string; size?: number }) {
+  const [src, setSrc] = useState(avatarUrl(handle, photo));
+  useEffect(() => setSrc(avatarUrl(handle, photo)), [handle, photo]);
   return (
-    <section className="mb-3 space-y-2 rounded-[14px] border border-lime-2/30 bg-panel p-2.5">
-      <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">TRENDING ON KILODE</div>
-      <p className="text-[11px] text-muted">{quiet ? "Quiet hour. These are the newest gists until reactions pick up." : "Ranked from likes, reposts, replies, and Fact or Cap on this load. No background scan."}</p>
-      <div>
-        <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-fg">Posts</div>
-        <div className="space-y-1">
-          {hot.length === 0 ? <p className="text-[11px] text-muted">No gists yet.</p> : null}
-          {hot.map((t) => (
-            <div key={t.id} className="rounded-[10px] border border-line px-2 py-1.5">
-              <div className="flex items-center gap-1 text-[11px] font-semibold">
-                <span className="truncate">@{t.handle}</span>
-                {live.includes(t.handle.toLowerCase()) ? <span className="live-dot" /> : null}
-                {heatOf(t) >= 4 ? <span className="trend-chip">⚡ {heatOf(t)}</span> : null}
-              </div>
-              <p className="line-clamp-2 text-[12px] leading-snug">{t.body}</p>
-            </div>
-          ))}
-        </div>
+    <img
+      src={src}
+      alt=""
+      width={size}
+      height={size}
+      className="shrink-0 rounded-full bg-panel-3 object-cover"
+      style={{ width: size, height: size }}
+      onError={() => setSrc(avatarUrl(handle))}
+    />
+  );
+}
+
+function TrendPage({ onClose, faces, live }: { onClose: () => void; faces: Record<string, string>; live: string[] }) {
+  const [filter, setFilter] = useState<"hot" | "debate" | "news" | "topics">("hot");
+  const [rows, setRows] = useState<(TakeRow & { score?: number })[]>([]);
+  const [topics, setTopics] = useState<{ word: string; n: number }[]>([]);
+  const [next, setNext] = useState(0);
+  const [busy, setBusy] = useState(false);
+  function load(offset: number, f: typeof filter, append: boolean) {
+    setBusy(true);
+    void listTrending({ data: { offset, filter: f === "topics" ? "hot" : f } })
+      .then((r) => {
+        setRows((cur) => (append ? [...cur, ...r.takes.filter((t) => !cur.some((c) => c.id === t.id))] : r.takes));
+        setTopics(r.topics);
+        setNext(r.next);
+      })
+      .catch(() => {
+        if (!append) setRows([]);
+      })
+      .finally(() => setBusy(false));
+  }
+  useEffect(() => {
+    load(0, filter, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
+  const chips = [
+    ["hot", "Hot takes"],
+    ["debate", "Fact or Cap"],
+    ["news", "News"],
+    ["topics", "Topics"],
+  ] as const;
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-bg px-3 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]">
+      <button type="button" className="mb-2 text-[14px] font-semibold text-lime-2" onClick={onClose}>
+        ← Back
+      </button>
+      <h2 className="text-lg font-extrabold">Trending</h2>
+      <p className="mt-0.5 text-[12px] text-muted">Last 48 hours. Likes, reposts, replies, and Fact or Cap. Not a shop.</p>
+      <div className="mt-3 flex gap-1.5 overflow-x-auto pb-2">
+        {chips.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={`shrink-0 rounded-full border px-3 py-1 text-[12px] font-semibold ${filter === id ? "border-lime-2 bg-lime-2/15 text-lime-2" : "border-line text-fg"}`}
+            onClick={() => setFilter(id)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-      <div>
-        <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-fg">Topics</div>
-        <div className="flex flex-wrap gap-1">
-          {topics.length === 0 ? <p className="text-[11px] text-muted">Topics show once people post.</p> : null}
-          {topics.map(([w, n]) => (
-            <span key={w} className="rounded-full border border-line px-2 py-0.5 text-[11px]">
-              {w} · {n}
+      {filter === "topics" ? (
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {topics.length === 0 ? <p className="text-[12px] text-muted">No topics in this window yet.</p> : null}
+          {topics.map((t) => (
+            <span key={t.word} className="rounded-full border border-line px-2.5 py-1 text-[12px]">
+              {t.word} · {t.n}
             </span>
           ))}
         </div>
+      ) : null}
+      <div className="space-y-2">
+        {rows.length === 0 && !busy ? <p className="py-6 text-center text-[13px] text-muted">Nothing is moving in this filter yet.</p> : null}
+        {rows.map((t) => (
+          <article key={t.id} className="rounded-[12px] border border-line bg-panel px-2.5 py-2">
+            <div className="flex items-center gap-1.5">
+              <Face handle={t.handle} photo={faces[t.handle.toLowerCase()]} size={28} />
+              <a href={`/u/${encodeURIComponent(t.handle)}`} className="min-w-0 flex-1">
+                <div className="flex items-center gap-1 text-[13px] font-semibold">
+                  <span className="truncate">{t.name || t.handle}</span>
+                  {live.includes(t.handle.toLowerCase()) ? <span className="live-dot" /> : null}
+                  {t.verified ? <VerifiedMark /> : null}
+                </div>
+                <div className="text-[11px] text-muted">@{t.handle} · {timeAgo(t.ts)}</div>
+              </a>
+              <span className="trend-chip">{t.score || heatOf(t)}</span>
+            </div>
+            <p className="mt-1.5 whitespace-pre-wrap text-[13px] leading-snug"><LinkText text={t.body} /></p>
+            {t.fact + t.cap > 0 ? (
+              <div className="mt-1 text-[11px] text-muted">Fact {pct(t.fact, t.cap)}% · Cap {100 - pct(t.fact, t.cap)}%</div>
+            ) : null}
+            <div className="mt-1 text-[11px] text-muted">{t.comments} replies · {t.reposts} reposts · {t.likes} likes</div>
+          </article>
+        ))}
       </div>
-      <div>
-        <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-fg">People</div>
-        <div className="space-y-1">
-          {(movers.length ? movers : fellows.slice(0, 4).map((f) => ({ name: f.name, handle: f.handle, heat: 0, verified: f.verified }))).map((p) => (
-            <a key={p.handle} href={`/u/${encodeURIComponent(p.handle)}`} className="flex items-center gap-2 rounded-[10px] border border-line px-2 py-1.5">
-              <img src={avatarUrl(p.handle)} alt="" className="size-6 rounded-full" />
-              <span className="min-w-0 flex-1 truncate text-[12px] font-semibold">@{p.handle}</span>
-              {live.includes(p.handle.toLowerCase()) ? <span className="live-dot" /> : null}
-              {p.verified ? <span className="verified-mark shrink-0">✓</span> : null}
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>
+      {next > 0 ? (
+        <button type="button" disabled={busy} className="btn-join mt-3 mb-6 w-full rounded-xl py-2.5 text-[13px] font-bold disabled:opacity-50" onClick={() => load(next, filter, true)}>
+          {busy ? "Loading" : "Load more"}
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -191,6 +231,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
   const [q, setQ] = useState("");
   const [people, setPeople] = useState<{ handle: string; name: string; role: string; line: string; verified: number }[]>([]);
   const [live, setLive] = useState<string[]>([]);
+  const [faces, setFaces] = useState<Record<string, string>>({});
   const [trendOpen, setTrendOpen] = useState(false);
   const [reportId, setReportId] = useState("");
   const [menuTake, setMenuTake] = useState<TakeRow | null>(null);
@@ -220,6 +261,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
         setFellows(r.fellows);
         setNext(r.next);
         setLive(Array.isArray(r.live) ? r.live : []);
+        setFaces(r.faces && typeof r.faces === "object" ? r.faces : {});
         writeCache(r.takes, r.fellows);
       })
       .catch(() => {
@@ -370,48 +412,48 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
           ))}
         </div>
       ) : null}
-      <div className="mb-2 flex items-center justify-between">
-        <div className="text-[11px] font-semibold tracking-[0.04em] text-fg">Connect with Fellows</div>
-        <div className="flex items-center gap-1">
+      <div className="mb-2">
+        <div className="mb-1.5 text-[12px] font-semibold text-fg">Connect with Fellows</div>
+        <div className="flex gap-1.5">
           <button
             type="button"
-            className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${trendOpen ? "border-lime-2 bg-lime-2 text-[#102016]" : "border-lime-2/50 bg-lime-2/10 text-lime-2"}`}
-            onClick={() => setTrendOpen((v) => !v)}
+            className="rounded-full border border-lime-2/40 bg-panel px-2.5 py-1 text-[12px] font-semibold text-lime-2"
+            onClick={() => setTrendOpen(true)}
           >
-            ⚡ Trending
+            Trending
           </button>
           <button
             type="button"
-            className="rounded-full border border-lime-2/40 bg-panel px-2.5 py-1 text-[10px] font-bold text-lime-2"
+            className="rounded-full border border-lime-2/40 bg-panel px-2.5 py-1 text-[12px] font-semibold text-lime-2"
             onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))}
           >
             Marketplace
           </button>
           <button
             type="button"
-            className="rounded-full border border-lime-2/40 bg-panel px-2.5 py-1 text-[10px] font-bold text-lime-2"
+            className="rounded-full border border-lime-2/40 bg-panel px-2.5 py-1 text-[12px] font-semibold text-lime-2"
             onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "teams" } }))}
           >
             Groups
           </button>
         </div>
       </div>
-      {trendOpen ? <TrendingDesk takes={shownTakes} fellows={pool} live={live} /> : null}
+      {trendOpen ? <TrendPage onClose={() => setTrendOpen(false)} faces={faces} live={live} /> : null}
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1">
         {shownFellows.length === 0 ? <p className="px-1 text-[11px] text-muted">Real members show here after they join.</p> : null}
         {shownFellows.map((f) => (
-          <div key={f.id} className="w-[158px] shrink-0 rounded-[12px] border border-line bg-panel px-2.5 py-2">
-            <div className="flex items-center gap-1.5">
-              <img src={avatarUrl(f.handle)} alt="" className="size-7 shrink-0 rounded-full bg-panel-3 object-cover" />
+          <div key={f.id} className="w-[168px] shrink-0 rounded-[12px] border border-line bg-panel px-2.5 py-2">
+            <a href={`/u/${encodeURIComponent(f.handle)}`} className="flex items-center gap-1.5">
+              <Face handle={f.handle} photo={f.photo || faces[f.handle.toLowerCase()]} size={28} />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1 text-[11px] font-semibold">
+                <div className="flex items-center gap-1 text-[12px] font-semibold">
                   <span className="truncate">{f.name}</span>
                   {live.includes(f.handle.toLowerCase()) ? <span className="live-dot" title="Active" /> : null}
-                  {f.verified ? <span className="verified-mark shrink-0">✓</span> : null}
+                  {f.verified ? <VerifiedMark /> : null}
                 </div>
-                <div className="truncate text-[9px] text-muted">{f.role}</div>
+                <div className="truncate text-[10px] text-muted">{f.role}</div>
               </div>
-            </div>
+            </a>
             <div className="mt-1 line-clamp-2 text-[10px] leading-snug text-muted">{f.line}</div>
             <div className="mt-1.5 flex gap-1">
               <button
@@ -582,6 +624,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
           <TakeCard
             key={t.id}
             take={t}
+            photo={faces[(t.handle || "").toLowerCase()]}
             hot={heatOf(t) >= 4}
             live={live.includes((t.handle || "").toLowerCase())}
             revealed={!!revealed[t.id]}
@@ -779,6 +822,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
 
 function TakeCard({
   take,
+  photo,
   hot,
   live,
   revealed,
@@ -797,6 +841,7 @@ function TakeCard({
   onReplySend,
 }: {
   take: TakeRow;
+  photo?: string;
   hot?: boolean;
   live?: boolean;
   revealed: boolean;
@@ -823,7 +868,7 @@ function TakeCard({
   return (
     <article className={`rounded-[12px] border px-2.5 py-2 ${ghost ? "border-white/10 bg-panel" : "border-line bg-panel"}`}>
       <div className="flex items-start gap-2">
-        <img src={avatarUrl(ghost ? "ghost" : take.handle)} alt="" className="size-7 rounded-full bg-panel-3 object-cover" />
+        <Face handle={ghost ? "ghost" : take.handle} photo={ghost ? "" : photo} size={28} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
             <span className="truncate text-[12px] font-semibold">
@@ -836,7 +881,7 @@ function TakeCard({
               )}
             </span>
             {!ghost && live ? <span className="live-dot" title="Active" /> : null}
-            {!ghost && take.verified ? <span className="verified-mark shrink-0">✓</span> : null}
+            {!ghost && take.verified ? <VerifiedMark /> : null}
             {!ghost ? <span className="truncate text-[10px] text-muted">@{take.handle}</span> : null}
             <span className="shrink-0 text-[10px] text-muted">· {timeAgo(take.ts)}</span>
             <button type="button" aria-label="Report gist" className="ml-auto shrink-0 px-1 text-[12px] font-bold tracking-widest text-muted" onClick={onReport}>
