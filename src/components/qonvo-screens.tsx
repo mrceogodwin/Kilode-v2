@@ -1284,8 +1284,67 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
         </select>
       </label>
       <label className="block">
-        <span className="mb-1 block text-[11px] font-medium text-muted">Photo link (optional, https only)</span>
-        <input value={photo} onChange={(e) => setPhoto(e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+        <span className="mb-1 block text-[11px] font-medium text-muted">Profile photo</span>
+        <input
+          type="file"
+          accept="image/*"
+          className="w-full text-base"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (!file) return;
+            if (!file.type.startsWith("image/")) {
+              setMsg("Pick a photo.");
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+              const src = String(reader.result || "");
+              const img = new Image();
+              img.onload = () => {
+                const max = 256;
+                const scale = Math.min(1, max / Math.max(img.width, img.height));
+                const w = Math.max(1, Math.round(img.width * scale));
+                const h = Math.max(1, Math.round(img.height * scale));
+                const canvas = document.createElement("canvas");
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) return;
+                ctx.drawImage(img, 0, 0, w, h);
+                let q = 0.72;
+                let out = canvas.toDataURL("image/jpeg", q);
+                while (out.length > 90_000 && q > 0.4) {
+                  q -= 0.08;
+                  out = canvas.toDataURL("image/jpeg", q);
+                }
+                if (out.length > 120_000) {
+                  setMsg("That photo is still too heavy. Try a smaller one.");
+                  return;
+                }
+                setPhoto(out);
+                setMsg("Photo ready. Tap Save profile.");
+              };
+              img.onerror = () => setMsg("Could not read that photo.");
+              img.src = src;
+            };
+            reader.readAsDataURL(file);
+          }}
+        />
+        {photo ? (
+          <div className="mt-2 flex items-center gap-2">
+            <img src={photo} alt="" className="size-14 rounded-full object-cover" />
+            <button type="button" className="text-[11px] text-muted" onClick={() => setPhoto("")}>
+              Remove photo
+            </button>
+          </div>
+        ) : (
+          <p className="mt-1 text-[10px] text-muted">From your phone. Saved small on your profile. Super admin can pause public photos.</p>
+        )}
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-[11px] font-medium text-muted">Or paste an https photo link</span>
+        <input value={photo.startsWith("data:") ? "" : photo} onChange={(e) => setPhoto(e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       </label>
       <textarea value={bio} onChange={(e) => { dirty.current = true; setBio(e.target.value); }} maxLength={280} rows={3} placeholder="Bio" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       <p className="text-[10px] text-muted">{bio.length}/280</p>
@@ -2328,9 +2387,9 @@ function Admin({ store }: { store: Store }) {
               if (!grantId.trim()) return;
               void setStaffRole({ data: { userId: grantId.trim(), role: grantRole, handle: grantId.trim() } }).then((r) => {
                 if (r && "ok" in r && r.ok === false) setMsg(r.reason);
-                else setMsg("");
+                else setMsg(`${("handle" in r && r.handle) || grantId.trim()} is now ${grantRole === "admin" ? "Admin" : "Sub-admin"}. They reopen Me to see the staff desk.`);
                 void listStaff().then(setStaff);
-              });
+              }).catch(() => setMsg("Could not grant. Try the exact @handle."));
             }}
           >
             Grant access

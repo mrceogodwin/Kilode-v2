@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { connectFellow, disconnectFellow, listConnects, applyTake, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, disconnectFellow, listConnects, applyTake, deleteOwnTake, likeTake, listTakes, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { LinkText } from "@/components/link-text";
 
@@ -118,6 +118,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
   const [q, setQ] = useState("");
   const [people, setPeople] = useState<{ handle: string; name: string; role: string; line: string; verified: number }[]>([]);
   const [reportId, setReportId] = useState("");
+  const [menuTake, setMenuTake] = useState<TakeRow | null>(null);
   const [reportNote, setReportNote] = useState("");
 
   function goLogin() {
@@ -518,7 +519,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
             onVote={(side) => void vote(t.id, side)}
             onReport={() => {
               setReportNote("");
-              setReportId(t.id);
+              setMenuTake(t);
             }}
             onLike={() => {
               if (!authed) return goLogin();
@@ -594,6 +595,55 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
         >
           Load more
         </button>
+      ) : null}
+      {menuTake ? (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setMenuTake(null)}>
+          <div
+            className="w-full rounded-t-2xl px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]"
+            style={{ background: "var(--report-bg)", color: "var(--report-fg)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full" style={{ background: "var(--report-line)" }} />
+            <div className="text-[18px] font-bold" style={{ color: "var(--report-fg)" }}>Gist</div>
+            {me && menuTake.handle.toLowerCase() === me.toLowerCase() ? (
+              <button
+                type="button"
+                className="block w-full border-b py-3 text-left text-[16px] font-semibold text-danger"
+                style={{ borderColor: "var(--report-line)" }}
+                onClick={() => {
+                  const row = menuTake;
+                  setMenuTake(null);
+                  if (!authed) return goLogin();
+                  void deleteOwnTake({ data: { id: row.id } })
+                    .then((r) => {
+                      if (!r.ok) setErr(r.reason);
+                      else setTakes((list) => list.filter((x) => x.id !== row.id));
+                    })
+                    .catch((e) => {
+                      if (needLogin(e)) goLogin();
+                      else setErr("Could not delete.");
+                    });
+                }}
+              >
+                Delete
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="block w-full border-b py-3 text-left text-[16px]"
+              style={{ color: "var(--report-fg)", borderColor: "var(--report-line)" }}
+              onClick={() => {
+                setReportId(menuTake.id);
+                setMenuTake(null);
+              }}
+            >
+              Report
+            </button>
+            <button type="button" className="mt-1 w-full py-3 text-center text-[16px]" style={{ color: "var(--report-muted)" }} onClick={() => setMenuTake(null)}>
+              Cancel
+            </button>
+          </div>
+        </div>
       ) : null}
       {reportId ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setReportId("")}>

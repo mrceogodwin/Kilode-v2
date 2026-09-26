@@ -173,7 +173,8 @@ export const getPublicProfile = createServerFn({ method: "GET" })
       if (on) {
         const pic = await sql<{ photo: string | null }>`select photo from nf_profiles where user_id = ${profile.user_id} limit 1`;
         const url = String(pic[0]?.photo || "");
-        if (/^https:\/\//i.test(url)) photo = url.slice(0, 200);
+        if (/^https:\/\//i.test(url)) photo = url.slice(0, 500);
+        else if (url.startsWith("data:image/jpeg;base64,") && url.length <= 120_000) photo = url;
       }
     } catch {
       photo = "";

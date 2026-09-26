@@ -67,6 +67,20 @@ export const listStaff = createServerFn({ method: "GET" })
     }
   });
 
+async function resolveAccount(sql: Awaited<ReturnType<typeof getSql>>, raw: string) {
+  const key = raw.trim().replace(/^@/, "");
+  if (!key) return null;
+  const named = await sql<{ id: string; name: string }>`select id, name from "user" where lower(name) = ${key.toLowerCase()} or id = ${key} limit 1`;
+  if (named[0]) return named[0];
+  try {
+    const prof = await sql<{ user_id: string; handle: string }>`select user_id, handle from nf_profiles where lower(handle) = ${key.toLowerCase()} limit 1`;
+    if (prof[0]) return { id: prof[0].user_id, name: prof[0].handle };
+  } catch {
+    /* profile table optional during first boot */
+  }
+  return null;
+}
+
 export const setStaffRole = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { userId: string; role: GrantRole; handle?: string }) => d)
@@ -74,15 +88,18 @@ export const setStaffRole = createServerFn({ method: "POST" })
     const me = await staffOf(context.userId);
     if (me?.role !== "super") throw new Error("Forbidden");
     const sql = await getSql();
-    let uid = data.userId.trim();
-    const handleIn = (data.handle ?? uid).slice(0, 24);
-    const named = await sql<{ id: string; name: string }>`select id, name from "user" where lower(name) = ${uid.toLowerCase()} or id = ${uid} limit 1`;
-    if (named[0]) uid = named[0].id;
+    const typed = data.userId.trim().replace(/^@/, "");
+    const who = await resolveAccount(sql, typed);
+    if (!who) return { ok: false as const, reason: "No account with that username. Type their exact @handle." };
+    const uid = who.id;
     if (uid === context.userId) return { ok: false as const, reason: "You already own this console." };
     const existing = await staffOf(uid);
     if (existing?.role === "super" || existing?.locked) return { ok: false as const, reason: "Cannot change the owner." };
     const role: GrantRole = data.role === "admin" ? "admin" : "mod";
-    const handle = named[0]?.name ?? existing?.handle ?? handleIn;
+    const handle = (who.name || existing?.handle || typed).slice(0, 24);
+    if (typed && typed !== uid) {
+      await sql`delete from nf_staff where user_id = ${typed}`.catch(() => undefined);
+    }
     if (existing) {
       await sql`update nf_staff set role = ${role}, handle = ${handle} where user_id = ${uid}`;
     } else {
@@ -92,7 +109,7 @@ export const setStaffRole = createServerFn({ method: "POST" })
         await sql`insert into nf_staff (user_id, role, handle, ts) values (${uid}, ${role}, ${handle}, ${Date.now()})`;
       }
     }
-    return { ok: true as const };
+    return { ok: true as const, handle, role };
   });
 
 export const removeStaff = createServerFn({ method: "POST" })
@@ -102,11 +119,17 @@ export const removeStaff = createServerFn({ method: "POST" })
     const me = await staffOf(context.userId);
     if (me?.role !== "super") throw new Error("Forbidden");
     const sql = await getSql();
-    let uid = raw.trim();
-    const named = await sql<{ id: string }>`select id from "user" where lower(name) = ${uid.toLowerCase()} or id = ${uid} limit 1`;
-    if (named[0]) uid = named[0].id;
+    const typed = raw.trim();
+    let existing = await staffOf(typed);
+    let uid = existing?.user_id || typed;
+    if (!existing) {
+      const who = await resolveAccount(sql, typed);
+      if (who) {
+        uid = who.id;
+        existing = await staffOf(uid);
+      }
+    }
     if (uid === context.userId) return { ok: false as const, reason: "You cannot remove yourself." };
-    const existing = await staffOf(uid);
     if (!existing) return { ok: false as const, reason: "Not staff." };
     if (existing.role === "super" || existing.locked) return { ok: false as const, reason: "Cannot remove the owner." };
     await sql`delete from nf_staff where user_id = ${uid}`;

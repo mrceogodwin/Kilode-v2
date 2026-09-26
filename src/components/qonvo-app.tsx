@@ -54,6 +54,7 @@ import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTION
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen } from "@/components/qonvo-screens";
 import { EventsPane } from "@/components/events-pane";
+import { CinemaPane } from "@/components/cinema-pane";
 import { ChatTermsBar, ForumClock, ForumWhy } from "@/components/forum-why";
 import { PremiumSquareAd, PremiumStoryAd, MenuPremiumAd, PortraitAd } from "@/components/premium-ad";
 import { AdvertPane } from "@/components/advert-pane";
@@ -224,7 +225,7 @@ function QonvoAppInner() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [screen, setScreen] = useState<MenuId>("home");
   const [roomsOpen, setRoomsOpen] = useState(false);
-  const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "downloads" | "socials">("feeds");
+  const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials">("feeds");
   const [marketDesk, setMarketDesk] = useState<MarketDesk | null>(null);
   const [feedQ, setFeedQ] = useState("");
   const [feedSearchOn, setFeedSearchOn] = useState(false);
@@ -354,7 +355,7 @@ function QonvoAppInner() {
     const goto = (e: Event) => {
       const d = (e as CustomEvent<{ screen?: string; tab?: string }>).detail || {};
       if (d.tab) {
-        const tab = d.tab as "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "downloads" | "socials";
+        const tab = d.tab as "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials";
         setHomeTab(tab === "videos" && site.videosMenuVisible === false ? "feeds" : tab);
       }
       if (d.screen === "home" || d.tab) setScreen("home");
@@ -400,6 +401,26 @@ function QonvoAppInner() {
   useEffect(() => {
     if (screen === "leaderboard") store.loadScores();
   }, [screen, store.loadScores]);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const root = document.documentElement;
+    const sync = () => {
+      const h = vv?.height ?? window.innerHeight;
+      const top = vv?.offsetTop ?? 0;
+      root.style.setProperty("--vvh", `${Math.round(h)}px`);
+      root.style.setProperty("--vv-top", `${Math.round(top)}px`);
+    };
+    sync();
+    vv?.addEventListener("resize", sync);
+    vv?.addEventListener("scroll", sync);
+    window.addEventListener("orientationchange", sync);
+    return () => {
+      vv?.removeEventListener("resize", sync);
+      vv?.removeEventListener("scroll", sync);
+      window.removeEventListener("orientationchange", sync);
+    };
+  }, []);
 
   useEffect(() => {
     if (!videosMenuVisible && homeTab === "videos") setHomeTab("feeds");
@@ -458,7 +479,7 @@ function QonvoAppInner() {
   }
 
   return (
-    <div className="kilode-shell relative flex h-full min-h-dvh flex-col bg-bg text-fg md:h-dvh md:max-h-dvh md:overflow-hidden">
+    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg">
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule">
           <div className="flex min-h-12 min-w-0 items-center gap-1 px-2.5 py-2 sm:min-h-[3.25rem] sm:gap-3 sm:px-3.5 sm:py-2.5">
@@ -670,6 +691,8 @@ function QonvoAppInner() {
                 <MusicPane store={store} onAdd={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))} />
               ) : homeTab === "cinema" ? (
                 <EventsPane />
+              ) : homeTab === "watch" ? (
+                <CinemaPane />
               ) : homeTab === "videos" ? (
                 <VideoPane />
               ) : homeTab === "advert" ? (
@@ -1013,7 +1036,7 @@ function QonvoAppInner() {
       )}
 
       <InstallToast />
-      <nav className="dock pointer-events-auto absolute inset-x-0 bottom-0 z-40 grid grid-cols-8 px-1 pt-3 pb-[max(2px,env(safe-area-inset-bottom))] md:hidden">
+      <nav className="dock pointer-events-auto absolute inset-x-0 bottom-0 z-40 grid grid-cols-8 px-1 pt-1.5 pb-[max(4px,env(safe-area-inset-bottom))] md:hidden">
         <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
         <Tab icon={<MessageSquare className="size-3.5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
         <Tab icon={<Radio className="size-3.5" />} label="Music" on={screen === "home" && homeTab === "music"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("music"); }} />
@@ -1025,15 +1048,15 @@ function QonvoAppInner() {
       </nav>
 
       {roomsOpen ? (
-        <div className="fixed inset-0 z-30 flex md:hidden">
-          <aside className="h-full w-[min(300px,88vw)] overflow-y-auto bg-panel">
-            <div className="flex items-center justify-between border-b border-line p-3">
+        <div className="fixed inset-0 z-[60] flex">
+          <aside className="flex h-full max-h-[100dvh] min-h-0 w-[min(300px,88vw)] flex-col overflow-hidden bg-panel">
+            <div className="flex shrink-0 items-center justify-between border-b border-line p-3">
               <strong>Rooms</strong>
               <button type="button" onClick={() => setRoomsOpen(false)}>
                 <X className="size-4" />
               </button>
             </div>
-            <div className="flex gap-2 overflow-x-auto p-2">
+            <div className="flex shrink-0 gap-2 overflow-x-auto p-2">
               {REGIONS.map((r) => (
                 <button
                   key={r}
@@ -1045,9 +1068,11 @@ function QonvoAppInner() {
                 </button>
               ))}
             </div>
-            <RoomList query={query} setQuery={setQuery} listed={listed} roomId={store.roomId} onOpen={goHome} />
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
+              <RoomList query={query} setQuery={setQuery} listed={listed} roomId={store.roomId} onOpen={goHome} />
+            </div>
           </aside>
-          <button type="button" className="flex-1 bg-black/60" aria-label="Close rooms" onClick={() => setRoomsOpen(false)} />
+          <button type="button" className="min-h-0 flex-1 bg-black/60" aria-label="Close rooms" onClick={() => setRoomsOpen(false)} />
         </div>
       ) : null}
 
@@ -1173,6 +1198,7 @@ function QonvoAppInner() {
                 <DrawerRow icon={Radio} label="Music" hint="Artist links. We embed." onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
                 <DrawerRow icon={Globe} label="Socials" hint="Takes, fellows, gists" onClick={() => { setScreen("home"); setHomeTab("socials"); setMarketDesk(null); setMenuOpen(false); }} on={homeTab === "socials" && screen === "home"} />
                 <DrawerRow icon={Film} label="Events" hint="What's on, RSVP" onClick={() => { setScreen("home"); setHomeTab("cinema"); setMenuOpen(false); }} on={homeTab === "cinema" && screen === "home"} />
+                <DrawerRow icon={Play} label="Cinema" hint="Watch and vote. Not on the bottom bar." onClick={() => { setScreen("home"); setHomeTab("watch"); setMenuOpen(false); }} on={homeTab === "watch" && screen === "home"} />
                 <DrawerRow icon={Tv} label="Kilode TV" hint="Socials · follow in one place" onClick={() => { setScreen("tv"); setMenuOpen(false); }} on={screen === "tv"} />
                 {videosMenuVisible ? (
                   <DrawerRow icon={Play} label="Videos" hint="Clips on Kilode" onClick={() => { setScreen("home"); setHomeTab("videos"); setMenuOpen(false); }} on={homeTab === "videos" && screen === "home"} />
@@ -2000,8 +2026,8 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
     if (kind === "native" && navigator.share) void navigator.share({ title: post.title, text: shareText, url });
   }
   return (
-    <article className="min-h-0 flex-1 overflow-y-auto dock-pad">
-      <div className="mx-auto max-w-3xl px-4 py-4">
+    <article className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto dock-pad">
+      <div className="mx-auto min-w-0 max-w-3xl overflow-x-hidden break-words px-4 py-4 [overflow-wrap:anywhere]">
         <button type="button" className="text-[11px] text-muted" onClick={() => store.setOpenPost(null)}>
           ← Feeds
         </button>
@@ -2339,7 +2365,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
-              {p.image ? <img src={p.image} alt="" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
+              {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
               <div className="px-1 py-1 sm:px-1.5">
                 <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
                 <div className="mt-0.5 line-clamp-4 text-[10px] font-normal leading-tight text-fg sm:text-[11px] md:text-[12px]">{p.title}</div>

@@ -786,11 +786,20 @@ html[data-skin="ivory"] .brand-mark {
     linear-gradient(180deg, rgba(107, 158, 120, 0.16), transparent 55%),
     var(--color-panel, #141414);
 }
+.kilode-shell {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: var(--vv-top, 0px);
+  height: var(--vvh, 100dvh);
+  max-height: var(--vvh, 100dvh);
+  overflow: hidden;
+}
 .dock {
-  background: linear-gradient(180deg, rgba(10, 10, 10, 0) 0%, rgba(10, 10, 10, 0.72) 42%, rgba(10, 10, 10, 0.94) 100%);
+  background: linear-gradient(180deg, rgba(10, 10, 10, 0.92) 0%, rgba(10, 10, 10, 0.98) 100%);
 }
 html[data-skin="ivory"] .dock {
-  background: linear-gradient(180deg, rgba(230, 235, 230, 0) 0%, rgba(230, 235, 230, 0.7) 42%, rgba(232, 236, 232, 0.94) 100%);
+  background: #e7eee8;
 }
 .dock-pad {
   padding-bottom: calc(5.4rem + env(safe-area-inset-bottom));

@@ -506,6 +506,19 @@ export const reportTake = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const deleteOwnTake = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    const id = (data.id || "").trim().slice(0, 40);
+    if (!id) return { ok: false as const, reason: "Missing gist." };
+    if (!(await allowWrite(`deltake:${context.userId}`, 8))) return { ok: false as const, reason: "Slow down." };
+    const sql = await getSql();
+    const gone = await sql<{ id: string }>`delete from nf_takes where id = ${id} and user_id = ${context.userId} returning id`;
+    if (!gone[0]) return { ok: false as const, reason: "You can only delete your own gist." };
+    return { ok: true as const };
+  });
+
 export const searchPeople = createServerFn({ method: "GET" })
   .validator((d: { q?: string }) => ({ q: (d?.q || "").slice(0, 24) }))
   .handler(async ({ data }) => {

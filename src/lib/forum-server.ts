@@ -1147,8 +1147,13 @@ export const saveProfile = createServerFn({ method: "POST" })
         return { ok: false as const, reason: "That username may be taken, or the save failed. Try again." };
       }
     }
-    const gender = ["", "woman", "man", "skip"].includes(data.gender || "") ? data.gender || "" : "";
-    const photo = /^https:\/\/\S{8,200}$/i.test(data.photo || "") ? String(data.photo).slice(0, 200) : "";
+    const gender = ["", "woman", "man"].includes(data.gender || "") ? data.gender || "" : "";
+    const rawPhoto = (data.photo || "").trim();
+    const photo = /^https:\/\/\S{8,500}$/i.test(rawPhoto)
+      ? rawPhoto.slice(0, 500)
+      : /^data:image\/jpeg;base64,[a-z0-9+/=\s]+$/i.test(rawPhoto) && rawPhoto.length <= 120_000
+        ? rawPhoto
+        : "";
     try {
       await sql`alter table nf_profiles add column if not exists gender text not null default ''`;
       await sql`alter table nf_profiles add column if not exists photo text not null default ''`;

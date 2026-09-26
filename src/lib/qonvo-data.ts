@@ -103,7 +103,7 @@ export const KIND_FACE: Record<AccountKind, string> = {
 };
 
 export function avatarUrl(handle: string, face?: string | null) {
-  if (face && /^https?:\/\//.test(face)) return face;
+  if (face && (face.startsWith("data:image/") || /^https?:\/\//.test(face))) return face;
   const seed = face && face.startsWith("av:") ? face.slice(3) : handle || "Kilode";
   return `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}&backgroundColor=111827,14532d,1f2937`;
 }

@@ -36,6 +36,9 @@ import { SiteFooter } from "@/components/site-chrome";
 import { listMyCinema, type CinemaMovie } from "@/lib/cinema-server";
 import { deleteListing, listListings, listMyApps, listMyApplicants, listMyListings, updateListing, type Listing, type MyApp, type MyApplicant } from "@/lib/listings-server";
 import { disconnectFellow, listConnects, replyConnect, type ConnectRow } from "@/lib/takes-server";
+import { getProfile } from "@/lib/forum-server";
+import { staffMe } from "@/lib/staff-server";
+import { usePublicSite } from "@/components/site-chrome";
 
 type Store = ReturnType<typeof useQonvo>;
 
@@ -100,9 +103,9 @@ function FriendsBlock({ rows, onChange }: { rows: ConnectRow[]; onChange: () => 
   const friends = rows.filter((r) => r.dir === "friend");
   const sent = rows.filter((r) => r.dir === "out");
   return (
-    <section className="mb-4 rounded-2xl border border-line bg-panel p-3">
-      <h3 className="text-[13px] font-extrabold">Connected</h3>
-      <p className="mt-0.5 text-[11px] text-muted">People who accepted. Open Me to accept a new ask.</p>
+    <section id="me-friends" className="mb-4 rounded-2xl border border-line bg-panel p-3">
+      <h3 className="text-[13px] font-extrabold">Friends</h3>
+      <p className="mt-0.5 text-[11px] text-muted">Accepted people. Incoming asks sit here too.</p>
       {incoming.length === 0 && friends.length === 0 && sent.length === 0 ? (
         <p className="mt-2 text-[12px] text-muted">No requests yet. Connect from Socials.</p>
       ) : null}
@@ -233,7 +236,7 @@ function GuestDash() {
         {[
           ["Feeds", "News and posts", () => goto({ tab: "feeds" })],
           ["Chat", "Live rooms", () => goto({ tab: "chat" })],
-          ["Cinema", "Watch + vote", () => goto({ tab: "cinema" })],
+          ["Cinema", "Watch + vote", () => goto({ tab: "watch" })],
           ["Music", "Artist links", () => goto({ tab: "music" })],
         ].map(([t, s, fn]) => (
           <button key={String(t)} type="button" onClick={fn as () => void} className="raised rounded-2xl px-3 py-3 text-left">
@@ -267,7 +270,7 @@ function primaryCta(kind: AccountKind): { label: string; icon: typeof Plus; onCl
       label: "Submit title",
       icon: Film,
       onClick: () => {
-        goto({ tab: "cinema" });
+        goto({ tab: "watch" });
         window.setTimeout(openCreate, 80);
       },
     };
@@ -293,7 +296,7 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
     icon: Film,
     label: "Vote cinema",
     hint: "Watch + vote",
-    onClick: () => goto({ tab: "cinema" }),
+    onClick: () => goto({ tab: "watch" }),
   };
   const applyJobs: QuickTile | null = canKind(kind, "jobs.apply")
     ? {
@@ -355,11 +358,11 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
         label: "Submit title",
         hint: "YouTube · staff approve",
         onClick: () => {
-          goto({ tab: "cinema" });
+          goto({ tab: "watch" });
           window.setTimeout(openCreate, 80);
         },
       },
-      { icon: Vote, label: "Vote cinema", hint: "One vote / title / day", onClick: () => goto({ tab: "cinema" }) },
+      { icon: Vote, label: "Vote cinema", hint: "One vote / title / day", onClick: () => goto({ tab: "watch" }) },
       chat,
     );
   }
@@ -419,7 +422,7 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
     { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
     chat,
     applyJobs
-      ?? { icon: Film, label: "Vote cinema", hint: "Watch + vote", onClick: () => goto({ tab: "cinema" }) },
+      ?? { icon: Film, label: "Vote cinema", hint: "Watch + vote", onClick: () => goto({ tab: "watch" }) },
   ];
 }
 
@@ -463,6 +466,9 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   const [myApplicants, setMyApplicants] = useState<MyApplicant[]>([]);
   const [signingOut, setSigningOut] = useState(false);
   const [connects, setConnects] = useState<ConnectRow[]>([]);
+  const [staffRole, setStaffRole] = useState<string | null>(null);
+  const [photo, setPhoto] = useState("");
+  const { site } = usePublicSite();
 
   function loadConnects() {
     void listConnects()
@@ -496,6 +502,12 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
     void listConnects()
       .then((rows) => setConnects(Array.isArray(rows) ? rows : []))
       .catch(() => setConnects([]));
+    void staffMe()
+      .then((s) => setStaffRole(s.role))
+      .catch(() => setStaffRole(null));
+    void getProfile()
+      .then((p) => setPhoto(p.photo || ""))
+      .catch(() => setPhoto(""));
   }, [signed, store.handle]);
 
   function refreshMyMarket() {
@@ -653,24 +665,36 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                         { n: postVotes, l: "Votes" },
                       ];
 
+  const staffLabel = staffRole === "super" ? "Super admin" : staffRole === "admin" ? "Admin" : staffRole === "mod" ? "Sub-admin" : "";
+  const staffPowers =
+    staffRole === "super"
+      ? "Full desk: news publish, staff grants, wallets, site flags, ads, reports, cinema, events, listings."
+      : staffRole === "admin"
+        ? "Admin desk: reports, ads queue, wallets, moderator, events, cinema, listings, password reset. Super still owns grants and news publish."
+        : staffRole === "mod"
+          ? "Sub-admin desk: reports, hide posts, delete gists, ads queue, inbox, ban or mute. Super can raise you to Admin — reopen Me to see the new desk."
+          : "";
+  const faceSrc = photo && site.photosOn !== false ? photo : store.face;
+
   return (
-    <div className="mx-auto max-w-2xl p-4 pb-24">
+    <div className="mx-auto max-w-2xl p-4 pb-28">
       <div className="relative mb-4 overflow-hidden rounded-2xl border border-line bg-panel">
         <div className="h-20 bg-gradient-to-br from-lime-2/35 via-lime-2/10 to-transparent" />
         <div className="-mt-8 flex items-end gap-3 px-4">
-          <AvatarImg handle={store.handle} face={store.face} size={76} className="rounded-full ring-2 ring-bg" />
+          <AvatarImg handle={store.handle} face={faceSrc} size={76} className="rounded-full ring-2 ring-bg" />
           <div className="min-w-0 pb-1">
             <div className="flex items-center gap-1 truncate text-xl font-extrabold tracking-tight">
               @{store.handle}
               {store.verified ? <span className="verified-mark" title="Kilode Verified">✓</span> : null}
             </div>
-            <div className="mt-0.5 flex items-center gap-1.5">
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+              {staffLabel ? <span className="rounded-full bg-lime-2 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#102016]">{staffLabel}</span> : null}
               <span className="rounded-full bg-lime-2/15 px-2 py-0.5 text-[10px] font-bold text-lime-2">{kindLabel}</span>
               {store.city ? <span className="truncate text-[11px] text-muted">{store.city}</span> : null}
             </div>
           </div>
         </div>
-        <p className="px-4 pt-3 text-[10px] font-bold tracking-[0.16em] text-lime-2">{hubTitleFor(kind)}</p>
+        <p className="px-4 pt-3 text-[10px] font-bold tracking-[0.16em] text-lime-2">{staffLabel ? `${staffLabel} desk` : hubTitleFor(kind)}</p>
         <p className="px-4 pt-1 text-[13px] leading-snug text-fg/90">{store.bio?.trim() || "No bio yet. Edit profile to add one."}</p>
         {store.interests ? <p className="px-4 pt-1 text-[11px] text-muted">{store.interests.split(",").join(" · ")}</p> : null}
         {store.website ? (
@@ -701,29 +725,31 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           </button>
         </div>
       </div>
-      <p className="mb-4 text-sm text-muted">{purpose}</p>
-      <FriendsBlock rows={connects} onChange={loadConnects} />
-      {onLogout ? (
-        <div className="mb-4 rounded-2xl border border-line bg-panel px-3 py-2.5">
-          <button
-            type="button"
-            disabled={signingOut}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-panel px-3 py-2 text-[12px] font-semibold text-muted hover:border-danger/40 hover:text-ink disabled:cursor-wait"
-            onClick={() => {
-              setSigningOut(true);
-              void Promise.resolve(onLogout())
-                .catch(() => {
-                  /* parent notes failure; GuestDash already shown via store.logout() */
-                })
-                .finally(() => setSigningOut(false));
-            }}
-          >
-            <LogOut className="size-3.5" />
-            {signingOut ? "Signing out…" : "Sign out"}
-          </button>
-          <p className="mt-1.5 text-center text-[10px] text-muted">Sign out only on Me · Dashboard — never next to the header mark.</p>
-        </div>
+      <p className="mb-3 text-sm text-muted">{purpose}</p>
+      {staffRole ? (
+        <section className="mb-3 rounded-2xl border border-lime-2/40 bg-panel p-3">
+          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">YOUR POWER</div>
+          <p className="mt-1 text-[12px] leading-snug text-muted">{staffPowers}</p>
+          <a href="/ops" className="btn-join mt-2 inline-flex rounded-lg px-3 py-2 text-[11px] font-extrabold uppercase tracking-wide">
+            Open staff desk
+          </a>
+        </section>
       ) : null}
+      <div className="mb-3 grid grid-cols-4 gap-1.5">
+        {(
+          [
+            ["FRIENDS", () => document.getElementById("me-friends")?.scrollIntoView({ behavior: "smooth", block: "start" })],
+            ["GROUPS", () => goto({ screen: "teams" })],
+            ["MARKETPLACE", () => goto({ screen: "market" })],
+            ["MESSAGE", () => goto({ screen: "inbox" })],
+          ] as const
+        ).map(([label, go]) => (
+          <button key={label} type="button" onClick={go} className="btn-join rounded-xl px-0.5 py-3 text-[8px] font-extrabold uppercase leading-tight tracking-wide sm:text-[10px]">
+            {label}
+          </button>
+        ))}
+      </div>
+      <FriendsBlock rows={connects} onChange={loadConnects} />
 
       <div className="mb-5 grid grid-cols-4 gap-1.5">
         {stats.map((s) => (
@@ -817,7 +843,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           title="Your cinema submissions"
           action="Submit title"
           onAction={() => {
-            goto({ tab: "cinema" });
+            goto({ tab: "watch" });
             window.setTimeout(openCreate, 80);
           }}
         >
@@ -826,7 +852,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
               body="No submissions yet. Submit a YouTube trailer URL from Create or Cinema — staff approve, then votes push it to Watching Now."
               cta="Submit title"
               onClick={() => {
-                goto({ tab: "cinema" });
+                goto({ tab: "watch" });
                 window.setTimeout(openCreate, 80);
               }}
             />
@@ -837,7 +863,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                   key={m.id}
                   type="button"
                   className="flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-panel px-3 py-2 text-left"
-                  onClick={() => goto({ tab: "cinema" })}
+                  onClick={() => goto({ tab: "watch" })}
                 >
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold">{m.title}</div>
@@ -1252,7 +1278,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <ActionTile icon={Briefcase} label="Browse jobs" hint="Apply with note" onClick={() => goto({ screen: "jobs" })} />
               <ActionTile icon={Plus} label="New post" hint="Feeds editor" onClick={openCreatePost} />
-              <ActionTile icon={Film} label="Vote cinema" hint="One vote / day" onClick={() => goto({ tab: "cinema" })} />
+              <ActionTile icon={Film} label="Vote cinema" hint="One vote / day" onClick={() => goto({ tab: "watch" })} />
               <ActionTile icon={MessageSquare} label="Chat" hint="Live rooms · topics & places" onClick={() => goto({ tab: "chat" })} />
             </div>
             {profileGaps.length ? (
@@ -1327,7 +1353,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <ActionTile icon={Plus} label="New post" hint="Rich Feeds editor" onClick={openCreate} />
               <ActionTile icon={Briefcase} label="Apply jobs" hint="Open roles" onClick={() => goto({ screen: "jobs" })} />
-              <ActionTile icon={Film} label="Vote cinema" hint="One vote / day" onClick={() => goto({ tab: "cinema" })} />
+              <ActionTile icon={Film} label="Vote cinema" hint="One vote / day" onClick={() => goto({ tab: "watch" })} />
               <ActionTile icon={MessageSquare} label="Chat" hint="Live rooms · topics & places" onClick={() => goto({ tab: "chat" })} />
             </div>
             {profileGaps.length ? (
@@ -1338,15 +1364,6 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                 </button>
               </div>
             ) : null}
-          </Section>
-
-          <Section kicker="UPDATES" title="Email digest">
-            <div className="raised rounded-2xl border border-line p-3">
-              <p className="mb-2 text-[12px] text-muted">
-                Same subscribe as the footer — get new public posts by email, one at a time. No spam.
-              </p>
-              <DigestBox quiet defaultOpen />
-            </div>
           </Section>
         </>
       ) : null}
@@ -1438,6 +1455,32 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           <ActionTile icon={HelpCircle} label="Rules" hint="Help · terms · FAQ" onClick={() => goto({ screen: "help" })} />
         </div>
       </Section>
+
+      <Section kicker="UPDATES" title="Email digest">
+        <div className="raised rounded-2xl border border-line p-3">
+          <p className="mb-2 text-[12px] text-muted">Get new public posts by email, one at a time. No spam.</p>
+          <DigestBox quiet defaultOpen />
+        </div>
+      </Section>
+
+      {onLogout ? (
+        <div className="mb-6 rounded-2xl border border-line bg-panel px-3 py-2.5">
+          <button
+            type="button"
+            disabled={signingOut}
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-panel px-3 py-2 text-[12px] font-semibold text-muted hover:border-danger/40 hover:text-ink disabled:cursor-wait"
+            onClick={() => {
+              setSigningOut(true);
+              void Promise.resolve(onLogout())
+                .catch(() => undefined)
+                .finally(() => setSigningOut(false));
+            }}
+          >
+            <LogOut className="size-3.5" />
+            {signingOut ? "Signing out…" : "Sign out"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

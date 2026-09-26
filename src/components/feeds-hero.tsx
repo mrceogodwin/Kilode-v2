@@ -72,15 +72,15 @@ export function FeedsHero({
     const banners: Slide[] = [];
 
     if (cat.heroPosts) {
-      const live = posts.filter((p) => p.status !== "draft" && p.title);
-      const trending = [...live].sort((a, b) => (b.views ?? 0) - (a.views ?? 0) || b.ts - a.ts).slice(0, 10);
-      const newest = [...live].sort((a, b) => b.ts - a.ts).slice(0, 8);
-      const seen = new Set<string>();
-      for (const p of [...trending, ...newest]) {
-        if (seen.has(p.id)) continue;
-        seen.add(p.id);
-        story.push({ k: "post", post: p });
+      const live = posts.filter((p) => p.status !== "draft" && p.title && p.image);
+      const newest = [...live].sort((a, b) => b.ts - a.ts).slice(0, 16);
+      for (let n = newest.length - 1; n > 0; n -= 1) {
+        const j = Math.floor(Math.random() * (n + 1));
+        const swap = newest[n];
+        newest[n] = newest[j]!;
+        newest[j] = swap!;
       }
+      for (const p of newest.slice(0, 10)) story.push({ k: "post", post: p });
     }
 
     if (cat.heroGoogle) {
@@ -267,7 +267,7 @@ function HeroSlide({
     const p = slide.post;
     return (
       <button type="button" className="relative block h-full w-full text-left" onClick={() => onOpen(p.id)}>
-        {p.image ? <img src={p.image} alt="" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-panel-3" />}
+        {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-panel-3" />}
         {onRepost ? (
           <button
             type="button"
@@ -360,7 +360,7 @@ function HeroMedia({
   }
   const body = (
     <>
-      {thumb ? <img src={thumb} alt="" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-panel-3" />}
+      {thumb ? <img src={thumb} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-panel-3" />}
       {yt ? (
         <span className="absolute inset-0 grid place-items-center">
           <span className="grid size-12 place-items-center rounded-full bg-white/90 text-black shadow-lg">
