@@ -27,7 +27,7 @@ export function BrandLockup({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
         <span className={`brand-word ${word}`}>
           <span className="brand-word-k">K</span>ILODE
         </span>
-        <span className="brand-url">Talk Nigeria. Live!</span>
+        <span className="brand-url">Talk News. Real People.</span>
       </span>
     </span>
   );

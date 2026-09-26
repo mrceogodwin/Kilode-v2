@@ -807,7 +807,7 @@ function QonvoAppInner() {
                 }}
               />
               <form
-                className="chat-compose relative flex shrink-0 gap-2 border-t border-line bg-panel/90 p-2 pb-2 mb-[calc(3.35rem+env(safe-area-inset-bottom))] backdrop-blur md:mb-0"
+                className="chat-compose relative z-30 flex shrink-0 flex-wrap gap-2 border-t border-line bg-panel p-2 mb-[4.85rem] md:mb-0"
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (store.livePausedUntil > Date.now()) return;
@@ -855,9 +855,9 @@ function QonvoAppInner() {
                   </div>
                 ) : null}
                 {emojiOpen ? (
-                  <div className="absolute bottom-full left-2 mb-1 grid max-h-36 grid-cols-8 gap-1 overflow-y-auto rounded-xl border border-line bg-panel-2 p-2">
+                  <div className="flex w-full gap-1 overflow-x-auto pb-1">
                     {EMOJIS.map((e) => (
-                      <button key={e} type="button" className="grid size-8 place-items-center text-base" onClick={() => setDraft((d) => d + e)}>
+                      <button key={e} type="button" className="grid size-9 shrink-0 place-items-center text-lg" onClick={() => setDraft((d) => d + e)}>
                         {e}
                       </button>
                     ))}
@@ -1544,7 +1544,7 @@ function RepostModal({
             onClick={() => {
               setBusy(true);
               setNote("");
-              void shareNewsToSocials({ title: post.title, excerpt: post.excerpt, author: post.author, category: post.category, caption: cap })
+              void shareNewsToSocials({ title: post.title, excerpt: post.excerpt, author: post.author, category: post.category, caption: cap, href: `/p/${encodeURIComponent(post.slug || post.id)}` })
                 .then((r) => {
                   if (!r.ok) setNote(r.reason);
                   else {
@@ -2322,7 +2322,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
                         window.location.href = "/login?mode=up";
                         return;
                       }
-                      void shareNewsToSocials({ title: p.title, excerpt: p.excerpt, author: p.author, category: p.category }).then(() => {
+                      void shareNewsToSocials({ title: p.title, excerpt: p.excerpt, author: p.author, category: p.category, href: `/p/${encodeURIComponent(p.slug || p.id)}` }).then(() => {
                         window.dispatchEvent(new Event("kilode:socials"));
                       });
                     }}

@@ -10,6 +10,7 @@ const SID_KEY = "kilode-vid";
 export const EMPTY_PUBLIC_SITE: PublicSite = {
   installToast: true,
   videosMenuVisible: true,
+  photosOn: true,
   visitorsToday: 0,
   visitorsAll: 0,
   members: 0,
@@ -126,7 +127,7 @@ export function SiteFooter() {
   const { site, setSite } = usePublicSite();
   function share(kind: ShareKey) {
     const url = "https://kilode.ng";
-    const text = "Kilode — Talk Nigeria. Live!";
+    const text = "Kilode — Talk News. Real People.";
     if (kind === "x") window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank", "noopener");
     if (kind === "wa") window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, "_blank", "noopener");
     if (kind === "tg") window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, "_blank", "noopener");
@@ -160,7 +161,7 @@ export function SiteFooter() {
       <div className="text-center">
         <p className="text-[9px] font-semibold tracking-[0.16em] text-lime-2 uppercase">Kilode</p>
         <h2 className="chrome-head mx-auto mt-0.5 max-w-[20rem] text-balance">Join Kilode.ng</h2>
-        <p className="mt-1 text-[11px] leading-snug text-muted">Talk Nigeria. Live! Password only — no email to sign up.</p>
+        <p className="mt-1 text-[11px] leading-snug text-muted">Talk News. Real People. Password only — no email to sign up.</p>
         <p className="mt-0.5 text-[11px] leading-snug text-muted/90">{joinHint}</p>
       </div>
 
@@ -191,7 +192,7 @@ export function SiteFooter() {
 
       <div className="foot-section mt-3 border-t pt-2.5 text-center">
         <p className="text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">About Kilode</p>
-        <p className="mt-1 text-[11px] leading-snug text-muted">{ABOUT_SHORT}</p>
+        <p className="mx-auto mt-1 max-w-[18rem] px-2 text-center text-[11px] leading-snug break-words text-muted">{ABOUT_SHORT}</p>
         <a href="/terms#about" className="mt-1 inline-block text-[11px] font-semibold text-lime-2 underline-offset-2 hover:underline">
           Read the full about
         </a>

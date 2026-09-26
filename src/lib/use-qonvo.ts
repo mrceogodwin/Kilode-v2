@@ -893,7 +893,7 @@ export function useQonvo() {
     return r;
   }, []);
 
-  const rename = useCallback(async (name: string, extra?: { bio?: string; city?: string; kind?: AccountKind; stage?: string; genre?: string; website?: string; brand?: string; face?: string }) => {
+  const rename = useCallback(async (name: string, extra?: { bio?: string; city?: string; kind?: AccountKind; stage?: string; genre?: string; website?: string; brand?: string; face?: string; gender?: string; photo?: string }) => {
     const next = name.trim().slice(0, 24);
     if (!next) return { ok: false as const, reason: "Add a username." };
     const nextBio = (extra?.bio ?? bio).trim().slice(0, 280);
@@ -919,6 +919,8 @@ export function useQonvo() {
           website: extra?.website ?? website,
           brand: extra?.brand ?? brand,
           face: extra?.face ?? face,
+          gender: extra?.gender,
+          photo: extra?.photo,
         },
       });
       if (!r?.ok) {

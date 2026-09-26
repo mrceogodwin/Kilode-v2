@@ -101,7 +101,7 @@ function FriendsBlock({ rows, onChange }: { rows: ConnectRow[]; onChange: () => 
   const sent = rows.filter((r) => r.dir === "out");
   return (
     <section className="mb-4 rounded-2xl border border-line bg-panel p-3">
-      <h3 className="text-[13px] font-extrabold">Friends</h3>
+      <h3 className="text-[13px] font-extrabold">My Paddy</h3>
       <p className="mt-0.5 text-[11px] text-muted">Requests land here. Open Me to accept. Nothing checks in the background.</p>
       {incoming.length === 0 && friends.length === 0 && sent.length === 0 ? (
         <p className="mt-2 text-[12px] text-muted">No requests yet. Connect from Socials.</p>
@@ -139,12 +139,12 @@ function FriendsBlock({ rows, onChange }: { rows: ConnectRow[]; onChange: () => 
       ))}
       {sent.map((r) => (
         <div key={`out-${r.id}`} className="mt-2 text-[12px] text-muted">
-          Waiting on @{r.handle}
+          Waiting · Connection @{r.handle}
         </div>
       ))}
       {friends.map((r) => (
         <a key={`ok-${r.id}`} href={`/u/${encodeURIComponent(r.handle)}`} className="mt-2 block text-[13px] font-semibold">
-          @{r.handle} <span className="text-[10px] font-normal text-muted">· friend</span>
+          @{r.handle} <span className="text-[10px] font-normal text-muted">· My Paddy</span>
         </a>
       ))}
     </section>

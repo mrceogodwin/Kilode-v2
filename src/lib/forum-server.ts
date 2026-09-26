@@ -904,7 +904,7 @@ export const getProfile = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
-    const empty = { handle: "", bio: "", city: "", kind: "member" as AccountKind, stage: "", genre: "", website: "", brand: "", face: "", verified: false, interests: "", langs: "", onboarded: 0 };
+    const empty = { handle: "", bio: "", city: "", kind: "member" as AccountKind, stage: "", genre: "", website: "", brand: "", face: "", verified: false, interests: "", langs: "", onboarded: 0, gender: "", photo: "" };
     try {
       const rows = await sql<{
         handle: string;
@@ -922,6 +922,15 @@ export const getProfile = createServerFn({ method: "GET" })
         onboarded?: number | string | null;
       }>`select handle, bio, city, kind, stage, genre, website, brand, face, verified, interests, langs, onboarded from nf_profiles where user_id = ${context.userId} limit 1`;
       if (!rows[0]) return empty;
+      let gender = "";
+      let photo = "";
+      try {
+        const extra = await sql<{ gender: string | null; photo: string | null }>`select gender, photo from nf_profiles where user_id = ${context.userId} limit 1`;
+        gender = extra[0]?.gender || "";
+        photo = extra[0]?.photo || "";
+      } catch {
+        /* columns added on the next save */
+      }
       return {
         handle: rows[0].handle,
         bio: rows[0].bio ?? "",
@@ -936,6 +945,8 @@ export const getProfile = createServerFn({ method: "GET" })
         interests: rows[0].interests ?? "",
         langs: rows[0].langs ?? "",
         onboarded: Number(rows[0].onboarded) === 1 ? 1 : 0,
+        gender,
+        photo,
       };
     } catch {
       const rows = await sql<{ handle: string; bio: string | null; city: string | null }>`select handle, bio, city from nf_profiles where user_id = ${context.userId} limit 1`;
@@ -945,7 +956,7 @@ export const getProfile = createServerFn({ method: "GET" })
 
 export const saveProfile = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { handle: string; bio?: string; city?: string; kind?: string; stage?: string; genre?: string; website?: string; brand?: string; face?: string }) => d)
+  .validator((d: { handle: string; bio?: string; city?: string; kind?: string; stage?: string; genre?: string; website?: string; brand?: string; face?: string; gender?: string; photo?: string }) => d)
   .handler(async ({ context, data }) => {
     const handle = data.handle.trim().slice(0, 24);
     if (!handle) return { ok: false as const, reason: "Add a username." };
@@ -981,6 +992,15 @@ export const saveProfile = createServerFn({ method: "POST" })
       } catch {
         return { ok: false as const, reason: "That username may be taken, or the save failed. Try again." };
       }
+    }
+    const gender = ["", "woman", "man", "skip"].includes(data.gender || "") ? data.gender || "" : "";
+    const photo = /^https:\/\/\S{8,200}$/i.test(data.photo || "") ? String(data.photo).slice(0, 200) : "";
+    try {
+      await sql`alter table nf_profiles add column if not exists gender text not null default ''`;
+      await sql`alter table nf_profiles add column if not exists photo text not null default ''`;
+      await sql`update nf_profiles set gender = ${gender}, photo = ${photo} where user_id = ${context.userId}`;
+    } catch {
+      /* profile text already saved */
     }
     return { ok: true as const, handle, kind, face, bio };
   });

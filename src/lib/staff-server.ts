@@ -617,6 +617,11 @@ export const setModUser = createServerFn({ method: "POST" })
     const targetStaff = await staffOf(uid);
     if (targetStaff?.role === "super" || targetStaff?.locked) return { ok: false as const, reason: "Cannot restrict the owner." };
     try {
+      await sql`insert into nf_notes (id, user_id, text, href, ts, seen) values (${`n-${Date.now().toString(36)}`}, ${uid}, ${kind === "ban" ? "Your account is paused. Open Kilode and read this." : "Staff warning: ease up or the account can be paused."}, ${"/"}, ${Date.now()}, ${0})`;
+    } catch {
+      /* bell can miss; the mute still stands */
+    }
+    try {
       const existing = await sql<{ user_id: string }>`select user_id from nf_mod_users where user_id = ${uid} limit 1`;
       if (existing[0]) {
         await sql`update nf_mod_users set handle = ${named[0]?.name ?? handle}, kind = ${kind}, reason = ${data.reason ?? ""}, by_id = ${context.userId}, ts = ${Date.now()}, until_ts = ${until} where user_id = ${uid}`;

@@ -671,11 +671,15 @@ html[data-skin="ivory"] .site-foot .menu-install {
 html[data-skin="ivory"] .menu-install .text-muted {
   color: #5a655d;
 }
+html[data-skin="ivory"] .chat-compose {
+  background: #f4f7f4;
+  border-color: #c5d4c8;
+}
 html[data-skin="ivory"] .menu-dock {
   background: #f7fbf8;
 }
 .brand-lockup {
-  max-width: 196px;
+  max-width: 220px;
 }
 .brand-copy {
   display: flex;
@@ -705,25 +709,20 @@ html[data-skin="ivory"] .menu-dock {
   display: inline-block;
   font-weight: 800;
   letter-spacing: inherit;
-  /* Identity letter: taller K + Create-a-post green soft face */
-  transform: translateY(-0.04em) scaleY(1.1);
-  transform-origin: bottom center;
-  background: linear-gradient(180deg, #8fbf9a 0%, #5f8f6c 48%, #3f6a4c 100%);
+  background: linear-gradient(180deg, #8fbf9a 0%, #5f8f6c 55%, #3f6a4c 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-fill-color: transparent;
-  text-shadow: none;
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.22)) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.28));
 }
 .brand-url {
   display: block;
-  margin-top: 3px;
-  max-width: 128px;
-  font-size: 7px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  line-height: 1.2;
+  margin-top: 1px;
+  font-size: 8px;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.05;
+  white-space: nowrap;
   color: var(--color-lime-2);
 }
 html[data-skin="ivory"] .brand-word {
@@ -736,12 +735,8 @@ html[data-skin="ivory"] .brand-word {
     0 2px 3px rgba(63, 106, 76, 0.12);
 }
 html[data-skin="ivory"] .brand-word-k {
-  background: linear-gradient(180deg, #6fa87c 0%, #4d7a5a 50%, #3f6a4c 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.85)) drop-shadow(0 1px 1px rgba(36, 61, 44, 0.22));
+  color: #3f6a4c;
+  -webkit-text-fill-color: #3f6a4c;
 }
 .brand-mark {
   display: grid;

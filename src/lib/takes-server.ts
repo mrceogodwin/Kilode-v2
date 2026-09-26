@@ -156,7 +156,7 @@ async function profileOf(userId: string) {
 
 export const saveTake = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string }) => d)
+  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string; quoteHref?: string }) => d)
   .handler(async ({ data, context }) => {
     try {
       const userId = context.userId;
@@ -191,6 +191,7 @@ export const saveTake = createServerFn({ method: "POST" })
         meta.quoteName = (data.quoteName || "Kilode").slice(0, 40);
         meta.quoteHandle = (data.quoteHandle || "kilode").slice(0, 24);
         meta.quoteBody = (data.quoteBody || clean).slice(0, 180);
+        if (data.quoteHref && data.quoteHref.startsWith("/p/")) meta.quoteHref = data.quoteHref.slice(0, 180);
       }
       const id = nid();
       const ts = Date.now();

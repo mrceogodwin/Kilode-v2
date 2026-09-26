@@ -33,9 +33,10 @@ export function rememberTake(take: TakeRow, notify = true) {
   if (notify) window.dispatchEvent(new CustomEvent("kilode:take", { detail: take }));
 }
 
-export async function shareNewsToSocials(p: { title: string; excerpt?: string; author?: string; category?: string; caption?: string }) {
+export async function shareNewsToSocials(p: { title: string; excerpt?: string; author?: string; category?: string; caption?: string; href?: string }) {
   const caption = (p.caption || "").trim();
   const body = (caption || p.title).slice(0, 280);
+  const href = (p.href || "").startsWith("/p/") ? p.href : "";
   const r = await saveTake({
     data: {
       body,
@@ -43,6 +44,7 @@ export async function shareNewsToSocials(p: { title: string; excerpt?: string; a
       quoteName: (p.author || "Kilode").slice(0, 40),
       quoteHandle: (p.author || "kilode").toLowerCase().replace(/[^a-z0-9._-]+/g, "").slice(0, 24) || "kilode",
       quoteBody: (caption ? p.title : p.excerpt || p.category || "From Feeds").slice(0, 180),
+      quoteHref: href,
     },
   });
   if (r.ok) rememberTake(r.take);
@@ -294,7 +296,7 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
           className="rounded-full border border-line px-2 py-0.5 text-[10px] font-bold text-lime-2"
           onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "teams" } }))}
         >
-          Teams
+          Groups
         </button>
       </div>
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1">
@@ -316,7 +318,7 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
               <button
                 type="button"
                 disabled={linkState(f) === "in" || linkState(f) === "out"}
-                className="rounded-[10px] border border-lime-2/40 px-2 py-0.5 text-[10px] font-semibold text-lime-2 disabled:opacity-60"
+                className="rounded-full border border-lime-2/50 px-2.5 py-1 text-[10px] font-bold text-lime-2 disabled:opacity-70"
                 onClick={() => {
                   if (!authed) return goLogin();
                   setLinked((m) => ({ ...m, [f.id]: "out", [(f.handle || "").toLowerCase()]: "out" }));
@@ -342,7 +344,7 @@ export function SocialsFeed({ authed, account = "member" }: { authed: boolean; a
                   });
                 }}
               >
-                {linkState(f) === "in" ? "Friends" : linkState(f) === "out" ? "Requested" : "Connect"}
+                {linkState(f) === "in" ? "My Paddy" : linkState(f) === "out" ? "Connection" : "Connect"}
               </button>
               <button
                 type="button"
@@ -705,10 +707,18 @@ function TakeCard({
           )}
 
           {take.kind === "quote" ? (
-            <div className="mt-1.5 rounded-[10px] border border-line px-2 py-1.5">
-              <div className="text-[10px] text-muted">{String(take.meta.quoteName || "")} @{String(take.meta.quoteHandle || "")}</div>
-              <div className="text-[12px] leading-snug text-fg/80">{String(take.meta.quoteBody || "")}</div>
-            </div>
+            typeof take.meta.quoteHref === "string" && take.meta.quoteHref.startsWith("/p/") ? (
+              <a href={take.meta.quoteHref} className="mt-1.5 block rounded-[10px] border border-line px-2 py-1.5">
+                <div className="text-[10px] text-muted">{String(take.meta.quoteName || "")} @{String(take.meta.quoteHandle || "")}</div>
+                <div className="text-[12px] leading-snug text-fg/80">{String(take.meta.quoteBody || "")}</div>
+                <div className="mt-1 text-[10px] font-semibold text-lime-2">Open story</div>
+              </a>
+            ) : (
+              <div className="mt-1.5 rounded-[10px] border border-line px-2 py-1.5">
+                <div className="text-[10px] text-muted">{String(take.meta.quoteName || "")} @{String(take.meta.quoteHandle || "")}</div>
+                <div className="text-[12px] leading-snug text-fg/80">{String(take.meta.quoteBody || "")}</div>
+              </div>
+            )
           ) : null}
 
           {take.kind === "job" && typeof take.meta.line === "string" ? <div className="mt-1 text-[11px] text-muted">{take.meta.line}</div> : null}

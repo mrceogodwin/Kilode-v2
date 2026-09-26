@@ -166,6 +166,18 @@ export const getPublicProfile = createServerFn({ method: "GET" })
     } catch {
       tracks = [];
     }
+    let photo = "";
+    try {
+      const flag = await sql<{ photos_on: number | string | null }>`select photos_on from nf_site where id = 1 limit 1`;
+      const on = !flag[0] || (flag[0].photos_on !== 0 && flag[0].photos_on !== "0");
+      if (on) {
+        const pic = await sql<{ photo: string | null }>`select photo from nf_profiles where user_id = ${profile.user_id} limit 1`;
+        const url = String(pic[0]?.photo || "");
+        if (/^https:\/\//i.test(url)) photo = url.slice(0, 200);
+      }
+    } catch {
+      photo = "";
+    }
     return {
       handle: profile.handle,
       bio: profile.bio ?? "",
@@ -175,6 +187,7 @@ export const getPublicProfile = createServerFn({ method: "GET" })
       genre: profile.genre ?? "",
       website: profile.website ?? "",
       brand: profile.brand ?? "",
+      photo,
       posts: posts.map((p) => ({ ...p, ts: Number(p.ts), views: Number(p.views ?? 0) })),
       tracks,
     };

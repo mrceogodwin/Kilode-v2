@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Eye, Mail, MessageSquare, Share2 } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, daysLeft, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
+import { getProfile, reportPost } from "@/lib/forum-server";
 import { claimOps, clearModUser, deleteGist, deletePost, dismissReport, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, listStaffPosts, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, staffMe, unhidePost } from "@/lib/staff-server";
 import {
   approveNewsDraft,
@@ -1182,6 +1183,8 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
   const [website, setWebsite] = useState(store.website);
   const [brand, setBrand] = useState(store.brand);
   const [face, setFace] = useState(store.face || KIND_FACE[store.kind]);
+  const [gender, setGender] = useState("");
+  const [photo, setPhoto] = useState("");
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const dirty = useRef(false);
@@ -1197,6 +1200,14 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
     setBrand(store.brand);
     setFace(store.face || KIND_FACE[store.kind]);
   }, [store.bio, store.brand, store.city, store.face, store.genre, store.handle, store.kind, store.stage, store.website]);
+  useEffect(() => {
+    void getProfile()
+      .then((p) => {
+        setGender(p.gender || "");
+        setPhoto(p.photo || "");
+      })
+      .catch(() => undefined);
+  }, []);
   if (!store.handle) {
     return (
       <Screen kicker="YOU" title="Me" sub="Join to own a profile. Guests can browse Feeds, Chat, Music, Cinema and Ads.">
@@ -1263,6 +1274,18 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
         <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="Spotify / Apple / Audiomack URL" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       ) : null}
       <input value={city} onChange={(e) => { dirty.current = true; setCity(e.target.value); }} placeholder="City (optional)" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <label className="block">
+        <span className="mb-1 block text-[11px] font-medium text-muted">Gender (optional)</span>
+        <select value={gender} onChange={(e) => setGender(e.target.value)} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base">
+          <option value="">Skip</option>
+          <option value="woman">Woman</option>
+          <option value="man">Man</option>
+        </select>
+      </label>
+      <label className="block">
+        <span className="mb-1 block text-[11px] font-medium text-muted">Photo link (optional, https only)</span>
+        <input value={photo} onChange={(e) => setPhoto(e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      </label>
       <textarea value={bio} onChange={(e) => { dirty.current = true; setBio(e.target.value); }} maxLength={280} rows={3} placeholder="Bio" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       <p className="text-[10px] text-muted">{bio.length}/280</p>
       <button
@@ -1272,7 +1295,7 @@ function Profile({ store, onHome }: { store: Store; onHome?: (id?: string) => vo
         onClick={() => {
           setSaving(true);
           setMsg("");
-          void store.rename(name, { bio, city, kind, stage, genre, website, brand, face }).then((r) => {
+          void store.rename(name, { bio, city, kind, stage, genre, website, brand, face, gender, photo }).then((r) => {
             setMsg(r.ok ? "Saved. Your bio is stored." : r.reason);
           }).finally(() => setSaving(false));
         }}
@@ -1417,32 +1440,29 @@ function Inbox() {
 function Teams({ store, onHome }: { store: Store; onHome: (id?: string) => void }) {
   const [name, setName] = useState("");
   const [err, setErr] = useState("");
+  const [note, setNote] = useState("");
   const mine = store.teams.filter((t) => (t.members ?? [])[0] === store.handle).length;
   return (
-    <Screen kicker="CREW" title="Teams" sub="Small named groups on Kilode. Not WhatsApp. Chat still lives on our servers.">
+    <Screen kicker="CREW" title="Groups" sub="Your people. Open one to chat.">
       {!store.handle ? (
         <JoinCta />
       ) : (
         <>
-          <div className="raised mb-3 rounded-2xl p-4 text-[13px] leading-6 text-muted">
-            <p>Any signed-in member can create up to 3 teams. Anyone signed in can join until it hits 40 people. Open chat uses the same live room engine as Global Chat — room id <span className="font-mono text-fg">tm-…</span>.</p>
-            <p className="mt-2">Use a team for a crew, a campaign, or a music collab. Do not run scams. Staff can still hide abuse.</p>
-            <p className="mt-2 text-lime-2">You have created {mine}/3 teams.</p>
-          </div>
+          <p className="mb-3 text-[12px] text-lime-2">You made {mine}/3 groups.</p>
           <div className="flex gap-2">
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Team name"
+              placeholder="Group name"
               className="flex-1 rounded-lg border border-line bg-panel px-3 py-2 text-base"
             />
             <button
               type="button"
-              className="btn-3d rounded-lg px-3 py-2 text-sm"
+              className="btn-3d rounded-lg px-3 py-2 text-sm font-bold"
               onClick={() => {
                 setErr("");
                 if (mine >= 3) {
-                  setErr("Max 3 teams you create.");
+                  setErr("Max 3 groups you create.");
                   return;
                 }
                 store.createTeam(name);
@@ -1452,22 +1472,45 @@ function Teams({ store, onHome }: { store: Store; onHome: (id?: string) => void 
               Create
             </button>
           </div>
-          {err ? <p className="text-sm text-danger">{err}</p> : null}
-          {store.teams.length === 0 ? <p className="mt-3 text-sm text-muted">No teams yet. Create the first.</p> : null}
-          {store.teams.filter((t) => !!t?.id).map((t) => (
-            <div key={t.id} className="raised mt-3 rounded-2xl p-4">
-              <div className="text-sm font-extrabold">{t.name}</div>
-              <div className="text-[11px] text-muted">{(t.members ?? []).length}/40 · {(t.members ?? []).slice(0, 8).join(", ")}</div>
-              <div className="mt-2 flex gap-3">
-                <button type="button" className="text-xs font-semibold text-lime-2" onClick={() => store.joinTeam(t.id)}>
-                  Join
-                </button>
-                <button type="button" className="text-xs font-semibold text-lime-2" onClick={() => onHome(`tm-${t.id}`)}>
-                  Open chat
-                </button>
+          {err ? <p className="mt-2 text-sm text-danger">{err}</p> : null}
+          {note ? <p className="mt-2 text-sm text-lime-2">{note}</p> : null}
+          {store.teams.length === 0 ? <p className="mt-3 text-sm text-muted">No groups yet.</p> : null}
+          {store.teams.filter((t) => !!t?.id).map((t) => {
+            const members = t.members ?? [];
+            const mineGroup = members[0] === store.handle || members.includes(store.handle);
+            const owner = members[0] === store.handle;
+            return (
+              <div key={t.id} className="raised mt-3 rounded-2xl p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-base font-extrabold">{t.name}</div>
+                    <div className="text-[11px] text-muted">{members.length}/40{owner ? " · yours" : mineGroup ? " · in" : ""}</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-[11px] font-semibold text-muted"
+                    onClick={() => {
+                      const reason = window.prompt("Why report this group?")?.trim();
+                      if (!reason) return;
+                      void reportPost({ data: { postId: `group:${t.id}`, reason: reason.slice(0, 280) } }).then(() => setNote("Report sent."));
+                    }}
+                  >
+                    Report
+                  </button>
+                </div>
+                <div className="mt-3 flex gap-2">
+                  {mineGroup ? null : (
+                    <button type="button" className="rounded-full border border-line px-3 py-1.5 text-[12px] font-bold" onClick={() => store.joinTeam(t.id)}>
+                      Join
+                    </button>
+                  )}
+                  <button type="button" className="btn-join rounded-full px-3 py-1.5 text-[12px] font-bold" onClick={() => onHome(`tm-${t.id}`)}>
+                    Open chat
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </>
       )}
     </Screen>
@@ -2060,13 +2103,24 @@ function Admin({ store }: { store: Store }) {
             <div className="min-w-0 break-words">
               <div className="text-xs font-semibold">{r.author}</div>
               <p className="break-words text-sm">{r.reason}</p>
-              <div className="text-[10px] text-muted">{gist ? "gist" : "post"} {r.post_id.replace(/^take:/, "")}</div>
+              <div className="text-[10px] text-muted">{gist ? "gist" : r.post_id.startsWith("user:") ? "account" : r.post_id.startsWith("group:") ? "group" : "post"} {r.post_id.replace(/^(take:|user:|group:)/, "")}</div>
             </div>
             <div className="flex shrink-0 gap-3">
               <button type="button" className="text-xs text-muted" onClick={() => void dismissReport({ data: { id: r.id } }).then(() => setReports((rows) => rows.filter((x) => x.id !== r.id)))}>
                 Dismiss
               </button>
-              {gist ? (
+              {r.post_id.startsWith("user:") ? (
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-lime-2"
+                  onClick={() => {
+                    const handle = r.post_id.replace(/^user:/, "");
+                    void setModUser({ data: { handle, kind: "mute", hours: 24, reason: "Staff warning" } }).then(() => setMsg("Warning sent."));
+                  }}
+                >
+                  Warn
+                </button>
+              ) : gist ? (
                 <button type="button" className="text-xs text-danger" onClick={() => void deleteGist({ data: { id: r.post_id } }).then(() => setReports((rows) => rows.filter((x) => x.post_id !== r.post_id)))}>
                   Delete gist
                 </button>

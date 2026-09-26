@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { getPublicProfile, sendDm } from "@/lib/social-server";
+import { reportPost } from "@/lib/forum-server";
 import { seoHead } from "@/lib/seo";
 import { ACCOUNT_KINDS, fmtCount, handleColor, timeLabel } from "@/lib/qonvo-data";
 import { BrandLockup } from "@/components/brand-lockup";
@@ -60,8 +61,20 @@ function PublicProfile() {
             {profile.stage ? ` · ${profile.stage}` : ""}
             {profile.city ? ` · ${profile.city}` : ""}
           </div>
+          {profile.photo ? <img src={profile.photo} alt="" className="mt-3 size-16 rounded-full object-cover" /> : null}
           {profile.bio ? <p className="mt-2 text-sm text-muted">{profile.bio}</p> : null}
           <ProfileMessage to={profile.handle} />
+          <button
+            type="button"
+            className="mt-2 text-[12px] font-semibold text-muted"
+            onClick={() => {
+              const reason = window.prompt("Why report this account?")?.trim();
+              if (!reason) return;
+              void reportPost({ data: { postId: `user:${profile.handle}`, reason: reason.slice(0, 280) } });
+            }}
+          >
+            Report account
+          </button>
           {profile.website ? (
             <a href={profile.website} className="mt-1 block text-xs text-lime-2" rel="noreferrer" target="_blank">
               {profile.website}
