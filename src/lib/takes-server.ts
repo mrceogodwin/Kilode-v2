@@ -126,7 +126,14 @@ export const listTakes = createServerFn({ method: "GET" })
     } catch {
       fellows = [];
     }
-    return { takes, fellows, next };
+    let live: string[] = [];
+    try {
+      const rows = await sql<{ h: string }>`select lower(handle) as h from nf_presence where seen > ${Date.now() - 180000} limit 80`;
+      live = rows.map((r) => r.h).filter(Boolean);
+    } catch {
+      live = [];
+    }
+    return { takes, fellows, next, live };
   });
 
 function kindsForAccount(account: string): TakeKind[] {

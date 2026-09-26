@@ -63,7 +63,7 @@ import { listRoomOverlay } from "@/lib/rooms-server";
 import { Link } from "@tanstack/react-router";
 import { SignedIn, SignedOut } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { getPublicPost, listWallets } from "@/lib/forum-server";
+import { getPublicPost, listPostSeen, listWallets, notePostSeen, deleteOwnPost } from "@/lib/forum-server";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
@@ -77,6 +77,7 @@ import { PostBody } from "@/components/post-body";
 import { postBodyPlain } from "@/lib/post-body";
 import { InstallToast, PublicSiteProvider, SiteFooter, TrendingTicker, usePublicSite } from "@/components/site-chrome";
 import type { PublicSite } from "@/lib/site-server";
+import { OnboardSheet } from "@/components/onboard-sheet";
 import { FeedsHero } from "@/components/feeds-hero";
 import { BrandLockup } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
@@ -401,26 +402,6 @@ function QonvoAppInner() {
   useEffect(() => {
     if (screen === "leaderboard") store.loadScores();
   }, [screen, store.loadScores]);
-
-  useEffect(() => {
-    const vv = window.visualViewport;
-    const root = document.documentElement;
-    const sync = () => {
-      const h = vv?.height ?? window.innerHeight;
-      const top = vv?.offsetTop ?? 0;
-      root.style.setProperty("--vvh", `${Math.round(h)}px`);
-      root.style.setProperty("--vv-top", `${Math.round(top)}px`);
-    };
-    sync();
-    vv?.addEventListener("resize", sync);
-    vv?.addEventListener("scroll", sync);
-    window.addEventListener("orientationchange", sync);
-    return () => {
-      vv?.removeEventListener("resize", sync);
-      vv?.removeEventListener("scroll", sync);
-      window.removeEventListener("orientationchange", sync);
-    };
-  }, []);
 
   useEffect(() => {
     if (!videosMenuVisible && homeTab === "videos") setHomeTab("feeds");
@@ -829,13 +810,13 @@ function QonvoAppInner() {
                         </button>
                         {open
                           ? row.hidden.map((m) => (
-                              <ChatLine key={m.ts + m.n} m={m} handle={store.handle} xlate={chatXlate[String(m.ts)]} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} onDelete={store.dropMsg} />
+                          <ChatLine key={m.ts + m.n} m={m} handle={store.handle} live={store.online.some((u) => u.handle.toLowerCase() === m.n.toLowerCase())} xlate={chatXlate[String(m.ts)]} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} onDelete={store.dropMsg} />
                             ))
                           : null}
                       </div>
                     );
                   }
-                  return <ChatLine key={row.key} m={row.m} handle={store.handle} xlate={chatXlate[String(row.m.ts)]} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} onDelete={store.dropMsg} />;
+                  return <ChatLine key={row.key} m={row.m} handle={store.handle} live={store.online.some((u) => u.handle.toLowerCase() === row.m.n.toLowerCase())} xlate={chatXlate[String(row.m.ts)]} onReact={store.react} onReply={(msg) => { setReplyTo(msg); inputRef.current?.focus(); }} onDelete={store.dropMsg} />;
                 })}
                 </div>
               </div>
@@ -870,7 +851,7 @@ function QonvoAppInner() {
                 }}
               />
               <form
-                className="chat-compose relative z-30 flex shrink-0 flex-wrap gap-2 border-t border-line bg-panel p-2 mb-[4.85rem] md:mb-0"
+                className="chat-compose relative z-30 flex shrink-0 flex-wrap gap-2 border-t border-line bg-panel/75 p-2 backdrop-blur-md mb-[calc(3.4rem+env(safe-area-inset-bottom))] md:mb-0"
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (store.livePausedUntil > Date.now()) return;
@@ -1036,6 +1017,7 @@ function QonvoAppInner() {
       )}
 
       <InstallToast />
+      {signedIn && store.onboarded === 0 ? <OnboardSheet kind={store.kind} onDone={store.finishOnboard} /> : null}
       <nav className="dock pointer-events-auto absolute inset-x-0 bottom-0 z-40 grid grid-cols-8 px-1 pt-1.5 pb-[max(4px,env(safe-area-inset-bottom))] md:hidden">
         <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
         <Tab icon={<MessageSquare className="size-3.5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
@@ -1996,10 +1978,15 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
   const [reason, setReason] = useState("");
   const [replyTo, setReplyTo] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [seen, setSeen] = useState<{ handle: string; ts: number }[]>([]);
+  const [seenOpen, setSeenOpen] = useState(false);
+  const [dropping, setDropping] = useState(false);
   useEffect(() => {
     store.see("posts", post.id);
+    if (session.user) void notePostSeen({ data: post.id }).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [post.id]);
+  }, [post.id, session.user?.id]);
+  const mine = Boolean(store.handle && post.author && store.handle.toLowerCase() === post.author.toLowerCase());
   const comments = post.comments ?? [];
   const roots = comments.filter((c) => !c.parentTs);
   const kids = (ts: number) => comments.filter((c) => c.parentTs === ts);
@@ -2042,13 +2029,49 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
             <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{post.category || "General"}</div>
             <h1 className="mt-1 text-2xl font-extrabold leading-tight">{post.title}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
-              <AvatarImg handle={post.author} size={22} />
-              <span className="font-semibold tracking-wide text-muted">POSTED BY:</span>
-              <HandleLink handle={post.author} className="text-[11px] font-semibold" />
+              <AvatarImg handle={post.author} size={28} />
+              <span className="font-semibold tracking-wide text-muted">POSTED BY</span>
+              <HandleLink handle={post.author} className="text-[13px] font-bold" />
               <span>· {timeLabel(post.ts)}</span>
               <span>· {mins} min read</span>
-              {post.tags ? <span>· {post.tags}</span> : null}
+              {mine ? (
+                <button
+                  type="button"
+                  disabled={dropping}
+                  className="font-bold text-danger disabled:opacity-50"
+                  onClick={() => {
+                    if (!window.confirm("Delete this story from Feeds?")) return;
+                    setDropping(true);
+                    void deleteOwnPost({ data: post.id })
+                      .then((r) => {
+                        if (r.ok) store.setOpenPost(null);
+                        else setNote(r.reason);
+                      })
+                      .catch(() => setNote("Could not delete."))
+                      .finally(() => setDropping(false));
+                  }}
+                >
+                  Delete
+                </button>
+              ) : null}
+              {mine ? (
+                <button
+                  type="button"
+                  className="font-bold text-lime-2"
+                  onClick={() => {
+                    setSeenOpen((v) => !v);
+                    if (!seenOpen) void listPostSeen({ data: post.id }).then(setSeen).catch(() => setSeen([]));
+                  }}
+                >
+                  Who saw this
+                </button>
+              ) : null}
             </div>
+            {seenOpen && mine ? (
+              <p className="mt-1 text-[11px] text-muted">
+                {seen.length === 0 ? "No signed-in readers yet. Only you can see this list." : seen.map((s) => `@${s.handle}`).join(" · ")}
+              </p>
+            ) : null}
             {post.excerpt && !isDupExcerpt(post.title, post.excerpt) ? <p className="mt-2 text-[13px] leading-5 text-muted">{post.excerpt}</p> : null}
           </div>
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-white/5 px-3 py-2 text-[11px]">
@@ -2363,9 +2386,14 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           </ul>
         ) : null}
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
-          {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
+          {live.filter((p) => !!p?.id).slice(0, shown).map((p) => {
+            const hot = (p.views ?? 0) >= 350 || (p.comments?.length ?? 0) >= 6;
+            return (
             <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
-              {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
+              <div className="relative">
+                {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
+                {hot ? <span className="trend-chip absolute top-1 left-1">⚡ Trending</span> : null}
+              </div>
               <div className="px-1 py-1 sm:px-1.5">
                 <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
                 <div className="mt-0.5 line-clamp-4 text-[10px] font-normal leading-tight text-fg sm:text-[11px] md:text-[12px]">{p.title}</div>
@@ -2412,7 +2440,8 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
                 </div>
               </div>
             </button>
-          ))}
+            );
+          })}
         </div>
         {shown < live.length ? (
           <button
@@ -2556,6 +2585,7 @@ function parseRepost(text: string): { title: string; lines: string[] } | null {
 function ChatLine({
   m,
   handle,
+  live,
   xlate,
   onReact,
   onReply,
@@ -2563,6 +2593,7 @@ function ChatLine({
 }: {
   m: ChatMsg;
   handle: string;
+  live?: boolean;
   xlate?: string;
   onReact: (ts: number, kind: "up" | "fire") => void;
   onReply: (m: ChatMsg) => void;
@@ -2583,8 +2614,9 @@ function ChatLine({
           <span style={{ color: handleColor(m.parentN) }}>{m.parentN}</span> · {m.parentT}
         </button>
       ) : null}
-      <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-        <HandleLink handle={m.n} className="text-[11px] font-semibold" />
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+        <AvatarImg handle={m.n} size={18} />
+        <HandleLink handle={m.n} live={live} className="text-[11px] font-semibold" />
         {repost ? (
           <>
             <span className="text-[11px] text-muted">·</span>

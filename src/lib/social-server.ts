@@ -179,6 +179,13 @@ export const getPublicProfile = createServerFn({ method: "GET" })
     } catch {
       photo = "";
     }
+    let lastSeen = 0;
+    try {
+      const seen = await sql<{ seen: number | string | null }>`select max(seen) as seen from nf_presence where lower(handle) = ${profile.handle.toLowerCase()}`;
+      lastSeen = Number(seen[0]?.seen || 0);
+    } catch {
+      lastSeen = 0;
+    }
     return {
       handle: profile.handle,
       bio: profile.bio ?? "",
@@ -189,6 +196,7 @@ export const getPublicProfile = createServerFn({ method: "GET" })
       website: profile.website ?? "",
       brand: profile.brand ?? "",
       photo,
+      lastSeen,
       posts: posts.map((p) => ({ ...p, ts: Number(p.ts), views: Number(p.views ?? 0) })),
       tracks,
     };

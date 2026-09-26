@@ -478,36 +478,30 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
 
   useEffect(() => {
     if (!signed) return;
-    void listMyCinema()
-      .then((rows) => setMyCinema(Array.isArray(rows) ? rows : []))
-      .catch(() => setMyCinema([]));
-    void listMyListings({ data: { kind: "job" } })
-      .then((rows) => setMyJobs(Array.isArray(rows) ? rows : []))
-      .catch(() => setMyJobs([]));
-    void listMyListings({ data: { kind: "market" } })
-      .then((rows) => setMyMarket(Array.isArray(rows) ? rows : []))
-      .catch(() => setMyMarket([]));
-    void listMyListings({ data: { kind: "rent" } })
-      .then((rows) => setMyRent(Array.isArray(rows) ? rows : []))
-      .catch(() => setMyRent([]));
-    void listMyApps()
-      .then((rows) => setMyApps(Array.isArray(rows) ? rows : []))
-      .catch(() => setMyApps([]));
-    void listListings({ data: { kind: "job" } })
-      .then((rows) => setOpenJobs(Array.isArray(rows) ? rows : []))
-      .catch(() => setOpenJobs([]));
-    void listMyApplicants()
-      .then((rows) => setMyApplicants(Array.isArray(rows) ? rows : []))
-      .catch(() => setMyApplicants([]));
+    let cancel = false;
     void listConnects()
-      .then((rows) => setConnects(Array.isArray(rows) ? rows : []))
-      .catch(() => setConnects([]));
+      .then((rows) => { if (!cancel) setConnects(Array.isArray(rows) ? rows : []); })
+      .catch(() => { if (!cancel) setConnects([]); });
     void staffMe()
-      .then((s) => setStaffRole(s.role))
-      .catch(() => setStaffRole(null));
+      .then((s) => { if (!cancel) setStaffRole(s.role); })
+      .catch(() => { if (!cancel) setStaffRole(null); });
     void getProfile()
-      .then((p) => setPhoto(p.photo || ""))
-      .catch(() => setPhoto(""));
+      .then((p) => { if (!cancel) setPhoto(p.photo || ""); })
+      .catch(() => { if (!cancel) setPhoto(""); });
+    const later = window.setTimeout(() => {
+      if (cancel) return;
+      void listMyCinema().then((rows) => setMyCinema(Array.isArray(rows) ? rows : [])).catch(() => setMyCinema([]));
+      void listMyListings({ data: { kind: "job" } }).then((rows) => setMyJobs(Array.isArray(rows) ? rows : [])).catch(() => setMyJobs([]));
+      void listMyListings({ data: { kind: "market" } }).then((rows) => setMyMarket(Array.isArray(rows) ? rows : [])).catch(() => setMyMarket([]));
+      void listMyListings({ data: { kind: "rent" } }).then((rows) => setMyRent(Array.isArray(rows) ? rows : [])).catch(() => setMyRent([]));
+      void listMyApps().then((rows) => setMyApps(Array.isArray(rows) ? rows : [])).catch(() => setMyApps([]));
+      void listListings({ data: { kind: "job" } }).then((rows) => setOpenJobs(Array.isArray(rows) ? rows : [])).catch(() => setOpenJobs([]));
+      void listMyApplicants().then((rows) => setMyApplicants(Array.isArray(rows) ? rows : [])).catch(() => setMyApplicants([]));
+    }, 700);
+    return () => {
+      cancel = true;
+      window.clearTimeout(later);
+    };
   }, [signed, store.handle]);
 
   function refreshMyMarket() {

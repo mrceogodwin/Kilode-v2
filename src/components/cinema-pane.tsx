@@ -104,21 +104,22 @@ export function CinemaPane() {
       </div>
 
       {how ? (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/55 p-3 sm:items-center" onClick={() => setHow(false)}>
-          <div className="w-full max-w-md rounded-2xl border border-line bg-panel p-4" onClick={(e) => e.stopPropagation()}>
+        <>
+          <button type="button" aria-label="Close" className="fixed inset-0 z-[70] bg-black/55" onClick={() => setHow(false)} />
+          <div className="fixed inset-x-3 bottom-[calc(3.7rem+env(safe-area-inset-bottom))] z-[71] mx-auto max-h-[68dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-line bg-panel p-4 sm:inset-x-auto sm:bottom-auto sm:top-1/2 sm:w-[28rem] sm:-translate-y-1/2">
             <div className="flex items-center justify-between">
-              <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">KMDB</div>
+              <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">EVENTS</div>
               <button type="button" onClick={() => setHow(false)} aria-label="Close"><X className="size-4" /></button>
             </div>
-            <h3 className="mt-1 text-base font-extrabold">KMDB. Trailers and votes. Kilode never hosts the file.</h3>
+            <h3 className="mt-1 text-base font-extrabold">Trailers and votes. Kilode never hosts the file.</h3>
             <ul className="mt-3 space-y-2 text-[12px] leading-snug text-muted">
               <li>YouTube embed only. Trailer or official clip.</li>
               <li>Join to vote once a day, rate 1–5 stars, and take the Kilode A–E quiz.</li>
-              <li>KMDB posters submit a YouTube URL. Staff approve. Votes can send it to Watching Now. A vote is not a prize and not a bet.</li>
+              <li>Cinema posters submit a YouTube URL. Staff approve. Votes can send it to Watching Now. A vote is not a prize and not a bet.</li>
               <li>Live talk beside the player is a watch-party chat — join this hour's discussion while it plays.</li>
             </ul>
           </div>
-        </div>
+        </>
       ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 dock-pad">

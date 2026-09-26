@@ -2215,10 +2215,11 @@ function Admin({ store }: { store: Store }) {
   return (
     <div className="mx-auto grid w-full min-w-0 max-w-5xl grid-cols-1 gap-3 overflow-x-hidden overflow-y-auto p-4 md:grid-cols-2">
       <div className="md:col-span-2">
-        <h2 className="text-xl font-bold">Super admin</h2>
+        <h2 className="text-xl font-bold">{role === "super" ? "Super admin" : role === "admin" ? "Admin" : "Sub-admin"}</h2>
         <p className="text-xs text-muted">
           Role {role} · id {userId}
         </p>
+        {role === "mod" ? <p className="mt-1 text-[12px] text-muted">Your desk is reports, warnings, and hiding flagged posts. API keys, SEO, wallets, and news tools stay with the owner.</p> : null}
       </div>
       {role === "super" ? <LivePausePanel /> : null}
       {role === "super" || role === "admin" ? (
@@ -2227,10 +2228,10 @@ function Admin({ store }: { store: Store }) {
           <VerifyKindPanel members={members} canKind={role === "super"} onReload={() => void listMembers().then(setMembers).catch(() => undefined)} />
         </div>
       ) : null}
-      <OpsKeysPanel />
-      <OpsSeoPanel />
+      {role === "super" ? <OpsKeysPanel /> : null}
+      {role === "super" ? <OpsSeoPanel /> : null}
       {role === "super" || role === "admin" ? <SitePulsePanel /> : null}
-      <AdsQueuePanel store={store} />
+      {role === "super" || role === "admin" ? <AdsQueuePanel store={store} /> : null}
       {role === "super" ? <SiteFlagsPanel /> : null}
       {role === "super" ? <AdCatalogPanel /> : null}
       {role === "super" ? <AdSlotsPanel /> : null}
@@ -2286,7 +2287,7 @@ function Admin({ store }: { store: Store }) {
           );
         })}
       </div>
-      <FeedsDeskPanel store={store} />
+      {role === "super" || role === "admin" ? <FeedsDeskPanel store={store} /> : null}
       {role === "super" ? <ShopAdminPanel /> : null}
       {role === "super" ? <SocialsAdminPanel /> : null}
       {role === "super" ? <ChatTtlPanel /> : null}

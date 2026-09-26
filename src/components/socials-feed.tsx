@@ -5,6 +5,79 @@ import { connectFellow, disconnectFellow, listConnects, applyTake, deleteOwnTake
 import { sendDm } from "@/lib/social-server";
 import { LinkText } from "@/components/link-text";
 
+const STOP = new Set(["the", "and", "that", "this", "with", "from", "your", "have", "just", "what", "when", "they", "them", "been", "were", "will", "into", "about", "after", "before", "their", "there", "would", "could", "should", "kilode"]);
+
+function heatOf(t: TakeRow) {
+  return t.likes * 3 + t.reposts * 4 + t.comments * 2 + t.fact + t.cap + t.voteA + t.voteB;
+}
+
+function TrendingDesk({ takes, fellows, live }: { takes: TakeRow[]; fellows: FellowRow[]; live: string[] }) {
+  const hot = [...takes].filter((t) => t.kind !== "ghost").sort((a, b) => heatOf(b) - heatOf(a)).slice(0, 6);
+  const bag = new Map<string, number>();
+  for (const t of takes) {
+    for (const w of t.body.toLowerCase().split(/[^a-z0-9]+/)) {
+      if (w.length < 4 || STOP.has(w)) continue;
+      bag.set(w, (bag.get(w) || 0) + 1);
+    }
+  }
+  const topics = [...bag.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const people = new Map<string, { name: string; handle: string; heat: number; verified: number }>();
+  for (const t of takes) {
+    if (!t.handle || t.kind === "ghost") continue;
+    const cur = people.get(t.handle.toLowerCase()) || { name: t.name, handle: t.handle, heat: 0, verified: t.verified };
+    cur.heat += heatOf(t);
+    people.set(t.handle.toLowerCase(), cur);
+  }
+  const movers = [...people.values()].sort((a, b) => b.heat - a.heat).slice(0, 6);
+  const quiet = hot.every((t) => heatOf(t) === 0);
+  return (
+    <section className="mb-3 space-y-2 rounded-[14px] border border-lime-2/30 bg-panel p-2.5">
+      <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">TRENDING ON KILODE</div>
+      <p className="text-[11px] text-muted">{quiet ? "Quiet hour. These are the newest gists until reactions pick up." : "Ranked from likes, reposts, replies, and Fact or Cap on this load. No background scan."}</p>
+      <div>
+        <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-fg">Posts</div>
+        <div className="space-y-1">
+          {hot.length === 0 ? <p className="text-[11px] text-muted">No gists yet.</p> : null}
+          {hot.map((t) => (
+            <div key={t.id} className="rounded-[10px] border border-line px-2 py-1.5">
+              <div className="flex items-center gap-1 text-[11px] font-semibold">
+                <span className="truncate">@{t.handle}</span>
+                {live.includes(t.handle.toLowerCase()) ? <span className="live-dot" /> : null}
+                {heatOf(t) >= 4 ? <span className="trend-chip">⚡ {heatOf(t)}</span> : null}
+              </div>
+              <p className="line-clamp-2 text-[12px] leading-snug">{t.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-fg">Topics</div>
+        <div className="flex flex-wrap gap-1">
+          {topics.length === 0 ? <p className="text-[11px] text-muted">Topics show once people post.</p> : null}
+          {topics.map(([w, n]) => (
+            <span key={w} className="rounded-full border border-line px-2 py-0.5 text-[11px]">
+              {w} · {n}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="mb-1 text-[10px] font-bold uppercase tracking-wide text-fg">People</div>
+        <div className="space-y-1">
+          {(movers.length ? movers : fellows.slice(0, 4).map((f) => ({ name: f.name, handle: f.handle, heat: 0, verified: f.verified }))).map((p) => (
+            <a key={p.handle} href={`/u/${encodeURIComponent(p.handle)}`} className="flex items-center gap-2 rounded-[10px] border border-line px-2 py-1.5">
+              <img src={avatarUrl(p.handle)} alt="" className="size-6 rounded-full" />
+              <span className="min-w-0 flex-1 truncate text-[12px] font-semibold">@{p.handle}</span>
+              {live.includes(p.handle.toLowerCase()) ? <span className="live-dot" /> : null}
+              {p.verified ? <span className="verified-mark shrink-0">✓</span> : null}
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 const KEY = "kilode-takes-v3";
 
 function bootCache(): { takes: TakeRow[]; fellows: FellowRow[] } {
@@ -117,6 +190,8 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
   const [busyId, setBusyId] = useState("");
   const [q, setQ] = useState("");
   const [people, setPeople] = useState<{ handle: string; name: string; role: string; line: string; verified: number }[]>([]);
+  const [live, setLive] = useState<string[]>([]);
+  const [trendOpen, setTrendOpen] = useState(false);
   const [reportId, setReportId] = useState("");
   const [menuTake, setMenuTake] = useState<TakeRow | null>(null);
   const [reportNote, setReportNote] = useState("");
@@ -144,6 +219,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
         });
         setFellows(r.fellows);
         setNext(r.next);
+        setLive(Array.isArray(r.live) ? r.live : []);
         writeCache(r.takes, r.fellows);
       })
       .catch(() => {
@@ -299,6 +375,13 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
         <div className="flex items-center gap-1">
           <button
             type="button"
+            className={`rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${trendOpen ? "border-lime-2 bg-lime-2 text-[#102016]" : "border-lime-2/50 bg-lime-2/10 text-lime-2"}`}
+            onClick={() => setTrendOpen((v) => !v)}
+          >
+            ⚡ Trending
+          </button>
+          <button
+            type="button"
             className="rounded-full border border-lime-2/40 bg-panel px-2.5 py-1 text-[10px] font-bold text-lime-2"
             onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))}
           >
@@ -313,16 +396,18 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
           </button>
         </div>
       </div>
+      {trendOpen ? <TrendingDesk takes={shownTakes} fellows={pool} live={live} /> : null}
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1">
         {shownFellows.length === 0 ? <p className="px-1 text-[11px] text-muted">Real members show here after they join.</p> : null}
         {shownFellows.map((f) => (
-          <div key={f.id} className="w-[148px] shrink-0 rounded-[12px] border border-line bg-panel px-2.5 py-2">
+          <div key={f.id} className="w-[158px] shrink-0 rounded-[12px] border border-line bg-panel px-2.5 py-2">
             <div className="flex items-center gap-1.5">
-              <img src={avatarUrl(f.handle)} alt="" className="size-7 rounded-full bg-panel-3 object-cover" />
-              <div className="min-w-0">
-                <div className="flex items-center gap-0.5 truncate text-[11px] font-semibold">
-                  {f.name}
-                  {f.verified ? <span className="verified-mark">✓</span> : null}
+              <img src={avatarUrl(f.handle)} alt="" className="size-7 shrink-0 rounded-full bg-panel-3 object-cover" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1 text-[11px] font-semibold">
+                  <span className="truncate">{f.name}</span>
+                  {live.includes(f.handle.toLowerCase()) ? <span className="live-dot" title="Active" /> : null}
+                  {f.verified ? <span className="verified-mark shrink-0">✓</span> : null}
                 </div>
                 <div className="truncate text-[9px] text-muted">{f.role}</div>
               </div>
@@ -497,6 +582,8 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
           <TakeCard
             key={t.id}
             take={t}
+            hot={heatOf(t) >= 4}
+            live={live.includes((t.handle || "").toLowerCase())}
             revealed={!!revealed[t.id]}
             applied={!!applied[t.id]}
             replyOpen={openReply === t.id}
@@ -692,6 +779,8 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
 
 function TakeCard({
   take,
+  hot,
+  live,
   revealed,
   applied,
   replyOpen,
@@ -708,6 +797,8 @@ function TakeCard({
   onReplySend,
 }: {
   take: TakeRow;
+  hot?: boolean;
+  live?: boolean;
   revealed: boolean;
   applied: boolean;
   replyOpen: boolean;
@@ -744,7 +835,8 @@ function TakeCard({
                 </a>
               )}
             </span>
-            {!ghost && take.verified ? <span className="verified-mark">✓</span> : null}
+            {!ghost && live ? <span className="live-dot" title="Active" /> : null}
+            {!ghost && take.verified ? <span className="verified-mark shrink-0">✓</span> : null}
             {!ghost ? <span className="truncate text-[10px] text-muted">@{take.handle}</span> : null}
             <span className="shrink-0 text-[10px] text-muted">· {timeAgo(take.ts)}</span>
             <button type="button" aria-label="Report gist" className="ml-auto shrink-0 px-1 text-[12px] font-bold tracking-widest text-muted" onClick={onReport}>
@@ -774,6 +866,7 @@ function TakeCard({
             <div className="mt-1 text-[10px] font-semibold tracking-[0.08em] text-lime-2">{take.meta.stance}</div>
           ) : null}
           {take.meta.street === true ? <div className="mt-0.5 text-[9px] text-amber-200/80">Street Certified</div> : null}
+          {hot ? <div className="trend-chip mt-1">⚡ Trending</div> : null}
 
           {locked ? (
             <button type="button" className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-[10px] border border-line py-3 text-[11px] text-muted" onClick={onReveal}>

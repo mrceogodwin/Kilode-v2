@@ -101,8 +101,22 @@ export function plainToSafeHtml(plain: string): string {
   if (!t) return "";
   return t
     .split(/\n{2,}/)
-    .map((block) => `<p>${escapeHtml(block).replace(/\n/g, "<br>")}</p>`)
+    .map((block) => `<p>${linkifyEscaped(escapeHtml(block).replace(/\n/g, "<br>"))}</p>`)
     .join("");
+}
+
+function linkifyEscaped(escaped: string): string {
+  return escaped.replace(/https?:\/\/[^\s<]+/gi, (raw) => {
+    const url = raw.replace(/[),.;!?]+$/g, "");
+    const tail = raw.slice(url.length);
+    let label = "Original";
+    try {
+      label = new URL(url).hostname.replace(/^www\./, "");
+    } catch {
+      /* keep short label */
+    }
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer nofollow">🔗 ${label}</a>${tail}`;
+  });
 }
 
 /** HTML string safe to inject for display (sanitized subset or escaped plain). */

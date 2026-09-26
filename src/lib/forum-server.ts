@@ -1178,13 +1178,13 @@ function safeSite(raw: string) {
 
 export const savePrefs = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { interests?: string; langs?: string; website?: string; skip?: boolean }) => d)
+  .validator((d: { interests?: string; langs?: string; website?: string; city?: string; skip?: boolean }) => d)
   .handler(async ({ context, data }) => {
     const interests = (data.interests || "")
       .split(",")
       .map((s) => s.trim().slice(0, 24))
       .filter(Boolean)
-      .slice(0, 5)
+      .slice(0, 8)
       .join(",");
     const langs = (data.langs || "en")
       .split(",")
@@ -1193,6 +1193,7 @@ export const savePrefs = createServerFn({ method: "POST" })
       .slice(0, 5)
       .join(",") || "en";
     const website = data.website !== undefined ? safeSite(data.website) : undefined;
+    const city = (data.city || "").trim().slice(0, 40);
     if (data.website && data.website.trim() && !website) return { ok: false as const, reason: "Use a normal http or https link." };
     const sql = await getSql();
     try {
@@ -1200,14 +1201,78 @@ export const savePrefs = createServerFn({ method: "POST" })
       await sql`alter table nf_profiles add column if not exists langs text not null default ''`;
       await sql`alter table nf_profiles add column if not exists onboarded integer not null default 0`;
       if (website !== undefined) {
-        await sql`update nf_profiles set interests = ${interests}, langs = ${langs}, website = ${website}, onboarded = ${1} where user_id = ${context.userId}`;
+        await sql`update nf_profiles set interests = ${interests}, langs = ${langs}, website = ${website}, city = ${city}, onboarded = ${1} where user_id = ${context.userId}`;
       } else {
-        await sql`update nf_profiles set interests = ${data.skip ? "" : interests}, langs = ${langs}, onboarded = ${1} where user_id = ${context.userId}`;
+        await sql`update nf_profiles set interests = ${data.skip ? "" : interests}, langs = ${langs}, city = ${data.skip ? "" : city}, onboarded = ${1} where user_id = ${context.userId}`;
       }
     } catch {
       return { ok: false as const, reason: "Could not save. Try again." };
     }
-    return { ok: true as const, interests: data.skip ? "" : interests, langs, website };
+    return { ok: true as const, interests: data.skip ? "" : interests, langs, website, city: data.skip ? "" : city };
+  });
+
+export const deleteOwnPost = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((id: string) => id)
+  .handler(async ({ context, data: id }) => {
+    const postId = String(id || "").trim().slice(0, 80);
+    if (!postId) return { ok: false as const, reason: "Missing story." };
+    const sql = await getSql();
+    const me = (await publicHandle(context.userId)).toLowerCase();
+    const rows = await sql<{ author: string }>`select author from nf_posts where id = ${postId} limit 1`;
+    if (!rows[0]) return { ok: false as const, reason: "Story is already gone." };
+    if (rows[0].author.toLowerCase() !== me) return { ok: false as const, reason: "You can only delete a story you posted." };
+    await sql`update nf_posts set status = ${"hidden"} where id = ${postId}`;
+    return { ok: true as const };
+  });
+
+async function ensureSeen(sql: Awaited<ReturnType<typeof getSql>>) {
+  await sql`create table if not exists nf_seen (
+    post_id text not null,
+    viewer_id text not null,
+    handle text not null,
+    ts bigint not null,
+    primary key (post_id, viewer_id)
+  )`;
+}
+
+export const notePostSeen = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((id: string) => id)
+  .handler(async ({ context, data: id }) => {
+    const postId = String(id || "").trim().slice(0, 80);
+    if (!postId) return { ok: false as const };
+    if (!(await allowWrite(`seen:${context.userId}`, 30))) return { ok: false as const };
+    const sql = await getSql();
+    try {
+      await ensureSeen(sql);
+      const me = await publicHandle(context.userId);
+      const author = await sql<{ author: string }>`select author from nf_posts where id = ${postId} limit 1`;
+      if (author[0] && author[0].author.toLowerCase() === me.toLowerCase()) return { ok: true as const };
+      await sql`insert into nf_seen (post_id, viewer_id, handle, ts) values (${postId}, ${context.userId}, ${me}, ${Date.now()}) on conflict (post_id, viewer_id) do nothing`;
+    } catch {
+      return { ok: false as const };
+    }
+    return { ok: true as const };
+  });
+
+export const listPostSeen = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator((id: string) => id)
+  .handler(async ({ context, data: id }) => {
+    const postId = String(id || "").trim().slice(0, 80);
+    if (!postId) return [] as { handle: string; ts: number }[];
+    const sql = await getSql();
+    const me = (await publicHandle(context.userId)).toLowerCase();
+    const author = await sql<{ author: string }>`select author from nf_posts where id = ${postId} limit 1`;
+    if (!author[0] || author[0].author.toLowerCase() !== me) return [];
+    try {
+      await ensureSeen(sql);
+      const rows = await sql<{ handle: string; ts: number | string }>`select handle, ts from nf_seen where post_id = ${postId} order by ts desc limit 24`;
+      return rows.map((r) => ({ handle: r.handle, ts: Number(r.ts) }));
+    } catch {
+      return [];
+    }
   });
 
 export const sendMail = createServerFn({ method: "POST" })

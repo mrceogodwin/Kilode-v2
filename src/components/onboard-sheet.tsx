@@ -1,16 +1,20 @@
 import { useState } from "react";
 import { KIND_INTERESTS, LANG_CHOICES, type AccountKind } from "@/lib/qonvo-data";
 
+const HOBBIES = ["Music", "Football", "Film", "Fashion", "Food", "Tech", "Comedy", "Faith", "Fitness", "Business"];
+
 export function OnboardSheet({
   kind,
   onDone,
 }: {
   kind: AccountKind;
-  onDone: (d: { interests?: string; langs?: string; website?: string; skip?: boolean }) => Promise<{ ok: boolean; reason?: string }>;
+  onDone: (d: { interests?: string; langs?: string; website?: string; city?: string; skip?: boolean }) => Promise<{ ok: boolean; reason?: string }>;
 }) {
   const topics = KIND_INTERESTS[kind] ?? KIND_INTERESTS.member;
   const [step, setStep] = useState(0);
   const [picked, setPicked] = useState<string[]>([]);
+  const [hobbies, setHobbies] = useState<string[]>([]);
+  const [city, setCity] = useState("");
   const [langs, setLangs] = useState<string[]>(["en"]);
   const [site, setSite] = useState("");
   const [agree, setAgree] = useState(false);
@@ -24,12 +28,14 @@ export function OnboardSheet({
   async function finish(skip = false) {
     setBusy(true);
     setErr("");
+    const interests = [...picked, ...hobbies].filter((v, i, a) => a.indexOf(v) === i).slice(0, 8);
     const r = await onDone(
       skip
         ? { skip: true, langs: "en" }
         : {
-            interests: picked.join(","),
+            interests: interests.join(","),
             langs: langs.join(","),
+            city: city.trim(),
             website: kind === "artist" ? site : undefined,
           },
     );
@@ -38,9 +44,9 @@ export function OnboardSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-40 grid place-items-end bg-black/50 p-3 sm:place-items-center">
+    <div className="fixed inset-0 z-[80] grid place-items-end bg-black/50 p-3 pb-[calc(4.2rem+env(safe-area-inset-bottom))] sm:place-items-center sm:pb-3">
       <div className="w-full max-w-md rounded-2xl border border-line bg-panel p-4 shadow-2xl">
-        <p className="text-[10px] font-bold tracking-[0.16em] text-lime-2">STEP {step + 1} OF 3</p>
+        <p className="text-[10px] font-bold tracking-[0.16em] text-lime-2">STEP {step + 1} OF 4</p>
         {step === 0 ? (
           <>
             <h2 className="mt-1 text-lg font-extrabold">What do you want on Kilode?</h2>
@@ -79,6 +85,31 @@ export function OnboardSheet({
         ) : null}
         {step === 2 ? (
           <>
+            <h2 className="mt-1 text-lg font-extrabold">Where are you, and what do you do for fun?</h2>
+            <p className="mt-1 text-[12px] text-muted">City helps people near you. Hobbies help Socials line you up with the right fellows. Both are optional.</p>
+            <input
+              value={city}
+              onChange={(e) => setCity(e.target.value.slice(0, 40))}
+              placeholder="City — Lagos, Abuja, London…"
+              className="mt-3 w-full rounded-lg border border-line bg-bg px-3 py-2 outline-none"
+              style={{ fontSize: 16 }}
+            />
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {HOBBIES.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className={`rounded-full border px-2.5 py-1 text-[12px] font-semibold ${hobbies.includes(t) ? "border-lime-2 bg-lime-2/15 text-lime-2" : "border-line"}`}
+                  onClick={() => setHobbies((p) => toggle(p, t, 4))}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </>
+        ) : null}
+        {step === 3 ? (
+          <>
             <h2 className="mt-1 text-lg font-extrabold">Keep it human</h2>
             <p className="mt-1 text-[12px] leading-snug text-muted">No scams, no harassment, no fake listings. Your account type stays the one you picked at Join.</p>
             {kind === "artist" ? (
@@ -110,7 +141,7 @@ export function OnboardSheet({
               Skip
             </button>
           )}
-          {step < 2 ? (
+          {step < 3 ? (
             <button type="button" className="btn-join flex-1 rounded-lg py-2 text-[12px] font-bold" onClick={() => setStep((n) => n + 1)}>
               Next
             </button>

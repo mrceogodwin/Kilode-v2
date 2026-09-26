@@ -885,12 +885,13 @@ export function useQonvo() {
     return false;
   }, [note, session.user]);
 
-  const finishOnboard = useCallback(async (d: { interests?: string; langs?: string; website?: string; skip?: boolean }) => {
+  const finishOnboard = useCallback(async (d: { interests?: string; langs?: string; website?: string; city?: string; skip?: boolean }) => {
     const r = await savePrefs({ data: d });
     if (!r.ok) return r;
     setInterests(r.interests);
     setLangs(r.langs);
     if (typeof r.website === "string") setWebsite(r.website);
+    if (typeof r.city === "string" && r.city) setCity(r.city);
     setOnboarded(1);
     return r;
   }, []);
