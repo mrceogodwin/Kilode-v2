@@ -2236,7 +2236,22 @@ function Admin({ store }: { store: Store }) {
     return (
       <div className="mx-auto max-w-sm space-y-3 p-5">
         <h2 className="text-xl font-bold">Staff console</h2>
-        <p className="text-sm text-muted">This account is not staff. Sign in on the staff door (tap the mark 5 times) with the owner account.</p>
+        <p className="text-sm text-muted">This account is not staff. The console belongs to the username that claimed it first. If that is you and you made a new account with the same username, link it.</p>
+        <button
+          type="button"
+          className="auth-cta w-full"
+          onClick={() => {
+            void claimOps().then((r) => {
+              if (r.ok) {
+                setRole(r.role === "admin" || r.role === "mod" ? r.role : "super");
+                setEmpty(false);
+              } else setMsg(r.reason);
+            });
+          }}
+        >
+          Link this username
+        </button>
+        {msg ? <p className="text-sm text-danger">{msg}</p> : null}
       </div>
     );
   }

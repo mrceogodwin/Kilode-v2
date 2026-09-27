@@ -1640,3 +1640,175 @@ html[data-skin="ivory"] .news-plus {
   background: #111;
   color: #facc15;
 }
+
+.kilode-lockup {
+  display: block;
+  height: 38px;
+  width: 132px;
+  border-radius: 10px;
+  object-fit: cover;
+  object-position: 18% 46%;
+}
+.kilode-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: #000;
+  animation: splash-out 0.35s ease 0.9s forwards;
+}
+.kilode-splash-logo {
+  width: min(86vw, 420px);
+  height: auto;
+  border-radius: 16px;
+  animation: splash-in 0.45s cubic-bezier(0.18, 0.9, 0.32, 1.2) both;
+}
+@keyframes splash-in {
+  from { opacity: 0; transform: scale(0.86); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes splash-out {
+  to { opacity: 0; visibility: hidden; }
+}
+.menu-hero-card {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top-color: rgba(255, 255, 255, 0.16);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  padding: 10px;
+}
+.lane-rail {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.lane-rail::-webkit-scrollbar { display: none; }
+.lane-chip {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: #d4d4d4;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+}
+.lane-chip.on {
+  background: #facc15;
+  border-color: #facc15;
+  color: #111;
+}
+.split-rail {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 6px;
+  min-height: 168px;
+}
+.split-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-height: 168px;
+  text-align: left;
+}
+.split-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.split-card span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 18px 8px 8px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.82));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.split-card em {
+  display: block;
+  margin-bottom: 2px;
+  font-style: normal;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: #facc15;
+}
+.pulse-card {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top-color: rgba(255, 255, 255, 0.16);
+  background: #121417;
+  padding: 10px 12px;
+}
+.pulse-row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #f3f4f6;
+}
+.pulse-row i {
+  display: block;
+  height: 6px;
+  border-radius: 99px;
+  background: #facc15;
+}
+html[data-skin="ivory"] {
+  --color-bg: #f4f4f2;
+  --color-panel: #ffffff;
+  --color-panel-2: #f7f7f5;
+  --color-panel-3: #ececea;
+  --color-fg: #111111;
+  --color-muted: #5c5c5c;
+  --color-lime: #111111;
+  --color-lime-2: #111111;
+  --color-line: #e4e4e1;
+}
+html[data-skin="ivory"] body,
+html[data-skin="ivory"] .kilode-shell {
+  background: #f4f4f2;
+  color: #111;
+}
+html[data-skin="ivory"] .kilode-chrome {
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+html[data-skin="ivory"] .hdr-ico {
+  background: #fff;
+  color: #111;
+  border: 1px solid #111;
+}
+html[data-skin="ivory"] .dock {
+  background: #fff;
+  border: 1px solid #111;
+  box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.06);
+}
+html[data-skin="ivory"] .app-tab { color: #111; background: transparent; border: 0; box-shadow: none; }
+html[data-skin="ivory"] .app-tab.on { color: #111; background: transparent; }
+html[data-skin="ivory"] .dock-plus { background: #111; color: #fff; box-shadow: none; }
+html[data-skin="ivory"] .lane-chip { color: #111; border-color: #111; }
+html[data-skin="ivory"] .lane-chip.on { background: #111; color: #fff; border-color: #111; }
+html[data-skin="ivory"] .btn-join,
+html[data-skin="ivory"] .news-plus {
+  background: #111;
+  color: #fff;
+}
+html[data-skin="ivory"] .raised,
+html[data-skin="ivory"] .glass-3d,
+html[data-skin="ivory"] .menu-sheet {
+  background: #fff;
+  color: #111;
+  border-color: #e4e4e1;
+}

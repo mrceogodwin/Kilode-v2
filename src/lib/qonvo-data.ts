@@ -138,7 +138,7 @@ export function handleLabel(handle: string) {
 
 export const KIND_PURPOSE: Record<AccountKind, string> = {
   member: "Chat live, post in Feeds, vote Cinema, apply to jobs.",
-  artist: "List music as a URL. We embed the platform player — Kilode never hosts audio files.",
+  artist: "Share the link to Spotify, Audiomack, Apple, or YouTube. Kilode does not play the file. Verified artists get the Kilode Artist mark and a public bio.",
   writer: "Publish news and opinion in Feeds under your handle.",
   advertiser: "Place paid ads. Copy the wallet, pay crypto, staff approve.",
   cinema: "Submit movie YouTube URLs. Staff approve. Votes send them to Watching Now.",

@@ -28,12 +28,27 @@ export async function assertStaff(userId: string, need?: "super") {
   return me;
 }
 
+async function rebindStaff(sql: Awaited<ReturnType<typeof getSql>>, userId: string) {
+  const who = await sql<{ name: string }>`select name from "user" where id = ${userId} limit 1`;
+  const handle = (who[0]?.name || "").trim().toLowerCase();
+  if (!handle) return null;
+  const rows = await sql<{ user_id: string; role: string }>`select user_id, role from nf_staff where lower(handle) = ${handle} limit 1`;
+  const row = rows[0];
+  if (!row || row.user_id === userId) return row ?? null;
+  await sql`update nf_staff set user_id = ${userId} where user_id = ${row.user_id}`;
+  return { user_id: userId, role: row.role };
+}
+
 export const staffMe = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
     const count = await sql<{ n: string | number }>`select count(*) as n from nf_staff`;
-    const mine = await staffOf(context.userId);
+    let mine = await staffOf(context.userId);
+    if (!mine) {
+      const rebound = await rebindStaff(sql, context.userId).catch(() => null);
+      if (rebound) mine = await staffOf(context.userId);
+    }
     return { role: mine?.role ?? null, empty: Number(count[0]?.n ?? 0) === 0, userId: context.userId };
   });
 
@@ -41,8 +56,12 @@ export const claimOps = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
+    const already = await staffOf(context.userId);
+    if (already) return { ok: true as const, role: already.role as StaffRole };
+    const rebound = await rebindStaff(sql, context.userId).catch(() => null);
+    if (rebound) return { ok: true as const, role: (rebound.role || "super") as StaffRole };
     const count = await sql<{ n: string | number }>`select count(*) as n from nf_staff`;
-    if (Number(count[0]?.n ?? 0) > 0) return { ok: false as const, reason: "Staff already claimed" };
+    if (Number(count[0]?.n ?? 0) > 0) return { ok: false as const, reason: "Staff already claimed. Sign in with the owner username, or use the same username this console was claimed with." };
     const who = await sql<{ name: string }>`select name from "user" where id = ${context.userId} limit 1`;
     const handle = (who[0]?.name || context.userId).slice(0, 24);
     try {

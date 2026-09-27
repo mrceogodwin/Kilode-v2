@@ -50,6 +50,9 @@ import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, ch
 import { canKind, canCreateMenu, createLabelFor } from "@/lib/permissions";
 import { listConnects, replyConnect, type ConnectRow } from "@/lib/takes-server";
 import { listInbox } from "@/lib/social-server";
+import { SplashScreen } from "@/components/splash-screen";
+import { unlockSound, pingMessage } from "@/lib/ping";
+import { useRealtimeInbox } from "@/lib/use-realtime";
 import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen, openRoleCreate, queueNewsPost } from "@/components/qonvo-screens";
@@ -205,9 +208,12 @@ function mixChatAds(rows: ChatRow[], ads: Campaign[]): ChatRow[] {
 
 export function QonvoApp({ initialSite }: { initialSite?: PublicSite } = {}) {
   return (
-    <PublicSiteProvider initial={initialSite}>
-      <QonvoAppInner />
-    </PublicSiteProvider>
+    <>
+      <SplashScreen />
+      <PublicSiteProvider initial={initialSite}>
+        <QonvoAppInner />
+      </PublicSiteProvider>
+    </>
   );
 }
 
@@ -217,6 +223,16 @@ function QonvoAppInner() {
   const videosMenuVisible = site.videosMenuVisible !== false;
   const session = useCurrentUserState();
   const signedIn = Boolean(session.user);
+  const [dmCount, setDmCount] = useState(0);
+  const dmSeen = useRef(0);
+  useEffect(() => {
+    const arm = () => unlockSound();
+    window.addEventListener("pointerdown", arm, { once: true });
+    return () => window.removeEventListener("pointerdown", arm);
+  }, []);
+  useRealtimeInbox(signedIn ? session.user?.id ?? null : null, () => {
+    setDmCount((n) => n + 1);
+  });
   const [query, setQuery] = useState("");
   const [region, setRegion] = useState("All");
   const [draft, setDraft] = useState("");
@@ -226,7 +242,6 @@ function QonvoAppInner() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [screen, setScreen] = useState<MenuId>("home");
-  const [dmCount, setDmCount] = useState(0);
   useEffect(() => {
     if (!signedIn) {
       setDmCount(0);
@@ -238,6 +253,8 @@ function QonvoAppInner() {
         if (stop) return;
         const me = (store.handle || "").toLowerCase();
         const n = rows.filter((r) => r.from && r.from.toLowerCase() !== me && r.from.toLowerCase() !== "kilode africa").length;
+        if (dmSeen.current && n > dmSeen.current) pingMessage();
+        dmSeen.current = n;
         setDmCount(n);
       })
       .catch(() => {
@@ -506,10 +523,7 @@ function QonvoAppInner() {
                 goHome();
               }}
             >
-              <span className="kilode-bang-3d" aria-hidden>
-                <img src="/kilode-bang-mark-white.png" alt="" />
-              </span>
-              <span className="kilode-wordmark">Kilode</span>
+              <img src="/kilode-lockup.jpg" alt="" className="kilode-lockup" />
             </button>
             <div className="ml-auto flex items-center gap-1">
               <button
@@ -1035,6 +1049,7 @@ function QonvoAppInner() {
           title={signedIn ? createLabelFor(store.kind) : "Create"}
           onClick={() => {
             setMenuOpen(false);
+            if (session.isPending) return;
             if (!signedIn) {
               window.location.href = "/login?mode=up";
               return;
@@ -1058,6 +1073,7 @@ function QonvoAppInner() {
           on={screen === "dashboard" || screen === "profile"}
           onClick={() => {
             setMenuOpen(false);
+            if (session.isPending) return;
             if (signedIn) setScreen("dashboard");
             else window.location.href = "/login?mode=up";
           }}
@@ -1140,7 +1156,7 @@ function QonvoAppInner() {
             <div className="menu-head flex items-center gap-3">
               <AvatarImg handle={store.handle || "Guest"} face={store.face} size={48} />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-extrabold tracking-tight">{store.handle || "Guest"}</div>
+                <div className="truncate text-sm font-extrabold tracking-tight">{session.user ? store.handle || "Member" : "Guest"}</div>
                 <div className="text-[10px] tracking-normal text-lime-2">
                   {session.user ? ACCOUNT_KINDS.find((k) => k.id === store.kind)?.label ?? "Member" : "Browse free · join to post"}
                 </div>
@@ -1151,7 +1167,8 @@ function QonvoAppInner() {
               <SkinToggle />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-5">
-              <div className="mb-4 grid grid-cols-3 gap-2 px-0.5">
+              <div className="menu-hero-card mb-4">
+                <div className="grid grid-cols-3 gap-2">
                 {(signedIn
                   ? [
                       store.kind === "artist"
@@ -1175,9 +1192,9 @@ function QonvoAppInner() {
                     <div className="text-[9px] text-muted">{s.l}</div>
                   </div>
                 ))}
-              </div>
+                </div>
 
-              <div className="mb-4 px-0.5">
+              <div className="mt-3">
                 <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Quick</div>
                 <div className="grid grid-cols-2 gap-2">
                   {(signedIn
@@ -1221,12 +1238,13 @@ function QonvoAppInner() {
                   })}
                 </div>
               </div>
+              </div>
 
               <DrawerGroup label="Kilode">
                 <DrawerRow icon={Briefcase} label="Jobs" hint="Roles and applications" onClick={() => { setScreen("jobs"); setMenuOpen(false); }} on={screen === "jobs"} />
                 <DrawerRow icon={Home} label="Feeds" hint="News for Nigeria" onClick={() => { store.setOpenPost(null); setMarketDesk(null); setScreen("home"); setHomeTab("feeds"); setMenuOpen(false); }} on={homeTab === "feeds" && screen === "home" && !marketDesk} />
                 <DrawerRow icon={MessageSquare} label="Chat" hint="Live rooms · topics & places" onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }} on={homeTab === "chat" && screen === "home"} />
-                <DrawerRow icon={Radio} label="Music" hint="Artist links. We embed." onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
+                <DrawerRow icon={Radio} label="Music" hint="Opens the artist's platform" onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
                 <DrawerRow icon={Globe} label="Socials" hint="Takes, fellows, gists" onClick={() => { setScreen("home"); setHomeTab("socials"); setMarketDesk(null); setMenuOpen(false); }} on={homeTab === "socials" && screen === "home"} />
                 <DrawerRow icon={Film} label="Events" hint="What's on, RSVP" onClick={() => { setScreen("home"); setHomeTab("cinema"); setMenuOpen(false); }} on={homeTab === "cinema" && screen === "home"} />
                 <DrawerRow icon={Play} label="Cinema" hint="Watch and vote. Not on the bottom bar." onClick={() => { setScreen("home"); setHomeTab("watch"); setMenuOpen(false); }} on={homeTab === "watch" && screen === "home"} />
@@ -1856,7 +1874,6 @@ function DrawerRow({
 function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd: () => void }) {
   const [q, setQ] = useState("");
   const [genre, setGenre] = useState<(typeof MUSIC_GENRES)[number]>("All");
-  const [play, setPlay] = useState<string | null>(null);
   const [mineShown, setMineShown] = useState(8);
   const [digShown, setDigShown] = useState(8);
 
@@ -1887,7 +1904,6 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
 
   function Tile({ t, compact }: { t: (typeof store.tracks)[number]; compact?: boolean }) {
     if (!t?.id) return null;
-    const on = play === t.id;
     return (
       <div className="raised overflow-hidden rounded-lg">
         <button
@@ -1895,8 +1911,9 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
           data-play="1"
           className={`flex w-full items-center gap-1.5 text-left ${compact ? "px-1 py-1" : "px-1.5 py-1.5"}`}
           onClick={() => {
-            setPlay(on ? null : t.id);
-            if (!on) store.see("tracks", t.id);
+            const href = t.url || t.embed;
+            if (href) window.open(href, "_blank", "noopener,noreferrer");
+            store.see("tracks", t.id);
           }}
         >
           {t.cover ? (
@@ -1920,11 +1937,8 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
               {!compact ? ` · ${t.platform}` : ""}
             </div>
           </div>
-          <Play className="size-3 shrink-0 text-lime-2" />
+          <span className="text-[10px] font-bold text-[#FACC15]">Open</span>
         </button>
-        {on && t.embed ? (
-          <iframe title={t.title} src={`${t.embed}${t.embed.includes("?") ? "&" : "?"}theme=0`} className="h-[72px] w-full border-0" allow="encrypted-media; autoplay" />
-        ) : null}
       </div>
     );
   }
@@ -1943,7 +1957,7 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
               type="button"
               className="w-[88px] shrink-0 text-left"
               onClick={() => {
-                setPlay(t.id);
+                if (t.url) window.open(t.url, "_blank", "noopener,noreferrer");
                 store.see("tracks", t.id);
               }}
             >
@@ -2429,13 +2443,91 @@ function EmptyHero({ title, body, cta, onClick }: { title: string; body: string;
 }
 
 
+const FEED_LANES: [string, string][] = [
+  ["foryou", "For you"],
+  ["latest", "Latest"],
+  ["following", "Following"],
+  ["entertainment", "Entertainment"],
+  ["music", "Music"],
+  ["nollywood", "Nollywood"],
+  ["trending", "Trending"],
+  ["sports", "Sports"],
+  ["politics", "Politics"],
+  ["tech", "Tech & Biz"],
+  ["lifestyle", "Lifestyle"],
+  ["comedy", "Comedy"],
+  ["gossip", "Gossip"],
+  ["events", "Events"],
+  ["community", "Community"],
+  ["naija", "Naija Pulse"],
+  ["afrobeats", "Afrobeats"],
+  ["jobs", "Jobs"],
+];
+
+const LANE_MATCH: Record<string, string[]> = {
+  entertainment: ["Culture", "Comedy", "Music", "Fashion"],
+  music: ["Music"],
+  afrobeats: ["Music"],
+  nollywood: ["Culture"],
+  trending: ["News", "Naija", "Politics"],
+  sports: ["Sports"],
+  politics: ["Politics"],
+  tech: ["Tech", "Business"],
+  lifestyle: ["Lifestyle", "Fashion", "Food", "Travel", "Health"],
+  comedy: ["Comedy"],
+  gossip: ["Culture", "Opinion"],
+  events: ["General"],
+  community: ["Opinion", "General"],
+  naija: ["Naija", "News"],
+  jobs: ["Jobs"],
+};
+
+function SplitRail({ posts, onOpen }: { posts: { id: string; title: string; image?: string; category?: string }[]; onOpen: (id: string) => void }) {
+  if (posts.length < 3) return null;
+  return (
+    <div className="split-rail mb-3">
+      {posts.map((p) => (
+        <button key={p.id} type="button" className="split-card" onClick={() => onOpen(p.id)}>
+          <img src={p.image} alt="" />
+          <span>
+            <em>{p.category || "Kilode"}</em>
+            {p.title}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PulseStrip({ posts }: { posts: { category?: string; views?: number }[] }) {
+  const counts = new Map<string, number>();
+  for (const p of posts) {
+    const c = p.category || "General";
+    counts.set(c, (counts.get(c) ?? 0) + (p.views ?? 0) + 1);
+  }
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+  if (!top.length) return null;
+  const max = top[0][1] || 1;
+  return (
+    <section className="pulse-card mb-3">
+      <div className="mb-1 text-[10px] font-semibold tracking-[0.14em] text-[#FACC15]">TRENDING IN YOUR FEED</div>
+      {top.map(([name, n]) => (
+        <div key={name} className="pulse-row">
+          <span>{name}</span>
+          <i style={{ width: `${Math.max(12, Math.round((n / max) * 100))}%` }} />
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void }) {
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(48);
   const [catsOpen, setCatsOpen] = useState(false);
   const [repost, setRepost] = useState<(typeof store.posts)[number] | null>(null);
   const [cap, setCap] = useState("");
-  const [lane, setLane] = useState<"foryou" | "latest" | "following">("latest");
+  const [lane, setLane] = useState("latest");
   const [follows, setFollows] = useState<string[] | null>(null);
   useEffect(() => {
     if (lane !== "following" || follows) return;
@@ -2451,6 +2543,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
         !!p?.id &&
         p.status !== "draft" &&
         (cat === "All" || p.category === cat) &&
+        (lane === "foryou" || lane === "latest" || lane === "following" || (LANE_MATCH[lane] || []).includes(p.category || "General")) &&
         (!needle ||
           `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase().includes(needle)),
     )
@@ -2531,32 +2624,19 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
               }}
             />
             <MarketRail onPick={onDesk} />
+            <SplitRail posts={store.posts.filter((p) => p.status !== "draft" && p.image).slice(0, 3)} onOpen={(id) => store.setOpenPost(id)} />
+            <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} />
           </>
         )}
         <div className="mb-2">
-          <div className="flex items-center gap-2">
-            <div className="text-[15px] font-extrabold tracking-tight">Latest post</div>
-            <button
-              type="button"
-              className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[12px] font-semibold"
-              onClick={() => setCatsOpen((v) => !v)}
-            >
-              Categories
-              <ChevronDown className={`size-3 transition ${catsOpen ? "rotate-180" : ""}`} />
-            </button>
-          </div>
-          <div className="mt-2 flex items-center gap-1 text-[13px]">
-            {(
-              [
-                ["foryou", "For you"],
-                ["latest", "Latest"],
-                ["following", "Following"],
-              ] as const
-            ).map(([id, label]) => (
+          <div className="lane-rail" role="tablist" aria-label="Feeds">
+            {FEED_LANES.map(([id, label]) => (
               <button
                 key={id}
                 type="button"
-                className={`rounded-full px-3 py-1 font-semibold ${lane === id ? "bg-lime-2 text-[#102016]" : "text-muted"}`}
+                role="tab"
+                aria-selected={lane === id}
+                className={`lane-chip ${lane === id ? "on" : ""}`}
                 onClick={() => {
                   setLane(id);
                   setShown(48);

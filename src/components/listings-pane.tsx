@@ -142,7 +142,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [msg, setMsg] = useState("");
   const [shown, setShown] = useState(12);
   const [filter, setFilter] = useState("All");
-  const [formOn, setFormOn] = useState(false);
+  const [legal, setLegal] = useState(false);
   const [open, setOpen] = useState<Card | null>(null);
 
   function load() {
@@ -238,12 +238,22 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
               </div>
               {err ? <p className="text-[11px] text-danger">{err}</p> : null}
               {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
+              {kind === "job" ? (
+                <label className="flex items-start gap-2 text-[11px] leading-snug text-muted">
+                  <input type="checkbox" className="mt-0.5" checked={legal} onChange={(e) => setLegal(e.target.checked)} />
+                  <span>Kilode is only the discovery board. It is not the employer and is not liable for the role, the recruiter, or what applicants send. Verify the other person before you share private details.</span>
+                </label>
+              ) : null}
               <button
                 type="button"
                 className="btn-join rounded-lg px-3 py-2 text-base font-bold"
                 onClick={() => {
                   setErr("");
                   setMsg("");
+                  if (kind === "job" && !legal) {
+                    setErr("Tick the notice before you post a job.");
+                    return;
+                  }
                   void saveListing({ data: { kind, title, body, city, contact, link, company, days } }).then((r) => {
                     if (!r?.ok) setErr(r && "reason" in r ? r.reason : "Could not post.");
                     else {
@@ -285,12 +295,22 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             </div>
             {kind === "job" ? (
               session.user && canApply ? (
-                <div className="mt-3 flex gap-1">
+                <div className="mt-3 space-y-2">
+                  <label className="flex items-start gap-2 text-[11px] leading-snug text-muted">
+                    <input type="checkbox" className="mt-0.5" checked={legal} onChange={(e) => setLegal(e.target.checked)} />
+                    <span>Kilode only introduces you. It does not hire, pay, or check the employer. Verify them before you send a CV or personal details.</span>
+                  </label>
+                  <div className="flex gap-1">
                   <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Short apply note" className="min-w-0 flex-1 rounded border border-line bg-panel px-2 py-1.5 text-base" />
                   <button
                     type="button"
                     className="btn-3d rounded-md px-3 text-[11px] font-semibold"
                     onClick={() => {
+                      if (!legal) {
+                        setErr("Tick the notice before you apply.");
+                        setLegal(false);
+                        return;
+                      }
                       void applyListing({ data: { id: open.id, note } }).then((a) => {
                         if (!a.ok) setErr("reason" in a ? a.reason : "Could not apply.");
                         else setMsg("Application sent. Contact is on the listing — Kilode does not hire for you.");
@@ -299,6 +319,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                   >
                     Apply
                   </button>
+                  </div>
                 </div>
               ) : (
                 <div className="mt-3 text-center">
