@@ -148,11 +148,11 @@ function Login() {
             ) : null}
             {err ? <p className="text-sm text-danger">{err}</p> : null}
             {mode === "up" ? (
-              <button type="button" disabled={busy} className="btn-join w-full rounded-lg py-2 text-sm font-bold disabled:opacity-60" onClick={() => void up()}>
+              <button type="button" disabled={busy} className="auth-cta w-full disabled:opacity-60" onClick={() => void up()}>
                 {busy ? "Working…" : staff ? "Create owner account" : "Create account"}
               </button>
             ) : (
-              <button type="button" disabled={busy} className="btn-join w-full rounded-lg py-2 text-sm font-bold disabled:opacity-60" onClick={() => void inn()}>
+              <button type="button" disabled={busy} className="auth-cta w-full disabled:opacity-60" onClick={() => void inn()}>
                 {busy ? "Working…" : staff ? "Enter console" : "Sign in"}
               </button>
             )}

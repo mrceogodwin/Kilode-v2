@@ -68,7 +68,7 @@ function TrendPage({ onClose, faces, live }: { onClose: () => void; faces: Recor
           <button
             key={id}
             type="button"
-            className={`shrink-0 rounded-full border px-3 py-1 text-[12px] font-semibold ${filter === id ? "border-lime-2 bg-lime-2/15 text-lime-2" : "border-line text-fg"}`}
+            className={`shrink-0 rounded-full border px-3 py-1 text-[12px] font-semibold ${filter === id ? "border-[#FACC15] bg-[#FACC15]/15 text-[#FACC15]" : "border-white/20 text-fg"}`}
             onClick={() => setFilter(id)}
           >
             {label}
@@ -453,21 +453,21 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
         <div className="flex gap-1.5">
           <button
             type="button"
-            className="rounded-full border border-lime-2/40 bg-panel px-2.5 py-1 text-[12px] font-semibold text-lime-2"
+            className="rounded-full border border-[#FACC15]/80 bg-transparent px-2.5 py-1 text-[12px] font-semibold text-[#FACC15]"
             onClick={() => setTrendOpen(true)}
           >
             Trending
           </button>
           <button
             type="button"
-            className="rounded-full border border-lime-2/40 bg-panel px-2.5 py-1 text-[12px] font-semibold text-lime-2"
+            className="rounded-full border border-white/25 bg-transparent px-2.5 py-1 text-[12px] font-semibold text-white"
             onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))}
           >
             Marketplace
           </button>
           <button
             type="button"
-            className="rounded-full border border-lime-2/40 bg-panel px-2.5 py-1 text-[12px] font-semibold text-lime-2"
+            className="rounded-full border border-white/25 bg-transparent px-2.5 py-1 text-[12px] font-semibold text-white"
             onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "teams" } }))}
           >
             Groups
@@ -494,7 +494,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
               <button
                 type="button"
                 disabled={linkState(f) === "out"}
-                className="rounded-full border border-lime-2/50 px-2.5 py-1 text-[10px] font-bold text-lime-2 disabled:opacity-70"
+                className="rounded-full border border-white/30 bg-transparent px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-70"
                 onClick={() => {
                   if (!authed) return goLogin();
                   if (linkState(f) === "in") {
@@ -535,7 +535,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
               </button>
               <button
                 type="button"
-                className="btn-join rounded-full px-2.5 py-1 text-[10px] font-bold"
+                className="rounded-full border border-[#FACC15] bg-transparent px-2.5 py-1 text-[10px] font-bold text-[#FACC15]"
                 onClick={() => {
                   if (!authed) return goLogin();
                   setDmFor(f);
@@ -592,7 +592,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
               className="min-w-0 flex-1 rounded-[10px] border border-line bg-bg px-2 py-1.5 outline-none"
               style={{ fontSize: 16 }}
             />
-            <button type="submit" disabled={dmBusy} className="rounded-[10px] bg-lime-2 px-2.5 text-[11px] font-bold text-[#102016] disabled:opacity-60">
+            <button type="submit" disabled={dmBusy} className="rounded-full border border-[#FACC15] bg-transparent px-2.5 text-[11px] font-bold text-[#FACC15] disabled:opacity-60">
               {dmBusy ? "…" : "Send"}
             </button>
           </div>
@@ -638,7 +638,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
               <button
                 key={k.id}
                 type="button"
-                className={`shrink-0 rounded-[10px] px-1.5 py-0.5 text-[10px] font-semibold ${kind === k.id ? "bg-lime-2/15 text-lime-2" : "text-muted"}`}
+                className={`shrink-0 rounded-[10px] border px-1.5 py-0.5 text-[10px] font-semibold ${kind === k.id ? "border-[#FACC15] text-[#FACC15]" : "border-transparent text-muted"}`}
                 onClick={() => setKind(k.id)}
               >
                 {k.label}
@@ -646,7 +646,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
             ))}
           </div>
           <span className="shrink-0 text-[9px] tabular-nums text-muted">{body.length}/280</span>
-          <button type="button" disabled={busy || body.trim().length < 1} className="min-w-14 shrink-0 rounded-[10px] bg-lime-2 px-2.5 py-1 text-[11px] font-bold text-[#102016] disabled:opacity-50" onClick={() => void post()}>
+          <button type="button" disabled={busy || body.trim().length < 1} className="min-w-14 shrink-0 rounded-full border border-[#FACC15] bg-[#FACC15] px-2.5 py-1 text-[11px] font-bold text-black disabled:opacity-50" onClick={() => void post()}>
             {busy ? "Sending" : "Post"}
           </button>
         </div>

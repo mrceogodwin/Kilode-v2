@@ -44,12 +44,11 @@ import {
   UsersRound,
   Shield,
   X,
-  Sun,
-  Moon,
   Tv,
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { canKind, canCreateMenu, createLabelFor } from "@/lib/permissions";
+import { listConnects, replyConnect, type ConnectRow } from "@/lib/takes-server";
 import { listInbox } from "@/lib/social-server";
 import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
@@ -85,7 +84,6 @@ import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
 import { MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
 import { SocialsFeed, openSocialFellows, openSocialTrending, shareNewsToSocials } from "@/components/socials-feed";
-import { listConnects } from "@/lib/takes-server";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -226,6 +224,7 @@ function QonvoAppInner() {
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinName, setJoinName] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
   const [screen, setScreen] = useState<MenuId>("home");
   const [dmCount, setDmCount] = useState(0);
   useEffect(() => {
@@ -519,11 +518,11 @@ function QonvoAppInner() {
                 aria-label="Friends"
                 onClick={() => {
                   setMenuOpen(false);
-                  setMarketDesk(null);
-                  store.setOpenPost(null);
-                  setScreen("home");
-                  setHomeTab("socials");
-                  openSocialFellows();
+                  if (!signedIn) {
+                    window.location.href = "/login?mode=up";
+                    return;
+                  }
+                  setFriendsOpen(true);
                 }}
               >
                 <FriendsIcon />
@@ -1133,6 +1132,8 @@ function QonvoAppInner() {
         </div>
       ) : null}
 
+      {friendsOpen ? <FriendsSheet onClose={() => setFriendsOpen(false)} /> : null}
+
       {menuOpen ? (
         <div className="app-drawer">
           <aside className="menu-sheet flex h-full w-[min(320px,92vw)] flex-col">
@@ -1150,50 +1151,61 @@ function QonvoAppInner() {
               <SkinToggle />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-5">
-              {!(signedIn) ? (
-                <div className="mb-4">
-                  <MenuPremiumAd />
-                </div>
-              ) : (
               <div className="mb-4 grid grid-cols-3 gap-2 px-0.5">
-                {[
-                  store.kind === "artist"
-                    ? { n: store.tracks.filter((t) => !!t?.id && (t.author === store.handle || t.artist === store.handle)).length, l: "Tracks" }
-                    : store.kind === "advertiser" || store.kind === "brand"
-                      ? { n: store.campaigns.filter((c) => c.status !== "rejected").length, l: "Ads" }
-                      : store.kind === "writer"
-                        ? { n: store.posts.filter((p) => !!p?.id && p.author === store.handle && p.status !== "draft").length, l: "Stories" }
-                        : { n: store.posts.filter((p) => !!p?.id && p.author === store.handle).length, l: store.kind === "member" ? "Posts" : "Yours" },
-                  { n: store.pins.length, l: "Rooms" },
-                  { n: store.savedPosts.length, l: "Saved" },
-                ].map((s) => (
-                  <div key={s.l} className="raised rounded-xl px-2 py-2.5 text-center">
-                    <div className="text-sm font-bold text-lime-2">{s.n}</div>
+                {(signedIn
+                  ? [
+                      store.kind === "artist"
+                        ? { n: store.tracks.filter((t) => !!t?.id && (t.author === store.handle || t.artist === store.handle)).length, l: "Tracks" }
+                        : store.kind === "advertiser" || store.kind === "brand"
+                          ? { n: store.campaigns.filter((c) => c.status !== "rejected").length, l: "Ads" }
+                          : store.kind === "writer"
+                            ? { n: store.posts.filter((p) => !!p?.id && p.author === store.handle && p.status !== "draft").length, l: "Stories" }
+                            : { n: store.posts.filter((p) => !!p?.id && p.author === store.handle).length, l: store.kind === "member" ? "Posts" : "Yours" },
+                      { n: store.pins.length, l: "Rooms" },
+                      { n: store.savedPosts.length, l: "Saved" },
+                    ]
+                  : [
+                      { n: 0, l: "Posts" },
+                      { n: 0, l: "Rooms" },
+                      { n: 0, l: "Saved" },
+                    ]
+                ).map((s) => (
+                  <div key={s.l} className="menu-row rounded-xl px-2 py-2.5 text-center">
+                    <div className="text-sm font-bold text-[#FACC15]">{s.n}</div>
                     <div className="text-[9px] text-muted">{s.l}</div>
                   </div>
                 ))}
               </div>
-              )}
 
-              {signedIn ? (
               <div className="mb-4 px-0.5">
                 <div className="mb-2 text-[10px] font-medium tracking-normal text-muted">Quick</div>
                 <div className="grid grid-cols-2 gap-2">
-                  {[
-                    ...(canCreateMenu(store.kind)
-                      ? [{ id: "create" as MenuId, label: createLabelFor(store.kind), tab: null as null | "feeds" | "music" | "chat" | "videos" }]
-                      : []),
-                    ...(canKind(store.kind, "ads.submit") ? [{ id: "ads" as MenuId, label: "Place ad", tab: null as null }] : []),
-                    { id: "inbox" as MenuId, label: "Messages", tab: null as null },
-                    { id: "home" as MenuId, label: "Chat rooms", tab: "chat" as const },
-                  ].map((q) => {
+                  {(signedIn
+                    ? [
+                        ...(canCreateMenu(store.kind)
+                          ? [{ id: "create" as MenuId, label: createLabelFor(store.kind), tab: null as null | "chat" }]
+                          : []),
+                        ...(canKind(store.kind, "ads.submit") ? [{ id: "ads" as MenuId, label: "Place ad", tab: null as null | "chat" }] : []),
+                        { id: "inbox" as MenuId, label: "Messages", tab: null as null | "chat" },
+                        { id: "home" as MenuId, label: "Chat rooms", tab: "chat" as const },
+                      ]
+                    : [
+                        { id: "create" as MenuId, label: "New post", tab: null as null | "chat" },
+                        { id: "inbox" as MenuId, label: "Messages", tab: null as null | "chat" },
+                        { id: "home" as MenuId, label: "Chat rooms", tab: "chat" as const },
+                      ]
+                  ).map((q) => {
                     const Icon = ICONS[q.id === "home" ? "forum" : q.id] ?? MessageSquare;
                     return (
                       <button
                         key={q.label}
                         type="button"
-                        className="raised flex items-center gap-2.5 rounded-xl px-3 py-3 text-left"
+                        className="menu-row flex items-center gap-2.5 rounded-xl px-3 py-3 text-left"
                         onClick={() => {
+                          if (!signedIn && q.id !== "home") {
+                            window.location.href = "/login?mode=up";
+                            return;
+                          }
                           if (q.tab) {
                             setScreen("home");
                             setHomeTab(q.tab);
@@ -1202,14 +1214,13 @@ function QonvoAppInner() {
                           setMenuOpen(false);
                         }}
                       >
-                        <Icon className="size-4 shrink-0 text-lime-2" />
+                        <Icon className="size-4 shrink-0 text-white" />
                         <span className="text-[12px] font-semibold">{q.label}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
-              ) : null}
 
               <DrawerGroup label="Kilode">
                 <DrawerRow icon={Briefcase} label="Jobs" hint="Roles and applications" onClick={() => { setScreen("jobs"); setMenuOpen(false); }} on={screen === "jobs"} />
@@ -1226,6 +1237,12 @@ function QonvoAppInner() {
                 <DrawerRow icon={Megaphone} label="Ads" hint="Live brand campaigns" onClick={() => { setScreen("home"); setHomeTab("advert"); setMenuOpen(false); }} on={homeTab === "advert" && screen === "home"} />
                 <DrawerRow icon={Download} label="Downloads" hint="Kilode products · buy with email" onClick={() => { setScreen("home"); setHomeTab("downloads"); setMenuOpen(false); }} on={homeTab === "downloads" && screen === "home"} />
               </DrawerGroup>
+
+              {!signedIn ? (
+                <div className="mb-4">
+                  <MenuPremiumAd />
+                </div>
+              ) : null}
 
               <DrawerGroup label="Desks">
                 <DrawerRow icon={LineChart} label="Stocks" hint="Indices, movers, charts" onClick={() => { setScreen("home"); setHomeTab("feeds"); setMarketDesk("stocks"); setMenuOpen(false); }} on={marketDesk === "stocks"} />
@@ -1342,7 +1359,7 @@ function QonvoAppInner() {
                 {signedIn ? <DrawerRow icon={Settings} label="Settings" onClick={() => { setScreen("settings"); setMenuOpen(false); }} on={screen === "settings"} /> : null}
               </DrawerGroup>
             </div>
-            <MenuPin onClose={() => setMenuOpen(false)} />
+            <MenuPin />
             <MenuLegal onDonate={() => { setDonateOpen(true); setMenuOpen(false); }} />
           </aside>
           <button type="button" className="flex-1 bg-black/60" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
@@ -1482,6 +1499,94 @@ function QonvoAppInner() {
   );
 }
 
+function FriendsSheet({ onClose }: { onClose: () => void }) {
+  const [rows, setRows] = useState<ConnectRow[]>([]);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    void listConnects()
+      .then(setRows)
+      .catch(() => setErr("Could not load friends."));
+  }, []);
+  const incoming = rows.filter((r) => r.dir === "in");
+  const outgoing = rows.filter((r) => r.dir === "out");
+  const friends = rows.filter((r) => r.dir === "friend");
+  function act(id: string, accept: boolean) {
+    void replyConnect({ data: { id, accept } }).then((r) => {
+      if (!r.ok) {
+        setErr(r.reason || "Could not update.");
+        return;
+      }
+      setRows((list) =>
+        list
+          .map((row) => (row.id === id ? { ...row, dir: accept ? ("friend" as const) : row.dir } : row))
+          .filter((row) => accept || row.id !== id || row.dir === "friend"),
+      );
+      if (!accept) setRows((list) => list.filter((row) => row.id !== id));
+    });
+  }
+  return (
+    <div className="app-drawer">
+      <aside className="menu-sheet flex h-full w-[min(320px,92vw)] flex-col">
+        <div className="menu-head flex items-center justify-between">
+          <strong>Friends</strong>
+          <button type="button" aria-label="Close friends" onClick={onClose}>
+            <X className="size-4" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
+          {err ? <p className="text-[12px] text-danger">{err}</p> : null}
+          <FriendBlock title="Requests" empty="No requests." rows={incoming} onAccept={(id) => act(id, true)} onDecline={(id) => act(id, false)} />
+          <FriendBlock title="Friends" empty="Connect with someone on Socials." rows={friends} />
+          <FriendBlock title="Sent" empty="No pending asks." rows={outgoing} />
+        </div>
+      </aside>
+      <button type="button" className="flex-1 bg-black/60" aria-label="Close friends" onClick={onClose} />
+    </div>
+  );
+}
+
+function FriendBlock({
+  title,
+  empty,
+  rows,
+  onAccept,
+  onDecline,
+}: {
+  title: string;
+  empty: string;
+  rows: ConnectRow[];
+  onAccept?: (id: string) => void;
+  onDecline?: (id: string) => void;
+}) {
+  return (
+    <section>
+      <div className="mb-1.5 text-[10px] font-semibold tracking-[0.14em] text-white/50 uppercase">{title}</div>
+      {rows.length === 0 ? <p className="text-[12px] text-muted">{empty}</p> : null}
+      <div className="space-y-1.5">
+        {rows.map((r) => (
+          <div key={r.dir + r.id} className="menu-row flex items-center gap-2 rounded-xl px-2.5 py-2">
+            <AvatarImg handle={r.handle} size={32} />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13px] font-semibold">@{r.handle}</div>
+              <div className="truncate text-[10px] text-muted">{r.role}</div>
+            </div>
+            {onAccept ? (
+              <button type="button" className="rounded-full border border-[#FACC15] px-2 py-1 text-[10px] font-bold text-[#FACC15]" onClick={() => onAccept(r.id)}>
+                Accept
+              </button>
+            ) : null}
+            {onDecline ? (
+              <button type="button" className="rounded-full border border-white/25 px-2 py-1 text-[10px] font-semibold text-white" onClick={() => onDecline(r.id)}>
+                No
+              </button>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function FlameIcon() {
   return (
     <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden>
@@ -1538,9 +1643,10 @@ function SkinToggle() {
   return (
     <button
       type="button"
-      className="chrome-ico"
-      aria-label={skin === "night" ? "Switch to light skin" : "Switch to night skin"}
-      title={skin === "night" ? "Light" : "Night"}
+      className="skin-switch"
+      role="switch"
+      aria-checked={skin === "ivory"}
+      aria-label={skin === "night" ? "Light skin off" : "Light skin on"}
       onClick={() => {
         const next = skin === "night" ? "ivory" : "night";
         setSkin(next);
@@ -1552,7 +1658,7 @@ function SkinToggle() {
         }
       }}
     >
-      {skin === "night" ? <Sun className="size-3.5 text-lime-2" /> : <Moon className="size-3.5" />}
+      <span className="skin-knob" />
     </button>
   );
 }

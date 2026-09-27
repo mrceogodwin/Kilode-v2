@@ -541,29 +541,25 @@ html[data-skin="ivory"] header {
   box-shadow: none;
 }
 .kilode-wordmark {
-  font-family: "Syne", "Nunito", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Nunito", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   font-weight: 800;
-  font-size: 16px;
-  letter-spacing: -0.07em;
+  font-size: 18px;
+  letter-spacing: -0.03em;
   line-height: 1;
-  color: #fff;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.45);
+  color: #f7f7f5;
+  text-shadow: none;
 }
 .kilode-bang-3d {
   display: grid;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   place-items: center;
   overflow: hidden;
   border-radius: 8px;
-  background: linear-gradient(165deg, #ffe58a 0%, #facc15 46%, #b8860b 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.75),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
-    0 4px 0 #7a5a08,
-    0 8px 14px rgba(250, 204, 21, 0.35);
-  transform: translateY(-1px);
+  background: linear-gradient(180deg, #ffe56a 0%, #f5c400 55%, #e0ac00 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(0, 0, 0, 0.28);
+  transform: none;
 }
 .kilode-bang-3d img {
   width: 78%;
@@ -1520,3 +1516,127 @@ html[data-skin="ivory"] .chat-bubble-mine {
 }
 
 
+
+.auth-cta {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  background: transparent;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+.auth-cta:hover {
+  border-color: #facc15;
+  color: #facc15;
+}
+.skin-switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: #121413;
+}
+.skin-switch[aria-checked="true"] {
+  border-color: #facc15;
+  background: #facc15;
+}
+.skin-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 99px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform 0.16s ease;
+}
+.skin-switch[aria-checked="true"] .skin-knob {
+  transform: translateX(18px);
+  background: #111;
+}
+html[data-skin="ivory"] {
+  --color-bg: #f6f6f4;
+  --color-panel: #ffffff;
+  --color-panel-2: #f3f4f2;
+  --color-panel-3: #e7e8e6;
+  --color-fg: #141615;
+  --color-muted: #5e6662;
+  --color-lime: #15803d;
+  --color-lime-2: #166534;
+  --color-line: #e3e5e2;
+}
+html[data-skin="ivory"] body,
+html[data-skin="ivory"] .kilode-shell {
+  background: #f6f6f4;
+  color: #141615;
+}
+html[data-skin="ivory"] .kilode-chrome {
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+html[data-skin="ivory"] .kilode-wordmark {
+  color: #141615;
+}
+html[data-skin="ivory"] .hdr-ico {
+  background: #fff;
+  color: #1a1c1b;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+html[data-skin="ivory"] .kilode-header-capsule {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+}
+html[data-skin="ivory"] .dock {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.08);
+}
+html[data-skin="ivory"] .app-tab {
+  color: #5e6662;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+html[data-skin="ivory"] .app-tab.on {
+  color: #166534;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+html[data-skin="ivory"] .raised,
+html[data-skin="ivory"] .glass-3d {
+  background: #fff;
+  border: 1px solid #e3e5e2;
+  box-shadow: 0 8px 20px rgba(17, 17, 17, 0.04);
+}
+html[data-skin="ivory"] .menu-sheet {
+  background: #f7f7f5;
+  border-right: 1px solid #e3e5e2;
+  color: #141615;
+}
+html[data-skin="ivory"] .menu-row,
+html[data-skin="ivory"] .menu-ico {
+  background: #fff;
+  color: #141615;
+  border-color: #e3e5e2;
+}
+html[data-skin="ivory"] .trend-ticker {
+  background: #fff;
+  border-color: #e3e5e2;
+  color: #141615;
+}
+html[data-skin="ivory"] .news-plus {
+  background: #111;
+  color: #facc15;
+}

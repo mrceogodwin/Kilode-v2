@@ -116,20 +116,36 @@ const baseURL = explicitBaseURL ?? {
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
 // Missing entries here surface as FORBIDDEN "Invalid origin".
 const vercelHost = env("VERCEL_URL")?.replace(/^https?:\/\//, "");
-const trustedOrigins: string[] = [
-  ...(explicitBaseURL ? [explicitBaseURL] : []),
-  ...LOCAL_DEV_ORIGINS,
-  "https://kilode.vercel.app",
-  "https://kilode.ng",
-  "https://www.kilode.ng",
-];
-if (vercelHost) trustedOrigins.push(`https://${vercelHost}`);
-if (!explicitBaseURL) {
-  trustedOrigins.push(
-    ...previewAllowedHosts,
-    ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
-  );
-}
+const trustedOrigins = (request?: Request) => {
+  const list = [
+    ...(explicitBaseURL ? [explicitBaseURL] : []),
+    ...LOCAL_DEV_ORIGINS,
+    "https://kilode.vercel.app",
+    "https://kilode.ng",
+    "https://www.kilode.ng",
+    "https://kilode-v2.vercel.app",
+    "https://kilode-v2-*.vercel.app",
+    "https://kilode-*.vercel.app",
+  ];
+  if (!explicitBaseURL) {
+    list.push(...previewAllowedHosts, ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]));
+  }
+  if (vercelHost) list.push(`https://${vercelHost}`);
+  const raw =
+    request?.headers?.get("origin") ||
+    request?.headers?.get("x-forwarded-host") ||
+    request?.headers?.get("host") ||
+    "";
+  const host = raw.replace(/^https?:\/\//, "").split(",")[0]?.trim().split(":")[0]?.toLowerCase() || "";
+  const ours =
+    host === "kilode.ng" ||
+    host === "www.kilode.ng" ||
+    host === "kilode.vercel.app" ||
+    host === "kilode-v2.vercel.app" ||
+    (host.endsWith(".vercel.app") && host.includes("kilode"));
+  if (ours) list.push(`https://${host}`);
+  return list;
+};
 
 const databaseUrl = neonConnectionString || env("DATABASE_URL") || env("POSTGRES_URL") || env("POSTGRES_PRISMA_URL") || env("NEON_DATABASE_URL");
 
@@ -183,6 +199,15 @@ export const auth = betterAuth({
   // local loopback variants, or clients get "Invalid origin".
   trustedOrigins,
 
+  rateLimit: {
+    window: 60,
+    max: 60,
+    customRules: {
+      "/sign-in/email": { window: 60, max: 20 },
+      "/sign-up/email": { window: 60, max: 10 },
+    },
+  },
+
   // Encrypt broker-issued OAuth tokens at rest, and treat the broker's upstreams
   // as trusted first-party identities. The broker owns identity and X emails are
   // synthetic/unverified, so WITHOUT this a login can fail with
@@ -223,6 +248,9 @@ export const auth = betterAuth({
   // `http://localhost`, so local dev still works.)
   advanced: {
     useSecureCookies: false,
+    ipAddress: {
+      ipAddressHeaders: ["x-forwarded-for", "x-real-ip"],
+    },
     defaultCookieAttributes: { secure: true, sameSite: "lax", path: "/" },
     cookies: {
       session_token: { name: SESSION_TOKEN_COOKIE },

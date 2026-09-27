@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { X } from "lucide-react";
 import { saveDigest } from "@/lib/ad-slots-server";
 import { BangMark } from "@/components/brand-lockup";
 
@@ -100,19 +99,14 @@ export function DigestBox({ quiet = false, defaultOpen = true }: { quiet?: boole
   );
 }
 
-export function MenuPin({ onClose }: { onClose?: () => void }) {
+export function MenuPin() {
   return (
     <div className="menu-dock shrink-0 border-t border-white/10 px-3 py-2.5">
       <div className="menu-install overflow-hidden rounded-xl border border-white/10">
         <GetAppRow />
       </div>
-      <div className="relative mt-1.5">
+      <div className="mt-1.5">
         <DigestBox quiet />
-        {onClose ? (
-          <button type="button" className="menu-close-lite" aria-label="Close menu" onClick={onClose}>
-            <X className="size-3.5" />
-          </button>
-        ) : null}
       </div>
     </div>
   );
