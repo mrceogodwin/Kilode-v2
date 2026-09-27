@@ -15,7 +15,9 @@ import {
   Store,
   Trash2,
   Tv,
+  User,
   Users,
+  UsersRound,
   Vote,
 } from "lucide-react";
 import {
@@ -99,67 +101,79 @@ function EmptyBlock({ body, cta, onClick }: { body: string; cta?: string; onClic
   );
 }
 
-function FriendsBlock({ rows, onChange }: { rows: ConnectRow[]; onChange: () => void }) {
+function FriendsBlock({ rows, onChange, onBack }: { rows: ConnectRow[]; onChange: () => void; onBack: () => void }) {
   const incoming = rows.filter((r) => r.dir === "in");
   const friends = rows.filter((r) => r.dir === "friend");
   const sent = rows.filter((r) => r.dir === "out");
   return (
-    <section id="me-friends" className="mb-4 rounded-2xl border border-line bg-panel p-3">
-      <h3 className="text-[13px] font-extrabold">Friends</h3>
-      <p className="mt-0.5 text-[11px] text-muted">Accepted people. Incoming asks sit here too.</p>
+    <section id="me-friends" className="mb-4">
+      <button type="button" className="mb-3 text-[13px] font-semibold text-lime-2" onClick={onBack}>
+        ← Back
+      </button>
+      <h2 className="text-lg font-extrabold">Friends</h2>
       {incoming.length === 0 && friends.length === 0 && sent.length === 0 ? (
-        <p className="mt-2 text-[12px] text-muted">No requests yet. Connect from Socials.</p>
+        <p className="mt-3 text-[13px] text-muted">No one yet. Connect from Socials.</p>
       ) : null}
+      {incoming.length > 0 ? <p className="mt-3 text-[11px] font-semibold text-muted">Requests</p> : null}
       {incoming.map((r) => (
-        <div key={`in-${r.id}`} className="mt-2 flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="truncate text-[13px] font-semibold">@{r.handle}</div>
-            <div className="text-[10px] text-muted">{r.role} · wants to connect</div>
+        <div key={`in-${r.id}`} className="mt-2 flex items-center gap-2 border-b border-line py-2">
+          <AvatarImg handle={r.handle} size={36} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[14px] font-semibold">@{r.handle}</div>
+            <div className="text-[11px] text-muted">{r.role || "member"}</div>
           </div>
-          <div className="flex shrink-0 gap-1">
-            <button
-              type="button"
-              className="rounded-lg bg-lime-2 px-2 py-1 text-[11px] font-bold text-[#102016]"
-              onClick={() => {
-                void replyConnect({ data: { id: r.id, accept: true } }).then((res) => {
-                  if (res && "ok" in res && res.ok === false) return;
-                  onChange();
-                });
-              }}
-            >
-              Accept
-            </button>
-            <button
-              type="button"
-              className="rounded-lg border border-line px-2 py-1 text-[11px]"
-              onClick={() => {
-                void replyConnect({ data: { id: r.id, accept: false } }).then(() => onChange());
-              }}
-            >
-              Decline
-            </button>
-          </div>
+          <button
+            type="button"
+            className="rounded-full bg-lime-2 px-2.5 py-1 text-[12px] font-semibold text-[#102016]"
+            onClick={() => {
+              void replyConnect({ data: { id: r.id, accept: true } }).then((res) => {
+                if (res && "ok" in res && res.ok === false) return;
+                onChange();
+              });
+            }}
+          >
+            Accept
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-line px-2.5 py-1 text-[12px]"
+            onClick={() => {
+              void replyConnect({ data: { id: r.id, accept: false } }).then(() => onChange());
+            }}
+          >
+            Decline
+          </button>
         </div>
       ))}
       {sent.map((r) => (
-        <div key={`out-${r.id}`} className="mt-2 text-[12px] text-muted">
-          Asked @{r.handle}
+        <div key={`out-${r.id}`} className="mt-2 flex items-center gap-2 border-b border-line py-2 text-[13px] text-muted">
+          <AvatarImg handle={r.handle} size={36} />
+          <span className="min-w-0 flex-1 truncate">@{r.handle}</span>
+          <span className="text-[11px]">Asked</span>
         </div>
       ))}
       {friends.map((r) => (
-        <a key={`ok-${r.id}`} href={`/u/${encodeURIComponent(r.handle)}`} className="mt-2 flex items-center justify-between text-[13px] font-semibold">
-          <span>@{r.handle} <span className="text-[10px] font-normal text-muted">· Connected</span></span>
+        <div key={`ok-${r.id}`} className="mt-2 flex items-center gap-2 border-b border-line py-2">
+          <a href={`/u/${encodeURIComponent(r.handle)}`} className="flex min-w-0 flex-1 items-center gap-2">
+            <AvatarImg handle={r.handle} size={36} />
+            <span className="min-w-0">
+              <span className="block truncate text-[14px] font-semibold">@{r.handle}</span>
+              <span className="text-[11px] text-muted">Connected</span>
+            </span>
+          </a>
+          <a href={`/u/${encodeURIComponent(r.handle)}`} className="rounded-full border border-line px-2.5 py-1 text-[12px] font-semibold">
+            Message
+          </a>
           <button
             type="button"
-            className="text-[11px] font-semibold text-muted"
-            onClick={(e) => {
-              e.preventDefault();
+            className="text-[12px] text-muted"
+            onClick={() => {
               void disconnectFellow({ data: { id: r.id } }).then(() => onChange());
             }}
           >
-            Disconnect
+            Remove
           </button>
-        </a>
+        </div>
       ))}
     </section>
   );
@@ -456,7 +470,17 @@ function hubTitleFor(kind: AccountKind): string {
   }
 }
 
+function meCardSnap(): { staff?: string | null; photo?: string; connects?: ConnectRow[] } | null {
+  try {
+    const raw = sessionStorage.getItem("kilode-me-card");
+    return raw ? (JSON.parse(raw) as { staff?: string | null; photo?: string; connects?: ConnectRow[] }) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForum?: () => void; onLogout?: () => void | Promise<void> }) {
+  const boot = meCardSnap();
   const signed = Boolean(store.handle);
   const [myCinema, setMyCinema] = useState<CinemaMovie[]>([]);
   const [myJobs, setMyJobs] = useState<Listing[]>([]);
@@ -466,9 +490,9 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   const [myApps, setMyApps] = useState<MyApp[]>([]);
   const [myApplicants, setMyApplicants] = useState<MyApplicant[]>([]);
   const [signingOut, setSigningOut] = useState(false);
-  const [connects, setConnects] = useState<ConnectRow[]>([]);
-  const [staffRole, setStaffRole] = useState<string | null>(null);
-  const [photo, setPhoto] = useState("");
+  const [connects, setConnects] = useState<ConnectRow[]>(Array.isArray(boot?.connects) ? boot.connects : []);
+  const [staffRole, setStaffRole] = useState<string | null>(boot?.staff ?? null);
+  const [photo, setPhoto] = useState(boot?.photo || "");
   const [mePane, setMePane] = useState<null | "friends">(null);
   const { site } = usePublicSite();
 
@@ -505,6 +529,15 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       window.clearTimeout(later);
     };
   }, [signed, store.handle]);
+
+  useEffect(() => {
+    if (!signed) return;
+    try {
+      sessionStorage.setItem("kilode-me-card", JSON.stringify({ staff: staffRole, photo: photo.slice(0, 80000), connects: connects.slice(0, 40) }));
+    } catch {
+      /* quota */
+    }
+  }, [signed, staffRole, photo, connects]);
 
   function refreshMyMarket() {
     void listMyListings({ data: { kind: "market" } })
@@ -731,29 +764,25 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           </a>
         </section>
       ) : null}
-      <div className="mb-3 grid grid-cols-2 gap-2">
+      {mePane === "friends" ? (
+        <FriendsBlock rows={connects} onChange={loadConnects} onBack={() => setMePane(null)} />
+      ) : (
+      <>
+      <div className="mb-3 flex gap-1.5">
         {(
           [
-            ["Friends", () => setMePane("friends")],
-            ["Groups", () => goto({ screen: "teams" })],
-            ["Marketplace", () => goto({ screen: "market" })],
-            ["Messages", () => goto({ screen: "inbox" })],
+            ["Friends", Users, () => setMePane("friends")],
+            ["Groups", UsersRound, () => goto({ screen: "teams" })],
+            ["Marketplace", Store, () => goto({ screen: "market" })],
+            ["Messages", MessageSquare, () => goto({ screen: "inbox" })],
           ] as const
-        ).map(([label, go]) => (
-          <button key={label} type="button" onClick={go} className="btn-join rounded-xl px-2 py-2.5 text-[13px] font-bold">
-            {label}
+        ).map(([label, Icon, go]) => (
+          <button key={label} type="button" onClick={go} className="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-full border border-line bg-panel px-1 py-2 text-[11px] font-semibold">
+            <Icon className="size-3.5 shrink-0 text-lime-2" />
+            <span className="truncate">{label}</span>
           </button>
         ))}
       </div>
-      {mePane === "friends" ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-bg px-3 pt-4 pb-[max(16px,env(safe-area-inset-bottom))]">
-          <button type="button" className="mb-3 text-[14px] font-semibold text-lime-2" onClick={() => setMePane(null)}>
-            ← Back to Me
-          </button>
-          <h2 className="mb-2 text-lg font-extrabold">Friends</h2>
-          <FriendsBlock rows={connects} onChange={loadConnects} />
-        </div>
-      ) : null}
 
       <div className="mb-5 grid grid-cols-4 gap-1.5">
         {stats.map((s) => (
@@ -1466,6 +1495,9 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           <DigestBox quiet defaultOpen />
         </div>
       </Section>
+
+      </>
+      )}
 
       {onLogout ? (
         <div className="mb-6 rounded-2xl border border-line bg-panel px-3 py-2.5">

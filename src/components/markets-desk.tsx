@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, LineChart, Coins, Banknote, Trophy, CloudSun, Cpu, type LucideIcon } from "lucide-react";
 import {
   getMarketDesk,
   type CryptoPayload,
@@ -16,21 +16,22 @@ import { fmtCount } from "@/lib/qonvo-data";
 
 export type { MarketDesk };
 
-export const DESKS: { id: MarketDesk; label: string }[] = [
-  { id: "stocks", label: "STOCKS" },
-  { id: "crypto", label: "CRYPTO" },
-  { id: "forex", label: "FOREX" },
-  { id: "sports", label: "SPORTS" },
-  { id: "weather", label: "WEATHER" },
-  { id: "tech", label: "TECH" },
+export const DESKS: { id: MarketDesk; label: string; Icon: LucideIcon }[] = [
+  { id: "stocks", label: "Stocks", Icon: LineChart },
+  { id: "crypto", label: "Crypto", Icon: Coins },
+  { id: "forex", label: "Forex", Icon: Banknote },
+  { id: "sports", label: "Sports", Icon: Trophy },
+  { id: "weather", label: "Weather", Icon: CloudSun },
+  { id: "tech", label: "Tech", Icon: Cpu },
 ];
 
 export function MarketRail({ onPick, active }: { onPick: (d: MarketDesk) => void; active?: MarketDesk | null }) {
   return (
-    <div className="desk-rail mb-3 flex gap-1">
+    <div className="mb-3 grid grid-cols-6 gap-1.5">
       {DESKS.map((d) => (
-        <button key={d.id} type="button" className={`desk-pill ${active === d.id ? "on" : ""}`} onClick={() => onPick(d.id)}>
-          {d.label}
+        <button key={d.id} type="button" className={`desk-ico ${active === d.id ? "on" : ""}`} onClick={() => onPick(d.id)}>
+          <d.Icon className="size-[18px] text-lime-2" strokeWidth={1.75} />
+          <span>{d.label}</span>
         </button>
       ))}
     </div>

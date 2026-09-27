@@ -84,6 +84,7 @@ import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
 import { MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
 import { SocialsFeed, shareNewsToSocials } from "@/components/socials-feed";
+import { listConnects } from "@/lib/takes-server";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -585,6 +586,9 @@ function QonvoAppInner() {
             {[...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10), ...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10)].map((r, i) => (
               <button key={r.id + i} type="button" aria-label={`Open room ${r.name}`} className="shrink-0 hover:text-fg" onClick={() => goHome(r.id)}>
                 {r.name} · {fmt(r.online)}
+                <svg viewBox="0 0 10 10" className="ml-1 inline size-2 align-middle text-lime-2" aria-hidden>
+                  <path d="M5 1.2 8.5 8.2H1.5L5 1.2Z" fill="currentColor" />
+                </svg>
               </button>
             ))}
             {store.campaigns
@@ -1030,8 +1034,8 @@ function QonvoAppInner() {
       </nav>
 
       {roomsOpen ? (
-        <div className="fixed inset-0 z-[60] flex">
-          <aside className="flex h-full max-h-[100dvh] min-h-0 w-[min(300px,88vw)] flex-col overflow-hidden bg-panel">
+        <div className="app-drawer">
+          <aside className="flex h-full min-h-0 w-[min(300px,88vw)] flex-col overflow-hidden bg-panel">
             <div className="flex shrink-0 items-center justify-between border-b border-line p-3">
               <strong>Rooms</strong>
               <button type="button" onClick={() => setRoomsOpen(false)}>
@@ -1059,7 +1063,7 @@ function QonvoAppInner() {
       ) : null}
 
       {liveOpen ? (
-        <div className="fixed inset-0 z-30 flex md:hidden">
+        <div className="app-drawer md:hidden">
           <button type="button" className="flex-1 bg-black/60" aria-label="Close live" onClick={() => setLiveOpen(false)} />
           <aside className="h-full w-[min(300px,88vw)] overflow-y-auto bg-panel">
             <div className="flex items-center justify-between border-b border-line p-3">
@@ -1098,7 +1102,7 @@ function QonvoAppInner() {
       ) : null}
 
       {menuOpen ? (
-        <div className="fixed inset-0 z-30 flex">
+        <div className="app-drawer">
           <aside className="flex h-full w-[min(320px,90vw)] flex-col border-r border-line bg-panel">
             <div className="flex items-center gap-3 border-b border-line bg-gradient-to-b from-lime-2/10 to-transparent p-4">
               <AvatarImg handle={store.handle || "Guest"} face={store.face} size={48} />
@@ -2252,6 +2256,14 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
   const [catsOpen, setCatsOpen] = useState(false);
   const [repost, setRepost] = useState<(typeof store.posts)[number] | null>(null);
   const [cap, setCap] = useState("");
+  const [lane, setLane] = useState<"foryou" | "latest" | "following">("latest");
+  const [follows, setFollows] = useState<string[] | null>(null);
+  useEffect(() => {
+    if (lane !== "following" || follows) return;
+    void listConnects()
+      .then((rows) => setFollows(rows.filter((r) => r.dir === "friend").map((r) => r.handle.toLowerCase())))
+      .catch(() => setFollows([]));
+  }, [lane, follows]);
   const open = store.posts.find((p) => p.id === store.openPost);
   const needle = q.trim().toLowerCase();
   const live = store.posts
@@ -2263,7 +2275,17 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
         (!needle ||
           `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase().includes(needle)),
     )
-    .sort((a, b) => b.ts - a.ts);
+    .sort((a, b) => {
+      if (lane === "latest") return b.ts - a.ts;
+      const words = (store.interests || "").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
+      const score = (p: (typeof store.posts)[number]) => {
+        const blob = `${p.category || ""} ${p.tags || ""} ${p.title || ""}`.toLowerCase();
+        const hit = words.reduce((n, w) => n + (blob.includes(w) ? 4 : 0), 0);
+        return hit + Math.log10((p.views ?? 0) + 1) + (p.comments?.length ?? 0);
+      };
+      return score(b) - score(a);
+    })
+    .filter((p) => lane !== "following" || (follows ? follows.includes((p.author || "").toLowerCase()) : false));
   const catCounts = useMemo(() => {
     const m = new Map<string, number>();
     store.posts.forEach((p) => {
@@ -2332,24 +2354,39 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
             <MarketRail onPick={onDesk} />
           </>
         )}
-        <div className="mb-2 flex items-center gap-1">
-          <button
-            type="button"
-            className="shrink-0 rounded-[10px] px-1.5 py-1 text-[11px] font-semibold tracking-[0.06em] text-lime-2"
-            onClick={() => setCatsOpen(false)}
-          >
-            LATEST POST
-          </button>
-          <button
-            type="button"
-            className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-[10px] border border-line px-2 py-1 text-[10px] font-semibold uppercase tracking-wide"
-            onClick={() => {
-              setCatsOpen((v) => !v);
-            }}
-          >
-            Categories
-            <ChevronDown className={`size-3 transition ${catsOpen ? "rotate-180" : ""}`} />
-          </button>
+        <div className="mb-2">
+          <div className="flex items-center gap-2">
+            <div className="text-[15px] font-extrabold tracking-tight">Latest post</div>
+            <button
+              type="button"
+              className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border border-line px-2.5 py-1 text-[12px] font-semibold"
+              onClick={() => setCatsOpen((v) => !v)}
+            >
+              Categories
+              <ChevronDown className={`size-3 transition ${catsOpen ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+          <div className="mt-2 flex items-center gap-1 text-[13px]">
+            {(
+              [
+                ["foryou", "For you"],
+                ["latest", "Latest"],
+                ["following", "Following"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={`rounded-full px-3 py-1 font-semibold ${lane === id ? "bg-lime-2 text-[#102016]" : "text-muted"}`}
+                onClick={() => {
+                  setLane(id);
+                  setShown(48);
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
         {catsOpen ? (
           <ul className="mb-3 overflow-hidden rounded-xl border border-line">
@@ -2386,13 +2423,39 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           </ul>
         ) : null}
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+          {lane === "following" && follows && live.length === 0 ? (
+            <p className="col-span-4 py-6 text-center text-[12px] text-muted">Connect with people on Socials. Their posts show here. Nothing is invented.</p>
+          ) : null}
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => {
             const hot = (p.views ?? 0) >= 350 || (p.comments?.length ?? 0) >= 6;
             return (
-            <button key={p.id} type="button" data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)}>
+            <div key={p.id} role="button" tabIndex={0} data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)} onKeyDown={(e) => { if (e.key === "Enter") store.setOpenPost(p.id); }}>
               <div className="relative">
                 {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
-                {hot ? <span className="trend-chip absolute top-1 left-1">⚡ Trending</span> : null}
+                {hot ? (
+                  <span className="absolute top-1 left-1 grid size-5 place-items-center rounded-full bg-black/55 text-lime-2" title="Trending">
+                    <svg viewBox="0 0 16 16" className="size-3" aria-hidden>
+                      <path d="M2 12 6.1 7.6 8.5 9.8 14 3.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M10.2 3.4H14v3.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  aria-label="Repost"
+                  className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-black/55 text-fg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!store.authed) {
+                      window.location.href = "/login?mode=up";
+                      return;
+                    }
+                    setRepost(p);
+                    setCap("");
+                  }}
+                >
+                  <Repeat2 className="size-3" />
+                </button>
               </div>
               <div className="px-1 py-1 sm:px-1.5">
                 <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
@@ -2405,23 +2468,6 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
                   <span className="inline-flex items-center gap-0.5">
                     <MessageSquare className="size-2.5" />
                     {p.comments?.length ?? 0}
-                  </span>
-                  <span
-                    role="button"
-                    aria-label="Repost to Socials"
-                    className="inline-flex items-center"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!store.authed) {
-                        window.location.href = "/login?mode=up";
-                        return;
-                      }
-                      void shareNewsToSocials({ title: p.title, excerpt: p.excerpt, author: p.author, category: p.category, href: `/p/${encodeURIComponent(p.slug || p.id)}` }).then(() => {
-                        window.dispatchEvent(new Event("kilode:socials"));
-                      });
-                    }}
-                  >
-                    <Repeat2 className="size-2.5" />
                   </span>
                   <span
                     role="button"
@@ -2439,7 +2485,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
                   </span>
                 </div>
               </div>
-            </button>
+            </div>
             );
           })}
         </div>

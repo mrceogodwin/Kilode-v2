@@ -194,7 +194,16 @@ export function useQonvo() {
   const [langs, setLangs] = useState("");
   const [onboarded, setOnboarded] = useState<number | null>(null);
   const [brand, setBrand] = useState("");
-  const [face, setFace] = useState(KIND_FACE.member);
+  const [face, setFace] = useState(() => {
+    if (typeof window === "undefined") return KIND_FACE.member;
+    try {
+      const saved = sessionStorage.getItem("kilode-face");
+      if (saved && saved.length > 8) return saved;
+    } catch {
+      /* private mode */
+    }
+    return KIND_FACE.member;
+  });
   const [board, setBoard] = useState<{ name: string; n: number }[]>([]);
   const [online, setOnline] = useState<PresenceUser[]>([]);
   const [typing, setTyping] = useState<string[]>([]);
@@ -760,7 +769,13 @@ export function useQonvo() {
           setInterests(p.interests ?? "");
           setLangs(p.langs ?? "");
           setOnboarded(p.onboarded === 1 ? 1 : 0);
-          setFace(p.face || KIND_FACE[asAccountKind(p.kind)]);
+          const nextFace = p.photo || p.face || KIND_FACE[asAccountKind(p.kind)];
+          setFace(nextFace);
+          try {
+            sessionStorage.setItem("kilode-face", nextFace.slice(0, 80000));
+          } catch {
+            /* quota */
+          }
           setVerified(p.verified === true);
           try {
             const pending = sessionStorage.getItem("nf_account");

@@ -75,7 +75,13 @@ export function TrendingTicker({ posts, onOpen }: { posts: Post[]; onOpen: (id: 
   if (!loop.length) return null;
   return (
     <div className="trend-ticker flex min-h-9 min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-md px-1.5">
-      <span className="btn-join shrink-0 rounded px-1.5 py-0.5 text-[9px] font-extrabold tracking-[0.16em]">TRENDING</span>
+      <span className="btn-join inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-extrabold tracking-[0.12em]">
+        <svg viewBox="0 0 16 16" className="size-3" aria-hidden>
+          <path d="M2 12 6.1 7.6 8.5 9.8 14 3.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M10.2 3.4H14v3.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        TRENDING
+      </span>
       <div className="min-w-0 flex-1 overflow-hidden">
         <div className="ticker-track gap-6 px-0 text-[11px] leading-7">
           {loop.map((p, i) => (

@@ -261,6 +261,34 @@
     color: var(--color-lime-2);
     background: rgba(107, 158, 120, 0.08);
   }
+  .desk-ico {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 62px;
+  border-radius: 14px;
+  border: 1px solid var(--color-line);
+  background: transparent;
+  color: var(--color-fg);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.desk-ico.on {
+  border-color: rgba(107, 158, 120, 0.55);
+  background: rgba(107, 158, 120, 0.1);
+}
+.app-drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: calc(env(safe-area-inset-top, 0px) + 6.6rem);
+  bottom: calc(3.35rem + env(safe-area-inset-bottom, 0px));
+  z-index: 35;
+  display: flex;
+}
   .desk-live {
     animation: desk-pulse 1.6s ease-in-out infinite;
   }

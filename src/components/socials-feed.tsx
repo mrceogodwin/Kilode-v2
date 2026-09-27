@@ -57,7 +57,7 @@ function TrendPage({ onClose, faces, live }: { onClose: () => void; faces: Recor
     ["topics", "Topics"],
   ] as const;
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-bg px-3 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]">
+    <div className="pb-2">
       <button type="button" className="mb-2 text-[14px] font-semibold text-lime-2" onClick={onClose}>
         ← Back
       </button>
@@ -387,6 +387,14 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
     ? takes.filter((t) => `${t.name} ${t.handle} ${t.role} ${t.body}`.toLowerCase().includes(needle))
     : takes;
 
+  if (trendOpen) {
+    return (
+      <div className="mb-3">
+        <TrendPage onClose={() => setTrendOpen(false)} faces={faces} live={live} />
+      </div>
+    );
+  }
+
   return (
     <div className="mb-3">
       <label className="mb-3 block">
@@ -438,7 +446,6 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
           </button>
         </div>
       </div>
-      {trendOpen ? <TrendPage onClose={() => setTrendOpen(false)} faces={faces} live={live} /> : null}
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1">
         {shownFellows.length === 0 ? <p className="px-1 text-[11px] text-muted">Real members show here after they join.</p> : null}
         {shownFellows.map((f) => (
@@ -911,7 +918,7 @@ function TakeCard({
             <div className="mt-1 text-[10px] font-semibold tracking-[0.08em] text-lime-2">{take.meta.stance}</div>
           ) : null}
           {take.meta.street === true ? <div className="mt-0.5 text-[9px] text-amber-200/80">Street Certified</div> : null}
-          {hot ? <div className="trend-chip mt-1">⚡ Trending</div> : null}
+          {hot ? <div className="trend-chip mt-1">Trending</div> : null}
 
           {locked ? (
             <button type="button" className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-[10px] border border-line py-3 text-[11px] text-muted" onClick={onReveal}>
