@@ -17,8 +17,8 @@ export function ContactCta({ className = "" }: { className?: string }) {
 
 export function RentCta({ className = "" }: { className?: string }) {
   return (
-    <a href="/advertise" className={`text-[10px] font-medium tracking-[0.16em] text-lime-2 ${className}`}>
-      RENT
+    <a href="/advertise" className={`inline-flex items-center rounded-full bg-[#FACC15] px-3 py-1 text-xs font-bold text-black ${className}`}>
+      Rent
     </a>
   );
 }
@@ -103,8 +103,9 @@ export function PortraitAd({ id }: { id: string }) {
   const slot = slots.find((s) => s.id === id && s.enabled);
   const frame = (child: ReactNode) => (
     <aside className="my-6 overflow-hidden rounded-2xl border border-line bg-panel">
-      <div className="px-3 py-2">
-        <span className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PORTRAIT ADS</span>
+      <div className="flex items-center justify-between gap-2 px-3 py-2">
+        <span className="text-[13px] font-semibold text-fg">Ads</span>
+        <RentCta />
       </div>
       <div className="flex w-full justify-center">{child}</div>
     </aside>

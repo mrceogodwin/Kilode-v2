@@ -266,7 +266,15 @@ function HeroSlide({
   if (slide.k === "post") {
     const p = slide.post;
     return (
-      <button type="button" className="relative block h-full w-full text-left" onClick={() => onOpen(p.id)}>
+      <div
+        role="button"
+        tabIndex={0}
+        className="relative block h-full w-full cursor-pointer text-left"
+        onClick={() => onOpen(p.id)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") onOpen(p.id);
+        }}
+      >
         {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" /> : <div className="h-full w-full bg-panel-3" />}
         {onRepost ? (
           <button
@@ -289,7 +297,7 @@ function HeroSlide({
           </div>
           <div className="mt-0.5 line-clamp-2 text-[13px] font-medium leading-snug text-white">{p.title}</div>
         </div>
-      </button>
+      </div>
     );
   }
   if (slide.k === "paid") {

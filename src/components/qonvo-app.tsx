@@ -8,11 +8,11 @@ import {
   Download,
   Eye,
   Film,
+  Flame,
   Globe,
   Hash,
   Heart,
   HelpCircle,
-  Bell,
   Home,
   LayoutDashboard,
   Link2,
@@ -465,18 +465,10 @@ function QonvoAppInner() {
     <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg">
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule">
-          <div className="grid min-h-14 grid-cols-[auto_1fr_auto] items-center gap-2">
+          <div className="flex min-h-12 flex-nowrap items-center gap-1">
             <button
               type="button"
-              className="chrome-ico"
-              aria-label="Menu"
-              onClick={() => setMenuOpen((v) => !v)}
-            >
-              <Menu className="size-4" />
-            </button>
-            <button
-              type="button"
-              className="justify-self-center"
+              className="shrink-0"
               aria-label="Kilode home"
               onClick={() => {
                 const now = Date.now();
@@ -495,15 +487,63 @@ function QonvoAppInner() {
                 Kilode<span className="kilode-bang">!</span>
               </span>
             </button>
-            <div className="flex items-center gap-1.5">
+            <div className="ml-0.5 flex items-center gap-1">
+              <button
+                type="button"
+                className="hdr-brand"
+                aria-label="Trending"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setMarketDesk(null);
+                  store.setOpenPost(null);
+                  setScreen("home");
+                  setHomeTab("feeds");
+                }}
+              >
+                <Flame className="size-4" strokeWidth={2.4} />
+              </button>
+              <button
+                type="button"
+                className="hdr-brand"
+                aria-label="Socials"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setMarketDesk(null);
+                  store.setOpenPost(null);
+                  setScreen("home");
+                  setHomeTab("socials");
+                }}
+              >
+                <Users className="size-4" strokeWidth={2.4} />
+              </button>
+              <button
+                type="button"
+                className="hdr-brand"
+                aria-label="Kilode TV"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setScreen("tv");
+                }}
+              >
+                <Tv className="size-4" strokeWidth={2.4} />
+              </button>
+            </div>
+            <div className="ml-auto flex items-center gap-1">
               <button
                 type="button"
                 className="btn-post"
                 aria-label="Post"
                 onClick={() => (signedIn ? setScreen("create") : (window.location.href = "/login?mode=up"))}
               >
-                <Plus className="size-3.5" strokeWidth={2.75} />
-                Post
+                <Plus className="size-5" strokeWidth={2.75} />
+              </button>
+              <button
+                type="button"
+                className="hdr-glass"
+                aria-label="Menu"
+                onClick={() => setMenuOpen((v) => !v)}
+              >
+                <Menu className="size-4" />
               </button>
               <NotifyBell
                 signedIn={signedIn}
@@ -523,6 +563,24 @@ function QonvoAppInner() {
                   setScreen("home");
                 }}
               />
+              <button
+                type="button"
+                aria-label="Profile"
+                className="shrink-0"
+                onClick={() => {
+                  setMenuOpen(false);
+                  if (signedIn) setScreen("dashboard");
+                  else window.location.href = "/login?mode=up";
+                }}
+              >
+                {session.user?.profileImageUrl ? (
+                  <img src={session.user.profileImageUrl} alt="" className="size-8 rounded-full object-cover ring-1 ring-white/15" />
+                ) : (
+                  <span className="grid size-8 place-items-center rounded-full border border-neutral-700/60 bg-neutral-900/80 text-[11px] font-bold text-[#FACC15]">
+                    {signedIn ? (session.user?.displayName ?? session.user?.primaryEmail ?? "M").charAt(0).toUpperCase() : <User className="size-4" />}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -970,20 +1028,26 @@ function QonvoAppInner() {
       {signedIn && store.onboarded === 0 ? <OnboardSheet kind={store.kind} onDone={store.finishOnboard} /> : null}
       <nav className="dock pointer-events-auto z-40">
         <Tab icon={<Home className="size-5" />} label="Home" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
-        <Tab icon={<Search className="size-5" />} label="Explore" on={screen === "home" && homeTab === "socials"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); store.setOpenPost(null); }} />
+        <Tab icon={<MessageSquare className="size-5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
         <button
           type="button"
-          className="dock-plus"
-          aria-label="Post"
+          className="dock-globe"
+          aria-label="Socials"
           onClick={() => {
             setMenuOpen(false);
-            if (signedIn) setScreen("create");
-            else window.location.href = "/login?mode=up";
+            setScreen("home");
+            setHomeTab("socials");
+            setMarketDesk(null);
+            store.setOpenPost(null);
           }}
         >
-          <Plus className="size-6" strokeWidth={2.75} />
+          <svg viewBox="0 0 24 24" className="kilode-globe size-6" aria-hidden>
+            <circle cx="12" cy="12" r="8.4" fill="none" stroke="#000" strokeWidth="1.6" />
+            <ellipse cx="12" cy="12" rx="3.6" ry="8.4" fill="none" stroke="#000" strokeWidth="1.25" />
+            <path d="M3.6 12h16.8M5.1 8.1h13.8M5.1 15.9h13.8" fill="none" stroke="#000" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
         </button>
-        <Tab icon={<Bell className="size-5" />} label="Notifications" on={screen === "notifications"} onClick={() => { setMenuOpen(false); setScreen("notifications"); }} />
+        <Tab icon={<Briefcase className="size-5" />} label="Jobs" on={screen === "jobs"} onClick={() => { setMenuOpen(false); setScreen("jobs"); }} />
         <Tab icon={<User className="size-5" />} label="Profile" on={screen === "dashboard" || screen === "profile"} onClick={() => { setMenuOpen(false); if (signedIn) setScreen("dashboard"); else window.location.href = "/login?mode=up"; }} />
       </nav>
 
