@@ -164,23 +164,27 @@ export function SiteFooter() {
     { key: "subs", label: "Subscribers", value: subs },
   ];
   return (
-    <footer className="site-foot mt-5 overflow-hidden rounded-2xl px-3 py-3.5 sm:px-3.5 sm:py-4">
-      <div className="text-center">
-        <p className="text-[9px] font-semibold tracking-[0.16em] text-lime-2 uppercase">Kilode</p>
-        <h2 className="chrome-head mx-auto mt-0.5 max-w-[20rem] text-balance">Join Kilode.ng</h2>
-        <p className="mt-1 text-[11px] leading-snug text-muted">Talk News. Real People. Password only — no email to sign up.</p>
-        <p className="mt-0.5 text-[11px] leading-snug text-muted/90">{joinHint}</p>
+    <footer className="site-foot mt-5 overflow-hidden rounded-2xl px-3 py-4 sm:px-3.5">
+      <div className="flex items-center justify-center gap-2.5">
+        <span className="kilode-bang-3d" aria-hidden>
+          <img src="/kilode-bang-mark-white.png" alt="" />
+        </span>
+        <div className="text-left">
+          <p className="text-[9px] font-semibold tracking-[0.22em] text-white/55 uppercase">Talk news. Real people.</p>
+          <h2 className="kilode-wordmark mt-0.5" style={{ fontSize: 26 }}>Join Kilode</h2>
+        </div>
       </div>
+      <p className="mx-auto mt-2 max-w-[18rem] text-center text-[12px] leading-snug text-white/70">Password only. No email to sign up. {joinHint}</p>
 
       <a
         href="/login?mode=up"
-        className="btn-join mt-3 flex min-h-10 w-full items-center justify-center rounded-xl px-3 text-[13px] font-bold"
+        className="btn-yellow mt-3 flex min-h-11 w-full items-center justify-center rounded-full px-3 text-[14px] font-extrabold text-black"
       >
         Create account
       </a>
       <p className="mt-1.5 text-center text-[11px] text-muted">
         Already here?{" "}
-        <a href="/login?mode=in" className="font-semibold text-lime-2 underline-offset-2 hover:underline">
+        <a href="/login?mode=in" className="font-semibold text-[#FACC15] underline-offset-2 hover:underline">
           Sign in
         </a>
       </p>

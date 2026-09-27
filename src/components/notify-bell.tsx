@@ -81,11 +81,11 @@ export function NotifyBell({
     <div className="relative">
       <button
         type="button"
-        className="hdr-glass relative"
+        className="hdr-ico relative"
         aria-label="Notifications"
         onClick={() => setOpen((v) => !v)}
       >
-        <Bell className="size-4 text-[#FACC15]" />
+        <Bell className="size-4 text-white" />
         {badge > 0 ? <span className="absolute top-1 right-1 size-1.5 rounded-full bg-[#ef4444]" /> : null}
       </button>
       {open ? (

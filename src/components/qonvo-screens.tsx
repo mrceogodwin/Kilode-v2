@@ -238,6 +238,20 @@ function PostDetail({ post, store }: { post: Post; store: Store }) {
   );
 }
 
+let queuedCreatePane: "post" | null = null;
+/** Feed-bar + : general news post, not the account-type composer. */
+export function queueNewsPost() {
+  queuedCreatePane = "post";
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("kilode:create", { detail: { pane: "post" } }));
+  }
+}
+
+export function openRoleCreate() {
+  queuedCreatePane = null;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("kilode:create-role"));
+}
+
 function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   const ak = store.kind;
   const canPost = canKind(ak, "feeds.post");
@@ -261,15 +275,30 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     : "post";
 
   const [pane, setPane] = useState<Pane>(primary);
-  useEffect(() => setPane(primary), [primary]);
+  useEffect(() => {
+    if (queuedCreatePane) {
+      setPane(queuedCreatePane);
+      queuedCreatePane = null;
+      return;
+    }
+    setPane(primary);
+  }, [primary]);
   useEffect(() => {
     const onCreate = (e: Event) => {
       const next = (e as CustomEvent<{ pane?: Pane }>).detail?.pane;
       if (next) setPane(next);
     };
     window.addEventListener("kilode:create", onCreate);
-    return () => window.removeEventListener("kilode:create", onCreate);
-  }, []);
+    const onRole = () => {
+      queuedCreatePane = null;
+      setPane(primary);
+    };
+    window.addEventListener("kilode:create-role", onRole);
+    return () => {
+      window.removeEventListener("kilode:create", onCreate);
+      window.removeEventListener("kilode:create-role", onRole);
+    };
+  }, [primary]);
   useEffect(() => {
     if (pane !== "apply" && ak !== "job_seeker") return;
     void listListings({ data: { kind: "job" } })

@@ -8,7 +8,6 @@ import {
   Download,
   Eye,
   Film,
-  Flame,
   Globe,
   Hash,
   Heart,
@@ -51,9 +50,10 @@ import {
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { canKind, canCreateMenu, createLabelFor } from "@/lib/permissions";
+import { listInbox } from "@/lib/social-server";
 import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
-import { QonvoScreen } from "@/components/qonvo-screens";
+import { QonvoScreen, openRoleCreate, queueNewsPost } from "@/components/qonvo-screens";
 import { EventsPane } from "@/components/events-pane";
 import { CinemaPane } from "@/components/cinema-pane";
 import { ChatTermsBar, ForumClock, ForumWhy } from "@/components/forum-why";
@@ -84,7 +84,7 @@ import { BrandLockup } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
 import { MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
-import { SocialsFeed, shareNewsToSocials } from "@/components/socials-feed";
+import { SocialsFeed, openSocialFellows, openSocialTrending, shareNewsToSocials } from "@/components/socials-feed";
 import { listConnects } from "@/lib/takes-server";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
@@ -227,6 +227,27 @@ function QonvoAppInner() {
   const [joinName, setJoinName] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [screen, setScreen] = useState<MenuId>("home");
+  const [dmCount, setDmCount] = useState(0);
+  useEffect(() => {
+    if (!signedIn) {
+      setDmCount(0);
+      return;
+    }
+    let stop = false;
+    void listInbox()
+      .then((rows) => {
+        if (stop) return;
+        const me = (store.handle || "").toLowerCase();
+        const n = rows.filter((r) => r.from && r.from.toLowerCase() !== me && r.from.toLowerCase() !== "kilode africa").length;
+        setDmCount(n);
+      })
+      .catch(() => {
+        if (!stop) setDmCount(0);
+      });
+    return () => {
+      stop = true;
+    };
+  }, [signedIn, store.handle, screen]);
   const [roomsOpen, setRoomsOpen] = useState(false);
   const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials">("feeds");
   const [marketDesk, setMarketDesk] = useState<MarketDesk | null>(null);
@@ -466,9 +487,12 @@ function QonvoAppInner() {
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule">
           <div className="flex min-h-12 flex-nowrap items-center gap-1">
+            <button type="button" className="hdr-ico" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}>
+              <Menu className="size-4" />
+            </button>
             <button
               type="button"
-              className="shrink-0"
+              className="flex min-w-0 items-center gap-1"
               aria-label="Kilode home"
               onClick={() => {
                 const now = Date.now();
@@ -483,67 +507,26 @@ function QonvoAppInner() {
                 goHome();
               }}
             >
-              <span className="kilode-wordmark">
-                Kilode<span className="kilode-bang">!</span>
+              <span className="kilode-bang-3d" aria-hidden>
+                <img src="/kilode-bang-mark-white.png" alt="" />
               </span>
+              <span className="kilode-wordmark">Kilode</span>
             </button>
-            <div className="ml-0.5 flex items-center gap-1">
+            <div className="ml-auto flex items-center gap-1">
               <button
                 type="button"
-                className="hdr-brand"
-                aria-label="Trending"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setMarketDesk(null);
-                  store.setOpenPost(null);
-                  setScreen("home");
-                  setHomeTab("feeds");
-                }}
-              >
-                <Flame className="size-4" strokeWidth={2.4} />
-              </button>
-              <button
-                type="button"
-                className="hdr-brand"
-                aria-label="Socials"
+                className="hdr-ico"
+                aria-label="Friends"
                 onClick={() => {
                   setMenuOpen(false);
                   setMarketDesk(null);
                   store.setOpenPost(null);
                   setScreen("home");
                   setHomeTab("socials");
+                  openSocialFellows();
                 }}
               >
-                <Users className="size-4" strokeWidth={2.4} />
-              </button>
-              <button
-                type="button"
-                className="hdr-brand"
-                aria-label="Kilode TV"
-                onClick={() => {
-                  setMenuOpen(false);
-                  setScreen("tv");
-                }}
-              >
-                <Tv className="size-4" strokeWidth={2.4} />
-              </button>
-            </div>
-            <div className="ml-auto flex items-center gap-1">
-              <button
-                type="button"
-                className="btn-post"
-                aria-label="Post"
-                onClick={() => (signedIn ? setScreen("create") : (window.location.href = "/login?mode=up"))}
-              >
-                <Plus className="size-5" strokeWidth={2.75} />
-              </button>
-              <button
-                type="button"
-                className="hdr-glass"
-                aria-label="Menu"
-                onClick={() => setMenuOpen((v) => !v)}
-              >
-                <Menu className="size-4" />
+                <FriendsIcon />
               </button>
               <NotifyBell
                 signedIn={signedIn}
@@ -565,21 +548,31 @@ function QonvoAppInner() {
               />
               <button
                 type="button"
-                aria-label="Profile"
-                className="shrink-0"
+                className="hdr-ico"
+                aria-label="Trending"
                 onClick={() => {
                   setMenuOpen(false);
-                  if (signedIn) setScreen("dashboard");
+                  setMarketDesk(null);
+                  store.setOpenPost(null);
+                  setScreen("home");
+                  setHomeTab("socials");
+                  openSocialTrending();
+                }}
+              >
+                <FlameIcon />
+              </button>
+              <button
+                type="button"
+                className="hdr-ico relative"
+                aria-label={dmCount > 0 ? `Messages, ${dmCount} new` : "Messages"}
+                onClick={() => {
+                  setMenuOpen(false);
+                  if (signedIn) setScreen("inbox");
                   else window.location.href = "/login?mode=up";
                 }}
               >
-                {session.user?.profileImageUrl ? (
-                  <img src={session.user.profileImageUrl} alt="" className="size-8 rounded-full object-cover ring-1 ring-white/15" />
-                ) : (
-                  <span className="grid size-8 place-items-center rounded-full border border-neutral-700/60 bg-neutral-900/80 text-[11px] font-bold text-[#FACC15]">
-                    {signedIn ? (session.user?.displayName ?? session.user?.primaryEmail ?? "M").charAt(0).toUpperCase() : <User className="size-4" />}
-                  </span>
-                )}
+                <MessageIcon />
+                {dmCount > 0 ? <span className="msg-badge">{dmCount > 9 ? "9+" : dmCount}</span> : null}
               </button>
             </div>
           </div>
@@ -646,12 +639,19 @@ function QonvoAppInner() {
               </button>
               <button
                 type="button"
-                aria-label={signedIn ? createLabelFor(store.kind) : "Create"}
-                title={signedIn ? createLabelFor(store.kind) : "Create"}
-                className="btn-3d grid size-8 place-items-center rounded-md text-[14px] font-semibold"
-                onClick={() => (signedIn ? setScreen("create") : (window.location.href = "/login?mode=up"))}
+                aria-label="Post news"
+                title="Post news"
+                className="news-plus"
+                onClick={() => {
+                  if (!signedIn) {
+                    window.location.href = "/login?mode=up";
+                    return;
+                  }
+                  queueNewsPost();
+                  setScreen("create");
+                }}
               >
-                <Plus className="size-3.5" />
+                <Plus className="size-4" strokeWidth={2.75} />
               </button>
             </div>
           ) : homeTab === "music" && canKind(store.kind, "music.submit") && signedIn ? (
@@ -1028,27 +1028,41 @@ function QonvoAppInner() {
       {signedIn && store.onboarded === 0 ? <OnboardSheet kind={store.kind} onDone={store.finishOnboard} /> : null}
       <nav className="dock pointer-events-auto z-40">
         <Tab icon={<Home className="size-5" />} label="Home" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
-        <Tab icon={<MessageSquare className="size-5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
+        <Tab icon={<Search className="size-5" />} label="Explore" on={screen === "home" && homeTab === "socials"} onClick={() => { setMenuOpen(false); openSocialFellows(); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); store.setOpenPost(null); }} />
         <button
           type="button"
-          className="dock-globe"
-          aria-label="Socials"
+          className="dock-plus"
+          aria-label={signedIn ? createLabelFor(store.kind) : "Create"}
+          title={signedIn ? createLabelFor(store.kind) : "Create"}
           onClick={() => {
             setMenuOpen(false);
-            setScreen("home");
-            setHomeTab("socials");
-            setMarketDesk(null);
-            store.setOpenPost(null);
+            if (!signedIn) {
+              window.location.href = "/login?mode=up";
+              return;
+            }
+            openRoleCreate();
+            setScreen("create");
           }}
         >
-          <svg viewBox="0 0 24 24" className="kilode-globe size-6" aria-hidden>
-            <circle cx="12" cy="12" r="8.4" fill="none" stroke="#000" strokeWidth="1.6" />
-            <ellipse cx="12" cy="12" rx="3.6" ry="8.4" fill="none" stroke="#000" strokeWidth="1.25" />
-            <path d="M3.6 12h16.8M5.1 8.1h13.8M5.1 15.9h13.8" fill="none" stroke="#000" strokeWidth="1.2" strokeLinecap="round" />
-          </svg>
+          <Plus className="size-6" strokeWidth={2.75} />
         </button>
-        <Tab icon={<Briefcase className="size-5" />} label="Jobs" on={screen === "jobs"} onClick={() => { setMenuOpen(false); setScreen("jobs"); }} />
-        <Tab icon={<User className="size-5" />} label="Profile" on={screen === "dashboard" || screen === "profile"} onClick={() => { setMenuOpen(false); if (signedIn) setScreen("dashboard"); else window.location.href = "/login?mode=up"; }} />
+        <Tab icon={<MessageSquare className="size-5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
+        <Tab
+          icon={
+            signedIn ? (
+              <AvatarImg handle={store.handle || "me"} face={store.face} size={22} className="ring-1 ring-white" />
+            ) : (
+              <User className="size-5" />
+            )
+          }
+          label="Profile"
+          on={screen === "dashboard" || screen === "profile"}
+          onClick={() => {
+            setMenuOpen(false);
+            if (signedIn) setScreen("dashboard");
+            else window.location.href = "/login?mode=up";
+          }}
+        />
       </nav>
 
       {roomsOpen ? (
@@ -1121,8 +1135,8 @@ function QonvoAppInner() {
 
       {menuOpen ? (
         <div className="app-drawer">
-          <aside className="flex h-full w-[min(320px,90vw)] flex-col border-r border-line bg-panel">
-            <div className="flex items-center gap-3 border-b border-line bg-gradient-to-b from-lime-2/10 to-transparent p-4">
+          <aside className="menu-sheet flex h-full w-[min(320px,92vw)] flex-col">
+            <div className="menu-head flex items-center gap-3">
               <AvatarImg handle={store.handle || "Guest"} face={store.face} size={48} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-extrabold tracking-tight">{store.handle || "Guest"}</div>
@@ -1198,6 +1212,7 @@ function QonvoAppInner() {
               ) : null}
 
               <DrawerGroup label="Kilode">
+                <DrawerRow icon={Briefcase} label="Jobs" hint="Roles and applications" onClick={() => { setScreen("jobs"); setMenuOpen(false); }} on={screen === "jobs"} />
                 <DrawerRow icon={Home} label="Feeds" hint="News for Nigeria" onClick={() => { store.setOpenPost(null); setMarketDesk(null); setScreen("home"); setHomeTab("feeds"); setMenuOpen(false); }} on={homeTab === "feeds" && screen === "home" && !marketDesk} />
                 <DrawerRow icon={MessageSquare} label="Chat" hint="Live rooms · topics & places" onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }} on={homeTab === "chat" && screen === "home"} />
                 <DrawerRow icon={Radio} label="Music" hint="Artist links. We embed." onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
@@ -1222,7 +1237,6 @@ function QonvoAppInner() {
               </DrawerGroup>
 
               <DrawerGroup label="Listings">
-                <DrawerRow icon={Briefcase} label="Jobs" hint="Roles and applications" onClick={() => { setScreen("jobs"); setMenuOpen(false); }} on={screen === "jobs"} />
                 <DrawerRow icon={Store} label="Marketplace" hint="Showcase. No checkout" onClick={() => { setScreen("market"); setMenuOpen(false); }} on={screen === "market"} />
                 <DrawerRow icon={Building2} label="Rent" hint="Spaces and contact" onClick={() => { setScreen("rent"); setMenuOpen(false); }} on={screen === "rent"} />
                 <DrawerRow icon={Megaphone} label="Advertise" hint="Rent a 16:9 or a tile" href="/advertise" />
@@ -1328,7 +1342,7 @@ function QonvoAppInner() {
                 {signedIn ? <DrawerRow icon={Settings} label="Settings" onClick={() => { setScreen("settings"); setMenuOpen(false); }} on={screen === "settings"} /> : null}
               </DrawerGroup>
             </div>
-            <MenuPin />
+            <MenuPin onClose={() => setMenuOpen(false)} />
             <MenuLegal onDonate={() => { setDonateOpen(true); setMenuOpen(false); }} />
           </aside>
           <button type="button" className="flex-1 bg-black/60" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
@@ -1465,6 +1479,46 @@ function QonvoAppInner() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function FlameIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M12.1 1.4c.35 2.15-.85 3.55-1.9 5.15-1.15 1.75-2.15 3.15-2.15 5.7 0 3.35 2.45 5.85 5.7 5.85 3.15 0 5.7-2.4 5.7-5.75 0-2.05-.75-3.35-1.85-4.85-.55 1.55-1.7 2.25-2.7 2.05.55-1.7.15-3.4-.4-5.05C13.7 3.35 12.7 2.15 12.1 1.4z"
+      />
+      <path
+        fill="#0a0c0b"
+        d="M12.35 9.05c.85 1.35 1.05 2.45.45 3.55-.45.85-1.25.95-1.55.15-.45-1.15.15-2.45.95-3.85.05.05.1.1.15.15z"
+      />
+    </svg>
+  );
+}
+
+function FriendsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden>
+      <circle cx="8.6" cy="8.2" r="2.15" fill="currentColor" />
+      <circle cx="15.3" cy="8.7" r="1.75" fill="currentColor" />
+      <path d="M4.4 17.4c.45-2.45 2.25-3.7 4.25-3.7s3.8 1.25 4.25 3.7" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M13.1 14.15c1.15-.45 2.45-.3 3.4.45 1 .8 1.45 2.05 1.55 2.85" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function MessageIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden>
+      <path
+        d="M5 6.2h14a1.6 1.6 0 0 1 1.6 1.6v6.6a1.6 1.6 0 0 1-1.6 1.6H9.2L5.6 19.2v-3.2H5A1.6 1.6 0 0 1 3.4 14.4V7.8A1.6 1.6 0 0 1 5 6.2z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -1668,8 +1722,8 @@ function DrawerRow({
 }) {
   const inner = (
     <>
-      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-lime-2/10">
-        <Icon className="size-4 text-lime-2" />
+      <span className="menu-ico grid size-8 shrink-0 place-items-center rounded-lg">
+        <Icon className="size-4" />
       </span>
       <span className="min-w-0 flex-1 text-left">
         <span className="block truncate font-semibold">{label}</span>
@@ -1678,7 +1732,7 @@ function DrawerRow({
       <ChevronRight className="size-3.5 shrink-0 text-muted" />
     </>
   );
-  const cls = `flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm ${on ? "bg-panel-2 text-lime-2" : "hover:bg-panel-2"}`;
+  const cls = `menu-row flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left text-sm ${on ? "on" : ""}`;
   if (href) {
     return (
       <a href={href} className={cls}>

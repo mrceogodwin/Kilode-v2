@@ -200,6 +200,17 @@ function needLogin(e: unknown) {
   return /unauthor|sign in|forbidden/i.test(m);
 }
 
+let wantSocialTrend = false;
+/** Header fire: open Socials on the trending page. */
+export function openSocialTrending() {
+  wantSocialTrend = true;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("kilode:socials-trend"));
+}
+export function openSocialFellows() {
+  wantSocialTrend = false;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("kilode:socials-fellows"));
+}
+
 export function SocialsFeed({ authed, account = "member", me = "" }: { authed: boolean; account?: string; me?: string }) {
   const pills = pillsFor(account);
   const boot = bootCache();
@@ -233,6 +244,23 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
   const [live, setLive] = useState<string[]>([]);
   const [faces, setFaces] = useState<Record<string, string>>({});
   const [trendOpen, setTrendOpen] = useState(false);
+  useEffect(() => {
+    const onTrend = () => {
+      wantSocialTrend = false;
+      setTrendOpen(true);
+    };
+    const onFellows = () => {
+      wantSocialTrend = false;
+      setTrendOpen(false);
+    };
+    if (wantSocialTrend) onTrend();
+    window.addEventListener("kilode:socials-trend", onTrend);
+    window.addEventListener("kilode:socials-fellows", onFellows);
+    return () => {
+      window.removeEventListener("kilode:socials-trend", onTrend);
+      window.removeEventListener("kilode:socials-fellows", onFellows);
+    };
+  }, []);
   const [reportId, setReportId] = useState("");
   const [menuTake, setMenuTake] = useState<TakeRow | null>(null);
   const [reportNote, setReportNote] = useState("");

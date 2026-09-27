@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import { saveDigest } from "@/lib/ad-slots-server";
 import { BangMark } from "@/components/brand-lockup";
 
 export function JoinCta({ className = "" }: { className?: string }) {
   return (
-    <a href="/login?mode=up" className={`btn-join block rounded-lg px-3 py-1.5 text-center text-[10px] font-extrabold tracking-[0.14em] ${className}`}>
+    <a href="/login?mode=up" className={`btn-yellow block rounded-lg px-3 py-1.5 text-center text-[10px] font-extrabold tracking-[0.14em] text-black ${className}`}>
       JOIN NOW
     </a>
   );
@@ -99,14 +100,19 @@ export function DigestBox({ quiet = false, defaultOpen = true }: { quiet?: boole
   );
 }
 
-export function MenuPin() {
+export function MenuPin({ onClose }: { onClose?: () => void }) {
   return (
-    <div className="menu-dock shrink-0 border-t border-line px-3 py-2.5">
-      <div className="menu-install overflow-hidden rounded-xl">
+    <div className="menu-dock shrink-0 border-t border-white/10 px-3 py-2.5">
+      <div className="menu-install overflow-hidden rounded-xl border border-white/10">
         <GetAppRow />
       </div>
-      <div className="mt-1.5">
+      <div className="relative mt-1.5">
         <DigestBox quiet />
+        {onClose ? (
+          <button type="button" className="menu-close-lite" aria-label="Close menu" onClick={onClose}>
+            <X className="size-3.5" />
+          </button>
+        ) : null}
       </div>
     </div>
   );
