@@ -12,6 +12,7 @@ import {
   Hash,
   Heart,
   HelpCircle,
+  Bell,
   Home,
   LayoutDashboard,
   Link2,
@@ -464,10 +465,18 @@ function QonvoAppInner() {
     <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg">
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule">
-          <div className="flex min-h-12 min-w-0 items-center gap-1 px-2.5 py-2 sm:min-h-[3.25rem] sm:gap-3 sm:px-3.5 sm:py-2.5">
+          <div className="grid min-h-14 grid-cols-[auto_1fr_auto] items-center gap-2">
             <button
               type="button"
-              className="shrink-0"
+              className="chrome-ico"
+              aria-label="Menu"
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              <Menu className="size-4" />
+            </button>
+            <button
+              type="button"
+              className="justify-self-center"
               aria-label="Kilode home"
               onClick={() => {
                 const now = Date.now();
@@ -482,23 +491,20 @@ function QonvoAppInner() {
                 goHome();
               }}
             >
-              <BrandLockup />
+              <span className="kilode-wordmark">
+                Kilode<span className="kilode-bang">!</span>
+              </span>
             </button>
-            <nav className="mx-auto hidden min-w-0 items-center justify-center gap-1 md:flex">
-              <HomeTab label="Feeds" on={homeTab === "feeds" && screen === "home" && !marketDesk} onClick={() => { store.setOpenPost(null); setMarketDesk(null); setHomeTab("feeds"); setScreen("home"); setMenuOpen(false); }} />
-              <HomeTab label="Chat" on={homeTab === "chat" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("chat"); setScreen("home"); setMenuOpen(false); }} />
-              <HomeTab label="Music" on={homeTab === "music" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("music"); setScreen("home"); setMenuOpen(false); }} />
-              <HomeTab label="Socials" on={homeTab === "socials" && screen === "home"} onClick={() => { store.setOpenPost(null); setMarketDesk(null); setHomeTab("socials"); setScreen("home"); setMenuOpen(false); }} />
-              <HomeTab label="Events" on={homeTab === "cinema" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("cinema"); setScreen("home"); setMenuOpen(false); }} />
-              <HomeTab label="Ads" on={homeTab === "advert" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("advert"); setScreen("home"); setMenuOpen(false); }} />
-              <HomeTab label="Downloads" on={homeTab === "downloads" && screen === "home"} onClick={() => { store.setOpenPost(null); setHomeTab("downloads"); setScreen("home"); setMenuOpen(false); }} />
-              {signedIn ? (
-                <HomeTab label="Me" on={screen === "dashboard" || screen === "profile"} onClick={() => { setScreen("dashboard"); setMenuOpen(false); }} />
-              ) : (
-                <HomeTab label="Me" on={false} onClick={() => { window.location.href = "/login?mode=up"; }} />
-              )}
-            </nav>
-            <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                className="btn-post"
+                aria-label="Post"
+                onClick={() => (signedIn ? setScreen("create") : (window.location.href = "/login?mode=up"))}
+              >
+                <Plus className="size-3.5" strokeWidth={2.75} />
+                Post
+              </button>
               <NotifyBell
                 signedIn={signedIn}
                 posts={store.posts}
@@ -517,66 +523,6 @@ function QonvoAppInner() {
                   setScreen("home");
                 }}
               />
-              <SkinToggle />
-              <button
-                type="button"
-                className="chrome-ico"
-                aria-label="Kilode TV & Socials"
-                title="Kilode TV & Socials"
-                onClick={() => {
-                  setScreen("tv");
-                  setMenuOpen(false);
-                }}
-              >
-                <Tv className="size-3.5 text-lime-2 sm:size-4" />
-              </button>
-              <button
-                type="button"
-                className="chrome-ico"
-                aria-label="Menu"
-                onClick={() => setMenuOpen((v) => !v)}
-              >
-                <Menu className="size-3.5" />
-              </button>
-              <span className="hidden items-center gap-1.5 pl-0.5 text-[11px] font-medium text-lime-2 sm:flex">
-                <span className="size-1.5 animate-pulse rounded-full bg-lime-2" />
-                Live
-              </span>
-              {session.isPending ? (
-                <span className="h-7 w-10 animate-pulse rounded-full bg-white/10 sm:h-8 sm:w-12" />
-              ) : (
-                <>
-                  <SignedIn>
-                    <button
-                      type="button"
-                      aria-label="Me"
-                      title="Me"
-                      className="shrink-0"
-                      onClick={() => {
-                        setScreen("dashboard");
-                        setMenuOpen(false);
-                      }}
-                    >
-                      {session.user?.profileImageUrl ? (
-                        <img
-                          src={session.user.profileImageUrl}
-                          alt=""
-                          className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-white/10 sm:h-8 sm:w-8"
-                        />
-                      ) : (
-                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-lime-2 text-[11px] font-bold text-white sm:h-8 sm:w-8 sm:text-xs">
-                          {(session.user?.displayName ?? session.user?.primaryEmail ?? "M").charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                    </button>
-                  </SignedIn>
-                  <SignedOut>
-                    <Link to="/login" search={{ mode: "up" }} className="btn-join rounded-full px-2.5 py-1 text-[10px] font-bold sm:px-3 sm:text-xs">
-                      Join
-                    </Link>
-                  </SignedOut>
-                </>
-              )}
             </div>
           </div>
         </div>
@@ -1022,15 +968,23 @@ function QonvoAppInner() {
 
       <InstallToast />
       {signedIn && store.onboarded === 0 ? <OnboardSheet kind={store.kind} onDone={store.finishOnboard} /> : null}
-      <nav className="dock pointer-events-auto fixed inset-x-0 bottom-0 z-40 grid grid-cols-8 px-1 pt-1 pb-[env(safe-area-inset-bottom,0px)] md:hidden">
-        <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
-        <Tab icon={<MessageSquare className="size-3.5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
-        <Tab icon={<Radio className="size-3.5" />} label="Music" on={screen === "home" && homeTab === "music"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("music"); }} />
-        <Tab icon={<Globe className="size-3.5" />} label="Socials" on={screen === "home" && homeTab === "socials"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); store.setOpenPost(null); }} />
-        <Tab icon={<Film className="size-3.5" />} label="Events" on={screen === "home" && homeTab === "cinema"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("cinema"); }} />
-        <Tab icon={<Megaphone className="size-3.5" />} label="Ads" on={screen === "home" && homeTab === "advert"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("advert"); }} />
-        <Tab icon={<Download className="size-3.5" />} label="Downloads" on={screen === "home" && homeTab === "downloads"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("downloads"); }} />
-        <Tab icon={<User className="size-3.5" />} label="Me" on={screen === "dashboard" || screen === "profile"} onClick={() => { setMenuOpen(false); if (signedIn) setScreen("dashboard"); else window.location.href = "/login?mode=up"; }} />
+      <nav className="dock pointer-events-auto z-40">
+        <Tab icon={<Home className="size-5" />} label="Home" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
+        <Tab icon={<Search className="size-5" />} label="Explore" on={screen === "home" && homeTab === "socials"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); store.setOpenPost(null); }} />
+        <button
+          type="button"
+          className="dock-plus"
+          aria-label="Post"
+          onClick={() => {
+            setMenuOpen(false);
+            if (signedIn) setScreen("create");
+            else window.location.href = "/login?mode=up";
+          }}
+        >
+          <Plus className="size-6" strokeWidth={2.75} />
+        </button>
+        <Tab icon={<Bell className="size-5" />} label="Notifications" on={screen === "notifications"} onClick={() => { setMenuOpen(false); setScreen("notifications"); }} />
+        <Tab icon={<User className="size-5" />} label="Profile" on={screen === "dashboard" || screen === "profile"} onClick={() => { setMenuOpen(false); if (signedIn) setScreen("dashboard"); else window.location.href = "/login?mode=up"; }} />
       </nav>
 
       {roomsOpen ? (
@@ -1115,6 +1069,7 @@ function QonvoAppInner() {
               <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close">
                 <X className="size-4" />
               </button>
+              <SkinToggle />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-5">
               {!(signedIn) ? (
@@ -1450,16 +1405,16 @@ function QonvoAppInner() {
 }
 
 function SkinToggle() {
-  const [skin, setSkin] = useState<"night" | "ivory">("ivory");
+  const [skin, setSkin] = useState<"night" | "ivory">("night");
   useEffect(() => {
     try {
       const raw = localStorage.getItem("kilode-skin-v2");
-      const s = raw === "night" ? "night" : "ivory";
+      const s = raw === "ivory" ? "ivory" : "night";
       setSkin(s);
       document.documentElement.setAttribute("data-skin", s);
     } catch {
-      setSkin("ivory");
-      document.documentElement.setAttribute("data-skin", "ivory");
+      setSkin("night");
+      document.documentElement.setAttribute("data-skin", "night");
     }
   }, []);
   return (
@@ -2429,7 +2384,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => {
             const hot = (p.views ?? 0) >= 350 || (p.comments?.length ?? 0) >= 6;
             return (
-            <div key={p.id} role="button" tabIndex={0} data-feed-card="1" className="raised overflow-hidden rounded-md text-left" onClick={() => store.setOpenPost(p.id)} onKeyDown={(e) => { if (e.key === "Enter") store.setOpenPost(p.id); }}>
+            <div key={p.id} role="button" tabIndex={0} data-feed-card="1" className="glass-3d overflow-hidden text-left" onClick={() => store.setOpenPost(p.id)} onKeyDown={(e) => { if (e.key === "Enter") store.setOpenPost(p.id); }}>
               <div className="relative">
                 {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
                 {hot ? (

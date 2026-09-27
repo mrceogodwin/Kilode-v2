@@ -88,7 +88,7 @@ function TrendPage({ onClose, faces, live }: { onClose: () => void; faces: Recor
       <div className="space-y-2">
         {rows.length === 0 && !busy ? <p className="py-6 text-center text-[13px] text-muted">Nothing is moving in this filter yet.</p> : null}
         {rows.map((t) => (
-          <article key={t.id} className="rounded-[12px] border border-line bg-panel px-2.5 py-2">
+          <article key={t.id} className="glass-3d px-2.5 py-2">
             <div className="flex items-center gap-1.5">
               <Face handle={t.handle} photo={faces[t.handle.toLowerCase()]} size={28} />
               <a href={`/u/${encodeURIComponent(t.handle)}`} className="min-w-0 flex-1">
@@ -403,7 +403,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Find @username"
-          className="w-full rounded-[12px] border border-line bg-panel px-3 py-2 outline-none"
+          className="w-full glass-3d px-3 py-2 outline-none"
           style={{ fontSize: 16 }}
         />
       </label>
@@ -449,7 +449,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1">
         {shownFellows.length === 0 ? <p className="px-1 text-[11px] text-muted">Real members show here after they join.</p> : null}
         {shownFellows.map((f) => (
-          <div key={f.id} className="w-[168px] shrink-0 rounded-[12px] border border-line bg-panel px-2.5 py-2">
+          <div key={f.id} className="w-[168px] shrink-0 glass-3d px-2.5 py-2">
             <a href={`/u/${encodeURIComponent(f.handle)}`} className="flex items-center gap-1.5">
               <Face handle={f.handle} photo={f.photo || faces[f.handle.toLowerCase()]} size={28} />
               <div className="min-w-0 flex-1">
@@ -528,7 +528,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
       </div>
       {dmFor ? (
         <form
-          className="mb-3 rounded-[12px] border border-line bg-panel px-2.5 py-2"
+          className="mb-3 glass-3d px-2.5 py-2"
           onSubmit={(e) => {
             e.preventDefault();
             const text = dmBody.trim();
@@ -572,7 +572,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
         </form>
       ) : null}
 
-      <div className="mb-3 rounded-[12px] border border-line bg-panel px-2.5 py-2">
+      <div className="mb-3 glass-3d px-2.5 py-2">
         <div className="flex items-start gap-2">
           <img src={avatarUrl("me")} alt="" className="mt-0.5 size-7 rounded-full bg-panel-3" />
           <textarea
@@ -873,7 +873,7 @@ function TakeCard({
   const expires = typeof take.meta.expires === "number" ? take.meta.expires : 0;
   const hours = expires ? Math.max(0, Math.round((expires - Date.now()) / 3600000)) : 0;
   return (
-    <article className={`rounded-[12px] border px-2.5 py-2 ${ghost ? "border-white/10 bg-panel" : "border-line bg-panel"}`}>
+    <article className="glass-3d px-2.5 py-2">
       <div className="flex items-start gap-2">
         <Face handle={ghost ? "ghost" : take.handle} photo={ghost ? "" : photo} size={28} />
         <div className="min-w-0 flex-1">

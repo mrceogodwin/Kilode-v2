@@ -145,7 +145,7 @@ export function FeedsHero({
 
   return (
     <section
-      className="hero-flag mb-3 overflow-hidden rounded-2xl border border-line"
+      className="hero-flag glass-3d mb-3 overflow-hidden"
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
     >

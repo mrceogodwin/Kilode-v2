@@ -85,8 +85,8 @@ export function NotifyBell({
         aria-label="Notifications"
         onClick={() => setOpen((v) => !v)}
       >
-        <Bell className="size-3.5 text-lime-2" />
-        {badge > 0 ? <span className="absolute top-1 right-1 size-1.5 rounded-full bg-lime-2" /> : null}
+        <Bell className="size-4 text-fg" />
+        {badge > 0 ? <span className="absolute top-1 right-1 size-1.5 rounded-full bg-[#ef4444]" /> : null}
       </button>
       {open ? (
         <div className="fixed top-[calc(env(safe-area-inset-top,0px)+4.75rem)] right-2 z-50 w-[min(340px,calc(100vw-1rem))] overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl">

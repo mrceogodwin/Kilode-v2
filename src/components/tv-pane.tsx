@@ -53,10 +53,10 @@ function KilodeTvLiveBox({ live }: { live: TvLive }) {
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-medium tracking-[0.2em] text-lime-2">KILODE TV</span>
             {onAir ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#c62828]/18 px-1.5 py-0.5 text-[9px] font-extrabold tracking-[0.14em] text-[#ff6b6b] ring-1 ring-[#c62828]/35">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#ef4444]/15 px-1.5 py-0.5 text-[9px] font-extrabold tracking-[0.14em] text-[#ef4444] ring-1 ring-[#ef4444]/40">
                 <span className="relative flex size-1.5">
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#ff5252] opacity-70" />
-                  <span className="relative inline-flex size-1.5 rounded-full bg-[#ff5252]" />
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#ef4444] opacity-70" />
+                  <span className="relative inline-flex size-1.5 rounded-full bg-[#ef4444]" />
                 </span>
                 LIVE
               </span>

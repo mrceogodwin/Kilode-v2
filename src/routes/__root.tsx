@@ -42,7 +42,7 @@ export const Route = createRootRoute({
     scripts: base.scripts,
     styles: [
       {
-        children: "html,body{background:#0a0a0a;color:#eeeeec;margin:0;min-height:100%;min-height:-webkit-fill-available}",
+        children: "html,body{background:#050706;color:#f4f6f5;margin:0;min-height:100%;min-height:-webkit-fill-available}",
       },
     ],
   }),
@@ -64,12 +64,12 @@ export const Route = createRootRoute({
     />
   ),
   component: () => (
-    <html lang="en" data-skin="ivory" suppressHydrationWarning>
+    <html lang="en" data-skin="night" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var s=localStorage.getItem("kilode-skin-v2");document.documentElement.setAttribute("data-skin",s==="night"?"night":"ivory")}catch(e){document.documentElement.setAttribute("data-skin","ivory")}`,
+            __html: `try{var s=localStorage.getItem("kilode-skin-v2");document.documentElement.setAttribute("data-skin",s==="ivory"?"ivory":"night")}catch(e){document.documentElement.setAttribute("data-skin","night")}`,
           }}
         />
       </head>
