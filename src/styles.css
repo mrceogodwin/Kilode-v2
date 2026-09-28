@@ -2249,16 +2249,17 @@ html[data-skin="ivory"] .kilode-shell {
   color: #121614;
 }
 html[data-skin="ivory"] .kilode-chrome {
-  background: #050706 !important;
+  background: linear-gradient(180deg, #3e4541 0%, #2a302d 58%, #222724 100%) !important;
   color: #fff !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 html[data-skin="ivory"] .kilode-chrome .kilode-wordmark,
 html[data-skin="ivory"] .kilode-chrome .kilode-word-svg {
   color: #fff !important;
   fill: #fff !important;
 }
-html[data-skin="ivory"] .kilode-chrome .kilode-bang-ink { fill: #050706 !important; }
+html[data-skin="ivory"] .kilode-chrome .kilode-bang-ink { fill: #222724 !important; }
 html[data-skin="ivory"] .kilode-chrome .kilode-ring { stroke: #fff !important; }
 html[data-skin="ivory"] .kilode-chrome .hdr-ico {
   background: transparent !important;
@@ -2268,11 +2269,19 @@ html[data-skin="ivory"] .kilode-chrome .hdr-ico {
 }
 html[data-skin="ivory"] .kilode-chrome-ticker,
 html[data-skin="ivory"] .kilode-chrome .trend-ticker {
-  background: #121413 !important;
-  color: rgba(255, 255, 255, 0.82) !important;
-  border-color: rgba(255, 255, 255, 0.16) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.12)) !important;
+  color: rgba(255, 255, 255, 0.86) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
 }
-html[data-skin="ivory"] .kilode-chrome .ticker-track { color: rgba(255, 255, 255, 0.82) !important; }
+html[data-skin="ivory"] .kilode-chrome .ticker-track { color: rgba(255, 255, 255, 0.86) !important; }
+html[data-skin="ivory"] .dock {
+  background: linear-gradient(180deg, #343a37 0%, #242926 46%, #1b1f1d 100%) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-bottom: 0 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 -12px 28px rgba(22, 26, 24, 0.22) !important;
+}
+html[data-skin="ivory"] .dock::after { background: #1b1f1d; }
 html[data-skin="ivory"] .raised,
 html[data-skin="ivory"] .glass-3d {
   background: #f7faf8 !important;
@@ -2280,35 +2289,40 @@ html[data-skin="ivory"] .glass-3d {
   border: 1px solid #c5d0c8 !important;
   box-shadow: none !important;
 }
-html[data-skin="ivory"] .me-hero,
-html[data-skin="ivory"] .site-foot {
-  background: #101311 !important;
-  color: #f4f7f5 !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
+html[data-skin="ivory"] .me-hero {
+  background: linear-gradient(180deg, #ffffff 0%, #f4f8f5 100%) !important;
+  color: #1a201c !important;
+  border-color: #d5dfd8 !important;
+  box-shadow: 0 12px 28px rgba(24, 36, 28, 0.06) !important;
 }
 html[data-skin="ivory"] .me-hero [class*="text-fg"],
-html[data-skin="ivory"] .me-hero p { color: #f4f7f5 !important; }
+html[data-skin="ivory"] .me-hero p { color: #1a201c !important; }
+html[data-skin="ivory"] .me-hero .text-muted { color: #5c6660 !important; }
+html[data-skin="ivory"] .me-hero .text-lime-2 { color: #1f7a45 !important; }
+html[data-skin="ivory"] .me-hero .btn-3d {
+  background: #fff !important;
+  color: #1a201c !important;
+  border: 1px solid #1c211e !important;
+}
+html[data-skin="ivory"] .me-hero .btn-join {
+  background: #1c211e !important;
+  color: #fff !important;
+}
+html[data-skin="ivory"] .site-foot {
+  background: linear-gradient(180deg, #2e3431 0%, #232826 100%) !important;
+  color: #f4f7f5 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
 html[data-skin="ivory"] .site-foot a,
 html[data-skin="ivory"] .site-foot p,
 html[data-skin="ivory"] .site-foot h2,
 html[data-skin="ivory"] .site-foot strong { color: #f4f7f5 !important; }
-html[data-skin="ivory"] .me-hero .text-muted,
 html[data-skin="ivory"] .site-foot .text-muted { color: rgba(255, 255, 255, 0.62) !important; }
-html[data-skin="ivory"] .me-hero .text-lime-2,
 html[data-skin="ivory"] .site-foot .text-lime-2 { color: #b7f0c8 !important; }
-html[data-skin="ivory"] .me-hero .btn-3d {
-  background: transparent !important;
-  color: #fff !important;
-  border: 1px solid rgba(255, 255, 255, 0.28) !important;
-}
-html[data-skin="ivory"] .me-hero .btn-join {
-  background: #fff !important;
-  color: #111 !important;
-}
 html[data-skin="ivory"] .site-foot .foot-stats,
 html[data-skin="ivory"] .site-foot .foot-digest {
-  background: rgba(134, 239, 172, 0.06) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
   color: #f4f7f5 !important;
 }
 html[data-skin="ivory"] .menu-sheet .menu-ico,
