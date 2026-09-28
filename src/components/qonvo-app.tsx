@@ -2550,7 +2550,7 @@ function PulseStrip({ posts }: { posts: { category?: string; views?: number }[] 
   const max = top[0][1] || 1;
   return (
     <section className="pulse-card mb-3">
-      <div className="mb-1 text-[10px] font-semibold tracking-[0.14em] text-[#FACC15]">TRENDING IN YOUR FEED</div>
+      <div className="pulse-kicker mb-1 text-[10px] font-semibold tracking-[0.14em]">TRENDING IN YOUR FEED</div>
       {top.map(([name, n]) => (
         <div key={name} className="pulse-row">
           <span>{name}</span>
