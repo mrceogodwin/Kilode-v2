@@ -460,14 +460,14 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
           </button>
           <button
             type="button"
-            className="rounded-full border border-white/25 bg-transparent px-2.5 py-1 text-[12px] font-semibold text-white"
+            className="rounded-full border border-line bg-transparent px-2.5 py-1 text-[12px] font-semibold text-fg"
             onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))}
           >
             Marketplace
           </button>
           <button
             type="button"
-            className="rounded-full border border-white/25 bg-transparent px-2.5 py-1 text-[12px] font-semibold text-white"
+            className="rounded-full border border-line bg-transparent px-2.5 py-1 text-[12px] font-semibold text-fg"
             onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "teams" } }))}
           >
             Groups
@@ -494,7 +494,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
               <button
                 type="button"
                 disabled={linkState(f) === "out"}
-                className="rounded-full border border-white/30 bg-transparent px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-70"
+                className="rounded-full border border-line bg-transparent px-2.5 py-1 text-[10px] font-bold text-fg disabled:opacity-70"
                 onClick={() => {
                   if (!authed) return goLogin();
                   if (linkState(f) === "in") {

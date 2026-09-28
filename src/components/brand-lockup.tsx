@@ -1,8 +1,8 @@
-/** Transparent lockup. Yellow ring stays; the bang and word flip so light skin is not a black box. */
+/** Transparent lockup. Night keeps the yellow ring. Light skin is black so it does not glow on ivory. */
 export function OfficialLockup({ className = "kilode-lockup" }: { className?: string }) {
   return (
     <svg viewBox="0 0 168 36" className={className} role="img" aria-label="Kilode">
-      <rect x="1.4" y="1.4" width="33.2" height="33.2" rx="9" fill="none" stroke="#FACC15" strokeWidth="2.3" />
+      <rect className="kilode-ring" x="1.4" y="1.4" width="33.2" height="33.2" rx="9" strokeWidth="2.3" />
       <path className="kilode-bang-ink" d="M16.1 8.4h3.4l-.8 12.6h-1.9L16.1 8.4z" />
       <circle className="kilode-bang-ink" cx="17.8" cy="25.8" r="1.75" />
       <text x="42" y="25.5" className="kilode-word-svg">

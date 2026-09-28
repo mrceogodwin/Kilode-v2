@@ -837,7 +837,7 @@ function QonvoAppInner() {
                       <div key={row.key} className="flex flex-col gap-1.5">
                         <button
                           type="button"
-                          className="text-[11px] text-white/80"
+                          className="text-[11px] font-semibold text-fg"
                           onClick={() => setOpenFolds((m) => ({ ...m, [row.key]: !open }))}
                         >
                           {open ? "Hide" : `${row.n} more from ${row.author}`}
@@ -1940,8 +1940,9 @@ function ArtistStage({ artist, onClose }: { artist: ArtistCard; onClose: () => v
   }
   return (
     <div className="artist-stage" role="dialog" aria-label={`${artist.name} profile`}>
-      <button type="button" className="round-arrow absolute top-3 right-3" aria-label="Close artist" onClick={onClose}>
-        <X className="size-4" />
+      <button type="button" className="mb-3 inline-flex items-center gap-1 text-[13px] font-semibold" onClick={onClose}>
+        <ChevronLeft className="size-4" />
+        Back
       </button>
       <div className="artist-hero">
         <span className="artist-hero-face">{artist.cover ? <img src={artist.cover} alt="" /> : artist.name.slice(0, 1)}</span>
@@ -2034,10 +2035,14 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
+        {artist ? (
+          <ArtistStage artist={artist} onClose={() => setArtist(null)} />
+        ) : (
+        <>
         <section className="mb-3">
           <div className="mb-1.5 flex items-center justify-between">
             <div className="text-[11px] font-bold">Browse</div>
-            <button type="button" className="text-[11px] font-semibold text-white/70" onClick={onAdd}>
+            <button type="button" className="text-[11px] font-semibold text-fg" onClick={onAdd}>
               Add a link
             </button>
           </div>
@@ -2096,8 +2101,9 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
             ))}
           </div>
         </section>
+        </>
+        )}
       </div>
-      {artist ? <ArtistStage artist={artist} onClose={() => setArtist(null)} /> : null}
     </div>
   );
 }
@@ -2945,11 +2951,11 @@ function ChatLine({
       className={`chat-bubble rounded-xl border px-2.5 py-1.5 ${
         mine
           ? "chat-bubble-mine border-lime-2/35 bg-lime-2/[0.07]"
-          : "border-white/10 bg-panel/70"
+          : "border-line bg-panel"
       }`}
     >
       {m.parentN && m.parentT ? (
-        <button type="button" className="mb-1 block w-full truncate rounded-md border-l-2 border-lime-2/50 bg-black/25 px-2 py-1 text-left text-[11px] text-muted" onClick={() => onReply(m)}>
+        <button type="button" className="mb-1 block w-full truncate rounded-md border border-line border-l-2 border-l-lime-2/50 bg-panel-2 px-2 py-1 text-left text-[11px] text-fg" onClick={() => onReply(m)}>
           <span style={{ color: handleColor(m.parentN) }}>{m.parentN}</span> · {m.parentT}
         </button>
       ) : null}
@@ -3021,7 +3027,7 @@ function ChatLine({
         >
           🔥 {m.rx?.fire ?? 0}
         </button>
-        <button type="button" className="text-[11px] text-white/80" onClick={() => onReply(m)}>
+        <button type="button" className="text-[11px] font-semibold text-fg" onClick={() => onReply(m)}>
           Reply
         </button>
       </div>

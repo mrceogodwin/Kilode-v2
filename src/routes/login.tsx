@@ -122,7 +122,7 @@ function Login() {
                     <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
                     <span>
                       I agree to the{" "}
-                      <a href="/terms#terms" className="font-semibold text-white underline" target="_blank" rel="noreferrer">
+                      <a href="/terms#terms" className="font-semibold text-fg underline" target="_blank" rel="noreferrer">
                         Terms
                       </a>
                       .
@@ -132,11 +132,11 @@ function Login() {
                     <input type="checkbox" className="mt-0.5" checked={agreeRules} onChange={(e) => setAgreeRules(e.target.checked)} />
                     <span>
                       I accept the{" "}
-                      <a href="/terms#rules" className="font-semibold text-white underline" target="_blank" rel="noreferrer">
+                      <a href="/terms#rules" className="font-semibold text-fg underline" target="_blank" rel="noreferrer">
                         Rules
                       </a>
                       . I am 15 or older and responsible for what I submit.{" "}
-                      <a href="/terms#howto" className="font-semibold text-white underline" target="_blank" rel="noreferrer">
+                      <a href="/terms#howto" className="font-semibold text-fg underline" target="_blank" rel="noreferrer">
                         How to use
                       </a>
                       .

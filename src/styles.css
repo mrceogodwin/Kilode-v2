@@ -1654,6 +1654,10 @@ html[data-skin="ivory"] .news-plus {
   max-width: 186px;
   margin-inline: auto;
 }
+.kilode-ring {
+  fill: none;
+  stroke: #facc15;
+}
 .kilode-bang-ink { fill: #fff; }
 .kilode-word-svg {
   fill: #fff;
@@ -1661,6 +1665,7 @@ html[data-skin="ivory"] .news-plus {
   font-size: 22px;
   font-weight: 800;
 }
+html[data-skin="ivory"] .kilode-ring { stroke: #111; }
 html[data-skin="ivory"] .kilode-bang-ink,
 html[data-skin="ivory"] .kilode-word-svg { fill: #111; }
 html[data-skin="ivory"] .menu-sheet,
@@ -1845,14 +1850,16 @@ html[data-skin="ivory"] .menu-sheet .menu-ico { color: #facc15; }
   color: rgba(255, 255, 255, 0.55);
 }
 .artist-stage {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-  overflow-y: auto;
-  background: #050706;
-  padding: 22px 16px calc(96px + env(safe-area-inset-bottom));
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+  border: 1px solid var(--color-line, rgba(255, 255, 255, 0.12));
+  border-radius: 18px;
+  background: var(--color-panel, #121417);
+  color: inherit;
+  padding: 14px 14px 18px;
 }
-.artist-hero { display: flex; align-items: center; gap: 14px; padding-top: 28px; }
+.artist-hero { display: flex; align-items: center; gap: 14px; }
 .artist-hero-face { width: 92px; height: 92px; flex: 0 0 92px; }
 html[data-skin="ivory"] .login-stage { background: #f4f4f2; }
 html[data-skin="ivory"] .login-card {
@@ -2021,7 +2028,7 @@ html[data-skin="ivory"] {
   --color-muted: #5c5c5c;
   --color-lime: #111111;
   --color-lime-2: #111111;
-  --color-line: #e4e4e1;
+  --color-line: #b7b7b2;
 }
 html[data-skin="ivory"] body,
 html[data-skin="ivory"] .kilode-shell {
@@ -2056,7 +2063,7 @@ html[data-skin="ivory"] .raised,
 html[data-skin="ivory"] .glass-3d {
   background: #fff;
   color: #111;
-  border-color: #e4e4e1;
+  border: 1px solid #b7b7b2;
 }
 html[data-skin="ivory"] .menu-sheet {
   background:
@@ -2079,3 +2086,36 @@ html[data-skin="ivory"] .menu-sheet .menu-ico {
 html[data-skin="ivory"] .menu-sheet .kilode-wordmark,
 html[data-skin="ivory"] .menu-sheet h2,
 html[data-skin="ivory"] .menu-sheet .text-fg { color: #fff; }
+
+/* Light skin: white-on-white borders and type disappear. Darken them, but keep the menu dark. */
+html[data-skin="ivory"] [class*="border-white/"] {
+  border-color: rgba(17, 17, 17, 0.22) !important;
+}
+html[data-skin="ivory"] .menu-sheet [class*="border-white/"] {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+html[data-skin="ivory"] [class*="text-white/"] {
+  color: #222 !important;
+}
+html[data-skin="ivory"] .menu-sheet [class*="text-white/"] {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+html[data-skin="ivory"] .chat-bubble,
+html[data-skin="ivory"] .trend-live,
+html[data-skin="ivory"] .trend-card,
+html[data-skin="ivory"] .trend-row,
+html[data-skin="ivory"] .pulse-card,
+html[data-skin="ivory"] .music-rail,
+html[data-skin="ivory"] .artist-stage {
+  background: #fff;
+  color: #111;
+  border-color: rgba(17, 17, 17, 0.2);
+}
+html[data-skin="ivory"] .artist-orb-face,
+html[data-skin="ivory"] .artist-hero-face,
+html[data-skin="ivory"] .round-face {
+  border-color: #111;
+}
+html[data-skin="ivory"] .kilode-ring { stroke: #111; }
+html[data-skin="ivory"] .kilode-bang-ink,
+html[data-skin="ivory"] .kilode-word-svg { fill: #111; }
