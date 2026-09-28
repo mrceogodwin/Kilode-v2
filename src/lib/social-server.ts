@@ -155,8 +155,9 @@ export const getPublicProfile = createServerFn({ method: "GET" })
     }
     const posts = await sql<{ id: string; title: string; excerpt: string | null; image: string | null; slug: string | null; ts: number | string; views: number | string | null }>`
       select id, title, excerpt, image, slug, ts, views from nf_posts
-      where status = 'publish' and lower(author) = ${profile.handle.toLowerCase()}
-      order by ts desc limit 12`;
+      where coalesce(status, 'publish') not in ('hidden', 'rejected', 'draft')
+        and (lower(author) = ${profile.handle.toLowerCase()} or user_id = ${profile.user_id})
+      order by ts desc limit 24`;
     let tracks: { id: string; title: string; artist: string; url: string; platform: string }[] = [];
     try {
       tracks = await sql<{ id: string; title: string; artist: string; url: string; platform: string }>`

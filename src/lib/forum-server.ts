@@ -244,35 +244,55 @@ export const listPosts = createServerFn({ method: "GET" }).handler(async () => {
     ts: number | string;
     views: number | string | null;
   };
-  let posts: Row[] = [];
+  const map = (posts: Row[]) =>
+    posts
+      .filter((p) => p && typeof p.id === "string" && p.title && String(p.status || "publish") !== "hidden")
+      .map((p) => ({
+        ...p,
+        body: p.body || "",
+        excerpt: p.excerpt ?? "",
+        category: p.category ?? "News",
+        tags: p.tags ?? "",
+        link: p.link ?? "",
+        image: p.image ?? "",
+        slug: p.slug || p.id,
+        status: p.status || "publish",
+        author: p.author || "Kilode",
+        ts: Number(p.ts),
+        views: Number(p.views ?? 0),
+        comments: [] as { author: string; body: string; ts: number; parentTs?: number }[],
+      }));
   try {
-    posts = await sql<Row>`
+    const posts = await sql<Row>`
       select id, title, left(coalesce(body, ''), 4000) as body, excerpt, category, tags, link, image, slug,
         coalesce(status, 'publish') as status, author, ts, coalesce(views, 0) as views
       from nf_posts
-      where coalesce(status, 'publish') not in ('draft', 'hidden', 'rejected')
+      where coalesce(status, 'publish') not in ('hidden', 'rejected')
       order by ts desc
       limit 120`;
+    return map(posts);
   } catch {
-    try {
-      posts = await sql<Row>`
-        select id, title, left(coalesce(body, ''), 4000) as body, excerpt, category, tags, link, image, slug,
-          'publish' as status, author, ts, 0 as views
-        from nf_posts
-        order by ts desc
-        limit 120`;
-    } catch {
-      return [];
-    }
+    /* older table — try the columns that have always been there */
   }
-  return posts
-    .filter((p) => p && typeof p.id === "string" && p.title)
-    .map((p) => ({
-      ...p,
-      ts: Number(p.ts),
-      views: Number(p.views ?? 0),
-      comments: [] as { author: string; body: string; ts: number; parentTs?: number }[],
-    }));
+  try {
+    const posts = await sql<Row>`
+      select id, title, left(coalesce(body, ''), 4000) as body,
+        '' as excerpt, 'News' as category, '' as tags, '' as link, '' as image, id as slug,
+        coalesce(status, 'publish') as status, author, ts, 0 as views
+      from nf_posts
+      order by ts desc
+      limit 120`;
+    return map(posts);
+  } catch {
+    /* still older */
+  }
+  try {
+    const posts = await sql<Row>`
+      select id, title, coalesce(body, '') as body, author, ts from nf_posts order by ts desc limit 120`;
+    return map(posts.map((p) => ({ ...p, excerpt: "", category: "News", tags: "", link: "", image: "", slug: p.id, status: "publish", views: 0 })));
+  } catch {
+    return [];
+  }
 });
 
 export const getPublicPost = createServerFn({ method: "GET" })
