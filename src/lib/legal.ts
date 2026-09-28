@@ -1,16 +1,19 @@
-export const LEGAL_UPDATED = "24 September 2026";
+export const LEGAL_UPDATED = "28 September 2026";
 
-export const LEGAL_NAV = [
-  { id: "about", label: "About" },
-  { id: "terms", label: "Terms of Use" },
-  { id: "rules", label: "Community Rules" },
-  { id: "content", label: "Content & liability" },
-  { id: "howto", label: "How to use Kilode" },
-  { id: "ads", label: "Ads & crypto" },
-  { id: "privacy", label: "Privacy" },
-  { id: "cookies", label: "Cookies" },
-  { id: "contact", label: "Contact" },
+export const LEGAL_PAGES = [
+  { href: "/about", label: "About" },
+  { href: "/terms", label: "Terms of Use" },
+  { href: "/rules", label: "Rules" },
+  { href: "/safety", label: "Safety" },
+  { href: "/how-to", label: "How to use" },
+  { href: "/content", label: "Content & liability" },
+  { href: "/ads-policy", label: "Ads & crypto" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/cookies", label: "Cookies" },
+  { href: "/contact", label: "Contact" },
 ] as const;
+
+export const LEGAL_NAV = LEGAL_PAGES;
 
 export const ABOUT_SHORT = "Feeds, chat, music, events, jobs, market, rent, and ads in one app.";
 
@@ -215,6 +218,31 @@ Use Report on a post if you believe it breaks these Rules. We may act, or we may
 
 11. Enforcement
 Mute, ban, hide, and refuse are operator tools. Appeals go through Contact while signed in. There is no public staff list.`;
+
+export const SAFETY_LONG = `Safety
+
+Last updated ${LEGAL_UPDATED}
+
+1. Age
+Kilode is not for anyone under 15. Do not open an account for a child.
+
+2. Your password
+Keep it to yourself. Staff will never ask for it in a chat or a DM. There is no public email reset. If you forget it, only the operator can set a new one after you prove the handle is yours.
+
+3. People on Kilode
+A handle is a username. A Verified mark means the operator checked that handle. It does not mean the person is safe to meet, hire, or pay. Check a job, a seller, or a renter yourself before you share a phone number, an address, or money.
+
+4. Money
+Kilode does not hold your funds. There is no cart, no escrow, and no payroll in the app. When an ad is charged, you send the crypto yourself to the wallet on the screen. Check the first and last characters. Never pay an address that arrived in a message.
+
+5. Harm
+Do not post threats, doxxing, scams, or sexual content involving anyone under 18. Use Report on a post. Staff may hide it or mute the handle. They may also leave it. Appeals go through Contact while you are signed in.
+
+6. Your own details
+Do not put a NIN, BVN, bank account, or home address in chat, a bio, or a listing.
+
+7. Emergencies
+Kilode is not an emergency service. If you are in immediate danger, contact local emergency services.`;
 
 export const CONTENT_LONG = `Content, liability, and takedown
 

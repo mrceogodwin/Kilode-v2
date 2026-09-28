@@ -110,6 +110,15 @@ export const sitemapXml = createServerFn({ method: "GET" }).handler(async () => 
     { loc: `${SITE.url}/advertise`, lastmod: now, changefreq: "weekly", priority: "0.5" },
     { loc: `${SITE.url}/install`, lastmod: now, changefreq: "monthly", priority: "0.3" },
     { loc: `${SITE.url}/terms`, lastmod: now, changefreq: "monthly", priority: "0.2" },
+    { loc: `${SITE.url}/privacy`, lastmod: now, changefreq: "monthly", priority: "0.2" },
+    { loc: `${SITE.url}/rules`, lastmod: now, changefreq: "monthly", priority: "0.2" },
+    { loc: `${SITE.url}/safety`, lastmod: now, changefreq: "monthly", priority: "0.2" },
+    { loc: `${SITE.url}/how-to`, lastmod: now, changefreq: "monthly", priority: "0.2" },
+    { loc: `${SITE.url}/about`, lastmod: now, changefreq: "monthly", priority: "0.2" },
+    { loc: `${SITE.url}/cookies`, lastmod: now, changefreq: "monthly", priority: "0.2" },
+    { loc: `${SITE.url}/content`, lastmod: now, changefreq: "monthly", priority: "0.2" },
+    { loc: `${SITE.url}/ads-policy`, lastmod: now, changefreq: "monthly", priority: "0.2" },
+    { loc: `${SITE.url}/contact`, lastmod: now, changefreq: "monthly", priority: "0.2" },
   ];
   if (sql) {
     try {

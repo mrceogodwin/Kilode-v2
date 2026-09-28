@@ -115,11 +115,11 @@ export function MenuLegal({ onDonate }: { onDonate?: () => void }) {
           Terms
         </a>
         {" · "}
-        <a href="/terms#privacy" className="underline">
+        <a href="/privacy" className="underline">
           Privacy
         </a>
         {" · "}
-        <a href="/terms#rules" className="underline">
+        <a href="/rules" className="underline">
           Rules
         </a>
         {onDonate ? (

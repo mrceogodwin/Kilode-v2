@@ -18,6 +18,7 @@ import {
   type NewsSource,
 } from "@/lib/news-engine-server";
 import { listWallets, getChatTtl } from "@/lib/forum-server";
+import { LEGAL_PAGES } from "@/lib/legal";
 import { listAdCatalog } from "@/lib/ad-catalog-server";
 import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
@@ -29,7 +30,7 @@ import { EventsAdminPanel } from "@/components/events-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
 import { ShopAdminPanel } from "@/components/downloads-pane";
 import { SocialsAdminPanel, TvPane } from "@/components/tv-pane";
-import { JoinCta, TelegramLink } from "@/components/get-app";
+import { JoinCta } from "@/components/get-app";
 import { usePublicSite } from "@/components/site-chrome";
 import { MeDashboard } from "@/components/me-dashboard";
 import { AdCatalogPanel, AdSlotsPanel, LivePausePanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
@@ -789,7 +790,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
             <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             <span>
               I agree to the{" "}
-              <a href="/terms#content" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+              <a href="/content" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
                 Terms
               </a>
               . This URL is mine to share. Audio is not hosted here.
@@ -1074,7 +1075,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
             <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
             <span>
               I agree to the{" "}
-              <a href="/terms#content" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+              <a href="/content" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
                 Terms
               </a>
               . I am responsible for this post. Kilode is not liable for what I publish.
@@ -1960,7 +1961,7 @@ function Ads({ store }: { store: Store }) {
         <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
         <span>
           I agree to the{" "}
-          <a href="/terms#ads" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+          <a href="/ads-policy" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
             Ads & crypto terms
           </a>
           . I paid from my own wallet. Staff may reject a bad or missing hash.
@@ -3382,26 +3383,15 @@ function Settings({ store }: { store: Store }) {
 
 function Help() {
   return (
-    <Screen kicker="KILODE" title="Help & terms" sub="How accounts, ads, cinema, and listings work.">
-      <Card title="Accounts" body="Username + password. Tick Terms and Rules. One account type at register — you cannot switch it. The operator may correct a wrong type. No public email. Full legal: /terms" />
-      <Card title="What each type can do" body="Normal user: chat, feeds, vote, apply to jobs. Artist: music URLs only. Writer: feeds. Ads Poster: business ads. Cinema Poster: movie YouTube URLs. Job Poster / Seeker, Marketplace seller, Rent lister: their module only." />
-      <Card title="Chat" body="Signed-in messages save on the server and expire. Use ‹ › to page older/newer chat. Use Show in … at the top right of a room to translate the thread into Yoruba, Igbo, Hausa, French, or Spanish." />
-      <Card title="Feeds & music" body="Create post after you sign in. Only Artist lists music. Paste a Spotify / SoundCloud / Audiomack / Apple / Boomplay / Deezer URL. We embed their player — nothing streams from Kilode. Spotify iframe is a 30-second preview unless the visitor is logged into Spotify. SoundCloud and Audiomack play the full track if the artist allowed streaming. Artwork is fetched once via oEmbed when you submit." />
-      <Card title="Teams" body="Signed-in members create up to 3 teams. Anyone signed in can join (max 40). Open chat is a Kilode room, same engine as Global Chat. Not a second WhatsApp. Abuse can be hidden." />
-      <Card title="Ads" body="Pick a slot, creative type, and 1 / 7 / 14 / 30 days. Copy the wallet from this app, pay crypto, paste the tx hash. Ads go live after review. Never send funds to an address from a DM." />
-      <Card title="Cinema" body="Anyone can watch Watching Now — it is a YouTube embed, not a file on Kilode. Signed-in users vote once per title per day. Cinema Poster submits a YouTube URL. Chat under the player uses the same engine as rooms." />
-      <Card title="Jobs, Marketplace, Rent" body="Job Poster lists jobs. Job Seekers apply. Marketplace and Rent are showcase + contact only — no selling or renting inside the app. Listings are reviewed before they go public." />
-      <Card title="Verification" body="Public handles may show a Kilode Verified mark. The operator can correct an account type if you registered as the wrong one. There is no public staff directory." />
-      <Card title="Scale" body="Chat refreshes while the tab is open. Video and music play from YouTube / Spotify / SoundCloud — not from Kilode servers." />
-      <Card title="Privacy" body="No public email. Login uses a private username. Do not put real addresses or ID numbers in chat. Cookies keep you signed in. We do not sell your handle list." />
-      <p className="px-1 text-[11px] text-muted">
-        <a href="/terms" className="text-lime-2 underline">
-          Full Terms, Rules, Privacy and How to use
-        </a>
-      </p>
-      <p className="px-1 text-[10px] text-muted">
-        Developer <TelegramLink className="text-[10px]" />
-      </p>
+    <Screen kicker="KILODE" title="Policies" sub="Each one is its own page. Read the one you need.">
+      <div className="space-y-2">
+        {LEGAL_PAGES.map((p) => (
+          <a key={p.href} href={p.href} className="raised flex items-center justify-between rounded-2xl px-4 py-3">
+            <span className="text-[14px] font-extrabold">{p.label}</span>
+            <span className="text-[12px] font-bold text-lime-2">Open</span>
+          </a>
+        ))}
+      </div>
     </Screen>
   );
 }

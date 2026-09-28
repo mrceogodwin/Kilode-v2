@@ -210,7 +210,7 @@ export function SiteFooter() {
       <div className="foot-section mt-3 border-t pt-2.5 text-center">
         <p className="text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">About Kilode</p>
         <p className="mx-auto mt-1 max-w-[18rem] px-2 text-center text-[11px] leading-snug break-words text-muted">{ABOUT_SHORT}</p>
-        <a href="/terms#about" className="mt-1 inline-block text-[11px] font-semibold text-lime-2 underline-offset-2 hover:underline">
+        <a href="/about" className="mt-1 inline-block text-[11px] font-semibold text-lime-2 underline-offset-2 hover:underline">
           Read the full about
         </a>
       </div>
@@ -248,12 +248,20 @@ export function SiteFooter() {
           Terms
         </a>
         {" · "}
-        <a href="/terms#privacy" className="underline">
+        <a href="/privacy" className="underline">
           Privacy
         </a>
         {" · "}
-        <a href="/terms#rules" className="underline">
+        <a href="/rules" className="underline">
           Rules
+        </a>
+        {" · "}
+        <a href="/safety" className="underline">
+          Safety
+        </a>
+        {" · "}
+        <a href="/how-to" className="underline">
+          How to use
         </a>
         {" · "}
         <a href="/advertise" className="underline">

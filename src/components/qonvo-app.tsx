@@ -1406,7 +1406,7 @@ function QonvoAppInner() {
 
               <DrawerGroup label="Help">
                 <DrawerRow icon={Play} label="How Kilode works" hint="The page, not a popup" onClick={() => { setScreen("how"); setMenuOpen(false); }} on={screen === "how"} />
-                <DrawerRow icon={HelpCircle} label="Help & FAQ" hint="Terms, rules, how to use" onClick={() => { setScreen("help"); setMenuOpen(false); }} on={screen === "help"} />
+                <DrawerRow icon={HelpCircle} label="Help & FAQ" hint="Terms, safety, how to use" onClick={() => { setScreen("help"); setMenuOpen(false); }} on={screen === "help"} />
                 <DrawerRow icon={Mail} label="Contact" hint="Talk to Kilode" onClick={() => { setScreen("contact"); setMenuOpen(false); }} on={screen === "contact"} />
                 {signedIn ? <DrawerRow icon={Settings} label="Settings" onClick={() => { setScreen("settings"); setMenuOpen(false); }} on={screen === "settings"} /> : null}
               </DrawerGroup>
@@ -1477,7 +1477,7 @@ function QonvoAppInner() {
                 <input type="checkbox" className="mt-0.5" checked={joinAgree} onChange={(e) => setJoinAgree(e.target.checked)} />
                 <span>
                   I agree to the{" "}
-                  <a href="/terms#terms" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                  <a href="/terms" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
                     Terms
                   </a>
                   .
@@ -1487,7 +1487,7 @@ function QonvoAppInner() {
                 <input type="checkbox" className="mt-0.5" checked={joinAgreeRules} onChange={(e) => setJoinAgreeRules(e.target.checked)} />
                 <span>
                   I accept the{" "}
-                  <a href="/terms#rules" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
+                  <a href="/rules" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
                     Rules
                   </a>
                   . I am 15 or older and responsible for what I submit.

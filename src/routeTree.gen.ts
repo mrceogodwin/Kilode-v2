@@ -10,13 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AdsPolicyRouteImport } from './routes/ads-policy'
 import { Route as AdvertiseRouteImport } from './routes/advertise'
+import { Route as CompanyRouteImport } from './routes/company'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ContentRouteImport } from './routes/content'
+import { Route as CookiesRouteImport } from './routes/cookies'
+import { Route as HowToRouteImport } from './routes/how-to'
 import { Route as InstallRouteImport } from './routes/install'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OpsRouteImport } from './routes/ops'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RulesRouteImport } from './routes/rules'
+import { Route as SafetyRouteImport } from './routes/safety'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
-import { Route as CompanyRouteImport } from './routes/company'
 import { Route as ApiIndexnowRouteImport } from './routes/api/indexnow'
 import { Route as ApiSitemapRouteImport } from './routes/api/sitemap'
 import { Route as PIdRouteImport } from './routes/p.$id'
@@ -30,9 +39,44 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdsPolicyRoute = AdsPolicyRouteImport.update({
+  id: '/ads-policy',
+  path: '/ads-policy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdvertiseRoute = AdvertiseRouteImport.update({
   id: '/advertise',
   path: '/advertise',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompanyRoute = CompanyRouteImport.update({
+  id: '/company',
+  path: '/company',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContentRoute = ContentRouteImport.update({
+  id: '/content',
+  path: '/content',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookiesRoute = CookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowToRoute = HowToRouteImport.update({
+  id: '/how-to',
+  path: '/how-to',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InstallRoute = InstallRouteImport.update({
@@ -50,6 +94,21 @@ const OpsRoute = OpsRouteImport.update({
   path: '/ops',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RulesRoute = RulesRouteImport.update({
+  id: '/rules',
+  path: '/rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SafetyRoute = SafetyRouteImport.update({
+  id: '/safety',
+  path: '/safety',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -58,11 +117,6 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CompanyRoute = CompanyRouteImport.update({
-  id: '/company',
-  path: '/company',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiIndexnowRoute = ApiIndexnowRouteImport.update({
@@ -103,13 +157,22 @@ const ApiCronDigestRoute = ApiCronDigestRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/ads-policy': typeof AdsPolicyRoute
   '/advertise': typeof AdvertiseRoute
+  '/company': typeof CompanyRoute
+  '/contact': typeof ContactRoute
+  '/content': typeof ContentRoute
+  '/cookies': typeof CookiesRoute
+  '/how-to': typeof HowToRoute
   '/install': typeof InstallRoute
   '/login': typeof LoginRoute
   '/ops': typeof OpsRoute
+  '/privacy': typeof PrivacyRoute
+  '/rules': typeof RulesRoute
+  '/safety': typeof SafetyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
-  '/company': typeof CompanyRoute
   '/api/indexnow': typeof ApiIndexnowRoute
   '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
@@ -120,13 +183,22 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/ads-policy': typeof AdsPolicyRoute
   '/advertise': typeof AdvertiseRoute
+  '/company': typeof CompanyRoute
+  '/contact': typeof ContactRoute
+  '/content': typeof ContentRoute
+  '/cookies': typeof CookiesRoute
+  '/how-to': typeof HowToRoute
   '/install': typeof InstallRoute
   '/login': typeof LoginRoute
   '/ops': typeof OpsRoute
+  '/privacy': typeof PrivacyRoute
+  '/rules': typeof RulesRoute
+  '/safety': typeof SafetyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
-  '/company': typeof CompanyRoute
   '/api/indexnow': typeof ApiIndexnowRoute
   '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
@@ -138,13 +210,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/ads-policy': typeof AdsPolicyRoute
   '/advertise': typeof AdvertiseRoute
+  '/company': typeof CompanyRoute
+  '/contact': typeof ContactRoute
+  '/content': typeof ContentRoute
+  '/cookies': typeof CookiesRoute
+  '/how-to': typeof HowToRoute
   '/install': typeof InstallRoute
   '/login': typeof LoginRoute
   '/ops': typeof OpsRoute
+  '/privacy': typeof PrivacyRoute
+  '/rules': typeof RulesRoute
+  '/safety': typeof SafetyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
-  '/company': typeof CompanyRoute
   '/api/indexnow': typeof ApiIndexnowRoute
   '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
@@ -157,13 +238,22 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
+    | '/ads-policy'
     | '/advertise'
+    | '/company'
+    | '/contact'
+    | '/content'
+    | '/cookies'
+    | '/how-to'
     | '/install'
     | '/login'
     | '/ops'
+    | '/privacy'
+    | '/rules'
+    | '/safety'
     | '/sitemap.xml'
     | '/terms'
-    | '/company'
     | '/api/indexnow'
     | '/api/sitemap'
     | '/p/$id'
@@ -174,13 +264,22 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
+    | '/ads-policy'
     | '/advertise'
+    | '/company'
+    | '/contact'
+    | '/content'
+    | '/cookies'
+    | '/how-to'
     | '/install'
     | '/login'
     | '/ops'
+    | '/privacy'
+    | '/rules'
+    | '/safety'
     | '/sitemap.xml'
     | '/terms'
-    | '/company'
     | '/api/indexnow'
     | '/api/sitemap'
     | '/p/$id'
@@ -191,13 +290,22 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
+    | '/ads-policy'
     | '/advertise'
+    | '/company'
+    | '/contact'
+    | '/content'
+    | '/cookies'
+    | '/how-to'
     | '/install'
     | '/login'
     | '/ops'
+    | '/privacy'
+    | '/rules'
+    | '/safety'
     | '/sitemap.xml'
     | '/terms'
-    | '/company'
     | '/api/indexnow'
     | '/api/sitemap'
     | '/p/$id'
@@ -209,13 +317,22 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  AdsPolicyRoute: typeof AdsPolicyRoute
   AdvertiseRoute: typeof AdvertiseRoute
+  CompanyRoute: typeof CompanyRoute
+  ContactRoute: typeof ContactRoute
+  ContentRoute: typeof ContentRoute
+  CookiesRoute: typeof CookiesRoute
+  HowToRoute: typeof HowToRoute
   InstallRoute: typeof InstallRoute
   LoginRoute: typeof LoginRoute
   OpsRoute: typeof OpsRoute
+  PrivacyRoute: typeof PrivacyRoute
+  RulesRoute: typeof RulesRoute
+  SafetyRoute: typeof SafetyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
-  CompanyRoute: typeof CompanyRoute
   ApiIndexnowRoute: typeof ApiIndexnowRoute
   ApiSitemapRoute: typeof ApiSitemapRoute
   PIdRoute: typeof PIdRoute
@@ -234,11 +351,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ads-policy': {
+      id: '/ads-policy'
+      path: '/ads-policy'
+      fullPath: '/ads-policy'
+      preLoaderRoute: typeof AdsPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/advertise': {
       id: '/advertise'
       path: '/advertise'
       fullPath: '/advertise'
       preLoaderRoute: typeof AdvertiseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/company': {
+      id: '/company'
+      path: '/company'
+      fullPath: '/company'
+      preLoaderRoute: typeof CompanyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/content': {
+      id: '/content'
+      path: '/content'
+      fullPath: '/content'
+      preLoaderRoute: typeof ContentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookies': {
+      id: '/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof CookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-to': {
+      id: '/how-to'
+      path: '/how-to'
+      fullPath: '/how-to'
+      preLoaderRoute: typeof HowToRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/install': {
@@ -262,6 +428,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OpsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rules': {
+      id: '/rules'
+      path: '/rules'
+      fullPath: '/rules'
+      preLoaderRoute: typeof RulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/safety': {
+      id: '/safety'
+      path: '/safety'
+      fullPath: '/safety'
+      preLoaderRoute: typeof SafetyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -274,13 +461,6 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/company': {
-      id: '/company'
-      path: '/company'
-      fullPath: '/company'
-      preLoaderRoute: typeof CompanyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/indexnow': {
@@ -337,13 +517,22 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  AdsPolicyRoute: AdsPolicyRoute,
   AdvertiseRoute: AdvertiseRoute,
+  CompanyRoute: CompanyRoute,
+  ContactRoute: ContactRoute,
+  ContentRoute: ContentRoute,
+  CookiesRoute: CookiesRoute,
+  HowToRoute: HowToRoute,
   InstallRoute: InstallRoute,
   LoginRoute: LoginRoute,
   OpsRoute: OpsRoute,
+  PrivacyRoute: PrivacyRoute,
+  RulesRoute: RulesRoute,
+  SafetyRoute: SafetyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
-  CompanyRoute: CompanyRoute,
   ApiIndexnowRoute: ApiIndexnowRoute,
   ApiSitemapRoute: ApiSitemapRoute,
   PIdRoute: PIdRoute,

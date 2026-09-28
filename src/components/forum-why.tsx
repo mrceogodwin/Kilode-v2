@@ -33,7 +33,7 @@ export function ForumWhy({ hoursLabel, onClose }: { hoursLabel: string; onClose:
         <p className="mt-3 text-[11px] text-muted">
           You still tick Terms at Join. Before you send in Chat you also Accept the Chat ticker. Abuse can be banned.
         </p>
-        <a href="/terms#rules" className="btn-join mt-4 block rounded-lg py-2 text-center text-[12px] font-bold">
+        <a href="/rules" className="btn-join mt-4 block rounded-lg py-2 text-center text-[12px] font-bold">
           Full rules
         </a>
       </div>
@@ -47,7 +47,7 @@ export function ChatTermsBar({ accepted, onAccept }: { accepted: boolean; onAcce
     <div className="flex items-center gap-2 border-b border-lime-2/30 bg-lime-2/10 px-3 py-2">
       <p className="min-w-0 flex-1 text-[10px] leading-snug text-fg">
         Chat: no links, no phone numbers. Lines expire.{" "}
-        <a href="/terms#rules" className="underline">
+        <a href="/rules" className="underline">
           Terms
         </a>
       </p>
