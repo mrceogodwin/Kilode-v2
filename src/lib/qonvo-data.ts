@@ -7,18 +7,18 @@ export type Room = {
 
 export const ROOMS: Room[] = [
   // Curated public map (~12). Super can add more via nf_rooms; pause/rename overrides apply.
-  { id: "lounge", name: "Kilode Lounge", region: "Featured", online: 5204 },
-  { id: "hot", name: "Hot Topics", region: "Featured", online: 8204 },
-  { id: "ng", name: "Naija Pulse", region: "Featured", online: 7800 },
-  { id: "music", name: "Music & Vibes", region: "Featured", online: 2401 },
-  { id: "cinema", name: "Cinema", region: "Featured", online: 1802 },
-  { id: "jobs", name: "Jobs", region: "Featured", online: 2104 },
-  { id: "sport", name: "Sports", region: "Featured", online: 3102 },
-  { id: "tech", name: "Tech & Biz", region: "Featured", online: 3901 },
-  { id: "st-lagos", name: "Lagos", region: "Places", online: 9204 },
-  { id: "st-fct", name: "Abuja", region: "Places", online: 4201 },
-  { id: "st-rivers", name: "South-South", region: "Places", online: 2401 },
-  { id: "north", name: "Northern Pulse", region: "Places", online: 3401 },
+  { id: "lounge", name: "Kilode Lounge", region: "Featured", online: 0 },
+  { id: "hot", name: "Hot Topics", region: "Featured", online: 0 },
+  { id: "ng", name: "Naija Pulse", region: "Featured", online: 0 },
+  { id: "music", name: "Music & Vibes", region: "Featured", online: 0 },
+  { id: "cinema", name: "Cinema", region: "Featured", online: 0 },
+  { id: "jobs", name: "Jobs", region: "Featured", online: 0 },
+  { id: "sport", name: "Sports", region: "Featured", online: 0 },
+  { id: "tech", name: "Tech & Biz", region: "Featured", online: 0 },
+  { id: "st-lagos", name: "Lagos", region: "Places", online: 0 },
+  { id: "st-fct", name: "Abuja", region: "Places", online: 0 },
+  { id: "st-rivers", name: "South-South", region: "Places", online: 0 },
+  { id: "north", name: "Northern Pulse", region: "Places", online: 0 },
 ];
 
 export const ROOM_SECTION_ORDER = [

@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { DEMO_POSTS } from "@/lib/qonvo-seed";
 import { getPublicPost } from "@/lib/forum-server";
 import { seoHead } from "@/lib/seo";
 import { timeLabel, handleColor, type Post } from "@/lib/qonvo-data";
@@ -10,7 +9,7 @@ export const Route = createFileRoute("/p/$id")({
   loader: async ({ params }): Promise<{ post: Post | null }> => {
     const id = (params as { id: string }).id;
     const row = await getPublicPost({ data: id }).catch(() => null);
-    const post = (row as Post | null) ?? DEMO_POSTS.find((p) => p.id === id || p.slug === id) ?? null;
+    const post = (row as Post | null) ?? null;
     return { post };
   },
   head: ({ loaderData }) => {

@@ -55,7 +55,7 @@ import { listInbox } from "@/lib/social-server";
 import { SplashScreen } from "@/components/splash-screen";
 import { unlockSound, pingMessage } from "@/lib/ping";
 import { useRealtimeInbox } from "@/lib/use-realtime";
-import { DIGITAL_TRACKS, MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
+import { MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
 import { QonvoScreen, openRoleCreate, queueNewsPost } from "@/components/qonvo-screens";
 import { EventsPane } from "@/components/events-pane";
@@ -607,7 +607,7 @@ function QonvoAppInner() {
           <div className="ticker-track px-8 text-[10px] leading-5 text-muted">
             {[...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10), ...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10)].map((r, i) => (
               <button key={r.id + i} type="button" aria-label={`Open room ${r.name}`} className="shrink-0 hover:text-fg" onClick={() => goHome(r.id)}>
-                {r.name} · {fmt(r.online)}
+                {r.name}{r.online > 0 ? ` · ${fmt(r.online)}` : ""}
                 <svg viewBox="0 0 10 10" className="ml-1 inline size-2 align-middle text-lime-2" aria-hidden>
                   <path d="M5 1.2 8.5 8.2H1.5L5 1.2Z" fill="currentColor" />
                 </svg>
@@ -1990,7 +1990,7 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
 
   const artists = useMemo(() => {
     const s = q.trim().toLowerCase();
-    const pool = [...store.tracks, ...DIGITAL_TRACKS].filter((t) => {
+    const pool = store.tracks.filter((t) => {
       if (!t?.id) return false;
       if (genre !== "All" && (t.genre || "Afrobeats") !== genre) return false;
       if (!s) return true;

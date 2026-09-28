@@ -1,6 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { ChevronRight, Flame, MapPin, MessageCircle, Music2, Radio } from "lucide-react";
-import { DIGITAL_TRACKS } from "@/lib/qonvo-seed";
 import { ROOMS, fmtCount, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 
@@ -20,23 +19,21 @@ export function TrendingPane({ store, onHome }: { store: Store; onHome: (id?: st
       if (!row.image && p.image) row.image = p.image;
       bags.set(key, row);
     }
-    const seeded: { title: string; n: number; image?: string; tag: string; id?: string }[] = [
-      { title: "Rain & flooding", n: 18400, tag: "Naija", image: posts.find((p) => p.image)?.image },
-      { title: "Nigeria vs England", n: 14700, tag: "Sports" },
-      { title: "Paystack for hustle", n: 11200, tag: "Business" },
-      { title: "Nigerian music charts", n: 9800, tag: "Music" },
-    ];
     const live = [...bags.values()].sort((a, b) => b.n - a.n).slice(0, 4);
-    return (live.length >= 3 ? live : seeded).filter((row) => pill === "All" || row.tag === pill || pill === "Hot Takes" || pill === "News");
+    return live.filter((row) => pill === "All" || row.tag === pill || pill === "Hot Takes" || pill === "News");
   }, [posts, pill]);
 
-  const topics = ["#Nigeria", "#Afrobeats", "#Lagos", "#BBNaija"].map((tag, i) => ({
-    tag,
-    posts: [8200, 6400, 6100, 4300][i],
-    line: ["What should happen next?", "New releases dominating", "Traffic and road updates", "Who's your favourite?"][i],
-  }));
+  const topics = useMemo(() => {
+    const bags = new Map<string, number>();
+    for (const p of posts) {
+      const tag = (p.category || "").trim();
+      if (!tag) continue;
+      bags.set(tag, (bags.get(tag) ?? 0) + 1);
+    }
+    return [...bags.entries()].slice(0, 4).map(([tag, n]) => ({ tag: `#${tag}`, posts: n }));
+  }, [posts]);
 
-  const tracks = [...store.tracks, ...DIGITAL_TRACKS].filter((t) => t?.title).slice(0, 3);
+  const tracks = store.tracks.filter((t) => t?.title).slice(0, 3);
   const rooms = [...ROOMS].sort((a, b) => b.online - a.online).slice(0, 4);
 
   return (
@@ -57,7 +54,7 @@ export function TrendingPane({ store, onHome }: { store: Store; onHome: (id?: st
         <div className="grid grid-cols-4 gap-1 text-center">
           {[
             [fmtCount(rooms.reduce((n, r) => n + r.online, 0)), "People talking"],
-            [fmtCount(posts.length || 87), "Posts today"],
+            [fmtCount(posts.length), "Posts"],
             [fmtCount(Math.max(12, posts.reduce((n, p) => n + (p.comments?.length ?? 0), 0))), "Takes"],
             [String(rooms.filter((r) => r.online > 0).length), "Rooms live"],
           ].map(([n, l]) => (
@@ -78,26 +75,26 @@ export function TrendingPane({ store, onHome }: { store: Store; onHome: (id?: st
       </div>
 
       <Section title="Trending now" icon={<Flame className="size-3.5 text-[#FACC15]" />}>
+        {talks.length === 0 ? <p className="text-[12px] text-muted">Nothing moving yet. Posts show up here when people publish.</p> : null}
         {talks.map((row, i) => (
           <button key={row.title} type="button" className="trend-row" onClick={() => (row.id ? store.setOpenPost(row.id) : onHome())}>
             <span className="w-6 text-[11px] font-bold text-muted">{String(i + 1).padStart(2, "0")}</span>
             {row.image ? <img src={row.image} alt="" className="size-12 rounded-xl object-cover" /> : <span className="grid size-12 place-items-center rounded-xl bg-white/5 text-[10px]">{row.tag.slice(0, 2)}</span>}
             <span className="min-w-0 flex-1 text-left">
               <span className="block truncate text-[13px] font-bold">{row.title}</span>
-              <span className="text-[11px] text-muted">{fmtCount(row.n)} talking</span>
+              <span className="text-[11px] text-muted">{fmtCount(row.n)} posts</span>
             </span>
-            <span className="text-[11px] font-bold text-[#86efac]">+{12 + i * 6}%</span>
           </button>
         ))}
       </Section>
 
       <Section title="People are talking about" icon={<MessageCircle className="size-3.5" />}>
+        {topics.length === 0 ? <p className="text-[12px] text-muted">Categories show up when posts have one.</p> : null}
         <div className="grid grid-cols-2 gap-2">
           {topics.map((t) => (
             <button key={t.tag} type="button" className="trend-card text-left" onClick={() => onHome()}>
               <div className="text-[13px] font-extrabold">{t.tag}</div>
               <div className="text-[10px] text-muted">{fmtCount(t.posts)} posts</div>
-              <div className="mt-1 line-clamp-2 text-[11px]">{t.line}</div>
             </button>
           ))}
         </div>
@@ -122,6 +119,7 @@ export function TrendingPane({ store, onHome }: { store: Store; onHome: (id?: st
       </Section>
 
       <Section title="Music trending" icon={<Music2 className="size-3.5" />}>
+        {tracks.length === 0 ? <p className="text-[12px] text-muted">No approved tracks yet.</p> : null}
         {tracks.map((t, i) => (
           <a key={t.id || t.title} href={t.url || "#"} target="_blank" rel="noreferrer" className="trend-row">
             <span className="w-6 text-[11px] font-bold text-muted">{String(i + 1).padStart(2, "0")}</span>
@@ -136,10 +134,9 @@ export function TrendingPane({ store, onHome }: { store: Store; onHome: (id?: st
 
       <Section title="Trending places" icon={<MapPin className="size-3.5" />}>
         <div className="grid grid-cols-2 gap-2">
-          {["Lagos", "Abuja", "Port Harcourt", "Ibadan"].map((city, i) => (
+          {["Lagos", "Abuja", "Port Harcourt", "Ibadan"].map((city) => (
             <button key={city} type="button" className="trend-card text-left" onClick={() => onHome()}>
               <div className="font-bold">{city}</div>
-              <div className="text-[11px] text-muted">{[9.2, 4.2, 2.3, 1.8][i]}K talking</div>
             </button>
           ))}
         </div>
@@ -150,7 +147,7 @@ export function TrendingPane({ store, onHome }: { store: Store; onHome: (id?: st
           {rooms.map((r) => (
             <button key={r.id} type="button" className="trend-card text-left" onClick={() => onHome(r.id)}>
               <div className="truncate font-bold">{r.name}</div>
-              <div className="text-[11px] text-[#86efac]">{fmtCount(r.online)} live</div>
+              <div className="text-[11px] text-[#86efac]">{r.online > 0 ? `${fmtCount(r.online)} live` : "Open room"}</div>
             </button>
           ))}
         </div>

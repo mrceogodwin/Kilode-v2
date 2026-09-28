@@ -18,7 +18,6 @@ import {
   parseMusicUrl,
   type Team,
 } from "@/lib/qonvo-data";
-import { DEMO_ADS, DEMO_JOINS, DEMO_NOTES, DEMO_POSTS, DEMO_TRACKS, MORE_DEMO_ADS } from "@/lib/qonvo-seed";
 import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, deleteOwnMsg, savePin, savePost, savePrefs, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
 import { postBodyPlain } from "@/lib/post-body";
 import { listNotes } from "@/lib/social-server";
@@ -34,6 +33,19 @@ import {
 
 function guestName() {
   return `Guest#${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+function plantedId(id: string) {
+  return /^(demo-|dig-|ka-|dn\d+$)/.test(id);
+}
+
+const PLANTED_NAMES = new Set(["Amaka#2201", "Kemi#0092", "Chidi#4410", "Baba#12", "Ife#830"]);
+
+function plantedAd(c: { id?: string; txHash?: string; image?: string }) {
+  if (plantedId(String(c.id || ""))) return true;
+  if (String(c.txHash || "").startsWith("0xdemo")) return true;
+  if (String(c.image || "").includes("picsum.photos")) return true;
+  return false;
 }
 
 function uid() {
@@ -269,67 +281,31 @@ export function useQonvo() {
     setRoomId(loadJson("room", "lounge"));
     const posts0 = loadJson<Post[]>("posts", [])
       .filter((p): p is Post => !!p && typeof p.id === "string")
-      // Drop stale picsum / old demo-feed cards so week news images win.
-      .filter((p) => !String(p.id).startsWith("demo-feed-") && !String(p.image || "").includes("picsum.photos"));
-    const ads0 = loadJson<Campaign[]>("ads", []).filter((p): p is Campaign => !!p && typeof p.id === "string");
-    const notes0 = loadJson<Note[]>("notes", []).filter((n): n is Note => !!n && typeof n.id === "string");
-    const joins0 = loadJson<Join[]>("joins", []).filter((j): j is Join => !!j && typeof j.name === "string");
-    const posts = [
-      ...DEMO_POSTS.filter((d) => !!d?.id && !posts0.some((p) => p.id === d.id)),
-      ...posts0.map((p) => {
-        const demo = DEMO_POSTS.find((d) => d.id === p.id);
-        // Prefer refreshed demo cover/copy so Feeds never keep stale solid-color cards.
-        return demo
-          ? {
-              ...p,
-              title: demo.title,
-              body: demo.body,
-              excerpt: demo.excerpt ?? p.excerpt,
-              category: demo.category ?? p.category,
-              tags: demo.tags ?? p.tags,
-              image: demo.image || p.image,
-              link: demo.link ?? p.link,
-              comments: demo.comments?.length ? demo.comments : p.comments,
-              author: demo.author || p.author,
-              views: demo.views ?? p.views,
-            }
-          : p;
-      }),
-    ];
-    const ads = [
-      ...DEMO_ADS.filter((d) => !!d?.id && !ads0.some((p) => p.id === d.id)),
-      ...MORE_DEMO_ADS.filter((d) => !!d?.id && !ads0.some((p) => p.id === d.id)),
-      ...ads0,
-    ];
-    setPosts(posts);
-    saveJson("posts", posts);
+      .filter((p) => !plantedId(p.id) && !String(p.id).startsWith("demo-feed-") && !String(p.image || "").includes("picsum.photos"));
+    const ads0 = loadJson<Campaign[]>("ads", []).filter((p): p is Campaign => !!p && typeof p.id === "string" && !plantedAd(p));
+    const notes0 = loadJson<Note[]>("notes", []).filter((n): n is Note => !!n && typeof n.id === "string" && !plantedId(n.id));
+    const joins0 = loadJson<Join[]>("joins", []).filter((j): j is Join => !!j && typeof j.name === "string" && !PLANTED_NAMES.has(j.name));
+    setPosts(posts0);
+    saveJson("posts", posts0);
     setCampaigns(
-      ads.map((c) => ({
+      ads0.map((c) => ({
         ...c,
         status: c.status ?? "pending",
         placement: c.placement ?? "sidebar",
       })),
     );
-    saveJson("ads", ads);
-    const notes = notes0.length ? notes0 : DEMO_NOTES;
-    const joins = joins0.length ? joins0 : DEMO_JOINS;
-    setNotes(notes);
-    setJoins(joins);
-    if (!notes0.length) saveJson("notes", notes);
-    if (!joins0.length) saveJson("joins", joins);
+    saveJson("ads", ads0);
+    setNotes(notes0);
+    setJoins(joins0);
+    saveJson("notes", notes0);
+    saveJson("joins", joins0);
     setPins(loadJson("pins", []));
     setSavedPosts(loadJson("savedPosts", []));
     setLikes(loadJson("postLikes", {}));
     setShares(loadJson("postShares", {}));
     setTeams(loadJson<Team[]>("teams", []).filter((t): t is Team => !!t && typeof t.id === "string"));
-    const tracks0 = loadJson<MusicTrack[]>("tracks", []).filter((t): t is MusicTrack => !!t && typeof t.id === "string" && typeof t.url === "string");
-    const tracks = [
-      ...DEMO_TRACKS.filter((d) => !!d?.id && !tracks0.some((t) => t.id === d.id)),
-      ...tracks0.map((t) => {
-        const demo = DEMO_TRACKS.find((d) => d.id === t.id);
-        return demo ?? t;
-      }),
-    ].filter((t) => !!t && !!parseMusicUrl(t.url));
+    const tracks0 = loadJson<MusicTrack[]>("tracks", []).filter((t): t is MusicTrack => !!t && typeof t.id === "string" && typeof t.url === "string" && !plantedId(t.id));
+    const tracks = tracks0.filter((t) => !!parseMusicUrl(t.url));
     setTracks(tracks);
     saveJson("tracks", tracks);
     setReady(true);
@@ -351,13 +327,10 @@ export function useQonvo() {
               comments: p.comments ?? [],
               views: Number(p.views ?? 0),
             }));
-          setPosts([
-            ...DEMO_POSTS.filter((d) => !!d?.id && !mapped.some((p) => p.id === d.id)),
-            ...mapped,
-          ]);
+          setPosts(mapped);
         };
         applyPosts(dbPosts);
-        if (dbAds.length) setCampaigns(dbAds.filter((a) => !!a && typeof a.id === "string") as Campaign[]);
+        setCampaigns(dbAds.filter((a) => !!a && typeof a.id === "string" && !plantedAd(a)) as Campaign[]);
       })
       .catch(() => undefined);
     void listJoins()
@@ -399,10 +372,7 @@ export function useQonvo() {
             note: t.note ?? undefined,
             tags: t.tags ?? undefined,
           }));
-        setTracks([
-          ...DEMO_TRACKS.filter((d) => !!d?.id && !mapped.some((t) => t.id === d.id)),
-          ...mapped,
-        ].filter((t) => !!t && !!parseMusicUrl(t.url)));
+        setTracks(mapped.filter((t) => !!t && !!parseMusicUrl(t.url) && !plantedId(t.id)));
       })
       .catch(() => {
         tracksOnce.current = false;
