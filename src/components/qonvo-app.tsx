@@ -1556,6 +1556,9 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
   const [live, setLive] = useState<string[]>([]);
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
+  const [chat, setChat] = useState("");
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
   useEffect(() => {
     void listConnects()
       .then(setRows)
@@ -1589,11 +1592,24 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
     });
   }
   function message(handle: string) {
-    const text = window.prompt(`Message @${handle}`)?.trim();
-    if (!text) return;
-    void sendDm({ data: { to: handle, body: text } }).then((r) => {
-      setNote(r.ok ? `Sent to @${handle}.` : r.reason);
-    });
+    setChat(handle);
+    setDraft("");
+    setNote("");
+  }
+  function send() {
+    const text = draft.trim();
+    if (!chat || !text || sending) return;
+    setSending(true);
+    void sendDm({ data: { to: chat, body: text } })
+      .then((r) => {
+        if (r.ok) {
+          setDraft("");
+          setNote(`Sent to @${chat}.`);
+          setChat("");
+        } else setNote(r.reason);
+      })
+      .catch(() => setNote("Could not send. Try once more."))
+      .finally(() => setSending(false));
   }
   return (
     <div className="app-drawer friends-drawer">
@@ -1608,9 +1624,36 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
           {err ? <p className="text-[12px] text-danger">{err}</p> : null}
           {note ? <p className="text-[12px] text-muted">{note}</p> : null}
           <FriendBlock title="Requests" empty="No requests." rows={incoming} live={live} onAccept={(id) => act(id, true)} onDecline={(id) => act(id, false)} />
-          <FriendBlock title="Friends" empty="Connect with someone on Socials." rows={friends} live={live} onMessage={message} onDisconnect={drop} />
-          <FriendBlock title="Sent" empty="No pending asks." rows={outgoing} live={live} onDisconnect={drop} />
+          <FriendBlock title="Friends" empty="Connect with someone on Socials." rows={friends} live={live} onMessage={message} onDisconnect={drop} active={chat} />
+          <FriendBlock title="Sent" empty="No pending asks." rows={outgoing} live={live} onDisconnect={drop} onWait={() => setNote("They have to accept before you can message.")} />
         </div>
+        {chat ? (
+          <form
+            className="shrink-0 border-t border-white/15 p-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              send();
+            }}
+          >
+            <div className="mb-1 flex items-center justify-between text-[11px]">
+              <span>Message @{chat}</span>
+              <button type="button" className="text-muted" onClick={() => setChat("")}>Close</button>
+            </div>
+            <div className="flex gap-1.5">
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                maxLength={500}
+                placeholder="Write a message"
+                className="min-w-0 flex-1 rounded-[10px] border border-white/20 bg-black px-2 py-1.5 text-[13px] text-white outline-none"
+                style={{ fontSize: 16 }}
+              />
+              <button type="submit" disabled={sending} className="rounded-full border border-white/30 px-3 text-[11px] font-bold text-white disabled:opacity-50">
+                {sending ? "…" : "Send"}
+              </button>
+            </div>
+          </form>
+        ) : null}
       </aside>
       <button type="button" className="flex-1 bg-black/60" aria-label="Close friends" onClick={onClose} />
     </div>
@@ -1626,6 +1669,8 @@ function FriendBlock({
   onDecline,
   onMessage,
   onDisconnect,
+  onWait,
+  active,
 }: {
   title: string;
   empty: string;
@@ -1635,6 +1680,8 @@ function FriendBlock({
   onDecline?: (id: string) => void;
   onMessage?: (handle: string) => void;
   onDisconnect?: (id: string) => void;
+  onWait?: () => void;
+  active?: string;
 }) {
   return (
     <section>
@@ -1644,17 +1691,23 @@ function FriendBlock({
         {rows.map((r) => {
           const on = live.includes(r.handle.toLowerCase());
           return (
-          <div key={r.dir + r.id} className="menu-row flex items-center gap-2 rounded-xl px-2.5 py-2">
-            <span className="relative shrink-0">
-              <AvatarImg handle={r.handle} size={32} />
-              {on ? <span className="live-dot absolute -top-0.5 -right-0.5 ring-2 ring-[#121412]" title="Online" /> : null}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-semibold">@{r.handle}</div>
-              <div className="truncate text-[10px] text-muted">{r.role}{on ? " · online" : ""}</div>
-            </div>
+          <div key={r.dir + r.id} className={`menu-row flex items-center gap-2 rounded-xl px-2.5 py-2 ${active === r.handle ? "ring-1 ring-white/40" : ""}`}>
+            <button
+              type="button"
+              className="flex min-w-0 flex-1 items-center gap-2 text-left"
+              onClick={() => (onMessage ? onMessage(r.handle) : onWait?.())}
+            >
+              <span className="relative shrink-0">
+                <AvatarImg handle={r.handle} size={32} />
+                {on ? <span className="live-dot absolute -top-0.5 -right-0.5 ring-2 ring-[#121412]" title="Online" /> : null}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[13px] font-semibold">@{r.handle}</span>
+                <span className="block truncate text-[10px] text-muted">{r.role}{on ? " · online" : ""}</span>
+              </span>
+            </button>
             {onMessage ? (
-              <button type="button" className="rounded-full border border-[#FACC15] px-2 py-1 text-[10px] font-bold text-[#FACC15]" onClick={() => onMessage(r.handle)}>
+              <button type="button" className="shrink-0 rounded-full border border-white/30 px-2 py-1 text-[10px] font-bold text-white" onClick={() => onMessage(r.handle)}>
                 Message
               </button>
             ) : null}

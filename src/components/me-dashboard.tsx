@@ -712,7 +712,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
 
   return (
     <div className="mx-auto max-w-2xl p-4 pb-28">
-      <div className="relative mb-4 overflow-hidden rounded-2xl border border-line bg-panel">
+      <div className="me-hero relative mb-4 overflow-hidden rounded-2xl border border-line bg-panel">
         <div className="h-20 bg-gradient-to-br from-lime-2/35 via-lime-2/10 to-transparent" />
         <div className="-mt-8 flex items-end gap-3 px-4">
           <AvatarImg handle={store.handle} face={faceSrc} size={76} className="rounded-full ring-2 ring-bg" />

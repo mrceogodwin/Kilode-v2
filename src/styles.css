@@ -2235,3 +2235,99 @@ html[data-skin="ivory"] .lane-chip.on {
   color: #fff !important;
   border-color: #111 !important;
 }
+
+/* Light skin: dark chrome like the dock, a slight green page, a few dark cards. */
+html[data-skin="ivory"] {
+  --color-bg: #eef3ef;
+  --color-panel: #f7faf8;
+  --color-panel-2: #e7eee9;
+  --color-line: #c5d0c8;
+}
+html[data-skin="ivory"] body,
+html[data-skin="ivory"] .kilode-shell {
+  background: #eef3ef !important;
+  color: #121614;
+}
+html[data-skin="ivory"] .kilode-chrome {
+  background: #050706 !important;
+  color: #fff !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+html[data-skin="ivory"] .kilode-chrome .kilode-wordmark,
+html[data-skin="ivory"] .kilode-chrome .kilode-word-svg {
+  color: #fff !important;
+  fill: #fff !important;
+}
+html[data-skin="ivory"] .kilode-chrome .kilode-bang-ink { fill: #050706 !important; }
+html[data-skin="ivory"] .kilode-chrome .kilode-ring { stroke: #fff !important; }
+html[data-skin="ivory"] .kilode-chrome .hdr-ico {
+  background: transparent !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .kilode-chrome-ticker,
+html[data-skin="ivory"] .kilode-chrome .trend-ticker {
+  background: #121413 !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+}
+html[data-skin="ivory"] .kilode-chrome .ticker-track { color: rgba(255, 255, 255, 0.82) !important; }
+html[data-skin="ivory"] .raised,
+html[data-skin="ivory"] .glass-3d {
+  background: #f7faf8 !important;
+  color: #121614 !important;
+  border: 1px solid #c5d0c8 !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .me-hero,
+html[data-skin="ivory"] .site-foot {
+  background: #101311 !important;
+  color: #f4f7f5 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+html[data-skin="ivory"] .me-hero [class*="text-fg"],
+html[data-skin="ivory"] .me-hero p { color: #f4f7f5 !important; }
+html[data-skin="ivory"] .site-foot a,
+html[data-skin="ivory"] .site-foot p,
+html[data-skin="ivory"] .site-foot h2,
+html[data-skin="ivory"] .site-foot strong { color: #f4f7f5 !important; }
+html[data-skin="ivory"] .me-hero .text-muted,
+html[data-skin="ivory"] .site-foot .text-muted { color: rgba(255, 255, 255, 0.62) !important; }
+html[data-skin="ivory"] .me-hero .text-lime-2,
+html[data-skin="ivory"] .site-foot .text-lime-2 { color: #b7f0c8 !important; }
+html[data-skin="ivory"] .me-hero .btn-3d {
+  background: transparent !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+}
+html[data-skin="ivory"] .me-hero .btn-join {
+  background: #fff !important;
+  color: #111 !important;
+}
+html[data-skin="ivory"] .site-foot .foot-stats,
+html[data-skin="ivory"] .site-foot .foot-digest {
+  background: rgba(134, 239, 172, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #f4f7f5 !important;
+}
+html[data-skin="ivory"] .menu-sheet .menu-ico,
+html[data-skin="ivory"] .menu-sheet .menu-row.on .menu-ico {
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  background: #121413 !important;
+}
+html[data-skin="ivory"] .menu-sheet .menu-row.on {
+  border-color: rgba(134, 239, 172, 0.45) !important;
+}
+html[data-skin="ivory"] .menu-sheet [class*="FACC15"] {
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+}
+html[data-skin="ivory"] .menu-sheet [class*="bg-[#FACC15]"],
+html[data-skin="ivory"] .menu-sheet .menu-dock button {
+  background: #fff !important;
+  color: #111 !important;
+  border-color: #fff !important;
+}
+
