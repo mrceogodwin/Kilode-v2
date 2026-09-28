@@ -390,7 +390,7 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
         document.getElementById("me-applicants")?.scrollIntoView({ behavior: "smooth", block: "start" });
       } },
       chat,
-      { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
+      { icon: Bookmark, label: "Saved", hint: "Posts you kept", onClick: () => goto({ screen: "bookmarks" }) },
     ];
   }
   if (kind === "vendor") {
@@ -403,7 +403,7 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
         onClick: () => document.getElementById("me-market")?.scrollIntoView({ behavior: "smooth", block: "start" }),
       },
       chat,
-      { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
+      { icon: Bookmark, label: "Saved", hint: "Posts you kept", onClick: () => goto({ screen: "bookmarks" }) },
     ];
   }
   if (kind === "renter") {
@@ -416,7 +416,7 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
         onClick: () => document.getElementById("me-rent")?.scrollIntoView({ behavior: "smooth", block: "start" }),
       },
       chat,
-      { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
+      { icon: Bookmark, label: "Saved", hint: "Posts you kept", onClick: () => goto({ screen: "bookmarks" }) },
     ];
   }
   if (kind === "job_seeker") {
@@ -429,13 +429,13 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
       },
       { icon: Plus, label: "New post", hint: "Feeds rich editor", onClick: openCreatePost },
       chat,
-      { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
+      { icon: Bookmark, label: "Saved", hint: "Posts you kept", onClick: () => goto({ screen: "bookmarks" }) },
     ];
   }
   // member — Normal user flagship quick grid
   return [
     newPost,
-    { icon: Pencil, label: "Edit profile", hint: "Bio · city · face", onClick: () => goto({ screen: "profile" }) },
+    { icon: Bookmark, label: "Saved", hint: "Posts you kept", onClick: () => goto({ screen: "bookmarks" }) },
     chat,
     applyJobs
       ?? { icon: Film, label: "Vote cinema", hint: "Watch + vote", onClick: () => goto({ tab: "watch" }) },
