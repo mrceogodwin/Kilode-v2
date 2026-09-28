@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Briefcase, Building2, MapPin, Store } from "lucide-react";
+import { Briefcase, Building2, MapPin, Plus, Search, Store } from "lucide-react";
 import { applyListing, listListingQueue, listListings, saveListing, setListingStatus, type Listing, type ListingKind } from "@/lib/listings-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getProfile } from "@/lib/forum-server";
-import { daysLeft, fmtCount, timeLabel, type AccountKind } from "@/lib/qonvo-data";
+import { daysLeft, fmtCount, timeAgo, timeLabel, type AccountKind } from "@/lib/qonvo-data";
 import { canKind, kindActionHint } from "@/lib/permissions";
 import { AdReserve } from "@/components/ad-slot";
 import { JoinCta } from "@/components/get-app";
@@ -58,7 +58,8 @@ const COPY: Record<
 const ACTION = { job: "jobs.post", market: "market.list", rent: "rent.list" } as const;
 const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Freelance"];
 const JOB_CATS = ["Tech", "Design", "Marketing", "Other"];
-const MARKET_CATS = ["Electronics", "Fashion", "Services", "Vehicles", "Other"];
+const MARKET_CATS = ["Fashion", "Phones", "Electronics", "Beauty", "Home", "Cars", "Services", "Other"];
+const MARKET_PILLS = ["All", ...MARKET_CATS.filter((c) => c !== "Other")];
 const CONDITIONS = ["New", "Used - Like New", "Used - Good", "Used - Fair"];
 
 function readMeta(raw?: string) {
@@ -73,6 +74,34 @@ type Card = Listing & { image?: string };
 
 function cover(r: Card) {
   return r.image || "";
+}
+
+function naira(raw?: string) {
+  const t = String(raw || "").trim();
+  if (!t) return "";
+  const n = Number(t.replace(/[^\d.]/g, ""));
+  if (!Number.isFinite(n) || n <= 0) return t.startsWith("₦") ? t : `₦${t}`;
+  return `₦${Math.round(n).toLocaleString("en-NG")}`;
+}
+
+function catMatch(r: Card, pill: string) {
+  if (pill === "All") return true;
+  const meta = readMeta(r.meta);
+  const c = (meta.category || "").toLowerCase();
+  const blob = `${r.title} ${c}`.toLowerCase();
+  if (pill === "Cars") return c === "cars" || c === "vehicles" || /car|vehicle/.test(blob);
+  if (pill === "Phones") return c === "phones" || /phone|iphone|android/.test(blob);
+  if (pill === "Services") return c === "services" || c.includes("service");
+  return c === pill.toLowerCase();
+}
+
+function Shot({ src, className }: { src?: string; className: string }) {
+  if (src) return <img src={src} alt="" className={className} />;
+  return (
+    <div className={`grid place-items-center bg-panel-3 text-muted ${className}`}>
+      <Store className="size-4" />
+    </div>
+  );
 }
 
 function SlimRail({ rows, onOpen }: { rows: Card[]; onOpen: (r: Card) => void }) {
@@ -165,6 +194,8 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [image, setImage] = useState("");
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<Card | null>(null);
+  const [q, setQ] = useState("");
+  const [catPick, setCatPick] = useState("All");
 
   function load() {
     void listListings({ data: { kind } })
@@ -199,6 +230,16 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
     return ["All", ...[...set].sort()];
   }, [rows]);
   const filtered = filter === "All" ? rows : rows.filter((r) => r.city === filter);
+  const marketRows = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (filter !== "All" && r.city !== filter) return false;
+      if (!catMatch(r, catPick)) return false;
+      if (!query) return true;
+      const meta = readMeta(r.meta);
+      return `${r.title} ${r.company} ${r.submitter} ${r.city} ${meta.category || ""}`.toLowerCase().includes(query);
+    });
+  }, [rows, q, catPick, filter]);
   const featured = filtered.slice(0, 8);
   const canPost = !!session.user && canKind(meKind, ACTION[kind]);
   const canApply = !!session.user && canKind(meKind, "jobs.apply");
@@ -216,10 +257,48 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
         <div className="min-w-0 flex-1">
           <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{copy.kicker}</div>
           <h2 className="text-2xl font-extrabold tracking-tight">{copy.title}</h2>
-          <p className="mt-1 text-base leading-snug text-muted">{copy.who}</p>
+          <p className="mt-1 text-base leading-snug text-muted">{kind === "market" ? "Buy and sell with people around you." : copy.who}</p>
         </div>
       </div>
 
+      {kind === "market" ? (
+        <>
+          <label className="mb-3 flex items-center gap-2 rounded-2xl border border-line bg-panel px-3 py-2.5">
+            <Search className="size-4 shrink-0 text-muted" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search products, sellers, categories..." className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted" />
+          </label>
+          <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {MARKET_PILLS.map((c) => (
+              <button key={c} type="button" onClick={() => setCatPick(c)} className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold ${catPick === c ? "bg-[#FACC15] text-black" : "border border-line bg-panel text-fg"}`}>
+                {c}
+              </button>
+            ))}
+          </div>
+          <div className="mb-3 flex items-center gap-2">
+            <label className="inline-flex items-center gap-1 rounded-full border border-line bg-panel px-3 py-1.5 text-[12px] font-semibold">
+              <MapPin className="size-3.5 text-lime-2" />
+              <select value={filter} onChange={(e) => setFilter(e.target.value)} className="bg-transparent text-[12px] font-semibold outline-none" aria-label="Location">
+                {cities.map((c) => <option key={c} value={c}>{c === "All" ? "Everywhere" : c}</option>)}
+              </select>
+            </label>
+            <button
+              type="button"
+              className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#FACC15] px-3 py-1.5 text-[12px] font-extrabold text-black"
+              onClick={() => {
+                if (session.isPending) return;
+                if (!session.user) {
+                  needJoin();
+                  return;
+                }
+                setFormOn((v) => !v);
+              }}
+            >
+              <Plus className="size-3.5" /> List a product
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
       <AdReserve id={`list_${kind}_top`} className="mb-3" />
 
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
@@ -248,9 +327,11 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             setFormOn((v) => !v);
           }}
         >
-          {kind === "job" ? "Post a job" : kind === "market" ? "List a product" : "List a space"}
+          {kind === "job" ? "Post a job" : "List a space"}
         </button>
       </div>
+        </>
+      )}
 
       {formOn ? (
         <div className="mb-4 space-y-2 rounded-2xl border border-white/10 border-t-white/20 bg-white/5 p-3 shadow-2xl backdrop-blur-xl">
@@ -436,13 +517,24 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
         </article>
       ) : null}
 
+      {kind === "market" ? (
+        <MarketBoard rows={marketRows} onOpen={setOpen} onSell={() => {
+          if (session.isPending) return;
+          if (!session.user) {
+            needJoin();
+            return;
+          }
+          setFormOn(true);
+        }} />
+      ) : (
+        <>
       <SlimRail rows={featured} onOpen={setOpen} />
       <AdReserve id={`list_${kind}_mid`} className="mb-4" />
 
       <section>
         <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">
           <Icon className="size-3" />
-          {kind === "job" ? "OPEN ROLES" : kind === "market" ? "ON THE MARKET" : "SPACES"}
+          {kind === "job" ? "OPEN ROLES" : "SPACES"}
         </div>
         <div className="grid grid-cols-3 gap-1.5">
           {filtered.slice(0, shown).map((r) => (
@@ -461,7 +553,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
 
       {filtered.length > 6 ? (
         <section>
-          <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">{kind === "job" ? "MORE ROLES" : kind === "market" ? "MORE FINDS" : "MORE SPACES"}</div>
+          <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">{kind === "job" ? "MORE ROLES" : "MORE SPACES"}</div>
           <div className="grid grid-cols-3 gap-1.5">
             {filtered.slice(shown, shown + 6).map((r) => (
               <Tile key={`m-${r.id}`} r={r} kind={kind} onOpen={setOpen} />
@@ -471,6 +563,8 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
       ) : null}
 
       <AdReserve id={`list_${kind}_foot`} className="mt-4" />
+        </>
+      )}
 
       {!session.user ? (
         <div className="mt-4 rounded-xl border border-line bg-panel-2 p-3 text-center">
@@ -479,6 +573,101 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function MarketBoard({ rows, onOpen, onSell }: { rows: Card[]; onOpen: (r: Card) => void; onSell: () => void }) {
+  const featured = rows.slice(0, 3);
+  const recent = rows.slice(0, 4);
+  return (
+    <>
+      <section className="mb-4">
+        <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">FEATURED</div>
+        {featured.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-panel px-3 py-6 text-center text-[12px] text-muted">No approved products in this filter yet. List one and staff will review it.</p>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {featured.map((r) => {
+              const meta = readMeta(r.meta);
+              return (
+                <button key={r.id} type="button" onClick={() => onOpen(r)} className="overflow-hidden rounded-2xl border border-line bg-panel text-left">
+                  <Shot src={cover(r)} className="aspect-[4/3] w-full object-cover" />
+                  <div className="p-1.5">
+                    <div className="line-clamp-2 text-[11px] font-bold leading-tight">{r.title}</div>
+                    <div className="mt-0.5 flex items-center gap-0.5 text-[9px] text-muted"><MapPin className="size-2.5" /> {r.city || "Nigeria"}</div>
+                    <div className="truncate text-[9px] text-muted">@{r.submitter}</div>
+                    <div className="text-[11px] font-extrabold text-[#FACC15]">{naira(meta.price) || "Ask"}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <AdReserve id="list_market_mid" className="mb-4" />
+
+      <section className="mb-4">
+        <div className="mb-2 flex items-center gap-1.5 text-[10px] font-bold tracking-[0.16em] text-lime-2">
+          <Store className="size-3" /> ON THE MARKET
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {rows.map((r) => {
+            const meta = readMeta(r.meta);
+            return (
+              <button key={r.id} type="button" onClick={() => onOpen(r)} className="flex gap-2 rounded-2xl border border-line bg-panel p-2 text-left">
+                <Shot src={cover(r)} className="size-16 shrink-0 rounded-xl object-cover" />
+                <span className="min-w-0">
+                  <span className="line-clamp-2 block text-[12px] font-bold leading-tight">{r.title}</span>
+                  <span className="mt-0.5 block text-[13px] font-extrabold text-[#FACC15]">{naira(meta.price) || "Ask"}</span>
+                  <span className="flex items-center gap-0.5 text-[10px] text-muted"><MapPin className="size-3" /> {r.city || "Nigeria"}</span>
+                  <span className="block truncate text-[10px] text-muted">@{r.submitter}</span>
+                  <span className="block text-[10px] text-muted">{[meta.condition, timeAgo(r.ts)].filter(Boolean).join(" · ")}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mb-4">
+        <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">POPULAR NEAR YOU</div>
+        <div className="flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {MARKET_PILLS.filter((c) => c !== "All").map((c) => {
+            const hit = rows.find((r) => catMatch(r, c) && cover(r));
+            return (
+              <div key={c} className="w-16 shrink-0 text-center">
+                <Shot src={hit ? cover(hit) : ""} className="mx-auto size-14 rounded-full object-cover" />
+                <div className="mt-1 truncate text-[10px] font-semibold">{c}</div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mb-4">
+        <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-lime-2">RECENTLY LISTED</div>
+        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {recent.map((r) => {
+            const meta = readMeta(r.meta);
+            return (
+              <button key={`rec-${r.id}`} type="button" onClick={() => onOpen(r)} className="flex w-36 shrink-0 items-center gap-2 rounded-xl border border-line bg-panel p-2 text-left">
+                <Shot src={cover(r)} className="size-10 shrink-0 rounded-lg object-cover" />
+                <span className="min-w-0">
+                  <span className="block truncate text-[11px] font-bold">{r.title}</span>
+                  <span className="block text-[11px] font-extrabold text-[#FACC15]">{naira(meta.price) || "Ask"}</span>
+                  <span className="block text-[9px] text-muted">{timeAgo(r.ts)}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <button type="button" onClick={onSell} className="flex w-full items-center justify-center gap-1 rounded-full bg-[#FACC15] py-3 text-[14px] font-extrabold text-black">
+        <Plus className="size-4" /> Sell something
+      </button>
+    </>
   );
 }
 

@@ -1,5 +1,5 @@
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Eye, Mail, MessageSquare, Share2 } from "lucide-react";
+import { Eye, Mail, MessageSquare, Share2, Bookmark } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, daysLeft, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 import { approveTeamAsk, getProfile, leaveTeam, postTeamNote, reportPost, requestJoinTeam, teamDesk } from "@/lib/forum-server";
@@ -31,7 +31,6 @@ import { ShopAdminPanel } from "@/components/downloads-pane";
 import { SocialsAdminPanel, TvPane } from "@/components/tv-pane";
 import { JoinCta, TelegramLink } from "@/components/get-app";
 import { usePublicSite } from "@/components/site-chrome";
-import { BrandLockup } from "@/components/brand-lockup";
 import { MeDashboard } from "@/components/me-dashboard";
 import { AdCatalogPanel, AdSlotsPanel, LivePausePanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { SiteFlagsPanel } from "@/components/site-chrome";
@@ -1450,7 +1449,9 @@ function Bookmarks({ store, onHome }: { store: Store; onHome: (id?: string) => v
       <div className="text-[11px] font-medium text-muted">Rooms</div>
       {store.pins.length === 0 ? (
         <div className="rounded-2xl border border-line bg-panel px-5 py-8 text-center">
-          <div className="mx-auto mb-3 inline-flex justify-center"><BrandLockup size="sm" /></div>
+          <span className="mx-auto mb-3 grid size-10 place-items-center rounded-xl border border-line bg-panel-2 text-fg">
+            <Bookmark className="size-4" />
+          </span>
           <p className="text-base font-semibold">No bookmarks yet</p>
           <p className="mt-1 text-sm text-muted">Pin a room from Chat to find it fast.</p>
           <button type="button" className="btn-join mt-4 rounded-lg px-4 py-2 text-sm font-bold" onClick={() => onHome()}>

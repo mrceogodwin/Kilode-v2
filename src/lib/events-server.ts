@@ -7,7 +7,7 @@ import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 import { claimTx, releaseTx } from "@/lib/tx-ledger";
 import { verifyCryptoTx } from "@/lib/pay-match";
 
-const CATS = ["tech", "music", "culture", "cinema"] as const;
+const CATS = ["tech", "music", "culture", "cinema", "food", "sports"] as const;
 export type EventCat = (typeof CATS)[number];
 
 export type EEvent = {
@@ -18,6 +18,7 @@ export type EEvent = {
   place: string;
   link: string;
   cover: string;
+  ticket: string;
   startsAt: number;
   endsAt: number;
   status: string;
@@ -82,6 +83,7 @@ async function ensure() {
   await sql.query(`ALTER TABLE nf_events ADD COLUMN IF NOT EXISTS amount TEXT NOT NULL DEFAULT ''`);
   await sql.query(`ALTER TABLE nf_events ADD COLUMN IF NOT EXISTS tx_hash TEXT NOT NULL DEFAULT ''`);
   await sql.query(`ALTER TABLE nf_events ADD COLUMN IF NOT EXISTS match_note TEXT NOT NULL DEFAULT ''`);
+  await sql.query(`ALTER TABLE nf_events ADD COLUMN IF NOT EXISTS ticket TEXT NOT NULL DEFAULT ''`);
   await sql.query(`CREATE TABLE IF NOT EXISTS nf_event_rsvp (
     event_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
@@ -99,6 +101,7 @@ function mapRow(r: Record<string, unknown>, mine: boolean): EEvent {
     place: String(r.place || ""),
     link: String(r.link || ""),
     cover: String(r.cover || ""),
+    ticket: String(r.ticket || ""),
     startsAt: num(r.starts_at),
     endsAt: num(r.ends_at),
     status: String(r.status || "pending"),
@@ -134,7 +137,7 @@ export const listEvents = createServerFn({ method: "GET" })
       const now = Date.now();
       const userId = context.userId ?? "";
       const rows = await sql<Record<string, unknown>>`
-        select id, title, blurb, category, place, link, cover, starts_at, ends_at, status, flagship, submitter, user_id
+        select id, title, blurb, category, place, link, cover, ticket, starts_at, ends_at, status, flagship, submitter, user_id
         from nf_events
         where status = 'approved' and ends_at > ${now}
         order by flagship desc, starts_at asc
@@ -163,7 +166,7 @@ export const listEvents = createServerFn({ method: "GET" })
 
 export const submitEvent = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { title?: string; blurb?: string; category?: string; place?: string; link?: string; cover?: string; startsAt?: number; endsAt?: number; coin?: string; amount?: string; txHash?: string }) => d)
+  .validator((d: { title?: string; blurb?: string; category?: string; place?: string; link?: string; cover?: string; ticket?: string; startsAt?: number; endsAt?: number; coin?: string; amount?: string; txHash?: string }) => d)
   .handler(async ({ data, context }) => {
     if (!(await allowWrite(`e-sub:${context.userId}`, 3, 3_600_000))) throw new Error(RATE_BLOCKED);
     const title = String(data.title || "").trim().slice(0, 80);
@@ -186,6 +189,7 @@ export const submitEvent = createServerFn({ method: "POST" })
     const coin = String(data.coin || "").trim().toLowerCase().slice(0, 12);
     const amount = String(data.amount || "").trim().slice(0, 40);
     const txHash = String(data.txHash || "").trim();
+    const ticket = String(data.ticket || "").trim().slice(0, 40);
     const sql = await getSql();
     let payOff = false;
     try {
@@ -205,8 +209,8 @@ export const submitEvent = createServerFn({ method: "POST" })
       if (!claimed.ok) throw new Error(claimed.reason);
     }
     try {
-      await sql`insert into nf_events (id, title, blurb, category, place, link, cover, starts_at, ends_at, status, flagship, submitter, user_id, ts, coin, amount, tx_hash)
-        values (${id}, ${title}, ${blurb}, ${catOf(String(data.category || ""))}, ${String(data.place || "").trim().slice(0, 60)}, ${link}, ${cover}, ${startsAt}, ${endsAt}, ${"pending"}, ${0}, ${handle}, ${context.userId}, ${now}, ${coin}, ${amount}, ${txHash})`;
+      await sql`insert into nf_events (id, title, blurb, category, place, link, cover, ticket, starts_at, ends_at, status, flagship, submitter, user_id, ts, coin, amount, tx_hash)
+        values (${id}, ${title}, ${blurb}, ${catOf(String(data.category || ""))}, ${String(data.place || "").trim().slice(0, 60)}, ${link}, ${cover}, ${ticket}, ${startsAt}, ${endsAt}, ${"pending"}, ${0}, ${handle}, ${context.userId}, ${now}, ${coin}, ${amount}, ${txHash})`;
     } catch (e) {
       if (!payOff) await releaseTx(txHash, id);
       throw e;

@@ -2069,6 +2069,10 @@ html[data-skin="ivory"] .glass-3d {
   border: 1px solid #b7b7b2;
 }
 html[data-skin="ivory"] .menu-sheet {
+  --color-fg: #fff;
+  --color-muted: rgba(255, 255, 255, 0.62);
+  --color-lime: #9bbfa6;
+  --color-lime-2: #9bbfa6;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 140px),
     #070908;
@@ -2080,6 +2084,14 @@ html[data-skin="ivory"] .menu-sheet .menu-row {
   background: transparent;
   color: #fff;
   border-color: transparent;
+}
+html[data-skin="ivory"] .menu-sheet .menu-row.on {
+  border-color: rgba(250, 204, 21, 0.55);
+  background: rgba(255, 255, 255, 0.04);
+}
+html[data-skin="ivory"] .menu-sheet .menu-row.on .menu-ico {
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.55);
 }
 html[data-skin="ivory"] .menu-sheet .menu-ico {
   background: #0c0e0d;
