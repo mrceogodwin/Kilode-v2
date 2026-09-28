@@ -174,6 +174,7 @@ export const MENU = [
   ["tv", "Kilode TV"],
   ["ads", "Ads"],
   ["jobs", "Jobs"],
+  ["spaces", "My Spaces"],
   ["market", "Marketplace"],
   ["rent", "Rent"],
   ["contact", "Contact"],

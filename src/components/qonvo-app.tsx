@@ -44,6 +44,8 @@ import {
   UsersRound,
   Shield,
   X,
+  Moon,
+  Sun,
   Tv,
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
@@ -82,11 +84,11 @@ import { InstallToast, PublicSiteProvider, SiteFooter, TrendingTicker, usePublic
 import type { PublicSite } from "@/lib/site-server";
 import { OnboardSheet } from "@/components/onboard-sheet";
 import { FeedsHero } from "@/components/feeds-hero";
-import { BrandLockup } from "@/components/brand-lockup";
+import { BrandLockup, OfficialLockup } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
 import { MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
-import { SocialsFeed, openSocialFellows, openSocialTrending, shareNewsToSocials } from "@/components/socials-feed";
+import { SocialsFeed, openSocialFellows, shareNewsToSocials } from "@/components/socials-feed";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -109,6 +111,7 @@ const ICONS: Record<MenuId, typeof Home> = {
   ads: Megaphone,
   jobs: Briefcase,
   market: Store,
+  spaces: Store,
   rent: Building2,
   contact: Mail,
   admin: Shield,
@@ -532,7 +535,7 @@ function QonvoAppInner() {
                 goHome();
               }}
             >
-              <img src="/kilode-official.png" alt="Kilode" className="kilode-lockup" />
+              <OfficialLockup />
             </button>
             <div className="ml-auto flex items-center gap-1">
               <button
@@ -577,9 +580,7 @@ function QonvoAppInner() {
                   setMenuOpen(false);
                   setMarketDesk(null);
                   store.setOpenPost(null);
-                  setScreen("home");
-                  setHomeTab("socials");
-                  openSocialTrending();
+                  setScreen("trending");
                 }}
               >
                 <FlameIcon />
@@ -1263,7 +1264,7 @@ function QonvoAppInner() {
                           setMenuOpen(false);
                         }}
                       >
-                        <Icon className="size-4 shrink-0 text-fg" />
+                        <Icon className="size-4 shrink-0 text-[#FACC15]" />
                         <span className="text-[12px] font-semibold">{q.label}</span>
                       </button>
                     );
@@ -1304,6 +1305,7 @@ function QonvoAppInner() {
               </DrawerGroup>
 
               <DrawerGroup label="Listings">
+                <DrawerRow icon={Store} label="My Spaces" hint="Your business page" onClick={() => { setScreen("spaces"); setMenuOpen(false); }} on={screen === "spaces"} />
                 <DrawerRow icon={Store} label="Marketplace" hint="Showcase. No checkout" onClick={() => { setScreen("market"); setMenuOpen(false); }} on={screen === "market"} />
                 <DrawerRow icon={Building2} label="Rent" hint="Spaces and contact" onClick={() => { setScreen("rent"); setMenuOpen(false); }} on={screen === "rent"} />
                 <DrawerRow icon={Megaphone} label="Advertise" hint="Rent a 16:9 or a tile" href="/advertise" />
@@ -1690,15 +1692,15 @@ function SkinToggle() {
       document.documentElement.setAttribute("data-skin", "night");
     }
   }, []);
+  const light = skin === "ivory";
   return (
     <button
       type="button"
-      className="skin-switch"
-      role="switch"
-      aria-checked={skin === "ivory"}
-      aria-label={skin === "night" ? "Light skin off" : "Light skin on"}
+      className="hdr-ico"
+      aria-pressed={light}
+      aria-label={light ? "Use dark skin" : "Use light skin"}
       onClick={() => {
-        const next = skin === "night" ? "ivory" : "night";
+        const next = light ? "night" : "ivory";
         setSkin(next);
         document.documentElement.setAttribute("data-skin", next);
         try {
@@ -1708,7 +1710,7 @@ function SkinToggle() {
         }
       }}
     >
-      <span className="skin-knob" />
+      {light ? <Moon className="size-4" /> : <Sun className="size-4" />}
     </button>
   );
 }

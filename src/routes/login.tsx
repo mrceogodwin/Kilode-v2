@@ -4,6 +4,7 @@ import { authEnabled } from "@/lib/auth/client";
 import { AccountKindPicker, AvatarPicker } from "@/components/account-kind";
 import { KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
+import { OfficialLockup } from "@/components/brand-lockup";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>): { next?: string; mode?: "in" | "up" } => {
@@ -67,7 +68,7 @@ function Login() {
   return (
     <main className="login-stage">
       <div className="login-card">
-        <img src="/kilode-official.png" alt="Kilode" className="login-logo" />
+        <OfficialLockup className="login-logo" />
         <p className="mt-2 text-center text-[12px] text-muted">
           {staff ? "Owner console. Username and password only." : "Username and password. No email."}
         </p>

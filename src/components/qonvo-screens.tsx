@@ -41,6 +41,8 @@ import { submitMovie } from "@/lib/cinema-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 import { SitePulsePanel } from "@/components/pulse-panel";
 import { HowKilodePage } from "@/components/how-kilode";
+import { TrendingPane } from "@/components/trending-pane";
+import { SpacesPane } from "@/components/spaces-pane";
 import { PostRichEditor } from "@/components/post-rich-editor";
 import { postBodyPlain, sanitizePostHtml } from "@/lib/post-body";
 
@@ -117,7 +119,8 @@ export function QonvoScreen({
         }}
       />
     );
-  else if (id === "trending") view = <Trending onHome={onHome} />;
+  else if (id === "trending") view = <TrendingPane store={store} onHome={onHome} />;
+  else if (id === "spaces") view = <SpacesPane />;
   else if (id === "tv") view = <TvPane />;
   else if (id === "contact") view = <Contact store={store} />;
   else if (id === "admin") view = <Admin store={store} />;
@@ -3398,34 +3401,6 @@ function Help() {
       <p className="px-1 text-[10px] text-muted">
         Developer <TelegramLink className="text-[10px]" />
       </p>
-    </Screen>
-  );
-}
-
-function Trending({ onHome }: { onHome: (id?: string) => void }) {
-  const top = [...ROOMS].sort((a, b) => b.online - a.online).slice(0, 12);
-  const max = top[0]?.online || 1;
-  return (
-    <Screen kicker="LIVE" title="Trending" sub="Hottest rooms right now.">
-      {top.map((r, i) => (
-        <button
-          key={r.id}
-          type="button"
-          onClick={() => onHome(r.id)}
-          className="raised mb-2 w-full overflow-hidden rounded-2xl p-3 text-left"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold">
-              <span className="mr-2 text-lime-2">{String(i + 1).padStart(2, "0")}</span>
-              {r.name}
-            </span>
-            <span className="text-[11px] text-muted">{r.online.toLocaleString()}</span>
-          </div>
-          <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/5">
-            <div className="h-full rounded-full bg-lime-2" style={{ width: `${Math.max(8, (r.online / max) * 100)}%` }} />
-          </div>
-        </button>
-      ))}
     </Screen>
   );
 }

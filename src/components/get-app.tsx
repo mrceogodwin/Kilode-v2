@@ -102,12 +102,7 @@ export function DigestBox({ quiet = false, defaultOpen = true }: { quiet?: boole
 export function MenuPin() {
   return (
     <div className="menu-dock shrink-0 border-t border-white/10 px-3 py-2.5">
-      <div className="menu-install overflow-hidden rounded-xl border border-white/10">
-        <GetAppRow />
-      </div>
-      <div className="mt-1.5">
-        <DigestBox quiet />
-      </div>
+      <DigestBox quiet />
     </div>
   );
 }

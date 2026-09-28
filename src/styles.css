@@ -1639,15 +1639,55 @@ html[data-skin="ivory"] .news-plus {
   color: #facc15;
 }
 
-.kilode-lockup {
+.kilode-lockup,
+.login-logo,
+.kilode-splash-logo {
   display: block;
   height: 32px;
-  width: auto;
+  width: 148px;
   max-width: 148px;
-  object-fit: contain;
-  object-position: left center;
-  border-radius: 0;
 }
+.login-logo,
+.kilode-splash-logo {
+  height: 40px;
+  width: 186px;
+  max-width: 186px;
+  margin-inline: auto;
+}
+.kilode-bang-ink { fill: #fff; }
+.kilode-word-svg {
+  fill: #fff;
+  font-family: Nunito, ui-sans-serif, system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+}
+html[data-skin="ivory"] .kilode-bang-ink,
+html[data-skin="ivory"] .kilode-word-svg { fill: #111; }
+html[data-skin="ivory"] .menu-sheet,
+html[data-skin="ivory"] .menu-sheet .menu-row,
+html[data-skin="ivory"] .menu-sheet .menu-ico {
+  background: #070908;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+html[data-skin="ivory"] .menu-sheet .menu-ico { color: #facc15; }
+.trend-live,
+.trend-card,
+.trend-row {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+}
+.trend-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  text-align: left;
+}
+.trend-card { padding: 10px; }
 .login-stage {
   min-height: 100dvh;
   display: flex;
@@ -2013,9 +2053,29 @@ html[data-skin="ivory"] .news-plus {
   color: #fff;
 }
 html[data-skin="ivory"] .raised,
-html[data-skin="ivory"] .glass-3d,
-html[data-skin="ivory"] .menu-sheet {
+html[data-skin="ivory"] .glass-3d {
   background: #fff;
   color: #111;
   border-color: #e4e4e1;
 }
+html[data-skin="ivory"] .menu-sheet {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 140px),
+    #070908;
+  color: #fff;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 16px 0 48px rgba(0, 0, 0, 0.55);
+}
+html[data-skin="ivory"] .menu-sheet .menu-row {
+  background: transparent;
+  color: #fff;
+  border-color: transparent;
+}
+html[data-skin="ivory"] .menu-sheet .menu-ico {
+  background: #0c0e0d;
+  color: #facc15;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+html[data-skin="ivory"] .menu-sheet .kilode-wordmark,
+html[data-skin="ivory"] .menu-sheet h2,
+html[data-skin="ivory"] .menu-sheet .text-fg { color: #fff; }

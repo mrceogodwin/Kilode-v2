@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Share2, X } from "lucide-react";
 import { fmtCount, type Post } from "@/lib/qonvo-data";
-import { DigestBox, GetAppRow, TelegramLink } from "@/components/get-app";
+import { DigestBox, TelegramLink } from "@/components/get-app";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { ABOUT_SHORT } from "@/lib/legal";
 import { getPublicSite, pingShare, pingVisit, saveSiteFlags, type PublicSite, type ShareKey } from "@/lib/site-server";
 
@@ -132,6 +133,8 @@ function IconFb() {
 
 export function SiteFooter() {
   const { site, setSite } = usePublicSite();
+  const session = useCurrentUserState();
+  const signedIn = Boolean(session.user);
   function share(kind: ShareKey) {
     const url = "https://kilode.ng";
     const text = "Kilode — Talk News. Real People.";
@@ -165,29 +168,32 @@ export function SiteFooter() {
   ];
   return (
     <footer className="site-foot mt-5 overflow-hidden rounded-2xl px-3 py-4 sm:px-3.5">
-      <div className="flex items-center justify-center gap-2.5">
-        <span className="kilode-bang-3d" aria-hidden>
-          <img src="/kilode-bang-mark-white.png" alt="" />
-        </span>
-        <div className="text-left">
-          <p className="text-[9px] font-semibold tracking-[0.22em] text-white/55 uppercase">Talk news. Real people.</p>
-          <h2 className="kilode-wordmark mt-0.5" style={{ fontSize: 26 }}>Join Kilode</h2>
-        </div>
-      </div>
-      <p className="mx-auto mt-2 max-w-[18rem] text-center text-[12px] leading-snug text-white/70">Password only. No email to sign up. {joinHint}</p>
-
-      <a
-        href="/login?mode=up"
-        className="btn-yellow mt-3 flex min-h-11 w-full items-center justify-center rounded-full px-3 text-[14px] font-extrabold text-black"
-      >
-        Create account
-      </a>
-      <p className="mt-1.5 text-center text-[11px] text-muted">
-        Already here?{" "}
-        <a href="/login?mode=in" className="font-semibold text-[#FACC15] underline-offset-2 hover:underline">
-          Sign in
-        </a>
-      </p>
+      {session.isPending || signedIn ? null : (
+        <>
+          <div className="flex items-center justify-center gap-2.5">
+            <span className="kilode-bang-3d" aria-hidden>
+              <img src="/kilode-bang-mark-white.png" alt="" />
+            </span>
+            <div className="text-left">
+              <p className="text-[9px] font-semibold tracking-[0.22em] text-white/55 uppercase">Talk news. Real people.</p>
+              <h2 className="kilode-wordmark mt-0.5" style={{ fontSize: 26 }}>Join Kilode</h2>
+            </div>
+          </div>
+          <p className="mx-auto mt-2 max-w-[18rem] text-center text-[12px] leading-snug text-white/70">Password only. No email to sign up. {joinHint}</p>
+          <a
+            href="/login?mode=up"
+            className="btn-yellow mt-3 flex min-h-11 w-full items-center justify-center rounded-full px-3 text-[14px] font-extrabold text-black"
+          >
+            Create account
+          </a>
+          <p className="mt-1.5 text-center text-[11px] text-muted">
+            Already here?{" "}
+            <a href="/login?mode=in" className="font-semibold text-[#FACC15] underline-offset-2 hover:underline">
+              Sign in
+            </a>
+          </p>
+        </>
+      )}
 
       <div className="foot-stats mt-3 grid grid-cols-4 overflow-hidden rounded-lg" aria-label="Site stats">
         {stats.map((s) => (
@@ -234,9 +240,6 @@ export function SiteFooter() {
         <div className="foot-digest rounded-xl px-2.5 pt-2 pb-2">
           <div className="mb-1.5 text-center text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">Email updates</div>
           <DigestBox quiet defaultOpen />
-        </div>
-        <div className="menu-install overflow-hidden rounded-xl">
-          <GetAppRow />
         </div>
       </div>
 
@@ -328,7 +331,6 @@ export function InstallToast() {
   return (
     <div className="pointer-events-none fixed bottom-[calc(3.6rem+env(safe-area-inset-bottom))] left-2 z-40 w-[min(300px,calc(100vw-5.5rem))] md:bottom-4">
       <div className="pointer-events-auto flex overflow-hidden rounded-2xl border border-line bg-panel shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
-        <GetAppRow />
         <button
           type="button"
           aria-label="Dismiss"

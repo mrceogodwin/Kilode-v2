@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { OfficialLockup } from "@/components/brand-lockup";
 
 const KEY = "kilode-splash-seen";
 
@@ -25,7 +26,7 @@ export function SplashScreen() {
   return (
     <div className="kilode-splash" role="presentation">
       <div className="kilode-splash-row">
-        <img src="/kilode-official.png" alt="Kilode" className="kilode-splash-logo" />
+        <OfficialLockup className="kilode-splash-logo" />
       </div>
     </div>
   );
