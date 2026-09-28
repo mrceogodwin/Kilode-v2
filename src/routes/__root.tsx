@@ -24,7 +24,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=overlays-content" },
       ...base.meta,
     ],
     links: [
@@ -43,7 +43,7 @@ export const Route = createRootRoute({
     scripts: base.scripts,
     styles: [
       {
-        children: "html,body{background:#050706;color:#f4f6f5;margin:0;min-height:100%;min-height:-webkit-fill-available}",
+        children: "html,body{background:#050706;color:#f4f6f5;margin:0;height:100svh;max-height:100svh;overflow:hidden}",
       },
     ],
   }),
@@ -74,7 +74,7 @@ export const Route = createRootRoute({
           }}
         />
       </head>
-      <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh" }}>
+      <body className="bg-bg font-sans text-fg antialiased" style={{ height: "100svh", overflow: "hidden" }}>
         <PreviewHostBridge />
         <AuthProvider>
           <Outlet />
