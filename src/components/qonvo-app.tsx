@@ -2213,16 +2213,25 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
   const [seen, setSeen] = useState<{ handle: string; ts: number }[]>([]);
   const [seenOpen, setSeenOpen] = useState(false);
   const [dropping, setDropping] = useState(false);
+  const [fullBody, setFullBody] = useState(post.body || "");
+  useEffect(() => {
+    setFullBody(post.body || "");
+    void getPublicPost({ data: post.slug || post.id })
+      .then((row) => {
+        if (row?.body) setFullBody(row.body);
+      })
+      .catch(() => undefined);
+  }, [post.id, post.slug, post.body]);
+  const mine = Boolean(store.handle && post.author && store.handle.toLowerCase() === post.author.toLowerCase());
+  const comments = post.comments ?? [];
+  const roots = comments.filter((c) => !c.parentTs);
+  const kids = (ts: number) => comments.filter((c) => c.parentTs === ts);
   useEffect(() => {
     store.see("posts", post.id);
     if (session.user) void notePostSeen({ data: post.id }).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id, session.user?.id]);
-  const mine = Boolean(store.handle && post.author && store.handle.toLowerCase() === post.author.toLowerCase());
-  const comments = post.comments ?? [];
-  const roots = comments.filter((c) => !c.parentTs);
-  const kids = (ts: number) => comments.filter((c) => c.parentTs === ts);
-  const mins = Math.max(1, Math.round(postBodyPlain(post.body || "").split(/\s+/).filter(Boolean).length / 180));
+  const mins = Math.max(1, Math.round(postBodyPlain(fullBody || "").split(/\s+/).filter(Boolean).length / 180));
   const saved = store.savedPosts.includes(post.id);
   const likes = store.likes[post.id] ?? 0;
   const shares = store.shares[post.id] ?? 0;
@@ -2350,7 +2359,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
           </ShareIco>
         </div>
         <TrendingRail posts={store.posts} ads={store.campaigns} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
-        <PostBody body={post.body || ""} />
+        <PostBody body={fullBody || ""} />
         {post.link ? (
           <a href={post.link} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-1 text-xs text-lime-2">
             <Link2 className="size-3" /> Source
@@ -2808,14 +2817,6 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           </button>
         ) : live.length > 0 ? (
           <p className="mt-6 mb-6 text-center text-[11px] text-muted">End of feeds · {live.length} posts</p>
-        ) : store.ready ? (
-          <div className="my-4 w-full rounded-2xl border border-line bg-panel px-4 py-5 text-center">
-            <p className="text-sm font-semibold">Feeds are still catching up</p>
-            <p className="mt-1 text-[12px] leading-snug text-muted">Fetched stories are not deleted. Reload to pull them from the desk.</p>
-            <button type="button" className="btn-join mt-3 rounded-lg px-4 py-2 text-sm font-bold" onClick={() => window.location.reload()}>
-              Reload feeds
-            </button>
-          </div>
         ) : null}
         {repost ? (
           <RepostModal

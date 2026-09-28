@@ -16,7 +16,7 @@ export function SplashScreen() {
     setOn(true);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const timer = window.setTimeout(() => setOn(false), 1200);
+    const timer = window.setTimeout(() => setOn(false), 500);
     return () => {
       window.clearTimeout(timer);
       document.body.style.overflow = prev;
