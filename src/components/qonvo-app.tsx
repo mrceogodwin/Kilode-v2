@@ -126,10 +126,6 @@ const MENU_GROUPS: { label: string; ids: MenuId[] }[] = [
   { label: "Create", ids: ["create", "ads"] },
 ];
 
-function fmt(n: number) {
-  return n >= 1000 ? (n / 1000).toFixed(1).replace(/\.0$/, "") + "K" : String(n);
-}
-
 function sameDay(a: number, b: number) {
   const da = new Date(a);
   const db = new Date(b);
@@ -347,6 +343,22 @@ function QonvoAppInner() {
     void listRoomOverlay()
       .then(setRoomOverlay)
       .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    const el = document.querySelector(".kilode-chrome");
+    if (!el) return;
+    const apply = () => {
+      document.documentElement.style.setProperty("--chrome-bottom", `${Math.round(el.getBoundingClientRect().bottom)}px`);
+    };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    window.addEventListener("resize", apply);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", apply);
+    };
   }, []);
 
 
@@ -607,10 +619,7 @@ function QonvoAppInner() {
           <div className="ticker-track px-8 text-[10px] leading-5 text-muted">
             {[...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10), ...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10)].map((r, i) => (
               <button key={r.id + i} type="button" aria-label={`Open room ${r.name}`} className="shrink-0 hover:text-fg" onClick={() => goHome(r.id)}>
-                {r.name}{r.online > 0 ? ` · ${fmt(r.online)}` : ""}
-                <svg viewBox="0 0 10 10" className="ml-1 inline size-2 align-middle text-lime-2" aria-hidden>
-                  <path d="M5 1.2 8.5 8.2H1.5L5 1.2Z" fill="currentColor" />
-                </svg>
+                {r.name}
               </button>
             ))}
             {store.campaigns
@@ -1581,7 +1590,7 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
       <aside className="menu-sheet flex h-full w-[min(340px,92vw)] flex-col">
         <div className="menu-head flex items-center justify-between">
           <strong>Friends</strong>
-          <button type="button" aria-label="Close friends" onClick={onClose}>
+          <button type="button" className="grid size-8 place-items-center rounded-full border border-white/25" aria-label="Close friends" onClick={onClose}>
             <X className="size-4" />
           </button>
         </div>
