@@ -10,7 +10,7 @@ function Boot({ title, body, action }: { title: string; body: string; action?: R
   return (
     <div className="grid min-h-svh place-items-center bg-[#0a0a0a] p-6 text-[#f4f4f5]">
       <div className="max-w-sm text-center">
-        <img src="/kilode-logo-green.png" alt="Kilode" className="mx-auto mb-3 h-10 w-auto max-w-[180px] object-contain" />
+        <img src="/kilode-official.png" alt="Kilode" className="mx-auto mb-3 h-8 w-auto max-w-[160px] object-contain" />
         <p className="mt-1 text-sm font-semibold">{title}</p>
         <p className="mt-2 text-sm text-white/50">{body}</p>
         {action}

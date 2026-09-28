@@ -1,4 +1,4 @@
-import { authClient } from "@/lib/auth/client";
+import { authClient, rememberBearer } from "@/lib/auth/client";
 import { accountEmails, publicUsername } from "@/lib/account-email";
 import { asAccountKind, type AccountKind } from "@/lib/qonvo-data";
 import { saveProfile } from "@/lib/forum-server";
@@ -83,6 +83,7 @@ export async function kilodeSignUp(name: string, password: string, kind: Account
   if (!inn.ok) return { ok: false as const, reason: `Account created. Sign in now. (${inn.reason})` };
   try {
     sessionStorage.setItem("nf_account", JSON.stringify({ kind: asAccountKind(kind), face: face ?? "" }));
+    sessionStorage.setItem("kilode-force-onboard", "1");
   } catch {
     /* ignore */
   }
@@ -101,7 +102,16 @@ export async function kilodeSignIn(name: string, password: string) {
         AUTH_TIMEOUT_MS,
         "Sign-in",
       );
-      if (!r.error) return { ok: true as const, handle };
+      if (!r.error) {
+        const token = (r.data as { token?: string } | null)?.token;
+        if (token) rememberBearer(token);
+        const sess = await withTimeout(authClient.getSession(), 8_000, "Session").catch(() => null);
+        if (sess && "data" in sess && sess.data?.user) return { ok: true as const, handle };
+        return {
+          ok: false as const,
+          reason: "That username is valid, but this browser did not keep the session. Tap Sign in once more.",
+        };
+      }
       const extra = [r.error.message, (r.error as { statusText?: string }).statusText].filter(Boolean).join(" — ");
       last = niceAuthError(extra || last);
     }

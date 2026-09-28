@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Eye, Mail, MessageSquare, Share2 } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, daysLeft, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
@@ -45,6 +45,25 @@ import { PostRichEditor } from "@/components/post-rich-editor";
 import { postBodyPlain, sanitizePostHtml } from "@/lib/post-body";
 
 type Store = ReturnType<typeof useQonvo>;
+
+class PaneGuard extends Component<{ name: string; children: ReactNode }, { message: string }> {
+  state = { message: "" };
+  static getDerivedStateFromError(err: unknown) {
+    return { message: err instanceof Error ? err.message : "This section failed." };
+  }
+  render() {
+    if (!this.state.message) return this.props.children;
+    return (
+      <div className="m-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+        <p className="text-sm font-semibold">This section hit a snag</p>
+        <p className="mt-1 text-xs text-muted">{this.state.message}</p>
+        <button type="button" className="mt-3 rounded-full border border-white/20 px-3 py-1.5 text-xs" onClick={() => this.setState({ message: "" })}>
+          Try again
+        </button>
+      </div>
+    );
+  }
+}
 
 export function QonvoScreen({
   id,
@@ -102,7 +121,11 @@ export function QonvoScreen({
   else if (id === "tv") view = <TvPane />;
   else if (id === "contact") view = <Contact store={store} />;
   else if (id === "admin") view = <Admin store={store} />;
-  return <div className="h-full overflow-y-auto dock-pad md:pb-4">{view}</div>;
+  return (
+    <PaneGuard key={id} name={id}>
+      <div className="h-full overflow-y-auto dock-pad md:pb-4">{view}</div>
+    </PaneGuard>
+  );
 }
 
 function JoinWall() {

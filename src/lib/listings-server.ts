@@ -22,6 +22,7 @@ export type Listing = {
   days: number;
   expiresAt?: number;
   image?: string;
+  meta?: string;
 };
 
 function nid() {
@@ -80,6 +81,7 @@ async function ensure() {
     await sql.query(`ALTER TABLE nf_listings ADD COLUMN IF NOT EXISTS days INT NOT NULL DEFAULT 30`);
     await sql.query(`ALTER TABLE nf_listings ADD COLUMN IF NOT EXISTS expires_at BIGINT`);
     await sql.query(`ALTER TABLE nf_listings ADD COLUMN IF NOT EXISTS image TEXT`);
+    await sql.query(`ALTER TABLE nf_listings ADD COLUMN IF NOT EXISTS meta TEXT`);
   } catch {
     /* exists */
   }
@@ -101,6 +103,7 @@ type ListingRow = {
   days?: number | string | null;
   expires_at?: number | string | null;
   image?: string | null;
+  meta?: string | null;
 };
 
 function map(r: ListingRow): Listing {
@@ -120,6 +123,7 @@ function map(r: ListingRow): Listing {
     days: Number(r.days ?? 30),
     expiresAt: r.expires_at ? Number(r.expires_at) : undefined,
     image: r.image || undefined,
+    meta: r.meta || undefined,
   };
 }
 
@@ -145,13 +149,13 @@ export const listListings = createServerFn({ method: "GET" })
     }
     const kind = asKind(data.kind);
     const now = Date.now();
-    const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at, image from nf_listings where kind = ${kind} and status = 'approved' and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
+    const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at, image, meta from nf_listings where kind = ${kind} and status = 'approved' and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
     return rows.map(map);
   });
 
 export const saveListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { kind: string; title: string; body?: string; city?: string; contact?: string; link?: string; company?: string; days?: number; image?: string }) => d)
+  .validator((d: { kind: string; title: string; body?: string; city?: string; contact?: string; link?: string; company?: string; days?: number; image?: string; jobType?: string; category?: string; salary?: string; condition?: string; price?: string }) => d)
   .handler(async ({ context, data }) => {
     const kind = asKind(data.kind);
     const ak = await kindOf(context.userId);
@@ -174,8 +178,15 @@ export const saveListing = createServerFn({ method: "POST" })
     if ((data.image ?? "").trim() && !image) {
       return { ok: false as const, reason: "Photo must be https://… or a compressed image under ~900KB." };
     }
-    await sql`insert into nf_listings (id, kind, title, body, city, contact, link, company, status, submitter, user_id, ts, views, days, image)
-      values (${id}, ${kind}, ${title}, ${(data.body ?? "").slice(0, 2000)}, ${(data.city ?? "").slice(0, 80)}, ${(data.contact ?? "").slice(0, 120)}, ${link}, ${(data.company ?? "").slice(0, 80)}, ${"pending"}, ${submitter}, ${context.userId}, ${Date.now()}, ${0}, ${days}, ${image})`;
+    const meta = JSON.stringify({
+      jobType: (data.jobType ?? "").slice(0, 40),
+      category: (data.category ?? "").slice(0, 40),
+      salary: (data.salary ?? "").slice(0, 40),
+      condition: (data.condition ?? "").slice(0, 40),
+      price: (data.price ?? "").slice(0, 40),
+    });
+    await sql`insert into nf_listings (id, kind, title, body, city, contact, link, company, status, submitter, user_id, ts, views, days, image, meta)
+      values (${id}, ${kind}, ${title}, ${(data.body ?? "").slice(0, 2000)}, ${(data.city ?? "").slice(0, 80)}, ${(data.contact ?? "").slice(0, 120)}, ${link}, ${(data.company ?? "").slice(0, 80)}, ${"pending"}, ${submitter}, ${context.userId}, ${Date.now()}, ${0}, ${days}, ${image}, ${meta})`;
     return { ok: true as const, id };
   });
 

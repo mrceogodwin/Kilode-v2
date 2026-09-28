@@ -44,8 +44,8 @@ export function OnboardSheet({
   }
 
   return (
-    <div className="fixed inset-0 z-[80] grid place-items-end bg-black/50 p-3 pb-[calc(4.2rem+env(safe-area-inset-bottom))] sm:place-items-center sm:pb-3">
-      <div className="w-full max-w-md rounded-2xl border border-line bg-panel p-4 shadow-2xl">
+    <div className="fixed inset-0 z-[80] grid place-items-center overflow-y-auto bg-black/70 p-4">
+      <div className="my-auto w-full max-w-md rounded-3xl border border-white/15 border-t-white/30 bg-[#0c0e0d]/95 p-5 shadow-2xl backdrop-blur-xl">
         <p className="text-[10px] font-bold tracking-[0.16em] text-lime-2">STEP {step + 1} OF 4</p>
         {step === 0 ? (
           <>

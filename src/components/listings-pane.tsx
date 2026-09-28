@@ -8,6 +8,7 @@ import { canKind, kindActionHint } from "@/lib/permissions";
 import { AdReserve } from "@/components/ad-slot";
 import { JoinCta } from "@/components/get-app";
 import { PortraitAd } from "@/components/premium-ad";
+import { uploadListingPhoto } from "@/lib/supabase";
 
 const COPY: Record<
   ListingKind,
@@ -55,6 +56,18 @@ const COPY: Record<
 };
 
 const ACTION = { job: "jobs.post", market: "market.list", rent: "rent.list" } as const;
+const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Freelance"];
+const JOB_CATS = ["Tech", "Design", "Marketing", "Other"];
+const MARKET_CATS = ["Electronics", "Fashion", "Services", "Vehicles", "Other"];
+const CONDITIONS = ["New", "Used - Like New", "Used - Good", "Used - Fair"];
+
+function readMeta(raw?: string) {
+  try {
+    return JSON.parse(raw || "{}") as { jobType?: string; category?: string; salary?: string; condition?: string; price?: string };
+  } catch {
+    return {};
+  }
+}
 
 type Card = Listing & { image?: string };
 
@@ -143,6 +156,14 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [shown, setShown] = useState(12);
   const [filter, setFilter] = useState("All");
   const [legal, setLegal] = useState(false);
+  const [formOn, setFormOn] = useState(false);
+  const [jobType, setJobType] = useState("Full-time");
+  const [category, setCategory] = useState("Tech");
+  const [salary, setSalary] = useState("");
+  const [condition, setCondition] = useState("New");
+  const [price, setPrice] = useState("");
+  const [image, setImage] = useState("");
+  const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<Card | null>(null);
 
   function load() {
@@ -156,6 +177,8 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
     setFilter("All");
     setOpen(null);
     setFormOn(false);
+    setImage("");
+    setCategory(kind === "market" ? "Electronics" : "Tech");
   }, [kind]);
 
   useEffect(() => {
@@ -213,25 +236,78 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             {c}
           </button>
         ))}
-        <button type="button" className="btn-3d ml-auto rounded-md px-2.5 py-1 text-[10px] font-semibold" onClick={() => (session.user ? setFormOn((v) => !v) : needJoin())}>
+        <button
+          type="button"
+          className="btn-yellow ml-auto rounded-full px-3 py-1 text-[10px] font-extrabold text-black"
+          onClick={() => {
+            if (session.isPending) return;
+            if (!session.user) {
+              needJoin();
+              return;
+            }
+            setFormOn((v) => !v);
+          }}
+        >
           {kind === "job" ? "Post a job" : kind === "market" ? "List a product" : "List a space"}
         </button>
       </div>
 
       {formOn ? (
-        <div className="raised mb-4 space-y-2 rounded-xl p-3">
+        <div className="mb-4 space-y-2 rounded-2xl border border-white/10 border-t-white/20 bg-white/5 p-3 shadow-2xl backdrop-blur-xl">
           {canPost ? (
             <>
-              <div className="text-[11px] font-medium text-muted">Submit for staff approval · {days} days live</div>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-              <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder={copy.extra} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-              <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City / area" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-              <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder={copy.contact} className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-              <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://…" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-              <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Short description" className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+              <div className="text-[11px] font-medium text-muted">Staff approve this before it goes public · {days} days live</div>
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={kind === "job" ? "Job title" : "Item title"} className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" />
+              <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder={kind === "market" ? "Brand" : copy.extra} className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" />
+              <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="City / location" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" />
+              {kind === "job" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <select value={jobType} onChange={(e) => setJobType(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-base" aria-label="Job type">
+                    {JOB_TYPES.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-base" aria-label="Category">
+                    {JOB_CATS.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+              ) : null}
+              {kind === "market" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-base" aria-label="Category">
+                    {MARKET_CATS.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                  <select value={condition} onChange={(e) => setCondition(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-base" aria-label="Condition">
+                    {CONDITIONS.map((t) => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+              ) : null}
+              {kind === "job" ? <input value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="Salary range (optional)" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" /> : null}
+              {kind === "market" ? <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price in Naira" inputMode="decimal" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" /> : null}
+              <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder={kind === "market" ? "WhatsApp or email" : copy.contact} className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" />
+              <input value={link} onChange={(e) => setLink(e.target.value)} placeholder={kind === "job" ? "Application link or email" : "https://…"} className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" />
+              <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3} placeholder="Description" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" />
+              <label className="block rounded-xl border border-dashed border-white/15 px-3 py-2 text-[12px] text-muted">
+                Photo · JPG, PNG, or WebP · 5MB max
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="mt-1 block w-full text-[12px]"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    setErr("");
+                    setBusy(true);
+                    void uploadListingPhoto(file)
+                      .then((url) => setImage(url))
+                      .catch((ex: unknown) => setErr(ex instanceof Error ? ex.message : "Could not add that photo."))
+                      .finally(() => setBusy(false));
+                  }}
+                />
+              </label>
+              {image ? <img src={image} alt="" className="h-28 w-full rounded-xl object-cover" /> : null}
               <div className="flex flex-wrap gap-1">
                 {[7, 14, 30].map((d) => (
-                  <button key={d} type="button" onClick={() => setDays(d)} className={`rounded-full px-2.5 py-1 text-[11px] ${days === d ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
+                  <button key={d} type="button" onClick={() => setDays(d)} className={`rounded-full px-2.5 py-1 text-[11px] ${days === d ? "btn-yellow font-extrabold text-black" : "border border-white/15 text-muted"}`}>
                     {d} days live
                   </button>
                 ))}
@@ -246,7 +322,8 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
               ) : null}
               <button
                 type="button"
-                className="btn-join rounded-lg px-3 py-2 text-base font-bold"
+                disabled={busy}
+                className="btn-yellow w-full rounded-full px-3 py-2 text-base font-extrabold text-black disabled:opacity-60"
                 onClick={() => {
                   setErr("");
                   setMsg("");
@@ -254,7 +331,12 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                     setErr("Tick the notice before you post a job.");
                     return;
                   }
-                  void saveListing({ data: { kind, title, body, city, contact, link, company, days } }).then((r) => {
+                  if (title.trim().length < 3) {
+                    setErr("Add a title.");
+                    return;
+                  }
+                  setBusy(true);
+                  void saveListing({ data: { kind, title, body, city, contact, link, company, days, image, jobType, category, salary, condition, price } }).then((r) => {
                     if (!r?.ok) setErr(r && "reason" in r ? r.reason : "Could not post.");
                     else {
                       setMsg("Submitted. Staff will approve before it is public.");
@@ -264,11 +346,16 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                       setContact("");
                       setLink("");
                       setCompany("");
+                      setSalary("");
+                      setPrice("");
+                      setImage("");
+                      setFormOn(false);
+                      load();
                     }
-                  });
+                  }).finally(() => setBusy(false));
                 }}
               >
-                Submit for approval
+                {busy ? "Saving…" : "Submit for approval"}
               </button>
             </>
           ) : (
@@ -288,6 +375,11 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
               {open.city || kind} · {open.company}
             </div>
             <h3 className="mt-0.5 text-lg font-bold">{open.title}</h3>
+            {(() => {
+              const meta = readMeta(open.meta);
+              const bits = [meta.jobType, meta.category, meta.condition, meta.price ? `₦${meta.price}` : "", meta.salary].filter(Boolean);
+              return bits.length ? <p className="mt-1 text-[11px] text-muted">{bits.join(" · ")}</p> : null;
+            })()}
             <p className="mt-1 text-[13px] leading-snug text-muted">{open.body}</p>
             <div className="mt-2 text-[10px] text-muted">
               {open.submitter} · {timeLabel(open.ts)} · {fmtCount(open.views)} views

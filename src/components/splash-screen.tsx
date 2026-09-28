@@ -25,7 +25,7 @@ export function SplashScreen() {
   return (
     <div className="kilode-splash" role="presentation">
       <div className="kilode-splash-row">
-        <img src="/kilode-lockup.jpg" alt="Kilode. Talk News. Real People." className="kilode-splash-logo" />
+        <img src="/kilode-official.png" alt="Kilode" className="kilode-splash-logo" />
       </div>
     </div>
   );

@@ -230,6 +230,14 @@ function QonvoAppInner() {
     window.addEventListener("pointerdown", arm, { once: true });
     return () => window.removeEventListener("pointerdown", arm);
   }, []);
+  useEffect(() => {
+    if (!signedIn) return;
+    try {
+      setForceOnboard(sessionStorage.getItem("kilode-force-onboard") === "1");
+    } catch {
+      /* ignore */
+    }
+  }, [signedIn]);
   useRealtimeInbox(signedIn ? session.user?.id ?? null : null, () => {
     setDmCount((n) => n + 1);
   });
@@ -241,6 +249,7 @@ function QonvoAppInner() {
   const [joinName, setJoinName] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const [forceOnboard, setForceOnboard] = useState(false);
   const [screen, setScreen] = useState<MenuId>("home");
   useEffect(() => {
     if (!signedIn) {
@@ -508,7 +517,7 @@ function QonvoAppInner() {
             </button>
             <button
               type="button"
-              className="flex min-w-0 items-center gap-1"
+              className="flex shrink-0 items-center"
               aria-label="Kilode home"
               onClick={() => {
                 const now = Date.now();
@@ -523,7 +532,7 @@ function QonvoAppInner() {
                 goHome();
               }}
             >
-              <img src="/kilode-lockup.jpg" alt="" className="kilode-lockup" />
+              <img src="/kilode-official.png" alt="Kilode" className="kilode-lockup" />
             </button>
             <div className="ml-auto flex items-center gap-1">
               <button
@@ -532,8 +541,9 @@ function QonvoAppInner() {
                 aria-label="Friends"
                 onClick={() => {
                   setMenuOpen(false);
+                  if (session.isPending) return;
                   if (!signedIn) {
-                    window.location.href = "/login?mode=up";
+                    window.location.href = "/login";
                     return;
                   }
                   setFriendsOpen(true);
@@ -580,8 +590,9 @@ function QonvoAppInner() {
                 aria-label={dmCount > 0 ? `Messages, ${dmCount} new` : "Messages"}
                 onClick={() => {
                   setMenuOpen(false);
+                  if (session.isPending) return;
                   if (signedIn) setScreen("inbox");
-                  else window.location.href = "/login?mode=up";
+                  else window.location.href = "/login";
                 }}
               >
                 <MessageIcon />
@@ -656,6 +667,7 @@ function QonvoAppInner() {
                 title="Post news"
                 className="news-plus"
                 onClick={() => {
+                  if (session.isPending) return;
                   if (!signedIn) {
                     window.location.href = "/login?mode=up";
                     return;
@@ -824,7 +836,7 @@ function QonvoAppInner() {
                       <div key={row.key} className="flex flex-col gap-1.5">
                         <button
                           type="button"
-                          className="text-[11px] text-lime-2"
+                          className="text-[11px] text-white/80"
                           onClick={() => setOpenFolds((m) => ({ ...m, [row.key]: !open }))}
                         >
                           {open ? "Hide" : `${row.n} more from ${row.author}`}
@@ -959,12 +971,16 @@ function QonvoAppInner() {
                     On a break
                   </span>
                 ) : signedIn ? (
-                  <button type="submit" className="btn-join inline-flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-full px-3.5 text-xs font-bold">
+                  <button type="submit" className="btn-yellow inline-flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-full px-3.5 text-xs font-bold text-black">
                     <Send className="size-3.5" />
                     Send
                   </button>
+                ) : session.isPending ? (
+                  <span className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-line px-3.5 text-xs font-bold text-muted">
+                    Opening
+                  </span>
                 ) : (
-                  <Link to="/login" search={{}} className="btn-join inline-flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-full px-3.5 text-xs font-bold">
+                  <Link to="/login" search={{}} className="btn-yellow inline-flex min-h-11 shrink-0 items-center justify-center gap-1 rounded-full px-3.5 text-xs font-bold text-black">
                     Sign in
                   </Link>
                 )}
@@ -1038,7 +1054,23 @@ function QonvoAppInner() {
       )}
 
       <InstallToast />
-      {signedIn && store.onboarded === 0 ? <OnboardSheet kind={store.kind} onDone={store.finishOnboard} /> : null}
+      {signedIn && !session.user?.isDevFallback && (store.onboarded === 0 || (forceOnboard && store.onboarded !== 1)) ? (
+        <OnboardSheet
+          kind={store.kind}
+          onDone={async (d) => {
+            const r = await store.finishOnboard(d);
+            if (r.ok) {
+              try {
+                sessionStorage.removeItem("kilode-force-onboard");
+              } catch {
+                /* ignore */
+              }
+              setForceOnboard(false);
+            }
+            return r;
+          }}
+        />
+      ) : null}
       <nav className="dock pointer-events-auto z-40">
         <Tab icon={<Home className="size-5" />} label="Home" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
         <Tab icon={<Search className="size-5" />} label="Explore" on={screen === "home" && homeTab === "socials"} onClick={() => { setMenuOpen(false); openSocialFellows(); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); store.setOpenPost(null); }} />
@@ -1075,7 +1107,7 @@ function QonvoAppInner() {
             setMenuOpen(false);
             if (session.isPending) return;
             if (signedIn) setScreen("dashboard");
-            else window.location.href = "/login?mode=up";
+            else window.location.href = "/login";
           }}
         />
       </nav>
@@ -1220,7 +1252,7 @@ function QonvoAppInner() {
                         className="menu-row flex items-center gap-2.5 rounded-xl px-3 py-3 text-left"
                         onClick={() => {
                           if (!signedIn && q.id !== "home") {
-                            window.location.href = "/login?mode=up";
+                            window.location.href = q.id === "inbox" ? "/login" : "/login?mode=up";
                             return;
                           }
                           if (q.tab) {
@@ -1231,7 +1263,7 @@ function QonvoAppInner() {
                           setMenuOpen(false);
                         }}
                       >
-                        <Icon className="size-4 shrink-0 text-white" />
+                        <Icon className="size-4 shrink-0 text-fg" />
                         <span className="text-[12px] font-semibold">{q.label}</span>
                       </button>
                     );
@@ -1871,114 +1903,112 @@ function DrawerRow({
   );
 }
 
+type ArtistCard = {
+  name: string;
+  cover?: string;
+  genre?: string;
+  role: string;
+  tracks: { title: string; url: string; cover?: string }[];
+};
+
+const ARTIST_ROLES = ["Lead", "Feature", "Chart", "New"];
+
+function collectArtists(tracks: { id?: string; artist?: string; title?: string; url?: string; cover?: string; genre?: string }[]): ArtistCard[] {
+  const map = new Map<string, ArtistCard>();
+  for (const t of tracks) {
+    if (!t?.id || !t.artist) continue;
+    let row = map.get(t.artist);
+    if (!row) {
+      row = { name: t.artist, cover: t.cover, genre: t.genre, role: "Artist", tracks: [] };
+      map.set(t.artist, row);
+    }
+    if (!row.cover && t.cover) row.cover = t.cover;
+    if (!row.genre && t.genre) row.genre = t.genre;
+    if (t.title && t.url && !row.tracks.some((x) => x.title === t.title)) row.tracks.push({ title: t.title, url: t.url, cover: t.cover });
+  }
+  return [...map.values()].map((a, i) => ({ ...a, role: ARTIST_ROLES[i % ARTIST_ROLES.length] || "Artist" }));
+}
+
+function ArtistStage({ artist, onClose }: { artist: ArtistCard; onClose: () => void }) {
+  let host = "their platform";
+  try {
+    host = new URL(artist.tracks[0]?.url || "https://music.apple.com").hostname.replace(/^www\./, "");
+  } catch {
+    /* keep fallback */
+  }
+  return (
+    <div className="artist-stage" role="dialog" aria-label={`${artist.name} profile`}>
+      <button type="button" className="round-arrow absolute top-3 right-3" aria-label="Close artist" onClick={onClose}>
+        <X className="size-4" />
+      </button>
+      <div className="artist-hero">
+        <span className="artist-hero-face">{artist.cover ? <img src={artist.cover} alt="" /> : artist.name.slice(0, 1)}</span>
+        <div className="min-w-0">
+          <div className="text-[10px] font-bold tracking-[0.16em] text-[#FACC15]">{artist.role.toUpperCase()}</div>
+          <h2 className="truncate text-2xl font-extrabold tracking-tight">{artist.name}</h2>
+          <p className="mt-1 text-[12px] font-semibold text-fg">Kilode Artist · verified</p>
+          <p className="text-[11px] text-muted">{artist.genre || "Music"} · {host}</p>
+        </div>
+      </div>
+      <p className="mt-4 text-[13px] leading-relaxed text-fg/80">
+        {artist.name} has a Kilode artist profile. Songs do not play inside the app. Each release opens their own platform so the artist keeps the stream, the link, and the audience.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {artist.tracks[0]?.url ? (
+          <a className="btn-yellow rounded-full px-3 py-2 text-[12px] font-extrabold text-black" href={artist.tracks[0].url} target="_blank" rel="noreferrer">
+            Open platform
+          </a>
+        ) : null}
+        <span className="rounded-full border border-white/15 px-3 py-2 text-[12px] text-fg/80">{artist.tracks.length} linked releases</span>
+      </div>
+      <h3 className="mt-5 text-[11px] font-bold tracking-[0.14em] text-muted">RELEASES</h3>
+      <ul className="mt-2 space-y-2">
+        {artist.tracks.map((t) => (
+          <li key={t.title}>
+            <a href={t.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-2">
+              {t.cover ? <img src={t.cover} alt="" className="size-12 rounded-full object-cover" /> : <span className="grid size-12 place-items-center rounded-full bg-black text-xs">!</span>}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">{t.title}</span>
+                <span className="text-[11px] text-muted">Listen on their platform</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd: () => void }) {
   const [q, setQ] = useState("");
   const [genre, setGenre] = useState<(typeof MUSIC_GENRES)[number]>("All");
-  const [mineShown, setMineShown] = useState(8);
-  const [digShown, setDigShown] = useState(8);
+  const [page, setPage] = useState(0);
+  const [artist, setArtist] = useState<ArtistCard | null>(null);
 
-  const mineAll = useMemo(() => {
+  const artists = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return store.tracks.filter((t) => {
-      if (!t?.id) return false;
-      if (genre !== "All" && (t.genre || "Afrobeats") !== genre) return false;
-      if (!s) return true;
-      return `${t.artist} ${t.title} ${t.author} ${t.genre ?? ""}`.toLowerCase().includes(s);
-    });
-  }, [store.tracks, q, genre]);
-
-  const digAll = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    return DIGITAL_TRACKS.filter((t) => {
+    const pool = [...store.tracks, ...DIGITAL_TRACKS].filter((t) => {
       if (!t?.id) return false;
       if (genre !== "All" && (t.genre || "Afrobeats") !== genre) return false;
       if (!s) return true;
       return `${t.artist} ${t.title} ${t.genre ?? ""}`.toLowerCase().includes(s);
     });
-  }, [q, genre]);
+    return collectArtists(pool);
+  }, [store.tracks, q, genre]);
 
-  const mine = mineAll.filter((t) => !!t?.id).slice(0, mineShown);
-  const digital = digAll.filter((t) => !!t?.id).slice(0, digShown);
-  const chart = DIGITAL_TRACKS.filter((t) => !!t?.id).slice(0, 10);
-  const fresh = [...DIGITAL_TRACKS].filter((t) => !!t?.id).reverse().slice(0, 10);
-
-  function Tile({ t, compact }: { t: (typeof store.tracks)[number]; compact?: boolean }) {
-    if (!t?.id) return null;
-    return (
-      <div className="raised overflow-hidden rounded-lg">
-        <button
-          type="button"
-          data-play="1"
-          className={`flex w-full items-center gap-1.5 text-left ${compact ? "px-1 py-1" : "px-1.5 py-1.5"}`}
-          onClick={() => {
-            const href = t.url || t.embed;
-            if (href) window.open(href, "_blank", "noopener,noreferrer");
-            store.see("tracks", t.id);
-          }}
-        >
-          {t.cover ? (
-            <img
-              src={t.cover}
-              alt=""
-              className={`${compact ? "size-8" : "size-9"} shrink-0 rounded object-cover`}
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-              }}
-            />
-          ) : (
-            <span className="btn-3d grid size-8 shrink-0 place-items-center rounded-full">
-              <Play className="size-3 fill-lime-2 text-lime-2" />
-            </span>
-          )}
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[12px] font-semibold leading-tight">{t.title}</div>
-            <div className="truncate text-[11px] text-muted">
-              {t.artist}
-              {!compact ? ` · ${t.platform}` : ""}
-            </div>
-          </div>
-          <span className="text-[10px] font-bold text-[#FACC15]">Open</span>
-        </button>
-      </div>
-    );
-  }
-
-  function Rail({ title, items }: { title: string; items: (typeof DIGITAL_TRACKS)[number][] }) {
-    return (
-      <section className="mb-3">
-        <div className="mb-1.5 flex items-center justify-between px-0.5">
-          <h3 className="text-[11px] font-bold tracking-wide text-fg">{title}</h3>
-          <span className="text-[9px] text-muted">{items.length}</span>
-        </div>
-        <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {items.filter((t) => !!t?.id).map((t) => (
-            <button
-              key={`${title}-${t.id}`}
-              type="button"
-              className="w-[88px] shrink-0 text-left"
-              onClick={() => {
-                if (t.url) window.open(t.url, "_blank", "noopener,noreferrer");
-                store.see("tracks", t.id);
-              }}
-            >
-              <div className="raised aspect-square overflow-hidden rounded-lg">
-                {t.cover ? <img src={t.cover} alt="" className="size-full object-cover" /> : <div className="grid size-full place-items-center bg-panel-3"><Play className="size-4 text-lime-2" /></div>}
-              </div>
-              <div className="mt-1 truncate text-[12px] font-semibold leading-tight">{t.title}</div>
-              <div className="truncate text-[11px] text-muted">{t.artist}</div>
-            </button>
-          ))}
-        </div>
-      </section>
-    );
-  }
+  const pages = Math.max(1, Math.ceil(artists.length / 4));
+  const safePage = Math.min(page, pages - 1);
+  const shown = artists.slice(safePage * 4, safePage * 4 + 4);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 items-center gap-2 border-b border-white/5 px-2 py-1.5">
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setPage(0);
+          }}
           placeholder="Search songs, artists, genres"
           className="min-h-11 flex-1 rounded-lg border border-line bg-panel px-3 text-base outline-none"
           aria-label="Search songs, artists, genres"
@@ -1992,10 +2022,9 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
             type="button"
             onClick={() => {
               setGenre(g);
-              setMineShown(8);
-              setDigShown(8);
+              setPage(0);
             }}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold tracking-wide ${genre === g ? "btn-3d text-lime-2" : "border border-line bg-panel-2 text-fg/80"}`}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold tracking-wide ${genre === g ? "btn-yellow text-black" : "border border-line bg-panel-2 text-fg/80"}`}
           >
             {g}
           </button>
@@ -2004,7 +2033,12 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
         <section className="mb-3">
-          <div className="mb-1.5 text-[11px] font-bold">Browse</div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <div className="text-[11px] font-bold">Browse</div>
+            <button type="button" className="text-[11px] font-semibold text-white/70" onClick={onAdd}>
+              Add a link
+            </button>
+          </div>
           <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {MUSIC_RAILS.map((r) => (
               <button
@@ -2023,12 +2057,8 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
                     gospel: "Gospel",
                     throwback: "Highlife",
                   };
-                  const next = genreFor[r.id] ?? "All";
-                  setGenre(next);
-                  setMineShown(8);
-                  setDigShown(8);
-                  const target = r.id === "new" ? "music-fresh" : r.id === "charts" ? "music-charts" : "music-library";
-                  document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  setGenre(genreFor[r.id] ?? "All");
+                  setPage(0);
                 }}
               >
                 <div className="p-2.5">
@@ -2040,45 +2070,32 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
           </div>
         </section>
 
-        <section id="music-charts">
-          <Rail title="Naija charts" items={chart} />
-        </section>
-        <section id="music-fresh">
-          <Rail title="New & trending" items={fresh} />
-        </section>
-        <Rail title="Made for Kilode" items={[...DIGITAL_TRACKS].filter((t) => !!t?.id).sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, 10)} />
-
-        <div id="music-library" className="mb-1.5 text-[11px] font-bold">Library split</div>
-        <div className="grid grid-cols-2 gap-2">
-          <section className="min-w-0">
-            <h3 className="mb-1.5 text-[9px] font-medium tracking-normal text-lime-2">On Kilode</h3>
-            <div className="space-y-1">
-              {mine.length === 0 ? <EmptyHero title="No tracks match" body="Try another search or add a track from Create." cta="Add a track" onClick={onAdd} /> : null}
-              {mine.map((t) => (
-                <Tile key={t.id} t={t} compact />
-              ))}
-            </div>
-            {mineShown < mineAll.length ? (
-              <button type="button" className="btn-join mt-2 w-full rounded-lg py-1.5 text-[10px] font-bold" onClick={() => setMineShown((n) => n + 8)}>
-                Load more · {mineAll.length - mineShown}
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="text-[11px] font-bold tracking-wide">Artists</h3>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-muted">{artists.length ? safePage + 1 : 0}/{pages}</span>
+              <button type="button" className="round-arrow" aria-label="Previous artists" onClick={() => setPage((n) => (n - 1 + pages) % pages)}>
+                <ChevronLeft className="size-3.5" />
               </button>
-            ) : null}
-          </section>
-          <section className="min-w-0">
-            <h3 className="mb-1.5 text-[9px] font-medium tracking-normal text-muted">Digital</h3>
-            <div className="space-y-1">
-              {digital.map((t) => (
-                <Tile key={t.id} t={t} compact />
-              ))}
-            </div>
-            {digShown < digAll.length ? (
-              <button type="button" className="btn-join mt-2 w-full rounded-lg py-1.5 text-[10px] font-bold" onClick={() => setDigShown((n) => n + 8)}>
-                Load more · {digAll.length - digShown}
+              <button type="button" className="round-arrow" aria-label="Next artists" onClick={() => setPage((n) => (n + 1) % pages)}>
+                <ChevronRight className="size-3.5" />
               </button>
-            ) : null}
-          </section>
-        </div>
+            </div>
+          </div>
+          {shown.length === 0 ? <EmptyHero title="No artists match" body="Try another name, or add a track link from Create." cta="Add a link" onClick={onAdd} /> : null}
+          <div className="artist-grid">
+            {shown.map((a) => (
+              <button key={a.name} type="button" className="artist-orb" onClick={() => setArtist(a)}>
+                <span className="artist-orb-face">{a.cover ? <img src={a.cover} alt="" /> : a.name.slice(0, 1)}</span>
+                <strong>{a.name}</strong>
+                <em>{a.role}</em>
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
+      {artist ? <ArtistStage artist={artist} onClose={() => setArtist(null)} /> : null}
     </div>
   );
 }
@@ -2483,19 +2500,34 @@ const LANE_MATCH: Record<string, string[]> = {
 };
 
 function SplitRail({ posts, onOpen }: { posts: { id: string; title: string; image?: string; category?: string }[]; onOpen: (id: string) => void }) {
-  if (posts.length < 3) return null;
+  const scroller = useRef<HTMLDivElement>(null);
+  if (posts.length < 1) return null;
+  function nudge(dir: number) {
+    scroller.current?.scrollBy({ left: dir * 132, behavior: "smooth" });
+  }
   return (
-    <div className="split-rail mb-3">
-      {posts.map((p) => (
-        <button key={p.id} type="button" className="split-card" onClick={() => onOpen(p.id)}>
-          <img src={p.image} alt="" />
-          <span>
+    <section className="mb-3">
+      <div className="mb-1.5 flex items-center justify-between px-0.5">
+        <div className="text-[10px] font-semibold tracking-[0.14em] text-muted">IN THE FEED</div>
+        <div className="flex gap-1">
+          <button type="button" className="round-arrow" aria-label="Previous stories" onClick={() => nudge(-1)}>
+            <ChevronLeft className="size-3.5" />
+          </button>
+          <button type="button" className="round-arrow" aria-label="Next stories" onClick={() => nudge(1)}>
+            <ChevronRight className="size-3.5" />
+          </button>
+        </div>
+      </div>
+      <div ref={scroller} className="round-track">
+        {posts.slice(0, 12).map((p) => (
+          <button key={p.id} type="button" className="round-card" onClick={() => onOpen(p.id)}>
+            <span className="round-face">{p.image ? <img src={p.image} alt="" /> : <span>{(p.category || "K").slice(0, 1)}</span>}</span>
             <em>{p.category || "Kilode"}</em>
-            {p.title}
-          </span>
-        </button>
-      ))}
-    </div>
+            <strong>{p.title}</strong>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -2624,7 +2656,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
               }}
             />
             <MarketRail onPick={onDesk} />
-            <SplitRail posts={store.posts.filter((p) => p.status !== "draft" && p.image).slice(0, 3)} onOpen={(id) => store.setOpenPost(id)} />
+            <SplitRail posts={store.posts.filter((p) => p.status !== "draft" && p.image).slice(0, 12)} onOpen={(id) => store.setOpenPost(id)} />
             <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} />
           </>
         )}
@@ -2987,7 +3019,7 @@ function ChatLine({
         >
           🔥 {m.rx?.fire ?? 0}
         </button>
-        <button type="button" className="text-[11px] text-lime-2" onClick={() => onReply(m)}>
+        <button type="button" className="text-[11px] text-white/80" onClick={() => onReply(m)}>
           Reply
         </button>
       </div>

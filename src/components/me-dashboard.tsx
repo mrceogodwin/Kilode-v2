@@ -42,6 +42,7 @@ import { disconnectFellow, listConnects, replyConnect, type ConnectRow } from "@
 import { getProfile } from "@/lib/forum-server";
 import { staffMe } from "@/lib/staff-server";
 import { usePublicSite } from "@/components/site-chrome";
+import { getBearerToken } from "@/lib/auth/client";
 
 type Store = ReturnType<typeof useQonvo>;
 
@@ -620,6 +621,10 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
     if (!store.city?.trim()) gaps.push("city");
     return gaps;
   }, [store.bio, store.city]);
+
+  if (!signed && getBearerToken()) {
+    return <div className="grid min-h-[50vh] place-items-center p-6 text-sm text-muted">Opening your profile…</div>;
+  }
 
   if (!signed) return <GuestDash />;
 
