@@ -3,7 +3,7 @@ import { Eye, Mail, MessageSquare, Share2, Bookmark } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, daysLeft, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 import { approveTeamAsk, getProfile, leaveTeam, postTeamNote, reportPost, requestJoinTeam, teamDesk } from "@/lib/forum-server";
-import { claimOps, clearModUser, deleteGist, deletePost, dismissReport, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, listStaffPosts, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, scoreMembers, staffMe, unhidePost } from "@/lib/staff-server";
+import { claimOps, clearModUser, deleteGist, deletePost, dismissReport, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, listStaffPosts, listVerifyQueue, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, scoreMembers, staffMe, unhidePost } from "@/lib/staff-server";
 import {
   approveNewsDraft,
   fetchNewsLatest,
@@ -2656,11 +2656,25 @@ function VerifyKindPanel({
   const [kind, setKind] = useState<AccountKind>("member");
   const [msg, setMsg] = useState("");
   const [scores, setScores] = useState<{ handle: string; score: number; takes: number; chats: number }[]>([]);
+  const [queue, setQueue] = useState<{ handle: string; reference: string; ts: number }[]>([]);
   const picked = members.find((m) => m.handle.toLowerCase() === handle.trim().toLowerCase());
+  useEffect(() => {
+    void listVerifyQueue().then(setQueue).catch(() => setQueue([]));
+  }, []);
   return (
     <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-xl p-3">
       <div className="text-[11px] font-medium text-muted">Verified badge + override account type</div>
-      <p className="break-words text-xs text-muted">Pick a member below or type their username. Admin can verify. Only Super can change account type (immutable for users).</p>
+      <p className="break-words text-xs text-muted">A member pays, then you approve. Paying does not turn the badge on by itself.</p>
+      {queue.length ? (
+        <div className="space-y-1">
+          {queue.map((q) => (
+            <div key={q.reference} className="flex items-center justify-between gap-2 text-[12px]">
+              <span>@{q.handle} paid · waiting</span>
+              <button type="button" className="font-bold text-lime-2" onClick={() => void setVerified({ data: { handle: q.handle, on: true } }).then(() => { setMsg(`Verified @${q.handle}`); setQueue((rows) => rows.filter((r) => r.reference !== q.reference)); onReload(); })}>Approve</button>
+            </div>
+          ))}
+        </div>
+      ) : <p className="text-[11px] text-muted">No paid verification requests.</p>}
       <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="Username" className="w-full min-w-0 rounded-lg border border-line bg-panel px-3 py-2 text-base" />
       {picked ? <p className="break-words text-[11px] text-muted">{picked.handle} · {picked.kind} · {picked.verified ? "verified" : "not verified"}</p> : null}
       <div className="flex flex-wrap gap-2">

@@ -598,6 +598,30 @@ export const connectFellow = createServerFn({ method: "POST" })
     return { ok: true as const, status: "pending" as const };
   });
 
+export const connectByHandle = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { handle: string }) => d)
+  .handler(async ({ context, data }) => {
+    const handle = data.handle.trim().replace(/^@/, "").slice(0, 24);
+    if (!handle) return { ok: false as const, reason: "Missing person." };
+    const sql = await getSql();
+    const rows = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = ${handle.toLowerCase()} limit 1`;
+    const id = rows[0]?.user_id || "";
+    if (!id) return { ok: false as const, reason: "No user with that handle." };
+    if (id === context.userId) return { ok: false as const, reason: "That is you." };
+    if (!(await allowWrite(`connect:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
+    await ensureConnects(sql);
+    const existing = await sql<{ status: string | null }>`select status from nf_connects where user_id = ${context.userId} and fellow_id = ${id} limit 1`;
+    if (String(existing[0]?.status || "").toLowerCase() === "accepted") return { ok: true as const, status: "accepted" as const };
+    if (existing[0]) return { ok: true as const, status: "pending" as const };
+    const inserted = await sql<{ fellow_id: string }>`insert into nf_connects (user_id, fellow_id, status) values (${context.userId}, ${id}, ${"pending"}) on conflict (user_id, fellow_id) do nothing returning fellow_id`;
+    if (inserted[0]) {
+      const me = await profileOf(context.userId);
+      if (me.handle && me.handle !== "member") await pushNote(id, `@${me.handle} wants to connect. Open Me to accept.`, "/?open=me");
+    }
+    return { ok: true as const, status: "pending" as const };
+  });
+
 const REPORT_REASONS = new Set(["Spam", "Scam or fraud", "Harassment or hate", "Nudity or sexual", "Misinformation", "Other"]);
 
 export const reportTake = createServerFn({ method: "POST" })

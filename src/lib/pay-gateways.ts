@@ -49,6 +49,14 @@ async function rateOf() {
   return 1600;
 }
 
+async function verifyUsd() {
+  const env = Number(process.env.KILODE_VERIFY_USD || "");
+  if (env >= 1 && env <= 500) return Math.round(env);
+  const raw = Number(await readAiKey("verify_usd"));
+  if (raw >= 1 && raw <= 500) return Math.round(raw);
+  return 5;
+}
+
 async function eventUsd() {
   const env = Number(process.env.KILODE_EVENT_USD || "");
   if (env >= 1 && env <= 500) return Math.round(env);
@@ -57,8 +65,14 @@ async function eventUsd() {
   return 10;
 }
 
-async function quote(kind: "ad" | "event", purpose: string) {
+async function quote(kind: "ad" | "event" | "verify", purpose: string) {
   const rate = await rateOf();
+  if (kind === "verify") {
+    const usd = await verifyUsd();
+    const ngn = ngnFromUsd(usd, rate);
+    if (!ngn) return null;
+    return { usd, ngn, purpose: "badge" };
+  }
   if (kind === "event") {
     const usd = await eventUsd();
     const ngn = ngnFromUsd(usd, rate);
@@ -156,17 +170,19 @@ async function verifyWithProvider(provider: CardProvider, reference: string, exp
 }
 
 export const listPayMethods = createServerFn({ method: "GET" }).handler(async () => {
-  const [paystack, flutterwave, ngnPerUsd, listingUsd] = await Promise.all([
+  const [paystack, flutterwave, ngnPerUsd, listingUsd, badgeUsd] = await Promise.all([
     secretOf("paystack_secret"),
     secretOf("flutterwave_secret"),
     rateOf(),
     eventUsd(),
+    verifyUsd(),
   ]);
   return {
     paystack: Boolean(paystack),
     flutterwave: Boolean(flutterwave),
     ngnPerUsd,
     eventUsd: listingUsd,
+    verifyUsd: badgeUsd,
   };
 });
 
@@ -175,7 +191,7 @@ export const startCheckout = createServerFn({ method: "POST" })
   .validator((d: { provider?: string; kind?: string; purpose?: string; email?: string }) => d)
   .handler(async ({ context, data }) => {
     const provider = String(data.provider || "");
-    const kind = data.kind === "event" ? "event" : data.kind === "ad" ? "ad" : "";
+    const kind = data.kind === "event" ? "event" : data.kind === "verify" ? "verify" : data.kind === "ad" ? "ad" : "";
     if (!isCardProvider(provider) || !kind) return { ok: false as const, reason: "Pick Paystack or Flutterwave." };
     if (!(await allowWrite(`pay:${context.userId}`, 8, 600_000))) return { ok: false as const, reason: RATE_BLOCKED };
     if (kind === "ad") {
@@ -222,7 +238,42 @@ export const confirmCheckout = createServerFn({ method: "POST" })
     return { ok: true as const, reference, amountNgn: Number(row.amount_ngn), status: "paid" };
   });
 
-export async function takePaidCheckout(opts: { reference: string; userId: string; kind: "ad" | "event"; purpose: string; refId: string }) {
+export const submitVerification = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { reference?: string }) => d)
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const already = await sql<{ verified: number | boolean | null }>`select verified from nf_profiles where user_id = ${context.userId} limit 1`;
+    if (already[0]?.verified === true || Number(already[0]?.verified) === 1) return { ok: true as const, status: "verified" as const };
+    const taken = await takePaidCheckout({
+      reference: String(data.reference || ""),
+      userId: context.userId,
+      kind: "verify",
+      purpose: "badge",
+      refId: context.userId,
+    });
+    if (!taken.ok) return taken;
+    await sql`create table if not exists nf_verify_requests (
+      user_id text primary key,
+      handle text not null default '',
+      reference text not null,
+      status text not null default 'paid',
+      ts bigint not null
+    )`;
+    const who = await sql<{ handle: string | null }>`select handle from nf_profiles where user_id = ${context.userId} limit 1`;
+    const handle = (who[0]?.handle || "").slice(0, 24);
+    const cur = await sql<{ status: string }>`select status from nf_verify_requests where user_id = ${context.userId} limit 1`;
+    if (cur[0]?.status === "approved") return { ok: true as const, status: "verified" as const };
+    if (cur[0]) {
+      await sql`update nf_verify_requests set handle = ${handle}, reference = ${String(data.reference || "").slice(0, 80)}, status = ${"paid"}, ts = ${Date.now()} where user_id = ${context.userId}`;
+    } else {
+      await sql`insert into nf_verify_requests (user_id, handle, reference, status, ts)
+        values (${context.userId}, ${handle}, ${String(data.reference || "").slice(0, 80)}, ${"paid"}, ${Date.now()})`;
+    }
+    return { ok: true as const, status: "paid" as const };
+  });
+
+export async function takePaidCheckout(opts: { reference: string; userId: string; kind: "ad" | "event" | "verify"; purpose: string; refId: string }) {
   const reference = opts.reference.trim().slice(0, 80);
   if (!reference.startsWith("kld_")) return { ok: false as const, reason: "Pay with Paystack or Flutterwave first." };
   const sql = await ensure();

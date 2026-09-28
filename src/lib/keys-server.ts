@@ -29,6 +29,7 @@ export const AI_KEY_SLOTS = [
   { id: "flutterwave_hash", label: "Flutterwave webhook hash", hint: "Secret hash from the Flutterwave dashboard. Or env FLUTTERWAVE_HASH." },
   { id: "ngn_per_usd", label: "Naira per 1 USD", hint: "Paystack and Flutterwave rate. Example 1600. Or env KILODE_NGN_PER_USD." },
   { id: "event_usd", label: "Event listing fee (USD)", hint: "Price to submit an event when payment is on. Example 10." },
+  { id: "verify_usd", label: "Verification fee (USD)", hint: "Price to request a verified badge. Staff still approve. Example 5." },
 ] as const;
 
 export type AiKeyId = (typeof AI_KEY_SLOTS)[number]["id"];

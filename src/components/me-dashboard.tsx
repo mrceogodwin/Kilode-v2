@@ -730,6 +730,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         </div>
         <p className="px-4 pt-3 text-[10px] font-bold tracking-[0.16em] text-lime-2">{staffLabel ? `${staffLabel} desk` : hubTitleFor(kind)}</p>
         <p className="px-4 pt-1 text-[13px] leading-snug text-fg/90">{store.bio?.trim() || "No bio yet. Edit profile to add one."}</p>
+        {!store.verified ? <a href={`/u/${encodeURIComponent(store.handle || "me")}`} className="mt-1 block px-4 text-[12px] font-bold text-lime-2">Get verified</a> : null}
         {store.interests ? <p className="px-4 pt-1 text-[11px] text-muted">{store.interests.split(",").join(" · ")}</p> : null}
         {store.website ? (
           <a href={store.website} target="_blank" rel="noreferrer" className="mt-1 block truncate px-4 text-[11px] font-semibold text-lime-2">

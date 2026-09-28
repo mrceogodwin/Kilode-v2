@@ -186,7 +186,32 @@ export const getPublicProfile = createServerFn({ method: "GET" })
     } catch {
       lastSeen = 0;
     }
+    let verified = false;
+    try {
+      const flag = await sql<{ verified: number | boolean | null }>`select verified from nf_profiles where user_id = ${profile.user_id} limit 1`;
+      verified = flag[0]?.verified === true || Number(flag[0]?.verified) === 1;
+    } catch {
+      verified = false;
+    }
+    let friends: { handle: string }[] = [];
+    try {
+      friends = await sql<{ handle: string }>`
+        select handle from (
+          select pt.handle as handle from nf_connects c
+            join nf_profiles pt on pt.user_id = c.fellow_id
+            where c.user_id = ${profile.user_id} and lower(coalesce(c.status, '')) = 'accepted'
+          union
+          select pf.handle as handle from nf_connects c
+            join nf_profiles pf on pf.user_id = c.user_id
+            where c.fellow_id = ${profile.user_id} and lower(coalesce(c.status, '')) = 'accepted'
+        ) f
+        where handle is not null and length(trim(handle)) > 0
+        limit 24`;
+    } catch {
+      friends = [];
+    }
     return {
+      userId: profile.user_id,
       handle: profile.handle,
       bio: profile.bio ?? "",
       city: profile.city ?? "",
@@ -197,6 +222,8 @@ export const getPublicProfile = createServerFn({ method: "GET" })
       brand: profile.brand ?? "",
       photo,
       lastSeen,
+      verified,
+      friends: friends.map((f) => f.handle),
       posts: posts.map((p) => ({ ...p, ts: Number(p.ts), views: Number(p.views ?? 0) })),
       tracks,
     };

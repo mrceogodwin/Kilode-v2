@@ -1,12 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Home, MessageSquare, Plus, Search, User } from "lucide-react";
 import { getPublicProfile, sendDm } from "@/lib/social-server";
 import { deleteOwnPost, reportPost } from "@/lib/forum-server";
-import { listUserTakes, type TakeRow } from "@/lib/takes-server";
+import { connectByHandle, listUserTakes, type TakeRow } from "@/lib/takes-server";
 import { seoHead } from "@/lib/seo";
-import { ACCOUNT_KINDS, avatarUrl, fmtCount, handleColor, timeAgo, timeLabel } from "@/lib/qonvo-data";
+import { ACCOUNT_KINDS, avatarUrl, fmtCount, handleColor, isOfficialHandle, timeAgo, timeLabel } from "@/lib/qonvo-data";
 import { BrandLockup } from "@/components/brand-lockup";
+import { VerifiedMark } from "@/components/handle-link";
+import { GatewayPay } from "@/components/pay-checkout";
+import { listPayMethods, submitVerification } from "@/lib/pay-gateways";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import type { CardProvider } from "@/lib/pay-money";
 
 export const Route = createFileRoute("/u/$handle")({
   loader: async ({ params }) => {
@@ -40,10 +45,20 @@ function PublicProfile() {
   const session = useCurrentUserState();
   const [gone, setGone] = useState<Record<string, boolean>>({});
   const [takes, setTakes] = useState<TakeRow[]>([]);
+  const [friendNote, setFriendNote] = useState("");
+  const [payWith, setPayWith] = useState<CardProvider>("paystack");
+  const [payNote, setPayNote] = useState("");
+  const [gate, setGate] = useState<{ paystack: boolean; flutterwave: boolean; ngnPerUsd: number; verifyUsd: number } | null>(null);
   useEffect(() => {
     if (!profile?.handle) return;
     void listUserTakes({ data: profile.handle }).then(setTakes).catch(() => setTakes([]));
   }, [profile?.handle]);
+  const mine = (session.user?.displayName || "").toLowerCase() === (profile?.handle || "").toLowerCase();
+  const showBadge = Boolean(profile && (profile.verified || isOfficialHandle(profile.handle)));
+  useEffect(() => {
+    if (!mine || showBadge) return;
+    void listPayMethods().then((m) => setGate(m)).catch(() => undefined);
+  }, [mine, showBadge]);
   if (!profile) {
     return (
       <main className="grid min-h-svh place-items-center bg-bg p-6 text-fg">
@@ -59,32 +74,30 @@ function PublicProfile() {
     );
   }
   const kindLabel = ACCOUNT_KINDS.find((k) => k.id === profile.kind)?.label ?? "Member";
-  const mine = (session.user?.displayName || "").toLowerCase() === profile.handle.toLowerCase();
+  const occupation = [kindLabel, profile.stage, profile.genre, profile.city].filter(Boolean).join(" · ");
   const active = profile.lastSeen > 0 && Date.now() - profile.lastSeen < 180000;
   const posts = profile.posts.filter((p) => !!p?.id && !gone[p.id]);
   return (
-    <main className="min-h-svh bg-bg text-fg">
-      <header className="flex items-center gap-2 border-b border-line px-4 py-3">
-        <Link to="/" className="inline-flex">
-          <BrandLockup size="sm" />
-        </Link>
+    <main className="min-h-svh bg-bg pb-28 text-fg">
+      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-white/25 bg-bg px-3 pt-[max(10px,env(safe-area-inset-top))] pb-2">
+        <Link to="/" className="text-[12px] font-bold text-fg">Back</Link>
+        <BrandLockup size="sm" />
       </header>
-      <div className="mx-auto max-w-2xl px-4 pb-10">
+      <div className="mx-auto max-w-2xl px-4 pb-6">
         <div className="relative mt-4 overflow-hidden rounded-2xl border border-line bg-panel">
           <div className="h-24 bg-gradient-to-br from-[#1c3a28] via-[#14261b] to-[#0c0e0c]" />
           <div className="px-4 pb-4">
             <img src={profile.photo || avatarUrl(profile.handle)} alt="" className="-mt-8 size-16 rounded-full border-2 border-panel object-cover" />
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <h1 className="text-2xl font-extrabold" style={{ color: handleColor(profile.handle) }}>{profile.handle}</h1>
+              {showBadge ? <VerifiedMark /> : null}
               {active ? <span className="live-dot" title="Active now" /> : null}
             </div>
-            <p className="text-[12px] text-lime-2">
-              {kindLabel}
-              {profile.stage ? ` · ${profile.stage}` : ""}
-              {profile.city ? ` · ${profile.city}` : ""}
-            </p>
-            <p className="mt-0.5 text-[11px] text-muted">{seenLabel(profile.lastSeen)}</p>
-            <p className="mt-2 text-sm text-fg/90">{profile.bio || "No bio yet."}</p>
+            <p className="mt-1 text-[11px] font-bold tracking-[0.12em] text-muted">OCCUPATION</p>
+            <p className="text-[13px] text-fg">{occupation || kindLabel}</p>
+            <p className="mt-2 text-[11px] text-muted">{seenLabel(profile.lastSeen)}</p>
+            <p className="mt-3 text-[11px] font-bold tracking-[0.12em] text-muted">BIO</p>
+            <p className="text-sm text-fg/90">{profile.bio || "No bio yet."}</p>
             {profile.website ? (
               <a href={profile.website} className="mt-1 block text-xs text-lime-2" rel="noreferrer" target="_blank">
                 {profile.website}
@@ -93,9 +106,67 @@ function PublicProfile() {
             <div className="mt-3 flex gap-4 text-[12px]">
               <span><b>{posts.length}</b> <span className="text-muted">posts</span></span>
               <span><b>{profile.tracks.length}</b> <span className="text-muted">tracks</span></span>
+              <span><b>{profile.friends.length}</b> <span className="text-muted">friends</span></span>
             </div>
+            {!mine ? (
+              <button
+                type="button"
+                className="btn-join mt-3 rounded-full px-4 py-2 text-[12px] font-bold"
+                onClick={() => {
+                  if (!session.user) {
+                    window.location.href = "/login";
+                    return;
+                  }
+                  void connectByHandle({ data: { handle: profile.handle } }).then((r) => {
+                    setFriendNote(r.ok ? (r.status === "accepted" ? "You are already friends." : "Friend request sent.") : r.reason);
+                  });
+                }}
+              >
+                Add friend
+              </button>
+            ) : null}
+            {friendNote ? <p className="mt-1 text-[11px] text-muted">{friendNote}</p> : null}
           </div>
         </div>
+        <section className="mt-4">
+          <h2 className="text-[11px] font-bold tracking-[0.14em] text-lime-2">FRIENDS</h2>
+          {profile.friends.length === 0 ? <p className="mt-1 text-sm text-muted">No friends yet.</p> : (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {profile.friends.map((name) => (
+                <a key={name} href={`/u/${encodeURIComponent(name)}`} className="rounded-full border border-line px-3 py-1 text-[12px] font-semibold">@{name}</a>
+              ))}
+            </div>
+          )}
+        </section>
+        {mine && !showBadge ? (
+          <section className="mt-4 rounded-2xl border border-line bg-panel p-3">
+            <h2 className="text-sm font-extrabold">Get verified</h2>
+            <p className="mt-1 text-[12px] text-muted">Pay the fee. Staff approve it. The badge shows after that, on this page and next to your name.</p>
+            <div className="mt-2 flex gap-2">
+              {(["paystack", "flutterwave"] as const).map((id) => (
+                <button key={id} type="button" className={`rounded-full px-3 py-1 text-[12px] font-bold ${payWith === id ? "btn-join" : "border border-line"}`} onClick={() => setPayWith(id)}>
+                  {id === "paystack" ? "Paystack" : "Flutterwave"}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2">
+              <GatewayPay
+                provider={payWith}
+                kind="verify"
+                purpose="badge"
+                usd={gate?.verifyUsd ?? 5}
+                rate={gate?.ngnPerUsd ?? 1600}
+                ready={payWith === "paystack" ? Boolean(gate?.paystack) : Boolean(gate?.flutterwave)}
+                onPaid={(paid) => {
+                  void submitVerification({ data: { reference: paid.reference } }).then((r) => {
+                    setPayNote(r.ok ? "Paid. Staff still have to approve the badge." : r.reason);
+                  });
+                }}
+              />
+            </div>
+            {payNote ? <p className="mt-2 text-[12px] text-lime-2">{payNote}</p> : null}
+          </section>
+        ) : null}
         {!mine ? <ProfileMessage to={profile.handle} /> : null}
         <button
           type="button"
@@ -164,6 +235,13 @@ function PublicProfile() {
           </section>
         ) : null}
       </div>
+      <nav className="dock pointer-events-auto z-40" aria-label="Kilode">
+        <a href="/" className="app-tab grid place-items-center text-[10px] font-semibold"><Home className="size-5" />Home</a>
+        <a href="/?tab=socials" className="app-tab grid place-items-center text-[10px] font-semibold"><Search className="size-5" />Explore</a>
+        <a href="/login?mode=up" className="dock-plus" aria-label="Create"><Plus className="size-6" strokeWidth={2.75} /></a>
+        <a href="/" className="app-tab grid place-items-center text-[10px] font-semibold"><MessageSquare className="size-5" />Chat</a>
+        <a href="/?open=me" className="app-tab grid place-items-center text-[10px] font-semibold"><User className="size-5" />Profile</a>
+      </nav>
     </main>
   );
 }

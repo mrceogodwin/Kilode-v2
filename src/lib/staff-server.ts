@@ -252,6 +252,21 @@ export const listVerified = createServerFn({ method: "GET" }).handler(async () =
   }
 });
 
+export const listVerifyQueue = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const me = await staffOf(context.userId);
+    if (me?.role !== "super" && me?.role !== "admin") return [];
+    const sql = await getSql();
+    try {
+      const rows = await sql<{ handle: string; reference: string; ts: number | string }>`
+        select handle, reference, ts from nf_verify_requests where status = ${"paid"} order by ts desc limit 40`;
+      return rows.map((r) => ({ handle: r.handle, reference: r.reference, ts: Number(r.ts) }));
+    } catch {
+      return [];
+    }
+  });
+
 export const setVerified = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { handle: string; on: boolean }) => d)
@@ -276,6 +291,11 @@ export const setVerified = createServerFn({ method: "POST" })
       await sql`update nf_profiles set verified = ${data.on ? 1 : 0} where user_id = ${uid}`;
     } else {
       await sql`update nf_profiles set verified = ${data.on ? 1 : 0} where lower(handle) = ${handle.toLowerCase()}`;
+    }
+    try {
+      await sql`update nf_verify_requests set status = ${data.on ? "approved" : "rejected"} where lower(handle) = ${handle.toLowerCase()}`;
+    } catch {
+      /* queue table may not exist yet */
     }
     if (data.on && uid) {
       const note = "Kilode Africa: You are verified. You showed up — active, straight, and useful to other people here. The badge stays until staff take it off.";

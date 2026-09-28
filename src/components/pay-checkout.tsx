@@ -12,7 +12,7 @@ export function GatewayPay({
   onPaid,
 }: {
   provider: CardProvider;
-  kind: "ad" | "event";
+  kind: "ad" | "event" | "verify";
   purpose: string;
   usd: number;
   rate: number;

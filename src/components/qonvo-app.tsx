@@ -331,6 +331,7 @@ function QonvoAppInner() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") === "socials") setHomeTab("socials");
     if (params.get("open") === "inbox") setScreen("inbox");
     if (params.get("open") === "me") setScreen("dashboard");
     if (params.get("open") !== "inbox" && params.get("open") !== "me") return;
