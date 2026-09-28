@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Home, MessageSquare, Plus, Search, User } from "lucide-react";
+import { Bell, Flame, Home, Menu, MessageSquare, Plus, Search, User, Users } from "lucide-react";
 import { getPublicProfile, sendDm } from "@/lib/social-server";
 import { deleteOwnPost, reportPost } from "@/lib/forum-server";
-import { connectByHandle, listUserTakes, type TakeRow } from "@/lib/takes-server";
+import { connectByHandle, listConnects, listUserTakes, type TakeRow } from "@/lib/takes-server";
 import { seoHead } from "@/lib/seo";
 import { ACCOUNT_KINDS, avatarUrl, fmtCount, handleColor, isOfficialHandle, timeAgo, timeLabel } from "@/lib/qonvo-data";
-import { BrandLockup } from "@/components/brand-lockup";
+import { OfficialLockup } from "@/components/brand-lockup";
 import { VerifiedMark } from "@/components/handle-link";
 import { GatewayPay } from "@/components/pay-checkout";
 import { listPayMethods, submitVerification } from "@/lib/pay-gateways";
@@ -45,7 +45,7 @@ function PublicProfile() {
   const session = useCurrentUserState();
   const [gone, setGone] = useState<Record<string, boolean>>({});
   const [takes, setTakes] = useState<TakeRow[]>([]);
-  const [friendNote, setFriendNote] = useState("");
+  const [friend, setFriend] = useState<"add" | "pending" | "friends">("add");
   const [payWith, setPayWith] = useState<CardProvider>("paystack");
   const [payNote, setPayNote] = useState("");
   const [gate, setGate] = useState<{ paystack: boolean; flutterwave: boolean; ngnPerUsd: number; verifyUsd: number } | null>(null);
@@ -54,6 +54,16 @@ function PublicProfile() {
     void listUserTakes({ data: profile.handle }).then(setTakes).catch(() => setTakes([]));
   }, [profile?.handle]);
   const mine = (session.user?.displayName || "").toLowerCase() === (profile?.handle || "").toLowerCase();
+  useEffect(() => {
+    if (!session.user || !profile?.handle || mine) return;
+    void listConnects()
+      .then((rows) => {
+        const hit = rows.find((r) => r.handle.toLowerCase() === profile.handle.toLowerCase());
+        if (!hit) return;
+        setFriend(hit.dir === "friend" ? "friends" : hit.dir === "out" ? "pending" : "add");
+      })
+      .catch(() => undefined);
+  }, [session.user, profile?.handle, mine]);
   const showBadge = Boolean(profile && (profile.verified || isOfficialHandle(profile.handle)));
   useEffect(() => {
     if (!mine || showBadge) return;
@@ -63,7 +73,7 @@ function PublicProfile() {
     return (
       <main className="grid min-h-svh place-items-center bg-bg p-6 text-fg">
         <div className="max-w-sm text-center">
-          <div className="mx-auto mb-4 inline-flex justify-center"><BrandLockup size="lg" /></div>
+          <div className="mx-auto mb-4 inline-flex justify-center"><OfficialLockup /></div>
           <p className="text-base font-semibold">No profile for {handle}</p>
           <p className="mt-1 text-sm text-muted">That handle is not public yet.</p>
           <Link to="/" className="btn-join mt-4 inline-block rounded-lg px-4 py-2 text-sm font-bold">
@@ -78,11 +88,22 @@ function PublicProfile() {
   const active = profile.lastSeen > 0 && Date.now() - profile.lastSeen < 180000;
   const posts = profile.posts.filter((p) => !!p?.id && !gone[p.id]);
   return (
-    <main className="min-h-svh bg-bg pb-28 text-fg">
-      <header className="sticky top-0 z-20 flex items-center gap-2 border-b border-white/25 bg-bg px-3 pt-[max(10px,env(safe-area-inset-top))] pb-2">
-        <Link to="/" className="text-[12px] font-bold text-fg">Back</Link>
-        <BrandLockup size="sm" />
+    <main className="kilode-shell flex min-h-0 flex-col overflow-hidden bg-bg text-fg">
+      <header className="kilode-chrome z-20 shrink-0">
+        <div className="kilode-header-capsule">
+          <div className="flex min-h-12 items-center gap-1">
+            <a href="/" className="hdr-ico" aria-label="Menu"><Menu className="size-4" /></a>
+            <a href="/" className="flex shrink-0 items-center" aria-label="Kilode home"><OfficialLockup /></a>
+            <div className="ml-auto flex items-center gap-1">
+              <a href="/?tab=socials" className="hdr-ico" aria-label="Friends"><Users className="size-4" /></a>
+              <a href="/" className="hdr-ico" aria-label="Alerts"><Bell className="size-4" /></a>
+              <a href="/" className="hdr-ico" aria-label="Trending"><Flame className="size-4" /></a>
+              <a href="/" className="hdr-ico" aria-label="Messages"><MessageSquare className="size-4" /></a>
+            </div>
+          </div>
+        </div>
       </header>
+      <div className="min-h-0 flex-1 overflow-y-auto dock-pad">
       <div className="mx-auto max-w-2xl px-4 pb-6">
         <div className="relative mt-4 overflow-hidden rounded-2xl border border-line bg-panel">
           <div className="h-24 bg-gradient-to-br from-[#1c3a28] via-[#14261b] to-[#0c0e0c]" />
@@ -103,7 +124,7 @@ function PublicProfile() {
                 {profile.website}
               </a>
             ) : null}
-            <div className="mt-3 flex gap-4 text-[12px]">
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
               <span><b>{posts.length}</b> <span className="text-muted">posts</span></span>
               <span><b>{profile.tracks.length}</b> <span className="text-muted">tracks</span></span>
               <span><b>{profile.friends.length}</b> <span className="text-muted">friends</span></span>
@@ -111,21 +132,22 @@ function PublicProfile() {
             {!mine ? (
               <button
                 type="button"
-                className="btn-join mt-3 rounded-full px-4 py-2 text-[12px] font-bold"
+                disabled={friend !== "add"}
+                className="btn-join mt-3 rounded-full px-4 py-2 text-[12px] font-bold disabled:opacity-70"
                 onClick={() => {
                   if (!session.user) {
                     window.location.href = "/login";
                     return;
                   }
                   void connectByHandle({ data: { handle: profile.handle } }).then((r) => {
-                    setFriendNote(r.ok ? (r.status === "accepted" ? "You are already friends." : "Friend request sent.") : r.reason);
+                    if (!r.ok) return;
+                    setFriend(r.status === "accepted" ? "friends" : "pending");
                   });
                 }}
               >
-                Add friend
+                {friend === "friends" ? "Friends" : friend === "pending" ? "Requested" : "Add friend"}
               </button>
             ) : null}
-            {friendNote ? <p className="mt-1 text-[11px] text-muted">{friendNote}</p> : null}
           </div>
         </div>
         <section className="mt-4">
@@ -235,10 +257,11 @@ function PublicProfile() {
           </section>
         ) : null}
       </div>
+      </div>
       <nav className="dock pointer-events-auto z-40" aria-label="Kilode">
         <a href="/" className="app-tab grid place-items-center text-[10px] font-semibold"><Home className="size-5" />Home</a>
         <a href="/?tab=socials" className="app-tab grid place-items-center text-[10px] font-semibold"><Search className="size-5" />Explore</a>
-        <a href="/login?mode=up" className="dock-plus" aria-label="Create"><Plus className="size-6" strokeWidth={2.75} /></a>
+        <a href="/" className="dock-plus" aria-label="Create"><Plus className="size-6" strokeWidth={2.75} /></a>
         <a href="/" className="app-tab grid place-items-center text-[10px] font-semibold"><MessageSquare className="size-5" />Chat</a>
         <a href="/?open=me" className="app-tab grid place-items-center text-[10px] font-semibold"><User className="size-5" />Profile</a>
       </nav>
