@@ -303,6 +303,15 @@
   display: flex;
   padding-top: env(safe-area-inset-top, 0px);
 }
+.friends-drawer {
+  top: calc(7.5rem + env(safe-area-inset-top));
+  bottom: calc(4.75rem + env(safe-area-inset-bottom));
+  z-index: 30;
+}
+.friends-drawer .menu-sheet {
+  height: 100%;
+  border-radius: 0 18px 18px 0;
+}
   .desk-live {
     animation: desk-pulse 1.6s ease-in-out infinite;
   }
@@ -2065,7 +2074,7 @@ html[data-skin="ivory"] .dock {
 }
 html[data-skin="ivory"] .dock .app-tab { color: rgba(255, 255, 255, 0.78); background: transparent; border: 0; box-shadow: none; }
 html[data-skin="ivory"] .dock .app-tab.on { color: #86efac; background: transparent; }
-html[data-skin="ivory"] .dock-plus { background: #facc15 !important; color: #111 !important; border-color: #facc15 !important; box-shadow: 0 10px 24px rgba(250, 204, 21, 0.42) !important; }
+html[data-skin="ivory"] .dock-plus { margin-top: -6px; background: #fff !important; color: #111 !important; border-color: #fff !important; box-shadow: none !important; }
 html[data-skin="ivory"] .lane-chip { color: #111; border-color: #111; }
 html[data-skin="ivory"] .lane-chip.on { background: #111; color: #fff; border-color: #111; }
 html[data-skin="ivory"] .btn-join,
@@ -2169,3 +2178,20 @@ html[data-skin="ivory"] .round-face {
 html[data-skin="ivory"] .kilode-ring { stroke: #111; }
 html[data-skin="ivory"] .kilode-bang-ink,
 html[data-skin="ivory"] .kilode-word-svg { fill: #111; }
+html[data-skin="ivory"] .kilode-chrome-ticker {
+  border: 1px solid #111;
+  background: #fff;
+  color: #111;
+}
+html[data-skin="ivory"] .chat-bubble {
+  border: 1px solid #111 !important;
+  background: #fff !important;
+  box-shadow: 0 1px 0 rgba(17, 17, 17, 0.06);
+}
+html[data-skin="ivory"] .chat-bubble-mine {
+  background: #f3f3f1 !important;
+}
+html[data-skin="ivory"] .chat-compose {
+  border-top: 1px solid #111 !important;
+  background: #fff !important;
+}

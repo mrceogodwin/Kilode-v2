@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Briefcase, Building2, MapPin, Plus, Search, Store } from "lucide-react";
+import { Briefcase, Building2, Bookmark, Laptop, MapPin, Pencil, Plus, Search, Store } from "lucide-react";
 import { applyListing, listListingQueue, listListings, saveListing, setListingStatus, type Listing, type ListingKind } from "@/lib/listings-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getProfile } from "@/lib/forum-server";
@@ -26,7 +26,7 @@ const COPY: Record<
   job: {
     kicker: "CAREERS",
     title: "Jobs",
-    who: "Browse roles across Nigeria. Job Posters list them. Job Seekers and members apply. Staff approve first.",
+    who: "Real opportunities. Real people. Find your next move.",
     contact: "Apply note / WhatsApp",
     extra: "Company",
     postHint: "Join as Job Poster to list a role.",
@@ -93,6 +93,44 @@ function catMatch(r: Card, pill: string) {
   if (pill === "Phones") return c === "phones" || /phone|iphone|android/.test(blob);
   if (pill === "Services") return c === "services" || c.includes("service");
   return c === pill.toLowerCase();
+}
+
+const JOB_PILLS = ["All", "Tech", "Creative", "Sales", "Remote"] as const;
+const SALARY_BANDS = ["Any", "Under ₦500k", "₦500k – ₦1M", "₦1M+"] as const;
+
+function salaryNum(raw?: string) {
+  const n = Number(String(raw || "").replace(/[^\d.]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function jobPillMatch(r: Card, pill: string) {
+  if (pill === "All") return true;
+  const meta = readMeta(r.meta);
+  const blob = `${r.title} ${r.body} ${r.city} ${meta.category || ""} ${meta.jobType || ""}`.toLowerCase();
+  if (pill === "Tech") return /tech|engineer|developer|software/.test(blob);
+  if (pill === "Creative") return /design|creative|writer|media|art/.test(blob);
+  if (pill === "Sales") return /sale|market/.test(blob);
+  if (pill === "Remote") return /remote/.test(blob);
+  return true;
+}
+
+function salaryMatch(raw: string | undefined, band: string) {
+  if (band === "Any") return true;
+  const n = salaryNum(raw);
+  if (!n) return false;
+  if (band === "Under ₦500k") return n < 500000;
+  if (band === "₦500k – ₦1M") return n >= 500000 && n <= 1000000;
+  return n > 1000000;
+}
+
+function CompanyMark({ name }: { name: string }) {
+  const label = (name || "Job").trim();
+  const letter = label.slice(0, 1).toUpperCase();
+  return (
+    <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-panel-2 text-[13px] font-extrabold">
+      {letter}
+    </span>
+  );
 }
 
 function Shot({ src, className }: { src?: string; className: string }) {
@@ -196,6 +234,11 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [open, setOpen] = useState<Card | null>(null);
   const [q, setQ] = useState("");
   const [catPick, setCatPick] = useState("All");
+  const [jobPill, setJobPill] = useState("All");
+  const [jobTypeFilter, setJobTypeFilter] = useState("All");
+  const [salaryBand, setSalaryBand] = useState("Any");
+  const [roleTab, setRoleTab] = useState<"foryou" | "recommended">("foryou");
+  const [kept, setKept] = useState<string[]>([]);
 
   function load() {
     void listListings({ data: { kind } })
@@ -243,6 +286,18 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const featured = filtered.slice(0, 8);
   const canPost = !!session.user && canKind(meKind, ACTION[kind]);
   const canApply = !!session.user && canKind(meKind, "jobs.apply");
+  const jobRows = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      const meta = readMeta(r.meta);
+      if (filter !== "All" && r.city !== filter) return false;
+      if (jobTypeFilter !== "All" && (meta.jobType || "") !== jobTypeFilter) return false;
+      if (!salaryMatch(meta.salary, salaryBand)) return false;
+      if (!jobPillMatch(r, jobPill)) return false;
+      if (!query) return true;
+      return `${r.title} ${r.company} ${r.city} ${r.submitter} ${meta.category || ""}`.toLowerCase().includes(query);
+    });
+  }, [rows, q, filter, jobTypeFilter, salaryBand, jobPill]);
 
   function needJoin(href = "/login?mode=up") {
     window.location.href = href;
@@ -297,7 +352,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             </button>
           </div>
         </>
-      ) : (
+      ) : kind === "job" ? null : (
         <>
       <AdReserve id={`list_${kind}_top`} className="mb-3" />
 
@@ -327,7 +382,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             setFormOn((v) => !v);
           }}
         >
-          {kind === "job" ? "Post a job" : "List a space"}
+          List a space
         </button>
       </div>
         </>
@@ -490,7 +545,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                       });
                     }}
                   >
-                    Apply
+                    Apply for job
                   </button>
                   </div>
                 </div>
@@ -526,6 +581,34 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
           }
           setFormOn(true);
         }} />
+      ) : kind === "job" ? (
+        <JobBoard
+          rows={jobRows}
+          cities={cities}
+          filter={filter}
+          setFilter={setFilter}
+          q={q}
+          setQ={setQ}
+          jobPill={jobPill}
+          setJobPill={setJobPill}
+          jobTypeFilter={jobTypeFilter}
+          setJobTypeFilter={setJobTypeFilter}
+          salaryBand={salaryBand}
+          setSalaryBand={setSalaryBand}
+          roleTab={roleTab}
+          setRoleTab={setRoleTab}
+          kept={kept}
+          onKeep={(id) => setKept((list) => (list.includes(id) ? list.filter((x) => x !== id) : [id, ...list]))}
+          onOpen={setOpen}
+          onPost={() => {
+            if (session.isPending) return;
+            if (!session.user) {
+              needJoin();
+              return;
+            }
+            setFormOn((v) => !v);
+          }}
+        />
       ) : (
         <>
       <SlimRail rows={featured} onOpen={setOpen} />
@@ -534,7 +617,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
       <section>
         <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">
           <Icon className="size-3" />
-          {kind === "job" ? "OPEN ROLES" : "SPACES"}
+          SPACES
         </div>
         <div className="grid grid-cols-3 gap-1.5">
           {filtered.slice(0, shown).map((r) => (
@@ -553,7 +636,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
 
       {filtered.length > 6 ? (
         <section>
-          <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">{kind === "job" ? "MORE ROLES" : "MORE SPACES"}</div>
+          <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">MORE SPACES</div>
           <div className="grid grid-cols-3 gap-1.5">
             {filtered.slice(shown, shown + 6).map((r) => (
               <Tile key={`m-${r.id}`} r={r} kind={kind} onOpen={setOpen} />
@@ -573,6 +656,170 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function JobBoard({
+  rows,
+  cities,
+  filter,
+  setFilter,
+  q,
+  setQ,
+  jobPill,
+  setJobPill,
+  jobTypeFilter,
+  setJobTypeFilter,
+  salaryBand,
+  setSalaryBand,
+  roleTab,
+  setRoleTab,
+  kept,
+  onKeep,
+  onOpen,
+  onPost,
+}: {
+  rows: Card[];
+  cities: string[];
+  filter: string;
+  setFilter: (v: string) => void;
+  q: string;
+  setQ: (v: string) => void;
+  jobPill: string;
+  setJobPill: (v: string) => void;
+  jobTypeFilter: string;
+  setJobTypeFilter: (v: string) => void;
+  salaryBand: string;
+  setSalaryBand: (v: string) => void;
+  roleTab: "foryou" | "recommended";
+  setRoleTab: (v: "foryou" | "recommended") => void;
+  kept: string[];
+  onKeep: (id: string) => void;
+  onOpen: (r: Card) => void;
+  onPost: () => void;
+}) {
+  const featured = rows.slice(0, 3);
+  const openRoles = roleTab === "recommended" ? [...rows].reverse() : rows;
+  const more = rows.slice(0, 8);
+  return (
+    <>
+      <label className="mb-3 flex items-center gap-2 rounded-2xl border border-line bg-panel px-3 py-2.5">
+        <Search className="size-4 shrink-0 text-muted" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search jobs, companies, skills" className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted" />
+      </label>
+      <div className="mb-3 flex items-center gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <label className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line bg-panel px-3 py-1.5 text-[12px] font-semibold">
+          <MapPin className="size-3.5" />
+          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="bg-transparent text-[12px] font-semibold outline-none" aria-label="Location">
+            {cities.map((c) => <option key={c} value={c}>{c === "All" ? "Location" : c}</option>)}
+          </select>
+        </label>
+        <label className="inline-flex shrink-0 items-center rounded-full border border-line bg-panel px-3 py-1.5 text-[12px] font-semibold">
+          <select value={jobTypeFilter} onChange={(e) => setJobTypeFilter(e.target.value)} className="bg-transparent outline-none" aria-label="Job type">
+            <option>All</option>
+            {JOB_TYPES.map((t) => <option key={t}>{t}</option>)}
+          </select>
+        </label>
+        <label className="inline-flex shrink-0 items-center rounded-full border border-line bg-panel px-3 py-1.5 text-[12px] font-semibold">
+          <select value={salaryBand} onChange={(e) => setSalaryBand(e.target.value)} className="bg-transparent outline-none" aria-label="Salary range">
+            {SALARY_BANDS.map((t) => <option key={t}>{t}</option>)}
+          </select>
+        </label>
+        <button type="button" onClick={onPost} className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-[#FACC15] px-3 py-1.5 text-[12px] font-extrabold text-black">
+          <Plus className="size-3.5" /> Post a job
+        </button>
+      </div>
+
+      <section className="mb-4">
+        <div className="mb-2 text-[15px] font-extrabold">Featured jobs</div>
+        {featured.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-panel px-3 py-6 text-center text-[12px] text-muted">No approved jobs in this filter yet.</p>
+        ) : (
+          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {featured.map((r) => {
+              const meta = readMeta(r.meta);
+              return (
+                <button key={r.id} type="button" onClick={() => onOpen(r)} className="w-[210px] shrink-0 rounded-2xl border border-line bg-panel p-3 text-left">
+                  <span className="flex items-center gap-2">
+                    <CompanyMark name={r.company || r.title} />
+                    <span className="min-w-0 flex-1 truncate text-[12px] font-semibold">{r.company || "Company"}</span>
+                    <Bookmark className={`size-3.5 ${kept.includes(r.id) ? "fill-current" : ""}`} onClick={(e) => { e.stopPropagation(); onKeep(r.id); }} />
+                  </span>
+                  <span className="mt-2 block text-[15px] font-extrabold leading-tight">{r.title}</span>
+                  <span className="mt-1 flex items-center gap-1 text-[11px] text-muted"><MapPin className="size-3" /> {r.city || "Nigeria"}</span>
+                  <span className="mt-0.5 block text-[11px] text-muted">{[meta.jobType, /remote/i.test(`${meta.jobType} ${r.city} ${r.title}`) ? "Remote" : ""].filter(Boolean).join(" · ") || "Open role"}</span>
+                  <span className="mt-2 flex items-center justify-between text-[12px]">
+                    <span className="font-bold text-lime-2">{meta.salary || "Salary on request"}</span>
+                    <span className="text-[10px] text-muted">{timeAgo(r.ts)}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {JOB_PILLS.map((pill) => (
+          <button key={pill} type="button" onClick={() => setJobPill(pill)} className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-bold ${jobPill === pill ? "bg-[#FACC15] text-black" : "border border-line bg-panel"}`}>
+            {pill === "All" ? <Briefcase className="size-3.5" /> : pill === "Tech" ? <Laptop className="size-3.5" /> : pill === "Creative" ? <Pencil className="size-3.5" /> : null}
+            {pill}
+          </button>
+        ))}
+      </div>
+
+      <section className="mb-4">
+        <div className="mb-2 flex items-end justify-between">
+          <h3 className="text-[15px] font-extrabold">Open roles</h3>
+          <div className="flex gap-3 text-[12px] font-bold">
+            <button type="button" className={roleTab === "foryou" ? "border-b-2 border-[#FACC15]" : "text-muted"} onClick={() => setRoleTab("foryou")}>For you</button>
+            <button type="button" className={roleTab === "recommended" ? "border-b-2 border-[#FACC15]" : "text-muted"} onClick={() => setRoleTab("recommended")}>Recommended</button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {openRoles.slice(0, 8).map((r) => {
+            const meta = readMeta(r.meta);
+            return (
+              <button key={r.id} type="button" onClick={() => onOpen(r)} className="rounded-2xl border border-line bg-panel p-2.5 text-left">
+                <span className="flex items-center gap-2">
+                  <CompanyMark name={r.company || r.title} />
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-semibold">{r.company || "Company"}</span>
+                  <Bookmark className={`size-3.5 ${kept.includes(r.id) ? "fill-current" : ""}`} onClick={(e) => { e.stopPropagation(); onKeep(r.id); }} />
+                </span>
+                <span className="mt-2 block text-[13px] font-extrabold leading-tight">{r.title}</span>
+                <span className="mt-1 flex items-center gap-1 text-[10px] text-muted"><MapPin className="size-3" /> {r.city || "Nigeria"}</span>
+                <span className="block text-[10px] text-muted">{meta.jobType || "Role"}{meta.jobType?.toLowerCase().includes("remote") ? "" : ""}</span>
+                <span className="mt-1 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-lime-2">{meta.salary || "Ask"}</span>
+                  <span className="text-[10px] text-muted">{timeAgo(r.ts)}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      <AdReserve id="list_job_mid" className="mb-4" />
+
+      <section className="mb-2">
+        <div className="mb-2 text-[15px] font-extrabold">More opportunities</div>
+        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {more.map((r) => {
+            const meta = readMeta(r.meta);
+            return (
+              <button key={`more-${r.id}`} type="button" onClick={() => onOpen(r)} className="w-40 shrink-0 rounded-2xl border border-line bg-panel p-2.5 text-left">
+                <span className="flex items-center gap-2">
+                  <CompanyMark name={r.company || r.title} />
+                  <span className="truncate text-[11px] font-semibold">{r.company || "Company"}</span>
+                </span>
+                <span className="mt-2 block truncate text-[12px] font-extrabold">{r.title}</span>
+                <span className="mt-1 block text-[10px] text-muted">{r.city || "Nigeria"} · {meta.jobType || "Open"}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    </>
   );
 }
 

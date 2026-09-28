@@ -1577,8 +1577,8 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
     });
   }
   return (
-    <div className="app-drawer">
-      <aside className="menu-sheet flex h-full w-[min(320px,92vw)] flex-col">
+    <div className="app-drawer friends-drawer">
+      <aside className="menu-sheet flex h-full w-[min(340px,92vw)] flex-col">
         <div className="menu-head flex items-center justify-between">
           <strong>Friends</strong>
           <button type="button" aria-label="Close friends" onClick={onClose}>
