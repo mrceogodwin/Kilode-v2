@@ -1,4 +1,5 @@
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { STAFF_PATH } from "@/lib/staff-path";
 import { Eye, Mail, MessageSquare, Share2, Bookmark } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, daysLeft, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
@@ -3440,8 +3441,8 @@ function Settings({ store }: { store: Store }) {
       </Card>
       {staffRole ? (
         <Card title="Staff console" body={`Your staff role: ${staffRole === "mod" ? "sub-admin" : staffRole}. This link is hidden from normal users.`}>
-          <a href="/ops" className="mt-2 inline-block rounded-lg border border-line px-3 py-2 text-sm">
-            Open /ops
+          <a href={STAFF_PATH} className="mt-2 inline-block rounded-lg border border-line px-3 py-2 text-sm">
+            Open staff desk
           </a>
         </Card>
       ) : null}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { STAFF_PATH } from "@/lib/staff-path";
 import {
   Bookmark,
   Briefcase,
@@ -765,7 +766,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         <section className="mb-3 rounded-2xl border border-lime-2/40 bg-panel p-3">
           <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">YOUR POWER</div>
           <p className="mt-1 text-[12px] leading-snug text-muted">{staffPowers}</p>
-          <a href="/ops" className="btn-join mt-2 inline-flex rounded-lg px-3 py-2 text-[13px] font-bold">
+          <a href={STAFF_PATH} className="btn-join mt-2 inline-flex rounded-lg px-3 py-2 text-[13px] font-bold">
             Staff desk
           </a>
         </section>

@@ -5,6 +5,7 @@ import { AccountKindPicker, AvatarPicker } from "@/components/account-kind";
 import { KIND_FACE, type AccountKind } from "@/lib/qonvo-data";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 import { OfficialLockup } from "@/components/brand-lockup";
+import { STAFF_PATH } from "@/lib/staff-path";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>): { next?: string; mode?: "in" | "up" } => {
@@ -17,7 +18,7 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
   const search = Route.useSearch();
-  const staff = search.next === "/ops" || (search.next ?? "").startsWith("/ops");
+  const staff = search.next === STAFF_PATH;
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);

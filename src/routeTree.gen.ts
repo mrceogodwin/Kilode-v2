@@ -28,6 +28,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiIndexnowRouteImport } from './routes/api/indexnow'
 import { Route as ApiSitemapRouteImport } from './routes/api/sitemap'
+import { Route as DeskK7mSqd9f2e4aRouteImport } from './routes/desk/k7m-sqd-9f2e4a'
 import { Route as PIdRouteImport } from './routes/p.$id'
 import { Route as PayDoneRouteImport } from './routes/pay/done'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
@@ -132,6 +133,11 @@ const ApiSitemapRoute = ApiSitemapRouteImport.update({
   path: '/api/sitemap',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeskK7mSqd9f2e4aRoute = DeskK7mSqd9f2e4aRouteImport.update({
+  id: '/desk/k7m-sqd-9f2e4a',
+  path: '/desk/k7m-sqd-9f2e4a',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PIdRoute = PIdRouteImport.update({
   id: '/p/$id',
   path: '/p/$id',
@@ -193,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/api/indexnow': typeof ApiIndexnowRoute
   '/api/sitemap': typeof ApiSitemapRoute
+  '/desk/k7m-sqd-9f2e4a': typeof DeskK7mSqd9f2e4aRoute
   '/p/$id': typeof PIdRoute
   '/pay/done': typeof PayDoneRoute
   '/u/$handle': typeof UHandleRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/api/indexnow': typeof ApiIndexnowRoute
   '/api/sitemap': typeof ApiSitemapRoute
+  '/desk/k7m-sqd-9f2e4a': typeof DeskK7mSqd9f2e4aRoute
   '/p/$id': typeof PIdRoute
   '/pay/done': typeof PayDoneRoute
   '/u/$handle': typeof UHandleRoute
@@ -252,6 +260,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/api/indexnow': typeof ApiIndexnowRoute
   '/api/sitemap': typeof ApiSitemapRoute
+  '/desk/k7m-sqd-9f2e4a': typeof DeskK7mSqd9f2e4aRoute
   '/p/$id': typeof PIdRoute
   '/pay/done': typeof PayDoneRoute
   '/u/$handle': typeof UHandleRoute
@@ -283,6 +292,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/indexnow'
     | '/api/sitemap'
+    | '/desk/k7m-sqd-9f2e4a'
     | '/p/$id'
     | '/pay/done'
     | '/u/$handle'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/indexnow'
     | '/api/sitemap'
+    | '/desk/k7m-sqd-9f2e4a'
     | '/p/$id'
     | '/pay/done'
     | '/u/$handle'
@@ -341,6 +352,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/indexnow'
     | '/api/sitemap'
+    | '/desk/k7m-sqd-9f2e4a'
     | '/p/$id'
     | '/pay/done'
     | '/u/$handle'
@@ -371,6 +383,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiIndexnowRoute: typeof ApiIndexnowRoute
   ApiSitemapRoute: typeof ApiSitemapRoute
+  DeskK7mSqd9f2e4aRoute: typeof DeskK7mSqd9f2e4aRoute
   PIdRoute: typeof PIdRoute
   PayDoneRoute: typeof PayDoneRoute
   UHandleRoute: typeof UHandleRoute
@@ -516,6 +529,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSitemapRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/desk/k7m-sqd-9f2e4a': {
+      id: '/desk/k7m-sqd-9f2e4a'
+      path: '/desk/k7m-sqd-9f2e4a'
+      fullPath: '/desk/k7m-sqd-9f2e4a'
+      preLoaderRoute: typeof DeskK7mSqd9f2e4aRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/p/$id': {
       id: '/p/$id'
       path: '/p/$id'
@@ -595,6 +615,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiIndexnowRoute: ApiIndexnowRoute,
   ApiSitemapRoute: ApiSitemapRoute,
+  DeskK7mSqd9f2e4aRoute: DeskK7mSqd9f2e4aRoute,
   PIdRoute: PIdRoute,
   PayDoneRoute: PayDoneRoute,
   UHandleRoute: UHandleRoute,

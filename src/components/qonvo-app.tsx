@@ -295,7 +295,6 @@ function QonvoAppInner() {
   const [joinFace, setJoinFace] = useState(KIND_FACE.member);
   const [joinErr, setJoinErr] = useState("");
   const [joinBusy, setJoinBusy] = useState(false);
-  const logoTaps = useRef({ n: 0, t: 0 });
   const [liveOpen, setLiveOpen] = useState(false);
   const [donateOpen, setDonateOpen] = useState(false);
   const [purge, setPurge] = useState("--:--:--");
@@ -545,18 +544,7 @@ function QonvoAppInner() {
               type="button"
               className="flex shrink-0 items-center"
               aria-label="Kilode home"
-              onClick={() => {
-                const now = Date.now();
-                if (now - logoTaps.current.t > 2500) logoTaps.current.n = 0;
-                logoTaps.current.t = now;
-                logoTaps.current.n += 1;
-                if (logoTaps.current.n >= 5) {
-                  logoTaps.current.n = 0;
-                  window.location.href = session.user ? "/ops" : "/login?next=/ops";
-                  return;
-                }
-                goHome();
-              }}
+              onClick={() => goHome()}
             >
               <OfficialLockup />
             </button>
