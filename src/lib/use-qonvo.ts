@@ -281,12 +281,11 @@ export function useQonvo() {
     setRoomId(loadJson("room", "lounge"));
     const posts0 = loadJson<Post[]>("posts", [])
       .filter((p): p is Post => !!p && typeof p.id === "string")
-      .filter((p) => !plantedId(p.id) && !String(p.id).startsWith("demo-feed-") && !String(p.image || "").includes("picsum.photos"));
+      .filter((p) => !plantedId(p.id) && !String(p.id).startsWith("demo-feed-"));
     const ads0 = loadJson<Campaign[]>("ads", []).filter((p): p is Campaign => !!p && typeof p.id === "string" && !plantedAd(p));
     const notes0 = loadJson<Note[]>("notes", []).filter((n): n is Note => !!n && typeof n.id === "string" && !plantedId(n.id));
     const joins0 = loadJson<Join[]>("joins", []).filter((j): j is Join => !!j && typeof j.name === "string" && !PLANTED_NAMES.has(j.name));
     setPosts(posts0);
-    saveJson("posts", posts0);
     setCampaigns(
       ads0.map((c) => ({
         ...c,
@@ -328,6 +327,7 @@ export function useQonvo() {
               views: Number(p.views ?? 0),
             }));
           setPosts(mapped);
+          saveJson("posts", mapped);
         };
         applyPosts(dbPosts);
         setCampaigns(dbAds.filter((a) => !!a && typeof a.id === "string" && !plantedAd(a)) as Campaign[]);

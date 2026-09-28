@@ -229,54 +229,66 @@ export const setLivePause = createServerFn({ method: "POST" })
 
 export const listPosts = createServerFn({ method: "GET" }).handler(async () => {
   try {
-  const sql = await getSql();
-  const posts = await sql<{
-    id: string;
-    title: string;
-    body: string;
-    excerpt: string | null;
-    category: string | null;
-    tags: string | null;
-    link: string | null;
-    image: string | null;
-    slug: string | null;
-    status: string;
-    author: string;
-    ts: number | string;
-    views: number | string | null;
-  }>`select id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, views from nf_posts where status = 'publish' order by ts desc limit 520`;
-  // Scope comments to the page of posts (was unbounded SELECT of all nf_comments).
-  const postIds = posts.map((row) => row.id);
-  let comments: {
-    post_id: string;
-    author: string;
-    body: string;
-    ts: number | string;
-    parent_ts: number | string | null;
-  }[] = [];
-  if (postIds.length) {
-    comments = await sql.query(
-      `select post_id, author, body, ts, parent_ts from nf_comments where post_id = any($1::text[]) order by ts asc`,
-      [postIds],
-    );
-  }
-  const byPost = new Map<string, { author: string; body: string; ts: number; parentTs?: number }[]>();
-  for (const c of comments) {
-    const list = byPost.get(c.post_id) ?? [];
-    list.push({
-      author: c.author,
-      body: c.body,
-      ts: Number(c.ts),
-      parentTs: c.parent_ts ? Number(c.parent_ts) : undefined,
-    });
-    byPost.set(c.post_id, list);
-  }
-  return posts.map((p) => ({
-    ...p,
-    ts: Number(p.ts),
-    views: Number(p.views ?? 0),
-    comments: byPost.get(p.id) ?? [],
-  }));
+    const sql = await getSql();
+    let posts: {
+      id: string;
+      title: string;
+      body: string;
+      excerpt: string | null;
+      category: string | null;
+      tags: string | null;
+      link: string | null;
+      image: string | null;
+      slug: string | null;
+      status: string;
+      author: string;
+      ts: number | string;
+      views: number | string | null;
+    }[] = [];
+    try {
+      posts = await sql`
+        select id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, views
+        from nf_posts where status = 'publish' order by ts desc limit 520`;
+    } catch {
+      posts = await sql`
+        select id, title, body, excerpt, category, tags, link, image, slug, status, author, ts, 0 as views
+        from nf_posts where status = 'publish' order by ts desc limit 520`;
+    }
+    const postIds = posts.map((row) => row.id);
+    let comments: {
+      post_id: string;
+      author: string;
+      body: string;
+      ts: number | string;
+      parent_ts: number | string | null;
+    }[] = [];
+    if (postIds.length) {
+      try {
+        comments = await sql.query(
+          `select post_id, author, body, ts, parent_ts from nf_comments where post_id = any($1::text[]) order by ts asc`,
+          [postIds],
+        );
+      } catch {
+        comments = [];
+      }
+    }
+    const byPost = new Map<string, { author: string; body: string; ts: number; parentTs?: number }[]>();
+    for (const c of comments) {
+      const list = byPost.get(c.post_id) ?? [];
+      list.push({
+        author: c.author,
+        body: c.body,
+        ts: Number(c.ts),
+        parentTs: c.parent_ts ? Number(c.parent_ts) : undefined,
+      });
+      byPost.set(c.post_id, list);
+    }
+    return posts.map((p) => ({
+      ...p,
+      ts: Number(p.ts),
+      views: Number(p.views ?? 0),
+      comments: byPost.get(p.id) ?? [],
+    }));
   } catch {
     return [];
   }

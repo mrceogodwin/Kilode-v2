@@ -2808,9 +2808,15 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
           </button>
         ) : live.length > 0 ? (
           <p className="mt-6 mb-6 text-center text-[11px] text-muted">End of feeds · {live.length} posts</p>
-        ) : (
-          <EmptyHero title="No posts yet" body="Be first — share a take for Nigeria." cta="Create a post" onClick={() => { window.dispatchEvent(new CustomEvent("kilode:create")); }} />
-        )}
+        ) : store.ready ? (
+          <div className="my-4 w-full rounded-2xl border border-line bg-panel px-4 py-5 text-center">
+            <p className="text-sm font-semibold">Feeds are still catching up</p>
+            <p className="mt-1 text-[12px] leading-snug text-muted">Fetched stories are not deleted. Reload to pull them from the desk.</p>
+            <button type="button" className="btn-join mt-3 rounded-lg px-4 py-2 text-sm font-bold" onClick={() => window.location.reload()}>
+              Reload feeds
+            </button>
+          </div>
+        ) : null}
         {repost ? (
           <RepostModal
             post={repost}
