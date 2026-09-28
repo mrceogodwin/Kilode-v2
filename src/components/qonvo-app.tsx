@@ -48,10 +48,10 @@ import {
   Sun,
   Tv,
 } from "lucide-react";
-import { ACCOUNT_KINDS, MENU, POST_CATS, REGIONS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
+import { ACCOUNT_KINDS, MENU, POST_CATS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { canKind, canCreateMenu, createLabelFor } from "@/lib/permissions";
-import { listConnects, replyConnect, type ConnectRow } from "@/lib/takes-server";
-import { listInbox } from "@/lib/social-server";
+import { disconnectFellow, listConnects, listLive, replyConnect, type ConnectRow } from "@/lib/takes-server";
+import { listInbox, sendDm } from "@/lib/social-server";
 import { SplashScreen } from "@/components/splash-screen";
 import { unlockSound, pingMessage } from "@/lib/ping";
 import { useRealtimeInbox } from "@/lib/use-realtime";
@@ -68,11 +68,12 @@ import { listRoomOverlay } from "@/lib/rooms-server";
 import { Link } from "@tanstack/react-router";
 import { SignedIn, SignedOut } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { getPublicPost, listPostSeen, listWallets, notePostSeen, deleteOwnPost } from "@/lib/forum-server";
+import { getPublicPost, listPostSeen, listWallets, notePostSeen, deleteOwnPost, pingPresence } from "@/lib/forum-server";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
+import { ReportMenu } from "@/components/report-menu";
 import { NotifyBell } from "@/components/notify-bell";
 import { MenuLegal, MenuPin } from "@/components/get-app";
 import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
@@ -241,7 +242,7 @@ function QonvoAppInner() {
     setDmCount((n) => n + 1);
   });
   const [query, setQuery] = useState("");
-  const [region, setRegion] = useState("All");
+  const region = "All";
   const [draft, setDraft] = useState("");
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
@@ -272,6 +273,15 @@ function QonvoAppInner() {
       stop = true;
     };
   }, [signedIn, store.handle, screen]);
+  useEffect(() => {
+    if (!signedIn) return;
+    const beat = () => {
+      void pingPresence({ data: { roomId: store.roomId || "lounge", typing: false } }).catch(() => undefined);
+    };
+    beat();
+    const id = window.setInterval(beat, 45000);
+    return () => window.clearInterval(id);
+  }, [signedIn, store.roomId]);
   const [roomsOpen, setRoomsOpen] = useState(false);
   const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials">("feeds");
   const [marketDesk, setMarketDesk] = useState<MarketDesk | null>(null);
@@ -1124,31 +1134,11 @@ function QonvoAppInner() {
       </nav>
 
       {roomsOpen ? (
-        <div className="app-drawer">
-          <aside className="flex h-full min-h-0 w-[min(300px,88vw)] flex-col overflow-hidden bg-panel">
-            <div className="flex shrink-0 items-center justify-between border-b border-line p-3">
-              <strong>Rooms</strong>
-              <button type="button" onClick={() => setRoomsOpen(false)}>
-                <X className="size-4" />
-              </button>
-            </div>
-            <div className="flex shrink-0 gap-2 overflow-x-auto p-2">
-              {REGIONS.map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setRegion(r)}
-                  className={`shrink-0 rounded-full border px-2 py-1 text-[11px] ${region === r ? "border-lime-2/50" : "border-line text-muted"}`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-6">
-              <RoomList query={query} setQuery={setQuery} listed={listed} roomId={store.roomId} onOpen={goHome} />
-            </div>
+        <div className="app-drawer rooms-drawer">
+          <aside className="menu-sheet flex h-full min-h-0 w-[min(360px,92vw)] flex-col overflow-hidden">
+            <RoomList query={query} setQuery={setQuery} listed={listed} roomId={store.roomId} pins={store.pins} onOpen={goHome} onClose={() => setRoomsOpen(false)} />
           </aside>
-          <button type="button" className="min-h-0 flex-1 bg-black/60" aria-label="Close rooms" onClick={() => setRoomsOpen(false)} />
+          <button type="button" className="min-h-0 flex-1 bg-black/50" aria-label="Close rooms" onClick={() => setRoomsOpen(false)} />
         </div>
       ) : null}
 
@@ -1563,11 +1553,14 @@ function QonvoAppInner() {
 
 function FriendsSheet({ onClose }: { onClose: () => void }) {
   const [rows, setRows] = useState<ConnectRow[]>([]);
+  const [live, setLive] = useState<string[]>([]);
   const [err, setErr] = useState("");
+  const [note, setNote] = useState("");
   useEffect(() => {
     void listConnects()
       .then(setRows)
       .catch(() => setErr("Could not load friends."));
+    void listLive().then(setLive).catch(() => setLive([]));
   }, []);
   const incoming = rows.filter((r) => r.dir === "in");
   const outgoing = rows.filter((r) => r.dir === "out");
@@ -1586,6 +1579,22 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
       if (!accept) setRows((list) => list.filter((row) => row.id !== id));
     });
   }
+  function drop(id: string) {
+    void disconnectFellow({ data: { id } }).then((r) => {
+      if (!r.ok) {
+        setErr(r.reason || "Could not update.");
+        return;
+      }
+      setRows((list) => list.filter((row) => row.id !== id));
+    });
+  }
+  function message(handle: string) {
+    const text = window.prompt(`Message @${handle}`)?.trim();
+    if (!text) return;
+    void sendDm({ data: { to: handle, body: text } }).then((r) => {
+      setNote(r.ok ? `Sent to @${handle}.` : r.reason);
+    });
+  }
   return (
     <div className="app-drawer friends-drawer">
       <aside className="menu-sheet flex h-full w-[min(340px,92vw)] flex-col">
@@ -1597,9 +1606,10 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
         </div>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
           {err ? <p className="text-[12px] text-danger">{err}</p> : null}
-          <FriendBlock title="Requests" empty="No requests." rows={incoming} onAccept={(id) => act(id, true)} onDecline={(id) => act(id, false)} />
-          <FriendBlock title="Friends" empty="Connect with someone on Socials." rows={friends} />
-          <FriendBlock title="Sent" empty="No pending asks." rows={outgoing} />
+          {note ? <p className="text-[12px] text-muted">{note}</p> : null}
+          <FriendBlock title="Requests" empty="No requests." rows={incoming} live={live} onAccept={(id) => act(id, true)} onDecline={(id) => act(id, false)} />
+          <FriendBlock title="Friends" empty="Connect with someone on Socials." rows={friends} live={live} onMessage={message} onDisconnect={drop} />
+          <FriendBlock title="Sent" empty="No pending asks." rows={outgoing} live={live} onDisconnect={drop} />
         </div>
       </aside>
       <button type="button" className="flex-1 bg-black/60" aria-label="Close friends" onClick={onClose} />
@@ -1611,27 +1621,49 @@ function FriendBlock({
   title,
   empty,
   rows,
+  live,
   onAccept,
   onDecline,
+  onMessage,
+  onDisconnect,
 }: {
   title: string;
   empty: string;
   rows: ConnectRow[];
+  live: string[];
   onAccept?: (id: string) => void;
   onDecline?: (id: string) => void;
+  onMessage?: (handle: string) => void;
+  onDisconnect?: (id: string) => void;
 }) {
   return (
     <section>
       <div className="mb-1.5 text-[10px] font-semibold tracking-[0.14em] text-white/50 uppercase">{title}</div>
       {rows.length === 0 ? <p className="text-[12px] text-muted">{empty}</p> : null}
       <div className="space-y-1.5">
-        {rows.map((r) => (
+        {rows.map((r) => {
+          const on = live.includes(r.handle.toLowerCase());
+          return (
           <div key={r.dir + r.id} className="menu-row flex items-center gap-2 rounded-xl px-2.5 py-2">
-            <AvatarImg handle={r.handle} size={32} />
+            <span className="relative shrink-0">
+              <AvatarImg handle={r.handle} size={32} />
+              {on ? <span className="live-dot absolute -top-0.5 -right-0.5 ring-2 ring-[#121412]" title="Online" /> : null}
+            </span>
             <div className="min-w-0 flex-1">
               <div className="truncate text-[13px] font-semibold">@{r.handle}</div>
-              <div className="truncate text-[10px] text-muted">{r.role}</div>
+              <div className="truncate text-[10px] text-muted">{r.role}{on ? " · online" : ""}</div>
             </div>
+            {onMessage ? (
+              <button type="button" className="rounded-full border border-[#FACC15] px-2 py-1 text-[10px] font-bold text-[#FACC15]" onClick={() => onMessage(r.handle)}>
+                Message
+              </button>
+            ) : null}
+            {onDisconnect ? (
+              <button type="button" className="rounded-full border border-white/25 px-2 py-1 text-[10px] font-semibold text-white" onClick={() => onDisconnect(r.id)}>
+                {onMessage ? "Disconnect" : "Cancel"}
+              </button>
+            ) : null}
+            <ReportMenu handle={r.handle} signedIn />
             {onAccept ? (
               <button type="button" className="rounded-full border border-[#FACC15] px-2 py-1 text-[10px] font-bold text-[#FACC15]" onClick={() => onAccept(r.id)}>
                 Accept
@@ -1643,7 +1675,8 @@ function FriendBlock({
               </button>
             ) : null}
           </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

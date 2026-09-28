@@ -3,6 +3,7 @@ import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2,
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { connectFellow, disconnectFellow, listConnects, applyTake, deleteOwnTake, likeTake, listTakes, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
+import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
 import { VerifiedMark } from "@/components/handle-link";
 
@@ -477,8 +478,11 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
       <div className="-mx-1 mb-3 flex gap-2 overflow-x-auto px-1 pb-1">
         {shownFellows.length === 0 ? <p className="px-1 text-[11px] text-muted">Real members show here after they join.</p> : null}
         {shownFellows.map((f) => (
-          <div key={f.id} className="w-[168px] shrink-0 glass-3d px-2.5 py-2">
-            <a href={`/u/${encodeURIComponent(f.handle)}`} className="flex items-center gap-1.5">
+          <div key={f.id} className="relative w-[168px] shrink-0 glass-3d px-2.5 py-2">
+            <div className="absolute right-1.5 top-1.5">
+              <ReportMenu handle={f.handle} signedIn={authed} />
+            </div>
+            <a href={`/u/${encodeURIComponent(f.handle)}`} className="flex items-center gap-1.5 pr-5">
               <Face handle={f.handle} photo={f.photo || faces[f.handle.toLowerCase()]} size={28} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1 text-[12px] font-semibold">
@@ -531,8 +535,9 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
                   });
                 }}
               >
-                {linkState(f) === "in" ? "Connected" : linkState(f) === "out" ? "Asked" : "Connect"}
+                {linkState(f) === "in" ? "Friends" : linkState(f) === "out" ? "Asked" : "Connect"}
               </button>
+              {linkState(f) === "in" ? (
               <button
                 type="button"
                 className="rounded-full border border-[#FACC15] bg-transparent px-2.5 py-1 text-[10px] font-bold text-[#FACC15]"
@@ -545,6 +550,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
               >
                 Message
               </button>
+              ) : null}
             </div>
           </div>
         ))}

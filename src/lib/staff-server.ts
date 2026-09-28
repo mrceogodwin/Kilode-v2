@@ -523,8 +523,29 @@ export const listReports = createServerFn({ method: "GET" })
     const me = await staffOf(context.userId);
     if (!me) return [];
     const sql = await getSql();
-    const rows = await sql<{ id: string; post_id: string; author: string; reason: string; ts: number | string }>`select id, post_id, author, reason, ts from nf_reports order by ts desc limit 50`;
-    return rows.map((r) => ({ ...r, ts: Number(r.ts) }));
+    try {
+      await sql`alter table nf_reports add column if not exists assignee text`;
+      const rows = await sql<{ id: string; post_id: string; author: string; reason: string; ts: number | string; assignee: string | null }>`select id, post_id, author, reason, ts, assignee from nf_reports order by ts desc limit 50`;
+      return rows.map((r) => ({ ...r, ts: Number(r.ts), assignee: r.assignee || "" }));
+    } catch {
+      const rows = await sql<{ id: string; post_id: string; author: string; reason: string; ts: number | string }>`select id, post_id, author, reason, ts from nf_reports order by ts desc limit 50`;
+      return rows.map((r) => ({ ...r, ts: Number(r.ts), assignee: "" }));
+    }
+  });
+
+export const assignReport = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string; assignee: string }) => d)
+  .handler(async ({ context, data }) => {
+    const me = await staffOf(context.userId);
+    if (me?.role !== "super") return { ok: false as const, reason: "Only the owner assigns reports." };
+    const id = (data.id || "").trim();
+    const assignee = data.assignee.trim().replace(/^@/, "").slice(0, 24);
+    if (!id || !assignee) return { ok: false as const, reason: "Pick a sub-admin." };
+    const sql = await getSql();
+    await sql`alter table nf_reports add column if not exists assignee text`;
+    await sql`update nf_reports set assignee = ${assignee} where id = ${id}`;
+    return { ok: true as const };
   });
 
 export const dismissReport = createServerFn({ method: "POST" })

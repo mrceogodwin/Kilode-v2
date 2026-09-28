@@ -290,6 +290,16 @@ export const sendDm = createServerFn({ method: "POST" })
     const toId = await userIdByHandle(to);
     if (!toId) return { ok: false as const, reason: "No user with that handle." };
     if (toId === context.userId) return { ok: false as const, reason: "That is you." };
+    try {
+      const row = await sql<{ status: string | null }>`
+        select status from nf_connects
+        where lower(coalesce(status, '')) = 'accepted'
+          and ((user_id = ${context.userId} and fellow_id = ${toId}) or (user_id = ${toId} and fellow_id = ${context.userId}))
+        limit 1`;
+      if (!row[0]) return { ok: false as const, reason: "They have to accept your request before you can message." };
+    } catch {
+      return { ok: false as const, reason: "They have to accept your request before you can message." };
+    }
     const toHandle = await publicHandle(toId);
     const id = nid();
     try {

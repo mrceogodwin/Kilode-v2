@@ -179,6 +179,16 @@ export const listTakes = createServerFn({ method: "GET" })
     return { takes, fellows, next, live, faces };
   });
 
+export const listLive = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const sql = await getSql();
+    const rows = await sql<{ h: string }>`select lower(handle) as h from nf_presence where seen > ${Date.now() - 180000} limit 80`;
+    return rows.map((r) => r.h).filter(Boolean);
+  } catch {
+    return [] as string[];
+  }
+});
+
 export const listTrending = createServerFn({ method: "GET" })
   .validator((d: { offset?: number; filter?: string } | undefined) => d ?? {})
   .handler(async ({ data }) => {

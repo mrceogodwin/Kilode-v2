@@ -3,7 +3,7 @@ import { Eye, Mail, MessageSquare, Share2, Bookmark } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, daysLeft, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 import { approveTeamAsk, getProfile, leaveTeam, postTeamNote, reportPost, requestJoinTeam, teamDesk } from "@/lib/forum-server";
-import { claimOps, clearModUser, deleteGist, deletePost, dismissReport, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, listStaffPosts, listVerifyQueue, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, scoreMembers, staffMe, unhidePost } from "@/lib/staff-server";
+import { claimOps, clearModUser, deleteGist, deletePost, dismissReport, assignReport, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, listStaffPosts, listVerifyQueue, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, scoreMembers, staffMe, unhidePost } from "@/lib/staff-server";
 import {
   approveNewsDraft,
   fetchNewsLatest,
@@ -2225,7 +2225,7 @@ function Admin({ store }: { store: Store }) {
   const [grantRole, setGrantRole] = useState<"mod" | "admin">("mod");
   const [msg, setMsg] = useState("");
   const [mail, setMail] = useState<{ id: string; author: string; body: string; ts: number }[]>([]);
-  const [reports, setReports] = useState<{ id: string; post_id: string; author: string; reason: string; ts: number }[]>([]);
+  const [reports, setReports] = useState<{ id: string; post_id: string; author: string; reason: string; ts: number; assignee?: string }[]>([]);
   const [wallets, setWallets] = useState<Record<string, string>>({});
   const [members, setMembers] = useState<{ id: string; handle: string; kind?: string; verified?: boolean }[]>([]);
   const [walletMsg, setWalletMsg] = useState("");
@@ -2367,9 +2367,29 @@ function Admin({ store }: { store: Store }) {
             <div className="min-w-0 break-words">
               <div className="text-xs font-semibold">{r.author}</div>
               <p className="break-words text-sm">{r.reason}</p>
-              <div className="text-[10px] text-muted">{gist ? "gist" : r.post_id.startsWith("user:") ? "account" : r.post_id.startsWith("group:") ? "group" : "post"} {r.post_id.replace(/^(take:|user:|group:)/, "")}</div>
+              <div className="text-[10px] text-muted">{gist ? "gist" : r.post_id.startsWith("user:") ? "account" : r.post_id.startsWith("group:") ? "group" : "post"} {r.post_id.replace(/^(take:|user:|group:)/, "")}{r.assignee ? ` · assigned @${r.assignee}` : ""}</div>
             </div>
-            <div className="flex shrink-0 gap-3">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {role === "super" ? (
+                <select
+                  className="rounded-lg border border-line bg-bg px-1 py-1 text-[11px]"
+                  defaultValue=""
+                  aria-label="Assign report"
+                  onChange={(e) => {
+                    const assignee = e.target.value;
+                    if (!assignee) return;
+                    void assignReport({ data: { id: r.id, assignee } }).then((res) => {
+                      if (res.ok) setReports((rows) => rows.map((x) => (x.id === r.id ? { ...x, assignee } : x)));
+                      else setMsg(res.reason);
+                    });
+                  }}
+                >
+                  <option value="">Assign</option>
+                  {staff.filter((s) => s.role === "mod" || s.role === "admin").map((s) => (
+                    <option key={s.user_id} value={s.handle || s.user_id}>{s.handle || "staff"}</option>
+                  ))}
+                </select>
+              ) : null}
               <button type="button" className="text-xs text-muted" onClick={() => void dismissReport({ data: { id: r.id } }).then(() => setReports((rows) => rows.filter((x) => x.id !== r.id)))}>
                 Dismiss
               </button>

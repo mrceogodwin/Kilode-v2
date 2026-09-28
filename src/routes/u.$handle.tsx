@@ -7,6 +7,7 @@ import { connectByHandle, listConnects, listUserTakes, type TakeRow } from "@/li
 import { seoHead } from "@/lib/seo";
 import { ACCOUNT_KINDS, avatarUrl, fmtCount, handleColor, isOfficialHandle, timeAgo, timeLabel } from "@/lib/qonvo-data";
 import { OfficialLockup } from "@/components/brand-lockup";
+import { ReportMenu } from "@/components/report-menu";
 import { VerifiedMark } from "@/components/handle-link";
 import { GatewayPay } from "@/components/pay-checkout";
 import { listPayMethods, submitVerification } from "@/lib/pay-gateways";
@@ -113,6 +114,7 @@ function PublicProfile() {
               <h1 className="text-2xl font-extrabold" style={{ color: handleColor(profile.handle) }}>{profile.handle}</h1>
               {showBadge ? <VerifiedMark /> : null}
               {active ? <span className="live-dot" title="Active now" /> : null}
+              {!mine ? <span className="ml-auto"><ReportMenu handle={profile.handle} signedIn={Boolean(session.user)} /></span> : null}
             </div>
             <p className="mt-1 text-[11px] font-bold tracking-[0.12em] text-muted">OCCUPATION</p>
             <p className="text-[13px] text-fg">{occupation || kindLabel}</p>
@@ -189,7 +191,7 @@ function PublicProfile() {
             {payNote ? <p className="mt-2 text-[12px] text-lime-2">{payNote}</p> : null}
           </section>
         ) : null}
-        {!mine ? <ProfileMessage to={profile.handle} /> : null}
+        {!mine && friend === "friends" ? <ProfileMessage to={profile.handle} /> : !mine ? <p className="mt-3 text-[12px] text-muted">You can message after they accept.</p> : null}
         <button
           type="button"
           className="mt-2 text-[12px] font-semibold text-muted"
