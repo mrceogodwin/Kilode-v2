@@ -8,6 +8,8 @@ import { postBodyPlain, sanitizePostHtml } from "@/lib/post-body";
 import { pushNote, userIdByHandle } from "@/lib/social-server";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 import { claimTx, releaseTx } from "@/lib/tx-ledger";
+import { isCardProvider } from "@/lib/pay-money";
+import { releaseCheckout, takePaidCheckout } from "@/lib/pay-gateways";
 import { DB_TIMEOUT_MS, withTimeout } from "@/lib/with-timeout";
 
 async function kindOf(userId: string): Promise<AccountKind> {
@@ -580,22 +582,45 @@ export const saveAdRow = createServerFn({ method: "POST" })
     const ts = Date.now();
     const days = [1, 7, 14, 30].includes(Number(data.days)) ? Number(data.days) : 7;
     const txHash = (data.txHash ?? "").trim();
-    if (txHash) {
+    const coin = (data.coin ?? "").trim().toLowerCase();
+    const placement = data.placement ?? "board";
+    let payOff = false;
+    try {
+      const flag = await sql<{ pay_off: string | null }>`select pay_off from nf_site where id = 1 limit 1`;
+      payOff = String(flag[0]?.pay_off || "").split(",").includes("ads");
+    } catch {
+      payOff = false;
+    }
+    if (!payOff && !txHash) return { ok: false as const, reason: "Pay first. Crypto, Paystack, or Flutterwave." };
+    let cardNote = "";
+    if (!payOff && isCardProvider(coin)) {
+      const taken = await takePaidCheckout({ reference: txHash, userId: context.userId, kind: "ad", purpose: placement, refId: id });
+      if (!taken.ok) return taken;
+      cardNote = taken.note;
+    } else if (!payOff && txHash) {
       const claimed = await claimTx({
         hash: txHash,
         kind: "ad",
         refId: id,
         userId: context.userId,
-        coin: data.coin ?? "",
+        coin,
         amount: data.amount ?? "",
       });
       if (!claimed.ok) return { ok: false as const, reason: claimed.reason };
     }
     try {
       await sql`insert into nf_ads (id, user_id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts, days)
-        values (${id}, ${context.userId}, ${name}, ${data.note}, ${data.placement ?? "board"}, ${"pending"}, ${data.amount ?? ""}, ${txHash}, ${data.coin ?? ""}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.kind ?? "image-text"}, ${data.video ?? ""}, ${0}, ${ts}, ${days})`;
+        values (${id}, ${context.userId}, ${name}, ${data.note}, ${placement}, ${"pending"}, ${data.amount ?? ""}, ${txHash}, ${coin}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.kind ?? "image-text"}, ${data.video ?? ""}, ${0}, ${ts}, ${days})`;
+      if (cardNote) {
+        try {
+          await sql`update nf_ads set match_note = ${cardNote} where id = ${id}`;
+        } catch {
+          /* match_note is optional on the first boot */
+        }
+      }
     } catch (e) {
-      if (txHash) await releaseTx(txHash, id);
+      if (!payOff && isCardProvider(coin)) await releaseCheckout(txHash, id);
+      else if (txHash) await releaseTx(txHash, id);
       throw e;
     }
     return { id, status: "pending" as const };

@@ -14,7 +14,7 @@ export function AdvertisePage() {
         <p className="mt-6 text-[10px] font-medium tracking-[0.18em] text-lime-2">PREMIUM ADS</p>
         <h1 className="mt-1 text-2xl font-extrabold tracking-tight">Place ads here for 30 days</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted">
-          Promote your company or business on Kilode. Ten slots, each with its own price and size. You pick type + duration. Pay crypto. After approval the creative goes live for the days you bought, then it drops off.
+          Promote your company or business on Kilode. Ten slots, each with its own price and size. You pick type + duration. Pay with crypto, Paystack, or Flutterwave. After approval the creative goes live for the days you bought, then it drops off.
         </p>
         <ul className="mt-4 space-y-2 text-[13px] leading-snug">
           <li className="raised rounded-xl px-3 py-2">Ads tab — grid tile, featured slider, or square. Featured stays at the top so it is not buried.</li>

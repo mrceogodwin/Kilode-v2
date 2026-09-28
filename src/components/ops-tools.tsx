@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AI_KEY_SLOTS, listAiKeys, saveAiKey } from "@/lib/keys-server";
+import { listPayMethods, pingGateway } from "@/lib/pay-gateways";
 import { boostSeo, listSeoWeak, type SeoWeak } from "@/lib/seo-server";
 import { AD_SLOT_DEFS, type AdSlotKind, type AdSlotRow } from "@/lib/ad-slots";
 import { listAdSlots, listDigestCount, runDigestNow, saveAdSlot } from "@/lib/ad-slots-server";
@@ -206,7 +207,7 @@ export function LivePausePanel() {
       </div>
       <div className="rounded-xl border border-line bg-panel p-3">
         <div className="text-sm font-extrabold">Crypto required</div>
-        <p className="mt-0.5 text-[11px] text-muted">Off means that desk can submit without a transaction hash. Staff still approve. Paystack and Flutterwave are not connected.</p>
+        <p className="mt-0.5 text-[11px] text-muted">Off means that desk can submit without a payment. Staff still approve. Crypto, Paystack, and Flutterwave all count when this is on.</p>
         <div className="mt-2 flex gap-2">
           {(["ads", "events"] as const).map((k) => {
             const off = payOff.split(",").includes(k);
@@ -236,6 +237,84 @@ export function LivePausePanel() {
         </div>
       </div>
       {msg ? <p className="text-[11px] text-danger">{msg}</p> : null}
+    </div>
+  );
+}
+
+export function PaywaysPanel() {
+  const [rate, setRate] = useState("1600");
+  const [eventUsd, setEventUsd] = useState("10");
+  const [live, setLive] = useState({ paystack: false, flutterwave: false });
+  const [msg, setMsg] = useState("");
+  function load() {
+    void listPayMethods()
+      .then((m) => {
+        setRate(String(m.ngnPerUsd));
+        setEventUsd(String(m.eventUsd));
+        setLive({ paystack: m.paystack, flutterwave: m.flutterwave });
+      })
+      .catch(() => undefined);
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  return (
+    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-2xl p-4">
+      <div>
+        <div className="text-[10px] font-bold tracking-[0.18em] text-[#FACC15]">PAYMENTS</div>
+        <h3 className="text-lg font-extrabold">Paystack and Flutterwave</h3>
+        <p className="text-[11px] leading-5 text-muted">
+          Paste the secrets in API keys below, or set PAYSTACK_SECRET_KEY, FLUTTERWAVE_SECRET_KEY, and FLUTTERWAVE_HASH on Vercel. Prices stay in dollars. Kilode converts them with the naira rate here. A payment is accepted only after Paystack or Flutterwave confirms it.
+        </p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="rounded-xl border border-line bg-panel p-2 text-[11px]">
+          Naira per 1 USD
+          <input value={rate} onChange={(e) => setRate(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
+        </label>
+        <label className="rounded-xl border border-line bg-panel p-2 text-[11px]">
+          Event fee (USD)
+          <input value={eventUsd} onChange={(e) => setEventUsd(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
+        </label>
+      </div>
+      <button
+        type="button"
+        className="btn-3d rounded-lg px-3 py-1.5 text-[11px] font-bold"
+        onClick={() => {
+          void Promise.all([
+            saveAiKey({ data: { id: "ngn_per_usd", value: rate.trim() } }),
+            saveAiKey({ data: { id: "event_usd", value: eventUsd.trim() } }),
+          ]).then(() => {
+            setMsg("Rate saved");
+            load();
+          });
+        }}
+      >
+        Save rate
+      </button>
+      <div className="flex flex-wrap gap-2">
+        {(["paystack", "flutterwave"] as const).map((id) => (
+          <button
+            key={id}
+            type="button"
+            className="rounded-full border border-line px-3 py-1 text-[11px] font-bold"
+            onClick={() => {
+              void pingGateway({ data: { provider: id } }).then((r) => {
+                setMsg(r.reason);
+                load();
+              });
+            }}
+          >
+            Test {id} {live[id] ? "· key set" : "· no key"}
+          </button>
+        ))}
+      </div>
+      <p className="break-all text-[11px] text-muted">
+        Paystack webhook: https://kilode.ng/api/pay/paystack
+        <br />
+        Flutterwave webhook: https://kilode.ng/api/pay/flutterwave
+      </p>
+      {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
     </div>
   );
 }

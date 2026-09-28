@@ -20,6 +20,9 @@ import {
 import { listWallets, getChatTtl } from "@/lib/forum-server";
 import { LEGAL_PAGES } from "@/lib/legal";
 import { listAdCatalog } from "@/lib/ad-catalog-server";
+import { listPayMethods } from "@/lib/pay-gateways";
+import { GatewayPay } from "@/components/pay-checkout";
+import type { CardProvider } from "@/lib/pay-money";
 import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { authClient, signOut } from "@/lib/auth/client";
@@ -33,7 +36,7 @@ import { SocialsAdminPanel, TvPane } from "@/components/tv-pane";
 import { JoinCta } from "@/components/get-app";
 import { usePublicSite } from "@/components/site-chrome";
 import { MeDashboard } from "@/components/me-dashboard";
-import { AdCatalogPanel, AdSlotsPanel, LivePausePanel, OpsKeysPanel, OpsSeoPanel, RoomsAdminPanel } from "@/components/ops-tools";
+import { AdCatalogPanel, AdSlotsPanel, LivePausePanel, OpsKeysPanel, OpsSeoPanel, PaywaysPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { SiteFlagsPanel } from "@/components/site-chrome";
 import { matchAdPayments, matchOneAd } from "@/lib/pay-match-server";
 import { applyListing, listListings, saveListing, type Listing } from "@/lib/listings-server";
@@ -1769,6 +1772,8 @@ function Ads({ store }: { store: Store }) {
   const [place, setPlace] = useState<AdPlacement>("board");
   const [days, setDays] = useState<number>(7);
   const [coin, setCoin] = useState("usdt");
+  const [payWith, setPayWith] = useState<"crypto" | CardProvider>("crypto");
+  const [gate, setGate] = useState({ paystack: false, flutterwave: false, ngnPerUsd: 1600 });
   const [txHash, setTxHash] = useState("");
   const adsPay = !usePublicSite().site.payOff.split(",").includes("ads");
   const [amount, setAmount] = useState("");
@@ -1784,6 +1789,9 @@ function Ads({ store }: { store: Store }) {
       .catch(() => setWallets([]));
     void listAdCatalog()
       .then((c) => setPrices(c.prices))
+      .catch(() => undefined);
+    void listPayMethods()
+      .then((m) => setGate({ paystack: m.paystack, flutterwave: m.flutterwave, ngnPerUsd: m.ngnPerUsd }))
       .catch(() => undefined);
   }, []);
   const payTo = wallets.find((w) => w.coin === coin)?.address;
@@ -1850,8 +1858,7 @@ function Ads({ store }: { store: Store }) {
   return (
     <Screen kicker="ADS" title="Place an ad" sub="Pick a slot, creative type, and duration. Pay crypto. Staff approve. Then it appears on that slot.">
       <div className="mb-3 rounded-xl border border-lime-2/30 bg-lime-2/5 px-3 py-2 text-[11px] leading-snug text-muted">
-        <span className="font-bold text-lime-2">1 · Slot</span> → <span className="font-bold text-lime-2">2 · Creative</span> → <span className="font-bold text-lime-2">3 · Copy wallet</span> → pay → paste tx → submit.{" "}
-        Auto-pay is not enabled yet — use manual crypto wallets.
+        <span className="font-bold text-lime-2">1 · Slot</span> → <span className="font-bold text-lime-2">2 · Creative</span> → <span className="font-bold text-lime-2">3 · Pay</span> crypto, Paystack, or Flutterwave → submit. Staff still approve the creative.
       </div>
       <div className="mb-3 grid gap-1.5" role="group" aria-label="Ad slot">
         {AD_PLACEMENTS.map((p) => {
@@ -1860,7 +1867,7 @@ function Ads({ store }: { store: Store }) {
             <button
               key={p.id}
               type="button"
-              onClick={() => setPlace(p.id)}
+              onClick={() => { setPlace(p.id); if (payWith !== "crypto") setTxHash(""); }}
               aria-pressed={on}
               className={`raised rounded-2xl px-3 py-3 text-left transition ${
                 on
@@ -1922,6 +1929,15 @@ function Ads({ store }: { store: Store }) {
       ) : null}
       <div className="mb-1 text-[11px] font-medium text-muted">Pay with</div>
       <div className="mb-2 flex flex-wrap gap-1">
+        {(["crypto", "paystack", "flutterwave"] as const).map((id) => (
+          <button key={id} type="button" onClick={() => { setPayWith(id); setTxHash(""); }} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${payWith === id ? "btn-3d" : "border border-line text-muted"}`}>
+            {id === "crypto" ? "Crypto" : id === "paystack" ? "Paystack" : "Flutterwave"}
+          </button>
+        ))}
+      </div>
+      {adsPay && payWith === "crypto" ? (
+        <>
+      <div className="mb-2 flex flex-wrap gap-1">
         {AD_COINS.map((c) => (
           <button
             key={c.id}
@@ -1955,7 +1971,29 @@ function Ads({ store }: { store: Store }) {
         </p>
       </div>
       <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount sent (about $${usd} USD in crypto)`} className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-      <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash / payment ID after you pay" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+      <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash after you pay" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
+        </>
+      ) : null}
+      {adsPay && payWith !== "crypto" ? (
+        <div className="mb-3">
+          <GatewayPay
+            provider={payWith}
+            kind="ad"
+            purpose={place}
+            usd={usd}
+            rate={gate.ngnPerUsd}
+            ready={payWith === "paystack" ? gate.paystack : gate.flutterwave}
+            onPaid={(paid) => {
+              setTxHash(paid.reference);
+              setCoin(paid.provider);
+              setAmount(String(paid.amountNgn));
+              setErr("");
+            }}
+          />
+          {txHash.startsWith("kld_") ? <p className="mt-2 text-[12px] font-semibold text-lime-2">Paid. Submit the creative below.</p> : null}
+        </div>
+      ) : null}
+      {!adsPay ? <p className="mb-3 text-[12px] text-lime-2">Payment is off for ads. Staff still approve.</p> : null}
       {err ? <p className="mb-2 text-sm text-danger">{err}</p> : null}
       <label className="mb-3 flex items-start gap-2 text-[11px] text-muted">
         <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
@@ -2300,6 +2338,7 @@ function Admin({ store }: { store: Store }) {
           <VerifyKindPanel members={members} canKind={role === "super"} onReload={() => void listMembers().then(setMembers).catch(() => undefined)} />
         </div>
       ) : null}
+      {role === "super" ? <PaywaysPanel /> : null}
       {role === "super" ? <OpsKeysPanel /> : null}
       {role === "super" ? <OpsSeoPanel /> : null}
       {role === "super" || role === "admin" ? <SitePulsePanel /> : null}

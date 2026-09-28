@@ -4,6 +4,9 @@ import { listEvents, rsvpEvent, submitEvent, adminEvents, setEvent, purgeEvents,
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { AD_COINS } from "@/lib/qonvo-data";
 import { listWallets } from "@/lib/forum-server";
+import { listPayMethods } from "@/lib/pay-gateways";
+import { GatewayPay } from "@/components/pay-checkout";
+import type { CardProvider } from "@/lib/pay-money";
 import { usePublicSite } from "@/components/site-chrome";
 import { AdReserve } from "@/components/ad-slot";
 
@@ -51,6 +54,8 @@ export function EventsPane() {
   const [coin, setCoin] = useState("btc");
   const [amount, setAmount] = useState("");
   const [txHash, setTxHash] = useState("");
+  const [payWith, setPayWith] = useState<"crypto" | CardProvider>("crypto");
+  const [gate, setGate] = useState({ paystack: false, flutterwave: false, ngnPerUsd: 1600, eventUsd: 10 });
   const [ticket, setTicket] = useState("");
   const [cover, setCover] = useState("");
   const pay = !usePublicSite().site.payOff.split(",").includes("events");
@@ -77,6 +82,9 @@ export function EventsPane() {
     void listWallets()
       .then((rows) => setWallets(Array.isArray(rows) ? rows : []))
       .catch(() => setWallets([]));
+    void listPayMethods()
+      .then((m) => setGate(m))
+      .catch(() => undefined);
   }, [form, wallets.length]);
 
   const list = useMemo(() => {
@@ -190,7 +198,16 @@ export function EventsPane() {
           <textarea value={blurb} onChange={(e) => setBlurb(e.target.value)} placeholder="Short note" rows={3} className="w-full rounded-lg border border-line bg-bg px-3 py-2 text-base" />
           {pay ? (
             <>
-          <p className="text-[11px] leading-snug text-muted">Copy the wallet, pay, then paste the hash. Kilode never DMs a wallet. One hash works once. Staff approve before it is public.</p>
+          <p className="text-[11px] leading-snug text-muted">Pay the event fee with crypto, Paystack, or Flutterwave. Staff still approve before it is public.</p>
+          <div className="flex flex-wrap gap-1">
+            {(["crypto", "paystack", "flutterwave"] as const).map((id) => (
+              <button key={id} type="button" onClick={() => { setPayWith(id); setTxHash(""); }} className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${payWith === id ? "btn-3d" : "border border-line text-muted"}`}>
+                {id === "crypto" ? "Crypto" : id === "paystack" ? "Paystack" : "Flutterwave"}
+              </button>
+            ))}
+          </div>
+          {payWith === "crypto" ? (
+            <>
           <select value={coin} onChange={(e) => setCoin(e.target.value)} className="min-h-11 w-full rounded-lg border border-line bg-bg px-2 text-base">
             {AD_COINS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
           </select>
@@ -209,6 +226,23 @@ export function EventsPane() {
           </button>
           <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount you sent" className="min-h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
           <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash" className="min-h-11 w-full rounded-lg border border-line bg-bg px-3 text-base" />
+            </>
+          ) : (
+            <GatewayPay
+              provider={payWith}
+              kind="event"
+              purpose="listing"
+              usd={gate.eventUsd}
+              rate={gate.ngnPerUsd}
+              ready={payWith === "paystack" ? gate.paystack : gate.flutterwave}
+              onPaid={(paid) => {
+                setCoin(paid.provider);
+                setAmount(String(paid.amountNgn));
+                setTxHash(paid.reference);
+              }}
+            />
+          )}
+          {payWith !== "crypto" && txHash.startsWith("kld_") ? <p className="text-[12px] font-semibold text-lime-2">Paid. Submit the event.</p> : null}
             </>
           ) : <p className="text-[11px] text-lime-2">Crypto is off for events. Staff still approve before it goes live.</p>}
           <button type="submit" disabled={busy} className="btn-join w-full rounded-xl py-2.5 text-sm font-bold disabled:opacity-60">{busy ? "Sending…" : "Submit for review"}</button>

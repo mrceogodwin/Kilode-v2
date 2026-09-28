@@ -29,10 +29,13 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiIndexnowRouteImport } from './routes/api/indexnow'
 import { Route as ApiSitemapRouteImport } from './routes/api/sitemap'
 import { Route as PIdRouteImport } from './routes/p.$id'
+import { Route as PayDoneRouteImport } from './routes/pay/done'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronCinemaRouteImport } from './routes/api/cron/cinema'
 import { Route as ApiCronDigestRouteImport } from './routes/api/cron/digest'
+import { Route as ApiPayFlutterwaveRouteImport } from './routes/api/pay/flutterwave'
+import { Route as ApiPayPaystackRouteImport } from './routes/api/pay/paystack'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -134,6 +137,11 @@ const PIdRoute = PIdRouteImport.update({
   path: '/p/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PayDoneRoute = PayDoneRouteImport.update({
+  id: '/pay/done',
+  path: '/pay/done',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UHandleRoute = UHandleRouteImport.update({
   id: '/u/$handle',
   path: '/u/$handle',
@@ -152,6 +160,16 @@ const ApiCronCinemaRoute = ApiCronCinemaRouteImport.update({
 const ApiCronDigestRoute = ApiCronDigestRouteImport.update({
   id: '/api/cron/digest',
   path: '/api/cron/digest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPayFlutterwaveRoute = ApiPayFlutterwaveRouteImport.update({
+  id: '/api/pay/flutterwave',
+  path: '/api/pay/flutterwave',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPayPaystackRoute = ApiPayPaystackRouteImport.update({
+  id: '/api/pay/paystack',
+  path: '/api/pay/paystack',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -176,10 +194,13 @@ export interface FileRoutesByFullPath {
   '/api/indexnow': typeof ApiIndexnowRoute
   '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
+  '/pay/done': typeof PayDoneRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/cinema': typeof ApiCronCinemaRoute
   '/api/cron/digest': typeof ApiCronDigestRoute
+  '/api/pay/flutterwave': typeof ApiPayFlutterwaveRoute
+  '/api/pay/paystack': typeof ApiPayPaystackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -202,10 +223,13 @@ export interface FileRoutesByTo {
   '/api/indexnow': typeof ApiIndexnowRoute
   '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
+  '/pay/done': typeof PayDoneRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/cinema': typeof ApiCronCinemaRoute
   '/api/cron/digest': typeof ApiCronDigestRoute
+  '/api/pay/flutterwave': typeof ApiPayFlutterwaveRoute
+  '/api/pay/paystack': typeof ApiPayPaystackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -229,10 +253,13 @@ export interface FileRoutesById {
   '/api/indexnow': typeof ApiIndexnowRoute
   '/api/sitemap': typeof ApiSitemapRoute
   '/p/$id': typeof PIdRoute
+  '/pay/done': typeof PayDoneRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/cinema': typeof ApiCronCinemaRoute
   '/api/cron/digest': typeof ApiCronDigestRoute
+  '/api/pay/flutterwave': typeof ApiPayFlutterwaveRoute
+  '/api/pay/paystack': typeof ApiPayPaystackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -257,10 +284,13 @@ export interface FileRouteTypes {
     | '/api/indexnow'
     | '/api/sitemap'
     | '/p/$id'
+    | '/pay/done'
     | '/u/$handle'
     | '/api/auth/$'
     | '/api/cron/cinema'
     | '/api/cron/digest'
+    | '/api/pay/flutterwave'
+    | '/api/pay/paystack'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -283,10 +313,13 @@ export interface FileRouteTypes {
     | '/api/indexnow'
     | '/api/sitemap'
     | '/p/$id'
+    | '/pay/done'
     | '/u/$handle'
     | '/api/auth/$'
     | '/api/cron/cinema'
     | '/api/cron/digest'
+    | '/api/pay/flutterwave'
+    | '/api/pay/paystack'
   id:
     | '__root__'
     | '/'
@@ -309,10 +342,13 @@ export interface FileRouteTypes {
     | '/api/indexnow'
     | '/api/sitemap'
     | '/p/$id'
+    | '/pay/done'
     | '/u/$handle'
     | '/api/auth/$'
     | '/api/cron/cinema'
     | '/api/cron/digest'
+    | '/api/pay/flutterwave'
+    | '/api/pay/paystack'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -336,10 +372,13 @@ export interface RootRouteChildren {
   ApiIndexnowRoute: typeof ApiIndexnowRoute
   ApiSitemapRoute: typeof ApiSitemapRoute
   PIdRoute: typeof PIdRoute
+  PayDoneRoute: typeof PayDoneRoute
   UHandleRoute: typeof UHandleRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronCinemaRoute: typeof ApiCronCinemaRoute
   ApiCronDigestRoute: typeof ApiCronDigestRoute
+  ApiPayFlutterwaveRoute: typeof ApiPayFlutterwaveRoute
+  ApiPayPaystackRoute: typeof ApiPayPaystackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -484,6 +523,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pay/done': {
+      id: '/pay/done'
+      path: '/pay/done'
+      fullPath: '/pay/done'
+      preLoaderRoute: typeof PayDoneRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/u/$handle': {
       id: '/u/$handle'
       path: '/u/$handle'
@@ -512,6 +558,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronDigestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/pay/flutterwave': {
+      id: '/api/pay/flutterwave'
+      path: '/api/pay/flutterwave'
+      fullPath: '/api/pay/flutterwave'
+      preLoaderRoute: typeof ApiPayFlutterwaveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/pay/paystack': {
+      id: '/api/pay/paystack'
+      path: '/api/pay/paystack'
+      fullPath: '/api/pay/paystack'
+      preLoaderRoute: typeof ApiPayPaystackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -536,10 +596,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiIndexnowRoute: ApiIndexnowRoute,
   ApiSitemapRoute: ApiSitemapRoute,
   PIdRoute: PIdRoute,
+  PayDoneRoute: PayDoneRoute,
   UHandleRoute: UHandleRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronCinemaRoute: ApiCronCinemaRoute,
   ApiCronDigestRoute: ApiCronDigestRoute,
+  ApiPayFlutterwaveRoute: ApiPayFlutterwaveRoute,
+  ApiPayPaystackRoute: ApiPayPaystackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

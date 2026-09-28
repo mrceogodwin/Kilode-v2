@@ -6,6 +6,8 @@ import { gateText } from "@/lib/mod-cache";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 import { claimTx, releaseTx } from "@/lib/tx-ledger";
 import { verifyCryptoTx } from "@/lib/pay-match";
+import { isCardProvider } from "@/lib/pay-money";
+import { releaseCheckout, takePaidCheckout } from "@/lib/pay-gateways";
 
 const CATS = ["tech", "music", "culture", "cinema", "food", "sports"] as const;
 export type EventCat = (typeof CATS)[number];
@@ -204,7 +206,10 @@ export const submitEvent = createServerFn({ method: "POST" })
     }
     await ensure();
     const id = nid();
-    if (!payOff) {
+    if (!payOff && isCardProvider(coin)) {
+      const taken = await takePaidCheckout({ reference: txHash, userId: context.userId, kind: "event", purpose: "listing", refId: id });
+      if (!taken.ok) throw new Error(taken.reason);
+    } else if (!payOff) {
       const claimed = await claimTx({ hash: txHash, kind: "event", refId: id, userId: context.userId, coin, amount });
       if (!claimed.ok) throw new Error(claimed.reason);
     }
@@ -212,7 +217,8 @@ export const submitEvent = createServerFn({ method: "POST" })
       await sql`insert into nf_events (id, title, blurb, category, place, link, cover, ticket, starts_at, ends_at, status, flagship, submitter, user_id, ts, coin, amount, tx_hash)
         values (${id}, ${title}, ${blurb}, ${catOf(String(data.category || ""))}, ${String(data.place || "").trim().slice(0, 60)}, ${link}, ${cover}, ${ticket}, ${startsAt}, ${endsAt}, ${"pending"}, ${0}, ${handle}, ${context.userId}, ${now}, ${coin}, ${amount}, ${txHash})`;
     } catch (e) {
-      if (!payOff) await releaseTx(txHash, id);
+      if (!payOff && isCardProvider(coin)) await releaseCheckout(txHash, id);
+      else if (!payOff) await releaseTx(txHash, id);
       throw e;
     }
     return { ok: true as const, id };
@@ -293,6 +299,17 @@ export const matchEventPay = createServerFn({ method: "POST" })
     const rows = await sql<{ coin: string; tx_hash: string }>`select coin, tx_hash from nf_events where id = ${id} limit 1`;
     const row = rows[0];
     if (!row?.tx_hash) throw new Error("No hash on this event.");
+    if (isCardProvider(row.coin || "")) {
+      try {
+        const paid = await sql<{ status: string; amount_ngn: number }>`select status, amount_ngn from nf_checkouts where reference = ${row.tx_hash} limit 1`;
+        const ok = paid[0]?.status === "paid" || paid[0]?.status === "used";
+        const note = ok ? `${row.coin} verified · ₦${paid[0]?.amount_ngn ?? ""}` : "This Paystack/Flutterwave reference is not verified yet.";
+        await sql`update nf_events set match_note = ${note.slice(0, 280)} where id = ${id}`;
+        return { ok, reason: note };
+      } catch {
+        throw new Error("Payment table is not ready yet.");
+      }
+    }
     const wallets = await sql<{ coin: string; address: string }>`select coin, address from nf_wallets`;
     const result = await verifyCryptoTx({ coin: row.coin || "", txHash: row.tx_hash, wallets });
     const note = result.reason.slice(0, 280);

@@ -189,6 +189,20 @@ export async function applyMatch(id: string, coin: string, txHash: string): Prom
   if (dup[0] || ledger[0]) {
     return { id, status: "pending", ok: false, coin, received: "", to: "", confirmed: false, reason: "This tx hash is already used on another ad." };
   }
+  if (coin === "paystack" || coin === "flutterwave") {
+    try {
+      const paid = await sql<{ status: string; amount_ngn: number }>`select status, amount_ngn from nf_checkouts where reference = ${hash} limit 1`;
+      const row = paid[0];
+      if (row && (row.status === "paid" || row.status === "used")) {
+        const reason = `${coin} verified · ₦${row.amount_ngn}`;
+        await sql`update nf_ads set status = ${"paid"}, match_note = ${reason} where id = ${id} and status in ('pending', 'paid')`;
+        return { id, status: "paid", ok: true, coin, received: String(row.amount_ngn), to: coin, confirmed: true, reason };
+      }
+    } catch {
+      /* checkout table may not exist yet */
+    }
+    return { id, status: "pending", ok: false, coin, received: "", to: "", confirmed: false, reason: "This Paystack/Flutterwave reference is not verified yet." };
+  }
   const rows = await sql<WalletRow>`select coin, address from nf_wallets`;
   const result = await verifyCryptoTx({ coin, txHash: hash, wallets: rows });
   const note = result.reason.slice(0, 280);

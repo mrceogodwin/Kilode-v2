@@ -282,7 +282,10 @@ Advert grid, chat stream, and pinned chat prices are shown in the Advertise scre
 If staff reject an ad before it goes live, you may Contact us. Chain fees are never refundable. Approved ads that already ran are not refunded.
 
 5. Taxes
-You are responsible for your own tax.`;
+You are responsible for your own tax.
+
+6. Cards
+When the operator has turned them on, Paystack and Flutterwave can take the same fee in naira. Kilode checks the payment with that company before the listing is accepted. A failed or short payment is not a listing. Staff still approve the creative.`;
 
 export const PRIVACY_LONG = `Privacy
 
