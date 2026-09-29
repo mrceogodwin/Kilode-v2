@@ -12,6 +12,21 @@ function heatOf(t: TakeRow) {
   return t.likes * 3 + t.reposts * 4 + t.comments * 2 + t.fact + t.cap + t.voteA + t.voteB;
 }
 
+function plainBits(s: string) {
+  return s
+    .replace(/&#(\d+);/g, (_, n) => {
+      const c = Number(n);
+      return c > 0 && c < 0x110000 ? String.fromCodePoint(c) : _;
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => {
+      const c = parseInt(h, 16);
+      return c > 0 && c < 0x110000 ? String.fromCodePoint(c) : _;
+    })
+    .replace(/&/g, "&")
+    .replace(/"/g, '"')
+    .replace(/&#39;|'/g, "'");
+}
+
 function Face({ handle, photo, size = 28 }: { handle: string; photo?: string; size?: number }) {
   const [src, setSrc] = useState(avatarUrl(handle, photo));
   useEffect(() => setSrc(avatarUrl(handle, photo)), [handle, photo]);
@@ -69,7 +84,7 @@ function TrendPage({ onClose, faces, live }: { onClose: () => void; faces: Recor
           <button
             key={id}
             type="button"
-            className={`shrink-0 rounded-full border px-3 py-1 text-[12px] font-semibold ${filter === id ? "border-[#FACC15] bg-[#FACC15]/15 text-[#FACC15]" : "border-white/20 text-fg"}`}
+            className={`soc-chip shrink-0 px-3 py-1 text-[12px] ${filter === id ? "on" : ""}`}
             onClick={() => setFilter(id)}
           >
             {label}
@@ -454,7 +469,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
         <div className="flex gap-1.5">
           <button
             type="button"
-            className="rounded-full border border-[#FACC15]/80 bg-transparent px-2.5 py-1 text-[12px] font-semibold text-[#FACC15]"
+            className="soc-chip px-2.5 py-1 text-[12px]"
             onClick={() => setTrendOpen(true)}
           >
             Trending
@@ -540,7 +555,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
               {linkState(f) === "in" ? (
               <button
                 type="button"
-                className="rounded-full border border-[#FACC15] bg-transparent px-2.5 py-1 text-[10px] font-bold text-[#FACC15]"
+                className="soc-chip px-2.5 py-1 text-[10px]"
                 onClick={() => {
                   if (!authed) return goLogin();
                   setDmFor(f);
@@ -598,7 +613,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
               className="min-w-0 flex-1 rounded-[10px] border border-line bg-bg px-2 py-1.5 outline-none"
               style={{ fontSize: 16 }}
             />
-            <button type="submit" disabled={dmBusy} className="rounded-full border border-[#FACC15] bg-transparent px-2.5 text-[11px] font-bold text-[#FACC15] disabled:opacity-60">
+            <button type="submit" disabled={dmBusy} className="soc-chip px-2.5 text-[11px] disabled:opacity-60">
               {dmBusy ? "…" : "Send"}
             </button>
           </div>
@@ -644,7 +659,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
               <button
                 key={k.id}
                 type="button"
-                className={`shrink-0 rounded-[10px] border px-1.5 py-0.5 text-[10px] font-semibold ${kind === k.id ? "border-[#FACC15] text-[#FACC15]" : "border-transparent text-muted"}`}
+                className={`soc-chip shrink-0 px-1.5 py-0.5 text-[10px] ${kind === k.id ? "on" : ""}`}
                 onClick={() => setKind(k.id)}
               >
                 {k.label}
@@ -652,7 +667,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
             ))}
           </div>
           <span className="shrink-0 text-[9px] tabular-nums text-muted">{body.length}/280</span>
-          <button type="button" disabled={busy || body.trim().length < 1} className="min-w-14 shrink-0 rounded-full border border-[#FACC15] bg-[#FACC15] px-2.5 py-1 text-[11px] font-bold text-black disabled:opacity-50" onClick={() => void post()}>
+          <button type="button" disabled={busy || body.trim().length < 1} className="btn-join min-w-14 shrink-0 rounded-full px-3 py-1 text-[11px] font-bold disabled:opacity-50" onClick={() => void post()}>
             {busy ? "Sending" : "Post"}
           </button>
         </div>
@@ -972,13 +987,13 @@ function TakeCard({
                 onClick={() => window.dispatchEvent(new CustomEvent("kilode:read", { detail: take.meta.quoteHref }))}
               >
                 <div className="text-[10px] text-muted">{String(take.meta.quoteName || "")} @{String(take.meta.quoteHandle || "")}</div>
-                <div className="text-[12px] leading-snug text-fg/80">{String(take.meta.quoteBody || "")}</div>
+                <div className="text-[12px] leading-snug text-fg/80">{plainBits(String(take.meta.quoteBody || ""))}</div>
                 <div className="mt-1 text-[10px] font-semibold text-lime-2">Open story</div>
               </button>
             ) : (
               <div className="mt-1.5 rounded-[10px] border border-line px-2 py-1.5">
                 <div className="text-[10px] text-muted">{String(take.meta.quoteName || "")} @{String(take.meta.quoteHandle || "")}</div>
-                <div className="text-[12px] leading-snug text-fg/80">{String(take.meta.quoteBody || "")}</div>
+                <div className="text-[12px] leading-snug text-fg/80">{plainBits(String(take.meta.quoteBody || ""))}</div>
               </div>
             )
           ) : null}

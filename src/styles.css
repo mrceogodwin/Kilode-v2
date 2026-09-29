@@ -1134,7 +1134,7 @@ html[data-skin="ivory"] .dock {
   height: 6px;
   flex-shrink: 0;
   border-radius: 99px;
-  background: #ef4444;
+  background: #3ddc6a;
   box-shadow: none;
 }
 .trend-chip {
@@ -2533,4 +2533,26 @@ html:not([data-skin="ivory"]) .brand-word-k {
   -webkit-text-fill-color: #6b9e78 !important;
 }
 html:not([data-skin="ivory"]) .brand-url { color: #8fbf9a; }
+.soc-chip {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #121212;
+  color: #f2f2f0;
+  font-weight: 700;
+}
+.soc-chip.on {
+  border-color: rgba(107, 158, 120, 0.65);
+  background: #141816;
+  color: #e7f3ea;
+}
+html[data-skin="ivory"] .soc-chip {
+  background: #fff;
+  color: #111;
+  border-color: #c5d0c6;
+}
+html[data-skin="ivory"] .soc-chip.on {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
 

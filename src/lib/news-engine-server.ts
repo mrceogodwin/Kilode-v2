@@ -172,6 +172,14 @@ function decodeXml(s: string) {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
+    .replace(/&#(\d+);/g, (_, n) => {
+      const c = Number(n);
+      return c > 0 && c < 0x110000 ? String.fromCodePoint(c) : _;
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => {
+      const c = parseInt(h, 16);
+      return c > 0 && c < 0x110000 ? String.fromCodePoint(c) : _;
+    })
     .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'")
     .replace(/<[^>]+>/g, " ")
