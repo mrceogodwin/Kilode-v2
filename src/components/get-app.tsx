@@ -102,14 +102,14 @@ export function DigestBox({ quiet = false, defaultOpen = true }: { quiet?: boole
 export function MenuPin() {
   return (
     <div className="menu-dock shrink-0 border-t border-white/10 px-3 py-2.5">
-      <DigestBox quiet />
+      <DigestBox quiet defaultOpen={false} />
     </div>
   );
 }
 
 export function MenuLegal({ onDonate }: { onDonate?: () => void }) {
   return (
-    <div className="shrink-0 border-t border-white/5 px-4 py-3">
+    <div className="shrink-0 border-t border-white/5 px-3 py-1.5">
       <p className="text-center text-[10px] leading-snug text-muted">
         <a href="/terms" className="underline">
           Terms

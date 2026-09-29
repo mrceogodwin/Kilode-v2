@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Award,
   Bookmark,
@@ -636,21 +636,23 @@ function QonvoAppInner() {
               .filter((c) => c.status === "approved")
               .flatMap((c) => [c, c])
               .map((c, i) => (
-                <span key={c.id + "t" + i} className="shrink-0 text-lime-2">
-                  Ad · {c.name}
-                </span>
+                <button
+                  key={c.id + "ad" + i}
+                  type="button"
+                  className="ad-chip"
+                  onClick={() => {
+                    if (c.link) window.location.href = c.link;
+                    else setHomeTab("advert");
+                  }}
+                >
+                  {c.image ? <img src={c.image} alt="" /> : <i>{(c.name || "A").slice(0, 1)}</i>}
+                  {c.name}
+                </button>
               ))}
           </div>
-          <a href="/advertise" className="ads-slot" aria-label="Ads">
-            <span>Ads</span>
-            <span className="ads-run">
-              {(store.campaigns.filter((c) => c.status === "approved").map((c) => c.name).slice(0, 10).concat(["Glo", "MTN", "Airtel", "DStv", "Opay", "PalmPay", "Kuda", "Jumia", "Bet9ja", "Cowry"]).slice(0, 10)).concat(
-                store.campaigns.filter((c) => c.status === "approved").map((c) => c.name).slice(0, 10).concat(["Glo", "MTN", "Airtel", "DStv", "Opay", "PalmPay", "Kuda", "Jumia", "Bet9ja", "Cowry"]).slice(0, 10),
-              ).map((name, i) => (
-                <em key={name + i}><i>{name.slice(0, 1)}</i>{name}</em>
-              ))}
-            </span>
-          </a>
+          <button type="button" className="ads-mini" onClick={() => { setScreen("home"); setHomeTab("advert"); }}>
+            Ads
+          </button>
         </div>
       </header>
 
@@ -1433,6 +1435,7 @@ function QonvoAppInner() {
               </DrawerGroup>
             </div>
             <MenuPin />
+            <MemberTicker />
             <MenuLegal onDonate={() => { setDonateOpen(true); setMenuOpen(false); }} />
           </aside>
           <button type="button" className="flex-1 bg-black/60" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
@@ -1714,7 +1717,8 @@ function FriendBlock({
         {rows.map((r) => {
           const on = live.includes(r.handle.toLowerCase());
           return (
-          <div key={r.dir + r.id} className={`menu-row flex items-center gap-2 rounded-xl px-2.5 py-2 ${active === r.handle ? "ring-1 ring-white/40" : ""}`}>
+          <div key={r.dir + r.id} className={`rounded-xl ${active === r.handle ? "bg-white/5" : ""}`}>
+          <div className="menu-row flex items-center gap-2 rounded-xl px-2.5 py-2">
             <button
               type="button"
               className="flex min-w-0 flex-1 items-center gap-2 text-left"
@@ -1750,6 +1754,24 @@ function FriendBlock({
                 No
               </button>
             ) : null}
+          </div>
+          {active === r.handle && onMessage ? (
+            <form
+              className="flex gap-1 px-2 pb-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const input = e.currentTarget.elements.namedItem("body") as HTMLInputElement;
+                const text = input.value.trim();
+                if (!text) return;
+                void sendDm({ data: { to: r.handle, body: text } }).then(() => {
+                  input.value = "";
+                });
+              }}
+            >
+              <input name="body" maxLength={500} placeholder={`Message @${r.handle}`} className="min-w-0 flex-1 rounded-[10px] border border-white/20 bg-black px-2 py-1.5 text-[13px] text-white outline-none" style={{ fontSize: 16 }} />
+              <button type="submit" className="rounded-full bg-white px-3 text-[11px] font-bold text-black">Send</button>
+            </form>
+          ) : null}
           </div>
           );
         })}
@@ -2672,7 +2694,6 @@ function DeskLine({
 }
 
 function MembersRail({ onOpen }: { onOpen: (handle: string) => void }) {
-  const scroller = useRef<HTMLDivElement>(null);
   const [rows, setRows] = useState<{ id: string; handle: string; title: string; image: string }[]>([]);
   useEffect(() => {
     let dead = false;
@@ -2716,32 +2737,26 @@ function MembersRail({ onOpen }: { onOpen: (handle: string) => void }) {
       dead = true;
     };
   }, []);
-  function nudge(dir: number) {
-    scroller.current?.scrollBy({ left: dir * 132, behavior: "smooth" });
-  }
   if (!rows.length) return null;
+  const loop = [...rows, ...rows];
   return (
-    <section className="members-card">
-      <div className="members-head">
-        <span>Members</span>
-        <div className="flex gap-1">
-          <button type="button" className="round-arrow" aria-label="Previous members" onClick={() => nudge(-1)}>
-            <ChevronLeft className="size-3.5" />
-          </button>
-          <button type="button" className="round-arrow" aria-label="Next members" onClick={() => nudge(1)}>
-            <ChevronRight className="size-3.5" />
-          </button>
-        </div>
-      </div>
-      <div ref={scroller} className="members-row">
-        {rows.map((p) => (
-          <button key={p.id} type="button" className="member-dot" aria-label={p.handle} onClick={() => onOpen(p.handle)}>
+    <div className="member-tick">
+      <span>Members</span>
+      <div>
+        {loop.map((p, i) => (
+          <button key={p.id + i} type="button" onClick={() => onOpen(p.handle)}>
             <img src={p.image} alt="" />
+            <em>@{p.handle}</em>
+            <strong>{p.title}</strong>
           </button>
         ))}
       </div>
-    </section>
+    </div>
   );
+}
+
+function MemberTicker() {
+  return <MembersRail onOpen={(handle) => { window.location.href = `/u/${encodeURIComponent(handle)}`; }} />;
 }
 
 function PulseStrip({ posts }: { posts: { category?: string; views?: number }[] }) {
@@ -2936,12 +2951,10 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
           {lane === "following" && follows && live.length === 0 ? (
             <p className="col-span-4 py-6 text-center text-[12px] text-muted">Connect with people on Socials. Their posts show here. Nothing is invented.</p>
           ) : null}
-          {live.filter((p) => !!p?.id).slice(0, shown).map((p, i, all) => {
+          {live.filter((p) => !!p?.id).slice(0, shown).map((p) => {
             const hot = (p.views ?? 0) >= 350 || (p.comments?.length ?? 0) >= 6;
-            const showMembers = !needle && (i === 3 || (all.length < 4 && i === all.length - 1));
             return (
-            <Fragment key={p.id}>
-            <div role="button" tabIndex={0} data-feed-card="1" className="glass-3d overflow-hidden text-left" onClick={() => store.setOpenPost(p.id)} onKeyDown={(e) => { if (e.key === "Enter") store.setOpenPost(p.id); }}>
+            <div key={p.id} role="button" tabIndex={0} data-feed-card="1" className="glass-3d overflow-hidden text-left" onClick={() => store.setOpenPost(p.id)} onKeyDown={(e) => { if (e.key === "Enter") store.setOpenPost(p.id); }}>
               <div className="relative">
                 {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
                 {hot ? (
@@ -2998,12 +3011,6 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
                 </div>
               </div>
             </div>
-            {showMembers ? (
-              <div className="col-span-4">
-                <MembersRail onOpen={(handle) => { window.location.href = `/u/${encodeURIComponent(handle)}`; }} />
-              </div>
-            ) : null}
-            </Fragment>
             );
           })}
         </div>

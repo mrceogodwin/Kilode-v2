@@ -438,9 +438,79 @@
   color: rgba(255, 255, 255, 0.55);
   white-space: nowrap;
 }
-.kilode-wordimg { height: 22px; width: auto; }
-.kilode-wordimg.login { height: 34px; }
-.login-brand { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.brand-lockup { display: inline-flex; align-items: center; max-width: 148px; }
+.kilode-lockimg { display: block; height: 28px; width: auto; max-width: 148px; object-fit: contain; object-position: left center; }
+.kilode-lockimg.sm { height: 26px; }
+.kilode-lockimg.lg { height: 46px; max-width: 220px; }
+.login-logo { display: flex; justify-content: center; max-width: none; }
+.login-logo .kilode-lockimg { height: 46px; max-width: 220px; }
+.ads-mini {
+  flex: 0 0 auto;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  box-shadow: 0 1px 0 #000;
+}
+.ad-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  font-weight: 700;
+}
+.ad-chip img, .ad-chip i {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: #222;
+  color: #fff;
+  font-style: normal;
+  font-size: 8px;
+  display: grid;
+  place-items: center;
+}
+.member-tick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 10px 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 3px 4px 3px 10px;
+}
+.member-tick > span {
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f4f6f5;
+}
+.member-tick > div {
+  display: flex;
+  min-width: 0;
+  gap: 14px;
+  animation: ads-slide 22s linear infinite;
+}
+.member-tick button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  color: #fff;
+  font-size: 11px;
+}
+.member-tick img { width: 16px; height: 16px; border-radius: 999px; object-fit: cover; }
+.member-tick em { font-style: normal; color: #facc15; font-weight: 700; }
+.member-tick strong { font-weight: 500; color: rgba(255,255,255,0.82); max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.menu-dock { padding-top: 6px !important; padding-bottom: 6px !important; }
   .desk-live {
     animation: desk-pulse 1.6s ease-in-out infinite;
   }
