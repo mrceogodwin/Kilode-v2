@@ -1267,7 +1267,7 @@ function QonvoAppInner() {
                       <button
                         key={q.label}
                         type="button"
-                        className="menu-row flex items-center gap-2.5 rounded-xl px-3 py-3 text-left"
+                        className="menu-row flex items-center gap-2 rounded-lg px-2.5 py-2 text-left"
                         onClick={() => {
                           if (!signedIn && q.id !== "home") {
                             window.location.href = q.id === "inbox" ? "/login" : "/login?mode=up";

@@ -2555,4 +2555,39 @@ html[data-skin="ivory"] .soc-chip.on {
   color: #fff;
   border-color: #111;
 }
+.room-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  padding: 5px 8px;
+  text-align: left;
+}
+.room-row.on {
+  border-color: rgba(107, 158, 120, 0.4);
+  background: rgba(255, 255, 255, 0.03);
+}
+.room-ico {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #141414;
+  color: #e7eee9;
+}
+.room-join {
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(107, 158, 120, 0.45);
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #d7f0de;
+}
 
