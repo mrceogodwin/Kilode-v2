@@ -184,7 +184,7 @@ function FriendsBlock({ rows, onChange, onBack }: { rows: ConnectRow[]; onChange
 function Stat({ n, l }: { n: number; l: string }) {
   return (
     <div className="raised rounded-2xl px-1.5 py-2.5 text-center">
-      <div className="text-lg font-extrabold tabular-nums text-lime-2">{fmtCount(n)}</div>
+      <div className="text-lg font-extrabold tabular-nums text-fg">{fmtCount(n)}</div>
       <div className="text-[10px] text-muted">{l}</div>
       {n === 0 ? <div className="mt-0.5 text-[9px] text-muted/80">none yet</div> : null}
     </div>
@@ -714,7 +714,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   return (
     <div className="mx-auto max-w-2xl p-4 pb-28">
       <div className="me-hero relative mb-4 overflow-hidden rounded-2xl border border-line bg-panel">
-        <div className="h-20 bg-gradient-to-br from-lime-2/35 via-lime-2/10 to-transparent" />
+        <div className="h-14 bg-[#121212]" />
         <div className="-mt-8 flex items-end gap-3 px-4">
           <AvatarImg handle={store.handle} face={faceSrc} size={76} className="rounded-full ring-2 ring-bg" />
           <div className="min-w-0 pb-1">
@@ -723,13 +723,13 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
               {store.verified ? <VerifiedMark /> : null}
             </div>
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-              {staffLabel ? <span className="rounded-full bg-lime-2 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-[#102016]">{staffLabel}</span> : null}
-              <span className="rounded-full bg-lime-2/15 px-2 py-0.5 text-[10px] font-bold text-lime-2">{kindLabel}</span>
+              {staffLabel ? <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-fg">{staffLabel}</span> : null}
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-bold text-muted">{kindLabel}</span>
               {store.city ? <span className="truncate text-[11px] text-muted">{store.city}</span> : null}
             </div>
           </div>
         </div>
-        <p className="px-4 pt-3 text-[10px] font-bold tracking-[0.16em] text-lime-2">{staffLabel ? `${staffLabel} desk` : hubTitleFor(kind)}</p>
+        <p className="px-4 pt-3 text-[10px] font-bold tracking-[0.16em] text-muted">{staffLabel ? `${staffLabel} desk` : hubTitleFor(kind)}</p>
         <p className="px-4 pt-1 text-[13px] leading-snug text-fg/90">{store.bio?.trim() || "No bio yet. Edit profile to add one."}</p>
         {!store.verified ? <a href={`/u/${encodeURIComponent(store.handle || "me")}`} className="mt-1 block px-4 text-[12px] font-bold text-lime-2">Get verified</a> : null}
         {store.interests ? <p className="px-4 pt-1 text-[11px] text-muted">{store.interests.split(",").join(" · ")}</p> : null}
@@ -763,10 +763,10 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       </div>
       <p className="mb-3 text-sm text-muted">{purpose}</p>
       {staffRole ? (
-        <section className="mb-3 rounded-2xl border border-lime-2/40 bg-panel p-3">
-          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">YOUR POWER</div>
+        <section className="mb-3 rounded-2xl border border-white/10 bg-panel p-3">
+          <div className="text-[10px] font-bold tracking-[0.16em] text-muted">YOUR POWER</div>
           <p className="mt-1 text-[12px] leading-snug text-muted">{staffPowers}</p>
-          <a href={STAFF_PATH} className="btn-join mt-2 inline-flex rounded-lg px-3 py-2 text-[13px] font-bold">
+          <a href={STAFF_PATH} className="btn-3d mt-2 inline-flex rounded-lg px-3 py-2 text-[13px] font-bold">
             Staff desk
           </a>
         </section>
@@ -785,7 +785,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           ] as const
         ).map(([label, Icon, go]) => (
           <button key={label} type="button" onClick={go} className="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-full border border-line bg-panel px-1 py-2 text-[11px] font-semibold">
-            <Icon className="size-3.5 shrink-0 text-lime-2" />
+            <Icon className="size-3.5 shrink-0 text-fg/80" />
             <span className="truncate">{label}</span>
           </button>
         ))}

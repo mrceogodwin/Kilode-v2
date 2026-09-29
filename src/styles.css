@@ -2486,8 +2486,8 @@ html:not([data-skin="ivory"]) .app-tab {
 }
 html:not([data-skin="ivory"]) .app-tab.on {
   color: #f3faf5 !important;
-  background: linear-gradient(180deg, #4a7a56 0%, #2a4f34 100%) !important;
-  border-color: rgba(107, 158, 120, 0.4) !important;
+  background: linear-gradient(180deg, #243028 0%, #141a16 100%) !important;
+  border-color: rgba(107, 158, 120, 0.28) !important;
 }
 html:not([data-skin="ivory"]) .menu-sheet {
   background: #0e0e0e !important;
