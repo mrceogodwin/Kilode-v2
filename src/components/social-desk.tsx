@@ -45,6 +45,7 @@ export function SocialDesk({ takes, fellows, me }: { takes: Take[]; fellows: Fel
   const [saved, setSaved] = useState("");
   const [pins, setPins] = useState<string[]>([]);
   const [open, setOpen] = useState("streak");
+  const [more, setMore] = useState(false);
 
   useEffect(() => {
     const s = read<{ day: string; n: number }>("kilode-streak", { day: "", n: 0 });
@@ -168,7 +169,29 @@ export function SocialDesk({ takes, fellows, me }: { takes: Take[]; fellows: Fel
 
   return (
     <section className="social-desk">
-      <header>Come back for this</header>
+      <header className="desk-head">
+        <span>Come back for this</span>
+        <button type="button" className="desk-more-btn" aria-label="More on Socials" onClick={() => setMore((v) => !v)}>
+          ···
+        </button>
+      </header>
+      {more ? (
+        <div className="desk-more">
+          {[
+            ["Rooms", "/?tab=chat"],
+            ["Messages", "/?open=inbox"],
+            ["Marketplace", "/?open=market"],
+            ["Music", "/?tab=music"],
+            ["Cinema", "/?tab=cinema"],
+            ["Jobs", "/?open=jobs"],
+            ["Ads", "/?tab=advert"],
+            ["Saved", "/?open=bookmarks"],
+            ["Kilode TV", "/?open=tv"],
+          ].map(([label, href]) => (
+            <a key={label} href={href}>{label}</a>
+          ))}
+        </div>
+      ) : null}
       <div className="desk-grid">
         {cards.map((c) => (
           <button key={c.id} type="button" className={open === c.id ? "on" : ""} onClick={() => setOpen(c.id)}>

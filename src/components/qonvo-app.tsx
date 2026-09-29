@@ -278,6 +278,22 @@ function QonvoAppInner() {
     };
   }, [signedIn, store.handle, screen]);
   useEffect(() => {
+    const dock = document.querySelector<HTMLElement>(".dock");
+    const vv = window.visualViewport;
+    if (!dock || !vv) return;
+    const pin = () => {
+      const gap = Math.round(window.innerHeight - vv.height - vv.offsetTop);
+      dock.style.bottom = gap > 0 && gap < 96 ? `${gap}px` : "0px";
+    };
+    pin();
+    vv.addEventListener("resize", pin);
+    vv.addEventListener("scroll", pin);
+    return () => {
+      vv.removeEventListener("resize", pin);
+      vv.removeEventListener("scroll", pin);
+    };
+  }, []);
+  useEffect(() => {
     if (!signedIn) return;
     const beat = () => {
       void pingPresence({ data: { roomId: store.roomId || "lounge", typing: false } }).catch(() => undefined);
@@ -360,10 +376,15 @@ function QonvoAppInner() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("tab") === "socials") setHomeTab("socials");
-    if (params.get("open") === "inbox") setScreen("inbox");
-    if (params.get("open") === "me") setScreen("dashboard");
-    if (params.get("open") !== "inbox" && params.get("open") !== "me") return;
+    if (params.get("tab") === "socials" || params.get("tab") === "chat" || params.get("tab") === "music" || params.get("tab") === "cinema" || params.get("tab") === "advert" || params.get("tab") === "feeds") {
+      setHomeTab(params.get("tab") as typeof homeTab);
+    }
+    const open = params.get("open");
+    if (open === "inbox" || open === "jobs" || open === "market" || open === "bookmarks" || open === "tv" || open === "pricing") {
+      setScreen(open === "tv" ? "tv" : open);
+    }
+    if (open === "me") setScreen("dashboard");
+    if (!open) return;
     params.delete("open");
     const next = params.toString();
     window.history.replaceState({}, "", `${window.location.pathname}${next ? `?${next}` : ""}${window.location.hash}`);
@@ -839,7 +860,7 @@ function QonvoAppInner() {
               <div className="relative flex min-h-0 flex-1 flex-col">
               <div
                 ref={scroller}
-                className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-3"
+                className="chat-scroll flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-3"
                 onScroll={() => {
                   const el = scroller.current;
                   if (!el) return;
@@ -941,7 +962,7 @@ function QonvoAppInner() {
                 }}
               />
               <form
-                className="chat-compose relative z-30 flex shrink-0 flex-wrap gap-2 border-t border-white/10 bg-[#101010] p-2 backdrop-blur-md mb-[calc(4.85rem+env(safe-area-inset-bottom))]"
+                className="chat-compose relative z-30 flex shrink-0 items-center gap-2 border-t border-line px-2 py-2"
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (store.livePausedUntil > Date.now()) return;
@@ -998,8 +1019,8 @@ function QonvoAppInner() {
                   </div>
                 ) : null}
                 {signedIn ? (
-                  <button type="button" className="btn-3d grid size-11 place-items-center rounded-full" onClick={() => setEmojiOpen((o) => !o)} aria-label="Emoji">
-                    <Smile className="size-4 text-lime-2" />
+                  <button type="button" className="chat-emoji" onClick={() => setEmojiOpen((o) => !o)} aria-label="Emoji">
+                    <Smile className="size-5" />
                   </button>
                 ) : null}
                 <input

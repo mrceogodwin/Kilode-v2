@@ -77,7 +77,7 @@ function Section({
       <div className="mb-2 flex items-end justify-between gap-2">
         <div>
           <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">{kicker}</div>
-          <h3 className="text-[15px] font-extrabold leading-tight">{title}</h3>
+          <h3 className="me-title text-[15px] font-extrabold leading-tight">{title}</h3>
         </div>
         {action && onAction ? (
           <button type="button" onClick={onAction} className="shrink-0 text-[11px] font-semibold text-lime-2">
@@ -1496,7 +1496,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       </Section>
 
       <Section kicker="UPDATES" title="Email digest">
-        <div className="raised rounded-2xl border border-line p-3">
+        <div className="digest-card raised rounded-2xl border border-line p-3">
           <p className="mb-2 text-[12px] text-muted">Get new public posts by email, one at a time. No spam.</p>
           <DigestBox quiet defaultOpen />
         </div>

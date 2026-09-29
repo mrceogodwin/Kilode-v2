@@ -137,11 +137,17 @@ export function QonvoScreen({
 }
 
 function PricingPage() {
+  const [rates, setRates] = useState<{ verifyUsd: number; eventUsd: number } | null>(null);
+  useEffect(() => {
+    void listPayMethods()
+      .then((r) => setRates({ verifyUsd: r.verifyUsd, eventUsd: r.eventUsd }))
+      .catch(() => undefined);
+  }, []);
   const plans = [
     { name: "Member", price: "Free", note: "Post, chat, apply, and browse. No card.", href: "/login?mode=up", cta: "Join" },
-    { name: "Verified", price: "From $5", note: "Paid badge. Staff still approve it. The live rate is whatever the desk has set.", href: "/?open=me", cta: "Get verified" },
-    { name: "Event", price: "From $10", note: "A listed event. Pay, then it goes to the queue.", href: "/?tab=cinema", cta: "List an event" },
-    { name: "Ad placement", price: "You set it", note: "30-day placement. Paystack, Flutterwave, or crypto. Staff switch it live.", href: "/advertise", cta: "Place an ad" },
+    { name: "Verified", price: rates ? `$${rates.verifyUsd}` : "Set in Super admin", note: "Paid badge. Staff still approve it. Change the number in Super admin → Verification fee.", href: "/?open=me", cta: "Get verified" },
+    { name: "Event", price: rates ? `$${rates.eventUsd}` : "Set in Super admin", note: "A listed event. Pay, then it goes to the queue. Change it under Event listing fee.", href: "/?tab=cinema", cta: "List an event" },
+    { name: "Ad placement", price: "You set it", note: "30-day placement. Paystack, Flutterwave, or crypto. Staff switch it live. Ad prices live in the catalog.", href: "/advertise", cta: "Place an ad" },
   ];
   return (
     <div className="price-page mx-auto max-w-lg px-4 py-5">
@@ -2986,6 +2992,7 @@ function NewsEnginePanel({ store }: { store: Store }) {
   const [exclude, setExclude] = useState("");
   const [maxAgeHours, setMaxAgeHours] = useState(168);
   const [busy, setBusy] = useState(false);
+  const [job, setJob] = useState<"" | "fetch" | "publish">("");
   const [msg, setMsg] = useState("");
   const [llm, setLlm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -3029,11 +3036,16 @@ function NewsEnginePanel({ store }: { store: Store }) {
             Nigeria, Africa, world. Real RSS, real thumbnails only — no fake photos. {llm ? "LLM rewrite keyed." : "Kilode-voice rewrite."} Archive or delete any story in Feeds desk.
           </p>
         </div>
+        <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          disabled={busy}
+          disabled={job !== ""}
           className="btn-3d rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (job) return;
+            setJob("fetch");
             setBusy(true);
             setMsg("");
             void fetchNewsLatest({
@@ -3048,17 +3060,24 @@ function NewsEnginePanel({ store }: { store: Store }) {
                 setMsg(`Fetched ${r.fetched} · new drafts ${r.created}${r.errors.length ? ` · ${r.errors.slice(0, 2).join("; ")}` : ""} · store ${r.store}`);
                 reload();
               })
-              .catch((e) => setMsg(e instanceof Error ? e.message : "Fetch failed"))
-              .finally(() => setBusy(false));
+              .catch((err) => setMsg(err instanceof Error ? err.message : "Fetch failed"))
+              .finally(() => {
+                setJob("");
+                setBusy(false);
+              });
           }}
         >
-          {busy ? "Fetching…" : "Fetch latest"}
+          {job === "fetch" ? "Fetching…" : "Fetch latest"}
         </button>
         <button
           type="button"
-          disabled={busy}
+          disabled={job !== ""}
           className="btn-join rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (job) return;
+            setJob("publish");
             setBusy(true);
             setMsg("");
             void publishNewsWeek()
@@ -3066,12 +3085,16 @@ function NewsEnginePanel({ store }: { store: Store }) {
                 setMsg(`This week on Feeds: ${r.published} with real photos (${r.withPhoto} ready · ${r.candidates} this week · ${r.feeds} feeds). ${r.errors.length ? r.errors[0] : ""}`);
                 reload();
               })
-              .catch((e) => setMsg(e instanceof Error ? e.message : "Publish failed"))
-              .finally(() => setBusy(false));
+              .catch((err) => setMsg(err instanceof Error ? err.message : "Publish failed"))
+              .finally(() => {
+                setJob("");
+                setBusy(false);
+              });
           }}
         >
-          {busy ? "Publishing…" : "Put this week on Feeds"}
+          {job === "publish" ? "Publishing…" : "Put this week on Feeds"}
         </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-1">

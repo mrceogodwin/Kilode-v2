@@ -96,7 +96,7 @@ export function NotifyBell({
         {badge > 0 ? <span className="absolute top-1 right-1 size-1.5 rounded-full bg-[#ef4444]" /> : null}
       </button>
       {open ? (
-        <div className="fixed top-[calc(env(safe-area-inset-top,0px)+4.75rem)] right-2 z-50 w-[min(340px,calc(100vw-1rem))] overflow-hidden rounded-2xl border border-line bg-panel shadow-2xl">
+        <div className="note-sheet fixed top-[calc(env(safe-area-inset-top,0px)+4.75rem)] right-2 z-50 w-[min(340px,calc(100vw-1rem))] overflow-hidden rounded-2xl border border-line shadow-2xl">
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
             <div className="text-[11px] font-bold">{signedIn ? "Your alerts" : "Latest on Kilode"}</div>
             {signedIn ? (
@@ -156,7 +156,7 @@ export function NotifyBell({
                     }}
                   >
                     {p.image ? <img src={p.image} alt="" className="h-9 w-11 rounded-md object-cover" /> : <div className="h-9 w-11 rounded-md bg-panel-3" />}
-                    <span className="line-clamp-2 text-[11px] font-semibold leading-snug">{p.title}</span>
+                    <span className="note-title line-clamp-2 text-[12px] font-semibold leading-snug">{p.title}</span>
                   </button>
                 ))}
           </div>

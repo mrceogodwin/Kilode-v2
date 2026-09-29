@@ -79,13 +79,13 @@ export function DigestBox({ quiet = false, defaultOpen = true }: { quiet?: boole
               autoComplete="email"
               required
               aria-label="Email for post updates"
-              className="min-h-9 flex-1 rounded-lg border border-line bg-bg px-2.5 text-[12px]"
+              className="digest-field min-h-9 flex-1 rounded-lg border border-line px-2.5 text-[13px]"
             />
             <button
               type="submit"
               className={
                 quiet
-                  ? "rounded-lg border border-lime-2/40 bg-lime-2/15 px-3 py-2 text-[11px] font-bold text-lime-2"
+                  ? "digest-go rounded-lg px-3 py-2 text-[12px] font-bold"
                   : "btn-join rounded-lg px-3 py-2 text-[11px] font-bold"
               }
             >
