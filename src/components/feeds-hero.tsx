@@ -292,7 +292,7 @@ function HeroSlide({
           <button
             type="button"
             aria-label="Repost to chat"
-            className="absolute top-2 right-2 z-20 grid size-9 place-items-center rounded-full border border-white/25 bg-black/55 text-white shadow-[0_6px_16px_rgba(0,0,0,0.45)] backdrop-blur-sm"
+            className="hero-repost absolute top-2 right-2 z-20 grid size-9 place-items-center rounded-full"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -302,7 +302,7 @@ function HeroSlide({
             <Repeat2 className="size-4" strokeWidth={2.5} />
           </button>
         ) : null}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/55 to-transparent px-3 pt-16 pb-3">
+        <div className="hero-caption absolute inset-x-0 bottom-0 px-3 pt-8 pb-3">
           <span className="inline-flex rounded-full bg-black/50 px-2 py-0.5 text-[9px] font-bold tracking-[0.14em] text-[#b7f0c8] ring-1 ring-white/15">
             {(p.category || "NEWS").toUpperCase()}
           </span>
@@ -393,7 +393,7 @@ function HeroMedia({
           </span>
         </span>
       ) : null}
-      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-3 pt-10 pb-4 text-left">
+      <span className="hero-caption absolute inset-x-0 bottom-0 px-3 pt-6 pb-4 text-left">
         <span className="text-[9px] font-medium tracking-[0.16em] text-lime-2">{badge}</span>
         <span className="mt-0.5 block line-clamp-2 text-[13px] font-medium leading-snug text-white">{title}</span>
         {note ? <span className="mt-0.5 block line-clamp-1 text-[11px] font-normal text-white/70">{note}</span> : null}

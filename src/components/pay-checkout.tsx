@@ -92,7 +92,7 @@ export function GatewayPay({
       </button>
       {err ? <p className="mt-2 text-[12px] text-danger">{err}</p> : null}
       {open ? (
-        <div className="mt-3 rounded-xl border border-[#FACC15]/40 bg-black/40 p-3">
+        <div className="mt-3 rounded-xl border border-[#e6c56a]/40 bg-black/40 p-3">
           <p className="text-[12px] leading-5">Finish the payment in the {label} window, then come back. This checks every few seconds.</p>
           <p className="mt-1 text-[11px] text-muted">₦{ngn.toLocaleString("en-NG")} · {ref}</p>
           <div className="mt-2 flex gap-2">

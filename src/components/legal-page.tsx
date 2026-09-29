@@ -60,7 +60,7 @@ export function LegalPage({
                 <Link
                   key={p.href}
                   to={p.href}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold md:rounded-xl ${on ? "bg-[#FACC15] text-black" : "border border-line bg-panel text-fg"}`}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold md:rounded-xl ${on ? "bg-[#e6c56a] text-black" : "border border-line bg-panel text-fg"}`}
                 >
                   {p.label}
                 </Link>
@@ -78,7 +78,7 @@ export function LegalPage({
               <section key={`${s.n}-${s.title}-${s.lines[0] ?? "x"}`} className="min-w-0 rounded-2xl border border-line bg-panel p-4">
                 <div className="flex min-w-0 items-start gap-3">
                   {s.n ? (
-                    <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#FACC15] text-[12px] font-extrabold text-black">{s.n}</span>
+                    <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#e6c56a] text-[12px] font-extrabold text-black">{s.n}</span>
                   ) : null}
                   <div className="min-w-0 flex-1">
                     {s.title ? <h2 className="break-words text-[15px] font-extrabold leading-snug">{s.title}</h2> : null}

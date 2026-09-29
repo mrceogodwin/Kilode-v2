@@ -2165,7 +2165,7 @@ function ArtistStage({ artist, onClose }: { artist: ArtistCard; onClose: () => v
       <div className="artist-hero">
         <span className="artist-hero-face">{artist.cover ? <img src={artist.cover} alt="" /> : artist.name.slice(0, 1)}</span>
         <div className="min-w-0">
-          <div className="text-[10px] font-bold tracking-[0.16em] text-[#FACC15]">{artist.role.toUpperCase()}</div>
+          <div className="text-[10px] font-bold tracking-[0.16em] text-[#e6c56a]">{artist.role.toUpperCase()}</div>
           <h2 className="truncate text-2xl font-extrabold tracking-tight">{artist.name}</h2>
           <p className="mt-1 text-[12px] font-semibold text-fg">Kilode Artist · verified</p>
           <p className="text-[11px] text-muted">{artist.genre || "Music"} · {host}</p>
@@ -2849,7 +2849,7 @@ function InFeed({ posts, onOpen }: { posts: { id: string; title?: string; image?
   );
 }
 
-function PulseStrip({ posts }: { posts: { category?: string; views?: number }[] }) {
+function PulseStrip({ posts, onOpen }: { posts: { category?: string; views?: number }[]; onOpen: () => void }) {
   const counts = new Map<string, number>();
   for (const p of posts) {
     const c = p.category || "General";
@@ -2859,7 +2859,7 @@ function PulseStrip({ posts }: { posts: { category?: string; views?: number }[] 
   if (!top.length) return null;
   const max = top[0][1] || 1;
   return (
-    <section className="pulse-card mb-3">
+    <button type="button" className="pulse-card mb-3 w-full text-left" onClick={onOpen}>
       <div className="mb-2 flex items-center gap-1.5">
         <svg viewBox="0 0 16 16" className="size-3.5 text-lime-2" aria-hidden>
           <path d="M2 12 6.1 7.6 8.5 9.8 14 3.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
@@ -2874,7 +2874,8 @@ function PulseStrip({ posts }: { posts: { category?: string; views?: number }[] 
           <em>{n} posts</em>
         </div>
       ))}
-    </section>
+      <div className="pulse-more">See more</div>
+    </button>
   );
 }
 
@@ -2982,7 +2983,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
             />
             <DeskLine onLane={setLane} onLeave={onLeave} onDesk={onDesk} />
             <InFeed posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
-            <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} />
+            <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} onOpen={() => onLeave("trending")} />
           </>
         )}
         <div className="mb-2">
@@ -3263,11 +3264,7 @@ function ChatLine({
   const repost = parseRepost(m.t || "");
   return (
     <div
-      className={`chat-bubble rounded-xl border px-2.5 py-1.5 ${
-        mine
-          ? "chat-bubble-mine border-lime-2/35 bg-lime-2/[0.07]"
-          : "border-line bg-panel"
-      }`}
+      className={`chat-bubble ${mine ? "chat-bubble-mine" : ""}`}
     >
       {m.parentN && m.parentT ? (
         <button type="button" className="mb-1 block w-full truncate rounded-md border border-line border-l-2 border-l-lime-2/50 bg-panel-2 px-2 py-1 text-left text-[11px] text-fg" onClick={() => onReply(m)}>

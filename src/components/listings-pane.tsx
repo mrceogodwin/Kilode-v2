@@ -324,7 +324,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
           </label>
           <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {MARKET_PILLS.map((c) => (
-              <button key={c} type="button" onClick={() => setCatPick(c)} className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold ${catPick === c ? "bg-[#FACC15] text-black" : "border border-line bg-panel text-fg"}`}>
+              <button key={c} type="button" onClick={() => setCatPick(c)} className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold ${catPick === c ? "bg-[#e6c56a] text-black" : "border border-line bg-panel text-fg"}`}>
                 {c}
               </button>
             ))}
@@ -338,7 +338,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             </label>
             <button
               type="button"
-              className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#FACC15] px-3 py-1.5 text-[12px] font-extrabold text-black"
+              className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#e6c56a] px-3 py-1.5 text-[12px] font-extrabold text-black"
               onClick={() => {
                 if (session.isPending) return;
                 if (!session.user) {
@@ -725,7 +725,7 @@ function JobBoard({
             {SALARY_BANDS.map((t) => <option key={t}>{t}</option>)}
           </select>
         </label>
-        <button type="button" onClick={onPost} className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-[#FACC15] px-3 py-1.5 text-[12px] font-extrabold text-black">
+        <button type="button" onClick={onPost} className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-[#e6c56a] px-3 py-1.5 text-[12px] font-extrabold text-black">
           <Plus className="size-3.5" /> Post a job
         </button>
       </div>
@@ -761,7 +761,7 @@ function JobBoard({
 
       <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {JOB_PILLS.map((pill) => (
-          <button key={pill} type="button" onClick={() => setJobPill(pill)} className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-bold ${jobPill === pill ? "bg-[#FACC15] text-black" : "border border-line bg-panel"}`}>
+          <button key={pill} type="button" onClick={() => setJobPill(pill)} className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-bold ${jobPill === pill ? "bg-[#e6c56a] text-black" : "border border-line bg-panel"}`}>
             {pill === "All" ? <Briefcase className="size-3.5" /> : pill === "Tech" ? <Laptop className="size-3.5" /> : pill === "Creative" ? <Pencil className="size-3.5" /> : null}
             {pill}
           </button>
@@ -772,8 +772,8 @@ function JobBoard({
         <div className="mb-2 flex items-end justify-between">
           <h3 className="text-[15px] font-extrabold">Open roles</h3>
           <div className="flex gap-3 text-[12px] font-bold">
-            <button type="button" className={roleTab === "foryou" ? "border-b-2 border-[#FACC15]" : "text-muted"} onClick={() => setRoleTab("foryou")}>For you</button>
-            <button type="button" className={roleTab === "recommended" ? "border-b-2 border-[#FACC15]" : "text-muted"} onClick={() => setRoleTab("recommended")}>Recommended</button>
+            <button type="button" className={roleTab === "foryou" ? "border-b-2 border-[#e6c56a]" : "text-muted"} onClick={() => setRoleTab("foryou")}>For you</button>
+            <button type="button" className={roleTab === "recommended" ? "border-b-2 border-[#e6c56a]" : "text-muted"} onClick={() => setRoleTab("recommended")}>Recommended</button>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -843,7 +843,7 @@ function MarketBoard({ rows, onOpen, onSell }: { rows: Card[]; onOpen: (r: Card)
                     <div className="line-clamp-2 text-[11px] font-bold leading-tight">{r.title}</div>
                     <div className="mt-0.5 flex items-center gap-0.5 text-[9px] text-muted"><MapPin className="size-2.5" /> {r.city || "Nigeria"}</div>
                     <div className="truncate text-[9px] text-muted">@{r.submitter}</div>
-                    <div className="text-[11px] font-extrabold text-[#FACC15]">{naira(meta.price) || "Ask"}</div>
+                    <div className="text-[11px] font-extrabold text-[#e6c56a]">{naira(meta.price) || "Ask"}</div>
                   </div>
                 </button>
               );
@@ -866,7 +866,7 @@ function MarketBoard({ rows, onOpen, onSell }: { rows: Card[]; onOpen: (r: Card)
                 <Shot src={cover(r)} className="size-16 shrink-0 rounded-xl object-cover" />
                 <span className="min-w-0">
                   <span className="line-clamp-2 block text-[12px] font-bold leading-tight">{r.title}</span>
-                  <span className="mt-0.5 block text-[13px] font-extrabold text-[#FACC15]">{naira(meta.price) || "Ask"}</span>
+                  <span className="mt-0.5 block text-[13px] font-extrabold text-[#e6c56a]">{naira(meta.price) || "Ask"}</span>
                   <span className="flex items-center gap-0.5 text-[10px] text-muted"><MapPin className="size-3" /> {r.city || "Nigeria"}</span>
                   <span className="block truncate text-[10px] text-muted">@{r.submitter}</span>
                   <span className="block text-[10px] text-muted">{[meta.condition, timeAgo(r.ts)].filter(Boolean).join(" · ")}</span>
@@ -902,7 +902,7 @@ function MarketBoard({ rows, onOpen, onSell }: { rows: Card[]; onOpen: (r: Card)
                 <Shot src={cover(r)} className="size-10 shrink-0 rounded-lg object-cover" />
                 <span className="min-w-0">
                   <span className="block truncate text-[11px] font-bold">{r.title}</span>
-                  <span className="block text-[11px] font-extrabold text-[#FACC15]">{naira(meta.price) || "Ask"}</span>
+                  <span className="block text-[11px] font-extrabold text-[#e6c56a]">{naira(meta.price) || "Ask"}</span>
                   <span className="block text-[9px] text-muted">{timeAgo(r.ts)}</span>
                 </span>
               </button>
@@ -911,7 +911,7 @@ function MarketBoard({ rows, onOpen, onSell }: { rows: Card[]; onOpen: (r: Card)
         </div>
       </section>
 
-      <button type="button" onClick={onSell} className="flex w-full items-center justify-center gap-1 rounded-full bg-[#FACC15] py-3 text-[14px] font-extrabold text-black">
+      <button type="button" onClick={onSell} className="flex w-full items-center justify-center gap-1 rounded-full bg-[#e6c56a] py-3 text-[14px] font-extrabold text-black">
         <Plus className="size-4" /> Sell something
       </button>
     </>

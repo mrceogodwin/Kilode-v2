@@ -72,11 +72,11 @@ export function SpacesPane() {
           <article key={s.id} className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
             <div className="relative h-24 bg-black/40">
               {s.banner ? <img src={s.banner} alt="" className="h-full w-full object-cover" /> : null}
-              <span className="absolute top-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-[#FACC15]">{s.status}</span>
+              <span className="absolute top-2 left-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-[#e6c56a]">{s.status}</span>
             </div>
             <div className="p-3">
               <div className="flex items-center gap-2">
-                <span className="grid size-10 place-items-center overflow-hidden rounded-full border border-[#FACC15] bg-black text-[11px] font-extrabold">
+                <span className="grid size-10 place-items-center overflow-hidden rounded-full border border-[#e6c56a] bg-black text-[11px] font-extrabold">
                   {s.logo ? <img src={s.logo} alt="" className="h-full w-full object-cover" /> : s.name.slice(0, 2).toUpperCase()}
                 </span>
                 <div className="min-w-0">
@@ -96,7 +96,7 @@ export function SpacesPane() {
           </article>
         ))}
         <button type="button" className="grid min-h-48 place-items-center rounded-2xl border border-dashed border-white/20 p-4 text-center" onClick={() => (session.user ? setCreating(true) : (window.location.href = "/login"))}>
-          <Plus className="size-8 text-[#FACC15]" />
+          <Plus className="size-8 text-[#e6c56a]" />
           <div className="mt-2 font-extrabold">Create new space</div>
           <div className="text-[12px] text-muted">A page people can open from Kilode.</div>
         </button>
@@ -205,7 +205,7 @@ function Storefront({ space, mine, onBack }: { space: SpaceCard; mine: boolean; 
       </div>
       <div className="mx-auto max-w-3xl px-3">
         <div className="-mt-8 flex items-end gap-3">
-          <span className="grid size-16 place-items-center overflow-hidden rounded-full border-2 border-[#FACC15] bg-black text-lg font-extrabold">
+          <span className="grid size-16 place-items-center overflow-hidden rounded-full border-2 border-[#e6c56a] bg-black text-lg font-extrabold">
             {space.logo ? <img src={space.logo} alt="" className="h-full w-full object-cover" /> : space.name.slice(0, 1)}
           </span>
           <div className="min-w-0 flex-1 pb-1">
@@ -231,7 +231,7 @@ function Storefront({ space, mine, onBack }: { space: SpaceCard; mine: boolean; 
           <div className="mt-3 space-y-2 text-[13px]">
             <p>{space.description}</p>
             <p className="text-muted">{space.hours}</p>
-            {space.website ? <a className="text-[#FACC15]" href={space.website} target="_blank" rel="noreferrer">{space.website}</a> : null}
+            {space.website ? <a className="text-[#e6c56a]" href={space.website} target="_blank" rel="noreferrer">{space.website}</a> : null}
           </div>
         ) : (
           <div className="mt-3 grid grid-cols-2 gap-2">
@@ -239,7 +239,7 @@ function Storefront({ space, mine, onBack }: { space: SpaceCard; mine: boolean; 
               <article key={item.id} className="overflow-hidden rounded-2xl border border-white/10">
                 {item.image ? <img src={item.image} alt="" className="h-24 w-full object-cover" /> : <div className="h-16 bg-white/5" />}
                 <div className="p-2">
-                  {item.badge ? <div className="text-[10px] font-bold text-[#FACC15]">{item.badge}</div> : null}
+                  {item.badge ? <div className="text-[10px] font-bold text-[#e6c56a]">{item.badge}</div> : null}
                   <div className="text-[13px] font-bold">{item.title}</div>
                   <div className="text-[12px]">{item.price ? `₦${item.price}` : ""} {item.duration}</div>
                   {wa ? <a className="mt-1 block rounded-full bg-black px-2 py-1 text-center text-[11px] font-bold text-white" href={`https://wa.me/${wa}?text=${encodeURIComponent(item.title)}`}>Book now</a> : null}
@@ -262,7 +262,7 @@ function Storefront({ space, mine, onBack }: { space: SpaceCard; mine: boolean; 
             <div className="text-[12px] font-bold">Add to this space</div>
             <div className="flex gap-2">
               {(["service", "product", "offer"] as const).map((k) => (
-                <button key={k} type="button" className={`rounded-full px-2 py-1 text-[11px] ${kind === k ? "bg-[#FACC15] text-black" : "border border-white/15"}`} onClick={() => setKind(k)}>{k}</button>
+                <button key={k} type="button" className={`rounded-full px-2 py-1 text-[11px] ${kind === k ? "bg-[#e6c56a] text-black" : "border border-white/15"}`} onClick={() => setKind(k)}>{k}</button>
               ))}
             </div>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5" />

@@ -137,26 +137,26 @@ function Login() {
                   }}
                 />
                 <AvatarPicker compact value={face} handle={name} onChange={setFace} />
-                <div className="space-y-1.5 rounded-xl border border-white/10 px-2 py-2">
-                  <label className="flex items-start gap-2 text-[11px] leading-snug text-muted">
-                    <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+                <div className="login-agree">
+                  <label>
+                    <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
                     <span>
                       I agree to the{" "}
-                      <a href="/terms" className="font-semibold text-fg underline" target="_blank" rel="noreferrer">
+                      <a href="/terms" target="_blank" rel="noreferrer">
                         Terms
                       </a>
                       .
                     </span>
                   </label>
-                  <label className="flex items-start gap-2 text-[11px] leading-snug text-muted">
-                    <input type="checkbox" className="mt-0.5" checked={agreeRules} onChange={(e) => setAgreeRules(e.target.checked)} />
+                  <label>
+                    <input type="checkbox" checked={agreeRules} onChange={(e) => setAgreeRules(e.target.checked)} />
                     <span>
                       I accept the{" "}
-                      <a href="/rules" className="font-semibold text-fg underline" target="_blank" rel="noreferrer">
+                      <a href="/rules" target="_blank" rel="noreferrer">
                         Rules
                       </a>
                       . I am 15 or older and responsible for what I submit.{" "}
-                      <a href="/how-to" className="font-semibold text-fg underline" target="_blank" rel="noreferrer">
+                      <a href="/how-to" target="_blank" rel="noreferrer">
                         How to use
                       </a>
                       .
@@ -205,7 +205,9 @@ function Login() {
           <p className="text-sm text-muted">Sign-in is disabled.</p>
         )}
       </div>
-      <p className="login-id">@BuiltbyStacks</p>
+      <a className="login-id" href="https://t.me/Builtbystacks" target="_blank" rel="noreferrer">
+        @BuiltbyStacks
+      </a>
     </main>
   );
 }

@@ -173,7 +173,7 @@ export function EventsPane() {
 
       <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {CATS.map((c) => (
-          <button key={c} type="button" onClick={() => setCat(c)} className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold capitalize ${cat === c ? "bg-[#FACC15] text-black" : "border border-line bg-panel text-fg"}`}>
+          <button key={c} type="button" onClick={() => setCat(c)} className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold capitalize ${cat === c ? "bg-[#e6c56a] text-black" : "border border-line bg-panel text-fg"}`}>
             {c === "all" ? "All" : c}
           </button>
         ))}
@@ -261,14 +261,14 @@ export function EventsPane() {
               <article key={e.id} className="w-[78%] max-w-[240px] shrink-0 overflow-hidden rounded-2xl border border-line bg-panel">
                 <div className="relative h-28">
                   <Cover src={e.cover} cat={e.category} />
-                  <span className="absolute left-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-[#FACC15]">{e.category}</span>
+                  <span className="absolute left-2 top-2 rounded-md bg-black/70 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-[#e6c56a]">{e.category}</span>
                 </div>
                 <div className="p-2.5">
                   <h3 className="line-clamp-2 text-[13px] font-extrabold leading-tight">{e.title}</h3>
                   <p className="mt-1 flex items-center gap-1 text-[10px] text-muted"><Calendar className="size-3" /> {whenPretty(e.startsAt)}</p>
                   <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] text-muted"><MapPin className="size-3 shrink-0" /> {e.place || "Venue TBA"}</p>
                   <p className="mt-0.5 flex items-center gap-1 text-[10px] text-lime-2"><Users className="size-3" /> {e.rsvps} going</p>
-                  <button type="button" className="mt-2 w-full rounded-full border border-[#FACC15]/70 py-1.5 text-[11px] font-bold text-[#FACC15]" onClick={() => openEvent(e)}>
+                  <button type="button" className="mt-2 w-full rounded-full border border-[#e6c56a]/70 py-1.5 text-[11px] font-bold text-[#e6c56a]" onClick={() => openEvent(e)}>
                     {e.link ? "Get Tickets" : e.mine ? "You're in" : "RSVP"}
                   </button>
                 </div>
@@ -284,7 +284,7 @@ export function EventsPane() {
           {CATS.filter((c): c is EventCat => c !== "all").map((c) => {
             const Icon = CAT_ICON[c];
             return (
-              <button key={c} type="button" onClick={() => setCat(c)} className={`rounded-2xl border px-2 py-3 text-center ${cat === c ? "border-[#FACC15] bg-[#FACC15]/10" : "border-line bg-panel"}`}>
+              <button key={c} type="button" onClick={() => setCat(c)} className={`rounded-2xl border px-2 py-3 text-center ${cat === c ? "border-[#e6c56a] bg-[#e6c56a]/10" : "border-line bg-panel"}`}>
                 <Icon className="mx-auto size-5 text-lime-2" />
                 <div className="mt-1 text-[11px] font-bold capitalize">{c}</div>
               </button>

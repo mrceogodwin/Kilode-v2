@@ -182,9 +182,9 @@ export function SiteFooter() {
     { key: "subs", label: "Subscribers", value: subs },
   ];
   return (
-    <footer className="site-foot mt-5 overflow-hidden rounded-2xl px-3 py-4 sm:px-3.5">
+    <footer className="site-foot mt-5 overflow-hidden rounded-2xl px-3.5 py-4 sm:px-4">
       {session.isPending || signedIn ? null : (
-        <>
+        <div className="text-center">
           <div className="flex items-center justify-center gap-2.5">
             <span className="kilode-bang-3d" aria-hidden>
               <img src="/kilode-bang-mark-white.png" alt="" />
@@ -194,24 +194,39 @@ export function SiteFooter() {
               <h2 className="kilode-wordmark mt-0.5" style={{ fontSize: 26 }}>Join Kilode</h2>
             </div>
           </div>
-          <p className="mx-auto mt-2 max-w-[18rem] text-center text-[12px] leading-snug text-white/70">Password only. No email to sign up. {joinHint}</p>
+          <p className="mx-auto mt-2 max-w-[20rem] text-[12px] leading-snug text-white/75">
+            Password only. No email to sign up. {joinHint}
+          </p>
+          <p className="mx-auto mt-1 max-w-[20rem] text-[12px] leading-snug text-white/60">{ABOUT_SHORT}</p>
+          <a href="/about" className="mt-1 inline-block text-[11px] font-semibold text-lime-2 underline-offset-2 hover:underline">
+            Read the full about
+          </a>
           <a
             href="/login?mode=up"
             className="btn-yellow mt-3 flex min-h-11 w-full items-center justify-center rounded-full px-3 text-[14px] font-extrabold text-black"
           >
             Create account
           </a>
-          <p className="mt-1.5 text-center text-[11px] text-muted">
+          <p className="mt-1.5 text-[11px] text-muted">
             Already here?{" "}
-            <a href="/login?mode=in" className="font-semibold text-[#FACC15] underline-offset-2 hover:underline">
+            <a href="/login?mode=in" className="font-semibold text-[#e6c56a] underline-offset-2 hover:underline">
               Sign in
             </a>
           </p>
-        </>
+        </div>
       )}
 
-      <div className="foot-panel mt-3">
-      <div className="foot-stats grid grid-cols-4 overflow-hidden rounded-xl" aria-label="Site stats">
+      {signedIn ? (
+        <div className="text-center">
+          <p className="text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">About Kilode</p>
+          <p className="mx-auto mt-1 max-w-[20rem] text-[12px] leading-snug text-muted">{ABOUT_SHORT}</p>
+          <a href="/about" className="mt-1 inline-block text-[11px] font-semibold text-lime-2 underline-offset-2 hover:underline">
+            Read the full about
+          </a>
+        </div>
+      ) : null}
+
+      <div className="foot-stats mt-3 grid grid-cols-4 overflow-hidden rounded-xl" aria-label="Site stats">
         {stats.map((s) => (
           <div key={s.key} className="foot-stat px-1 py-1.5 text-center">
             <div className="flex items-center justify-center gap-0.5">
@@ -223,16 +238,7 @@ export function SiteFooter() {
         ))}
       </div>
 
-      <div className="foot-section mt-3 border-t pt-2.5 text-center">
-        <img src="/kilode-word.png" alt="Kilode" className="foot-mark mx-auto mb-2 h-7 w-auto" />
-        <p className="text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">About Kilode</p>
-        <p className="mx-auto mt-1 max-w-[18rem] px-2 text-center text-[11px] leading-snug break-words text-muted">{ABOUT_SHORT}</p>
-        <a href="/about" className="mt-1 inline-block text-[11px] font-semibold text-lime-2 underline-offset-2 hover:underline">
-          Read the full about
-        </a>
-      </div>
-
-      <div className="foot-section mt-3 border-t pt-2.5">
+      <div className="mt-3 border-t border-white/10 pt-2.5">
         <div className="mb-1.5 text-center text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">Share Kilode</div>
         <div className="grid grid-cols-5 gap-0.5">
           <ShareChip label="X" count={n.x} className="bg-black text-white ring-1 ring-white/25" onClick={() => share("x")}>
@@ -253,12 +259,12 @@ export function SiteFooter() {
         </div>
       </div>
 
-      <div className="foot-section mt-2.5 space-y-2 border-t pt-2.5">
+      <div className="mt-2.5 border-t border-white/10 pt-2.5">
         <div className="foot-digest rounded-xl px-2.5 pt-2 pb-2">
           <div className="mb-1.5 text-center text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">Email updates</div>
           <DigestBox quiet defaultOpen />
         </div>
-      </div>
+        <img src="/kilode-word.png" alt="Kilode" className="foot-mark mx-auto mt-3 h-7 w-auto" />
       </div>
 
       <p className="mt-2.5 text-center text-[10px] leading-snug text-muted">

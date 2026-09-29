@@ -4,6 +4,7 @@ import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { seoHead } from "@/lib/seo";
 import appCss from "../styles.css?url";
 import { OfficialLockup } from "@/components/brand-lockup";
+import { OfflineToast } from "@/components/offline-toast";
 
 const base = seoHead({ path: "/" });
 
@@ -81,9 +82,17 @@ export const Route = createRootRoute({
       </head>
       <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh" }}>
         <PreviewHostBridge />
+        <OfflineToast />
         <AuthProvider>
           <Outlet />
         </AuthProvider>
+        {import.meta.env.PROD ? (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").catch(function(){})})}`,
+            }}
+          />
+        ) : null}
         <Scripts />
       </body>
     </html>

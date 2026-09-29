@@ -78,7 +78,7 @@ function YourSlot({ onCreate }: { onCreate: () => void }) {
     <div className="flex min-h-[168px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-2 py-3 text-center">
       <div className="text-[13px] font-bold">Your ad here</div>
       <p className="mt-1 text-[11px] text-muted">Reach thousands on Kilode.</p>
-      <button type="button" className="mt-3 rounded-full border border-[#FACC15] px-3 py-1 text-[12px] font-extrabold text-[#FACC15]" onClick={onCreate}>
+      <button type="button" className="mt-3 rounded-full border border-[#e6c56a] px-3 py-1 text-[12px] font-extrabold text-[#e6c56a]" onClick={onCreate}>
         Place ad
       </button>
     </div>

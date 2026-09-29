@@ -183,7 +183,7 @@ function FriendsBlock({ rows, onChange, onBack }: { rows: ConnectRow[]; onChange
 
 function Stat({ n, l }: { n: number; l: string }) {
   return (
-    <div className="raised rounded-2xl px-1.5 py-2.5 text-center">
+    <div className="me-stat rounded-2xl px-1.5 py-2.5 text-center">
       <div className="text-lg font-extrabold tabular-nums text-fg">{fmtCount(n)}</div>
       <div className="text-[10px] text-muted">{l}</div>
       {n === 0 ? <div className="mt-0.5 text-[9px] text-muted/80">none yet</div> : null}
@@ -216,7 +216,7 @@ function ActionTile({
     <button
       type="button"
       onClick={onClick}
-      className="raised flex flex-col items-start gap-1.5 rounded-2xl p-2.5 text-left transition hover:border-lime-2/40"
+      className="me-action raised flex flex-col items-start gap-1.5 rounded-2xl p-2.5 text-left"
     >
       <span className="grid size-8 place-items-center rounded-xl bg-lime-2/15 text-lime-2">
         <Icon className="size-4" />
@@ -716,8 +716,8 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       <div className="me-hero relative mb-4 overflow-hidden rounded-2xl border border-line bg-panel">
         <div className="flex items-end gap-3 px-4 pt-4">
           <AvatarImg handle={store.handle} face={faceSrc} size={76} className="rounded-full ring-2 ring-bg" />
-          <div className="min-w-0 pb-1">
-            <div className="flex items-center gap-1 truncate text-xl font-extrabold tracking-tight">
+          <div className="min-w-0 flex-1 pb-1">
+            <div className="flex flex-wrap items-center gap-1 text-[18px] font-extrabold leading-tight tracking-tight">
               @{store.handle}
               {store.verified ? <VerifiedMark /> : null}
             </div>
@@ -772,7 +772,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         <FriendsBlock rows={connects} onChange={loadConnects} onBack={() => setMePane(null)} />
       ) : (
       <>
-      <div className="mb-3 flex gap-1.5">
+      <div className="me-shortcuts mb-3">
         {(
           [
             ["Friends", Users, () => setMePane("friends")],
@@ -781,9 +781,9 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             ["Messages", MessageSquare, () => goto({ screen: "inbox" })],
           ] as const
         ).map(([label, Icon, go]) => (
-          <button key={label} type="button" onClick={go} className="flex min-w-0 flex-1 items-center justify-center gap-1 rounded-full border border-line bg-panel px-1 py-2 text-[11px] font-semibold">
+          <button key={label} type="button" onClick={go} className="me-chip">
             <Icon className="size-3.5 shrink-0 text-fg/80" />
-            <span className="truncate">{label}</span>
+            <span>{label}</span>
           </button>
         ))}
       </div>
