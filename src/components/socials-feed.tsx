@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -137,6 +137,43 @@ function TrendPage({ onClose, faces, live }: { onClose: () => void; faces: Recor
 
 const KEY = "kilode-takes-v3";
 
+const bag = new Map<string, unknown>();
+
+export function readBag<T>(key: string, fallback: T): T {
+  if (bag.has(key)) return bag.get(key) as T;
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = sessionStorage.getItem("kbag:" + key);
+    if (!raw) return fallback;
+    const value = JSON.parse(raw) as T;
+    bag.set(key, value);
+    return value;
+  } catch {
+    return fallback;
+  }
+}
+
+export function writeBag(key: string, value: unknown) {
+  bag.set(key, value);
+  try {
+    sessionStorage.setItem("kbag:" + key, JSON.stringify(value));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function linksFrom(rows: ConnectRow[]) {
+  const next: Record<string, "out" | "in" | "ask"> = {};
+  for (const r of rows) {
+    const state = r.dir === "friend" ? "in" : r.dir === "out" ? "out" : r.dir === "in" ? "ask" : undefined;
+    if (!state) continue;
+    if (next[r.id] !== "in") next[r.id] = state;
+    const handle = (r.handle || "").toLowerCase();
+    if (handle && next[handle] !== "in") next[handle] = state;
+  }
+  return next;
+}
+
 function bootCache(): { takes: TakeRow[]; fellows: FellowRow[] } {
   if (typeof window === "undefined") return { takes: [], fellows: [] };
   try {
@@ -242,7 +279,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
     if (!pillsFor(account).some((k) => k.id === kind)) setKind("take");
   }, [account, kind]);
   const [busy, setBusy] = useState(false);
-  const [linked, setLinked] = useState<Record<string, "out" | "in" | "ask">>({});
+  const [linked, setLinked] = useState<Record<string, "out" | "in" | "ask">>(() => linksFrom(readBag<ConnectRow[]>("connects", [])));
   const likeLock = useRef(new Set<string>());
   const [dmFor, setDmFor] = useState<FellowRow | null>(null);
   const [dmBody, setDmBody] = useState("");
@@ -331,6 +368,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
           if (handle && next[handle] !== "in") next[handle] = state;
         }
         setLinked(next);
+        writeBag("connects", rows);
       })
       .catch(() => undefined);
   }, [authed]);

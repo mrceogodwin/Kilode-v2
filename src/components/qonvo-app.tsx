@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, startTransition } from "react";
 import {
   Award,
   Bookmark,
@@ -91,7 +91,7 @@ import { BrandLockup } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
 import { DESKS, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
-import { SocialsFeed, openSocialFellows, shareNewsToSocials } from "@/components/socials-feed";
+import { SocialsFeed, openSocialFellows, readBag, shareNewsToSocials, writeBag } from "@/components/socials-feed";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -254,7 +254,10 @@ function QonvoAppInner() {
   const [staffChip, setStaffChip] = useState("");
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [forceOnboard, setForceOnboard] = useState(false);
-  const [screen, setScreen] = useState<MenuId>("home");
+  const [screen, setScreenNow] = useState<MenuId>("home");
+  const setScreen = (id: MenuId) => startTransition(() => setScreenNow(id));
+  const [homeTab, setHomeTabNow] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials">("feeds");
+  const setHomeTab = (tab: "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials") => startTransition(() => setHomeTabNow(tab));
   useEffect(() => {
     if (!signedIn) {
       setDmCount(0);
@@ -269,14 +272,18 @@ function QonvoAppInner() {
         if (dmSeen.current && n > dmSeen.current) pingMessage();
         dmSeen.current = n;
         setDmCount(n);
+        writeBag("inbox", rows);
       })
       .catch(() => {
         if (!stop) setDmCount(0);
       });
+    void listConnects()
+      .then((rows) => writeBag("connects", rows))
+      .catch(() => undefined);
     return () => {
       stop = true;
     };
-  }, [signedIn, store.handle, screen]);
+  }, [signedIn, store.handle]);
   useEffect(() => {
     const dock = document.querySelector<HTMLElement>(".dock");
     const vv = window.visualViewport;
@@ -303,7 +310,6 @@ function QonvoAppInner() {
     return () => window.clearInterval(id);
   }, [signedIn, store.roomId]);
   const [roomsOpen, setRoomsOpen] = useState(false);
-  const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials">("feeds");
   useEffect(() => {
     if (session.isPending || signedIn) return;
     if (screen === "home" && homeTab === "feeds") return;
@@ -690,8 +696,7 @@ function QonvoAppInner() {
         </div>
       </header>
 
-      {screen === "home" ? (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className={screen === "home" ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "hidden"} aria-hidden={screen !== "home"}>
           {homeTab === "feeds" && !marketDesk ? (
             <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-2 py-1">
               {feedSearchOn ? (
@@ -1117,7 +1122,7 @@ function QonvoAppInner() {
             </aside>
           </div>
         </div>
-      ) : (
+      {screen !== "home" ? (
         <div className="min-h-0 flex-1 overflow-hidden">
           <QonvoScreen
             id={screen}
@@ -1129,7 +1134,7 @@ function QonvoAppInner() {
             }}
           />
         </div>
-      )}
+      ) : null}
 
       <InstallToast />
       {signedIn && !session.user?.isDevFallback && (store.onboarded === 0 || (forceOnboard && store.onboarded !== 1)) ? (
@@ -1613,7 +1618,8 @@ function QonvoAppInner() {
 }
 
 function FriendsSheet({ onClose }: { onClose: () => void }) {
-  const [rows, setRows] = useState<ConnectRow[]>([]);
+  const [rows, setRows] = useState<ConnectRow[]>(() => readBag<ConnectRow[]>("connects", []));
+  const [ready, setReady] = useState(() => readBag<ConnectRow[]>("connects", []).length > 0);
   const [live, setLive] = useState<string[]>([]);
   const [err, setErr] = useState("");
   const [note, setNote] = useState("");
@@ -1622,8 +1628,15 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
   const [sending, setSending] = useState(false);
   useEffect(() => {
     void listConnects()
-      .then(setRows)
-      .catch(() => setErr("Could not load friends."));
+      .then((next) => {
+        setRows(next);
+        writeBag("connects", next);
+        setReady(true);
+      })
+      .catch(() => {
+        setReady(true);
+        setErr("Could not load friends.");
+      });
     void listLive().then(setLive).catch(() => setLive([]));
   }, []);
   const incoming = rows.filter((r) => r.dir === "in");
@@ -1641,7 +1654,10 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
         return listConnects();
       })
       .then((next) => {
-        if (next) setRows(next);
+        if (next) {
+          setRows(next);
+          writeBag("connects", next);
+        }
       })
       .catch(() => setErr("Could not update that request."));
   }
@@ -1651,7 +1667,11 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
         setErr(r.reason || "Could not update.");
         return;
       }
-      setRows((list) => list.filter((row) => row.id !== id));
+      setRows((list) => {
+        const next = list.filter((row) => row.id !== id);
+        writeBag("connects", next);
+        return next;
+      });
     });
   }
   function message(handle: string) {
@@ -1686,9 +1706,9 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
           {err ? <p className="text-[12px] text-danger">{err}</p> : null}
           {note ? <p className="text-[12px] text-muted">{note}</p> : null}
-          <FriendBlock title="Requests" empty="No requests." rows={incoming} live={live} onAccept={(id) => act(id, true)} onDecline={(id) => act(id, false)} />
-          <FriendBlock title="Friends" empty="Connect with someone on Socials." rows={friends} live={live} onMessage={message} onDisconnect={drop} active={chat} />
-          <FriendBlock title="Sent" empty="No pending asks." rows={outgoing} live={live} onDisconnect={drop} onWait={() => setNote("They have to accept before you can message.")} />
+          <FriendBlock title="Requests" empty="No requests." rows={incoming} live={live} settled={ready} onAccept={(id) => act(id, true)} onDecline={(id) => act(id, false)} />
+          <FriendBlock title="Friends" empty="Connect with someone on Socials." rows={friends} live={live} settled={ready} onMessage={message} onDisconnect={drop} active={chat} />
+          <FriendBlock title="Sent" empty="No pending asks." rows={outgoing} live={live} settled={ready} onDisconnect={drop} onWait={() => setNote("They have to accept before you can message.")} />
         </div>
         {chat ? (
           <form
@@ -1734,6 +1754,7 @@ function FriendBlock({
   onDisconnect,
   onWait,
   active,
+  settled,
 }: {
   title: string;
   empty: string;
@@ -1745,6 +1766,7 @@ function FriendBlock({
   onDisconnect?: (id: string) => void;
   onWait?: () => void;
   active?: string;
+  settled?: boolean;
 }) {
   const [shown, setShown] = useState(4);
   const list = rows.slice(0, shown);
@@ -1761,7 +1783,7 @@ function FriendBlock({
           ))}
         </div>
       ) : null}
-      {rows.length === 0 ? <p className="text-[12px] text-muted">{empty}</p> : null}
+      {settled && rows.length === 0 ? <p className="text-[12px] text-muted">{empty}</p> : null}
       <div className="space-y-2">
         {list.map((r) => {
           const on = live.includes(r.handle.toLowerCase());

@@ -3668,14 +3668,24 @@ html[data-skin="ivory"] .soc-chip {
   border-color: rgba(228, 181, 58, 0.32) !important;
 }
 html[data-skin="ivory"] .chat-bubble {
-  background: #fff !important;
-  border-color: rgba(40, 32, 18, 0.08) !important;
-  color: #1c1c1a !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9), 0 8px 18px rgba(70, 48, 12, 0.06);
+  background: #ebe4d6 !important;
+  border-color: rgba(40, 32, 18, 0.12) !important;
+  color: #14120e !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7), 0 8px 18px rgba(70, 48, 12, 0.06);
+}
+html[data-skin="ivory"] .chat-bubble,
+html[data-skin="ivory"] .chat-bubble .text-fg,
+html[data-skin="ivory"] .chat-bubble button,
+html[data-skin="ivory"] .chat-bubble span { color: #14120e !important; }
+html[data-skin="ivory"] .chat-bubble .text-muted { color: #5c564c !important; }
+html[data-skin="ivory"] .chat-bubble .bg-panel-2,
+html[data-skin="ivory"] .chat-bubble button.bg-panel-2 {
+  background: #ddd4c4 !important;
+  color: #14120e !important;
 }
 html[data-skin="ivory"] .chat-bubble-mine {
-  background: #fff8ea !important;
-  border-color: rgba(184, 134, 42, 0.4) !important;
+  background: #e4d8c0 !important;
+  border-color: rgba(184, 134, 42, 0.45) !important;
 }
 .chat-day {
   border: 1px solid rgba(228, 181, 58, 0.28);

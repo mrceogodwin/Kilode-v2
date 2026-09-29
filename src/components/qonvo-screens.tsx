@@ -20,6 +20,7 @@ import {
 } from "@/lib/news-engine-server";
 import { listWallets, getChatTtl } from "@/lib/forum-server";
 import { LEGAL_PAGES } from "@/lib/legal";
+import { readBag, writeBag } from "@/components/socials-feed";
 import { listAdCatalog } from "@/lib/ad-catalog-server";
 import { listPayMethods } from "@/lib/pay-gateways";
 import { GatewayPay } from "@/components/pay-checkout";
@@ -1551,14 +1552,23 @@ function Inbox() {
   const [to, setTo] = useState("");
   const [body, setBody] = useState("");
   const [msg, setMsg] = useState("");
-  const [rows, setRows] = useState<{ id: string; from: string; to: string; body: string; ts: number }[]>([]);
-  const [me, setMe] = useState("");
+  const [rows, setRows] = useState<{ id: string; from: string; to: string; body: string; ts: number }[]>(() => readBag("inbox", []));
+  const [ready, setReady] = useState(() => readBag<{ id: string }[]>("inbox", []).length > 0);
+  const [me, setMe] = useState(() => readBag("me", ""));
   function reload() {
     void listInbox()
-      .then(setRows)
-      .catch(() => setRows([]));
+      .then((next) => {
+        setRows(next);
+        writeBag("inbox", next);
+        setReady(true);
+      })
+      .catch(() => setReady(true));
     void getProfile()
-      .then((p) => setMe((p.handle || "").toLowerCase()))
+      .then((p) => {
+        const handle = (p.handle || "").toLowerCase();
+        setMe(handle);
+        writeBag("me", handle);
+      })
       .catch(() => undefined);
   }
   useEffect(() => {
@@ -1580,7 +1590,7 @@ function Inbox() {
     : [];
   return (
     <Screen kicker="YOU" title="Messages" sub="Tap a person. Write back. No username box.">
-      {threads.length === 0 ? <p className="text-sm text-muted">No messages yet. Message someone from Socials.</p> : null}
+      {ready && threads.length === 0 ? <p className="text-sm text-muted">No messages yet. Message someone from Socials.</p> : null}
       <div className="space-y-2">
         {threads.map((p) => (
           <button
