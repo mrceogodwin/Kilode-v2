@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { listNotes, markNotesRead } from "@/lib/social-server";
+import { replyConnect } from "@/lib/takes-server";
 import { timeAgo, type Post } from "@/lib/qonvo-data";
 
 export function NotifyBell({
@@ -116,12 +117,34 @@ export function NotifyBell({
           ) : null}
           <div className="max-h-72 overflow-y-auto">
             {signedIn
-              ? (notes.length ? notes.slice(0, 12).map((n) => (
-                  <button key={n.id} type="button" onClick={() => openNote(n)} className="block w-full border-b border-white/5 px-3 py-2 text-left text-[12px] hover:bg-panel-2">
-                    {n.text}
-                    <span className="mt-0.5 block text-[9px] text-muted">{timeAgo(n.ts)}</span>
-                  </button>
-                )) : <p className="px-3 py-4 text-[12px] text-muted">Quiet. Messages and replies land here.</p>)
+              ? (notes.length ? notes.slice(0, 12).map((n) => {
+                  const ask = /wants to connect/i.test(n.text);
+                  const handle = (/@([A-Za-z0-9._-]+)/.exec(n.text) || [])[1] || "";
+                  return (
+                    <div key={n.id} className="border-b border-white/5 px-3 py-2">
+                      <button type="button" onClick={() => openNote(n)} className="block w-full text-left text-[12px]">
+                        {n.text}
+                        <span className="mt-0.5 block text-[9px] text-muted">{timeAgo(n.ts)}</span>
+                      </button>
+                      {ask && handle ? (
+                        <button
+                          type="button"
+                          className="mt-1 rounded-full border border-white/20 px-2.5 py-1 text-[11px] font-bold"
+                          onClick={() => {
+                            void replyConnect({ data: { id: handle, accept: true } }).then((r) => {
+                              if (!r.ok) return;
+                              setNotes((list) => list.filter((x) => x.id !== n.id));
+                              setOpen(false);
+                              onOpenFriends?.();
+                            });
+                          }}
+                        >
+                          Accept
+                        </button>
+                      ) : null}
+                    </div>
+                  );
+                }) : <p className="px-3 py-4 text-[12px] text-muted">Quiet. Messages and replies land here.</p>)
               : latest.map((p) => (
                   <button
                     key={p.id}

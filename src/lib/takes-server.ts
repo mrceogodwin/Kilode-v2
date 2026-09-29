@@ -558,26 +558,28 @@ export const replyConnect = createServerFn({ method: "POST" })
     const sql = await getSql();
     await ensureConnects(sql);
     if (data.accept) {
-      const updated = await sql<{ user_id: string }>`update nf_connects set status = ${"accepted"}
-        where (
-          (user_id = ${id} and fellow_id = ${context.userId})
-          or (user_id = ${context.userId} and fellow_id = ${id})
-          or (fellow_id = ${context.userId} and user_id in (select user_id from nf_profiles where lower(handle) = lower(${id})))
-        )
-        returning user_id`;
+      const byHandle = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = lower(${id}) limit 1`;
+      const who = byHandle[0]?.user_id || id;
+      const updated = await sql<{ user_id: string; fellow_id: string }>`update nf_connects set status = ${"accepted"}
+        where (user_id = ${who} and fellow_id = ${context.userId})
+           or (user_id = ${context.userId} and fellow_id = ${who})
+        returning user_id, fellow_id`;
       if (!updated.length) return { ok: false as const, reason: "That request is not on this account." };
+      const themId = updated[0].user_id === context.userId ? updated[0].fellow_id : updated[0].user_id;
       const me = await profileOf(context.userId);
-      const them = await profileOf(updated[0].user_id === context.userId ? id : updated[0].user_id);
-      if (me.handle && me.handle !== "member") await pushNote(updated[0].user_id, `@${me.handle} accepted your connect.`, "/?open=friends");
+      const them = await profileOf(themId);
+      if (me.handle && me.handle !== "member") await pushNote(themId, `@${me.handle} accepted your connect.`, "/?open=friends");
       if (them.handle) {
         try {
-          await sql`delete from nf_notes where user_id = ${context.userId} and text ilike ${"@" + them.handle + " wants to connect%"}`;
+          await sql`delete from nf_notes where user_id = ${context.userId} and text ilike ${"%" + them.handle + " wants to connect%"}`;
         } catch {
           /* note table may be missing */
         }
       }
     } else {
-      await sql`delete from nf_connects where user_id = ${id} and fellow_id = ${context.userId}`;
+      const byHandle = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = lower(${id}) limit 1`;
+      const who = byHandle[0]?.user_id || id;
+      await sql`delete from nf_connects where (user_id = ${who} and fellow_id = ${context.userId}) or (user_id = ${context.userId} and fellow_id = ${who})`;
     }
     return { ok: true as const };
   });

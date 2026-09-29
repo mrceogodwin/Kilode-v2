@@ -1823,9 +1823,9 @@ html[data-skin="ivory"] .menu-sheet .menu-ico { color: #facc15; }
   place-items: center;
   overflow: hidden;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1.5px solid #6b9e78;
   background: #111;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 8px 16px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 2px rgba(107, 158, 120, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 8px 16px rgba(0, 0, 0, 0.35);
 }
 .round-face img { width: 100%; height: 100%; object-fit: cover; }
 .round-card em {
@@ -2635,6 +2635,29 @@ html[data-skin="ivory"] .members-kicker { color: #1a1e1b !important; }
 html[data-skin="ivory"] .me-hero {
   background: linear-gradient(180deg, #1c221f 0%, #121614 100%) !important;
 }
+.menu-press {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, #1c1c1c 0%, #121212 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 0 #050505;
+}
+.menu-press:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 0 #050505;
+}
+.skin-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #161616;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f4f6f5;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 0 #050505;
+}
+.skin-pill:active { transform: translateY(1px); }
 .room-row {
   display: flex;
   width: 100%;

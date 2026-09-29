@@ -1226,8 +1226,8 @@ function QonvoAppInner() {
                       { n: 0, l: "Saved" },
                     ]
                 ).map((s) => (
-                  <div key={s.l} className="menu-row rounded-xl px-2 py-2.5 text-center">
-                    <div className="text-sm font-bold text-[#FACC15]">{s.n}</div>
+                  <div key={s.l} className="menu-press rounded-xl px-2 py-2.5 text-center">
+                    <div className="text-sm font-bold text-fg">{s.n}</div>
                     <div className="text-[9px] text-muted">{s.l}</div>
                   </div>
                 ))}
@@ -1256,7 +1256,7 @@ function QonvoAppInner() {
                       <button
                         key={q.label}
                         type="button"
-                        className="menu-row flex items-center gap-2 rounded-lg px-2.5 py-2 text-left"
+                        className="menu-press flex items-center gap-2 rounded-xl px-2.5 py-2.5 text-left"
                         onClick={() => {
                           if (!signedIn && q.id !== "home") {
                             window.location.href = q.id === "inbox" ? "/login" : "/login?mode=up";
@@ -1270,7 +1270,7 @@ function QonvoAppInner() {
                           setMenuOpen(false);
                         }}
                       >
-                        <Icon className="size-4 shrink-0 text-[#FACC15]" />
+                        <Icon className="size-4 shrink-0 text-fg" />
                         <span className="text-[12px] font-semibold">{q.label}</span>
                       </button>
                     );
@@ -1575,18 +1575,20 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
   const outgoing = rows.filter((r) => r.dir === "out");
   const friends = rows.filter((r) => r.dir === "friend");
   function act(id: string, accept: boolean) {
-    void replyConnect({ data: { id, accept } }).then((r) => {
-      if (!r.ok) {
-        setErr(r.reason || "Could not update.");
-        return;
-      }
-      setRows((list) =>
-        list
-          .map((row) => (row.id === id ? { ...row, dir: accept ? ("friend" as const) : row.dir } : row))
-          .filter((row) => accept || row.id !== id || row.dir === "friend"),
-      );
-      if (!accept) setRows((list) => list.filter((row) => row.id !== id));
-    });
+    setErr("");
+    void replyConnect({ data: { id, accept } })
+      .then((r) => {
+        if (!r.ok) {
+          setErr(r.reason || "Could not update.");
+          return;
+        }
+        setNote(accept ? "Accepted. They are in Friends." : "Request removed.");
+        return listConnects();
+      })
+      .then((next) => {
+        if (next) setRows(next);
+      })
+      .catch(() => setErr("Could not update that request."));
   }
   function drop(id: string) {
     void disconnectFellow({ data: { id } }).then((r) => {
@@ -1724,7 +1726,7 @@ function FriendBlock({
             ) : null}
             <ReportMenu handle={r.handle} signedIn />
             {onAccept ? (
-              <button type="button" className="rounded-full border border-[#FACC15] px-2 py-1 text-[10px] font-bold text-[#FACC15]" onClick={() => onAccept(r.id)}>
+              <button type="button" className="menu-press rounded-full px-2.5 py-1 text-[10px] font-bold" onClick={() => onAccept(r.id)}>
                 Accept
               </button>
             ) : null}
@@ -1798,7 +1800,7 @@ function SkinToggle() {
   return (
     <button
       type="button"
-      className="hdr-ico"
+      className="skin-pill"
       aria-pressed={light}
       aria-label={light ? "Use dark skin" : "Use light skin"}
       onClick={() => {
@@ -1812,7 +1814,8 @@ function SkinToggle() {
         }
       }}
     >
-      {light ? <Moon className="size-4" /> : <Sun className="size-4" />}
+      {light ? <Moon className="size-3.5" /> : <Sun className="size-3.5" />}
+      {light ? "Dark" : "Light"}
     </button>
   );
 }

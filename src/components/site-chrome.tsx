@@ -64,6 +64,19 @@ function sid() {
   }
 }
 
+function decodeBits(s: string) {
+  let out = s;
+  for (let i = 0; i < 2; i++) {
+    out = out
+      .replace(/&/g, "&")
+      .replace(/&#(\d+);/g, (_, n) => {
+        const c = Number(n);
+        return c > 0 && c < 0x110000 ? String.fromCodePoint(c) : _;
+      });
+  }
+  return out;
+}
+
 export function TrendingTicker({ posts, onOpen }: { posts: Post[]; onOpen: (id: string) => void }) {
   const items = useMemo(() => {
     const ranked = [...posts]
@@ -92,7 +105,7 @@ export function TrendingTicker({ posts, onOpen }: { posts: Post[]; onOpen: (id: 
               className="shrink-0 font-medium hover:text-lime-2"
               onClick={() => onOpen(p.id)}
             >
-              {p.title}
+              {decodeBits(p.title)}
               <span className="ml-1.5 font-normal text-muted">{fmtCount(p.views ?? 0)}</span>
             </button>
           ))}
