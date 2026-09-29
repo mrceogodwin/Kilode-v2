@@ -2595,6 +2595,34 @@ html[data-skin="ivory"] .me-hero .btn-3d {
 html[data-skin="ivory"] .glass-3d button.border {
   color: #f4f6f5 !important;
 }
+.foot-panel {
+  margin-top: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(0, 0, 0, 0.18));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 16px rgba(0, 0, 0, 0.22);
+  padding: 8px 8px 10px;
+}
+.foot-3d {
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 0 rgba(0, 0, 0, 0.55),
+    0 6px 10px rgba(0, 0, 0, 0.32);
+}
+.foot-3d::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.42), transparent 42%, rgba(0, 0, 0, 0.22));
+  pointer-events: none;
+}
+.foot-share:active .foot-3d {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 0 rgba(0, 0, 0, 0.4);
+}
 .room-row {
   display: flex;
   width: 100%;

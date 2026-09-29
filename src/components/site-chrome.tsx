@@ -195,7 +195,8 @@ export function SiteFooter() {
         </>
       )}
 
-      <div className="foot-stats mt-3 grid grid-cols-4 overflow-hidden rounded-lg" aria-label="Site stats">
+      <div className="foot-panel mt-3">
+      <div className="foot-stats grid grid-cols-4 overflow-hidden rounded-xl" aria-label="Site stats">
         {stats.map((s) => (
           <div key={s.key} className="foot-stat px-1 py-1.5 text-center">
             <div className="flex items-center justify-center gap-0.5">
@@ -241,6 +242,7 @@ export function SiteFooter() {
           <div className="mb-1.5 text-center text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">Email updates</div>
           <DigestBox quiet defaultOpen />
         </div>
+      </div>
       </div>
 
       <p className="mt-2.5 text-center text-[10px] leading-snug text-muted">
@@ -295,7 +297,7 @@ function ShareChip({
       onClick={onClick}
       className="foot-share flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition hover:bg-white/5"
     >
-      <span className={`grid size-8 place-items-center rounded-full shadow-[0_1px_0_rgba(0,0,0,0.22)] ${className}`}>{children}</span>
+      <span className={`foot-3d grid size-9 place-items-center rounded-[10px] ${className}`}>{children}</span>
       <span className="text-[8px] font-semibold leading-none tracking-wide text-fg/90">{label}</span>
       <span className="text-[8px] tabular-nums text-muted">{fmtCount(count)}</span>
     </button>

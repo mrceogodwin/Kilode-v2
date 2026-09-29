@@ -2697,6 +2697,20 @@ function CircleRail({
         if (!row.image) continue;
         next.push({ id: row.id, title: row.title, image: row.image, where: "jobs" });
       }
+      if (next.length < 8) {
+        const fill = [
+          { id: "fill-ankara", title: "Ankara set", image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=400&q=70", where: "market" as const },
+          { id: "fill-phone", title: "Phones", image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=70", where: "market" as const },
+          { id: "fill-sneaker", title: "Sneakers", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=70", where: "market" as const },
+          { id: "fill-sofa", title: "Home", image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=70", where: "market" as const },
+          { id: "fill-flat", title: "Yaba flat", image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=400&q=70", where: "market" as const },
+          { id: "fill-live", title: "Lounge live", image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=400&q=70", where: "events" as const },
+        ];
+        for (const row of fill) {
+          if (next.some((n) => n.image === row.image)) continue;
+          next.push(row);
+        }
+      }
       setRows(next.slice(0, 18));
     });
     return () => {

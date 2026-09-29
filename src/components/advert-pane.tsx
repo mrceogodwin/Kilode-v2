@@ -155,7 +155,7 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
 
         <div className="mt-4 mb-2 flex items-center justify-between">
           <div className="text-[11px] font-extrabold tracking-[0.14em] text-[#86efac]">PREMIUM ADS</div>
-          <a href="/advertise" className="btn-yellow rounded-full px-3 py-1 text-[12px] font-extrabold text-black">
+          <a href="/advertise" className="shrink-0 text-[13px] font-semibold text-fg">
             Rent
           </a>
         </div>

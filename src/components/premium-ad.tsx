@@ -17,7 +17,7 @@ export function ContactCta({ className = "" }: { className?: string }) {
 
 export function RentCta({ className = "" }: { className?: string }) {
   return (
-    <a href="/advertise" className={`inline-flex items-center rounded-full bg-[#FACC15] px-3 py-1 text-xs font-bold text-black ${className}`}>
+    <a href="/advertise" className={`text-[13px] font-semibold text-fg ${className}`}>
       Rent
     </a>
   );
