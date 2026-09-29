@@ -901,7 +901,7 @@ function QonvoAppInner() {
                   if (row.kind === "chip") {
                     return (
                       <div key={row.key} className="flex justify-center">
-                        <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] text-muted">{row.label}</span>
+                        <span className="chat-day rounded-full px-2 py-0.5 text-[10px]">{row.label}</span>
                       </div>
                     );
                   }
