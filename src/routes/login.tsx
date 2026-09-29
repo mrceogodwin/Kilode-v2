@@ -155,7 +155,7 @@ function Login() {
             {err ? <p className="text-sm text-danger">{err}</p> : null}
             {mode === "up" ? (
               <button type="button" disabled={busy} className="btn-yellow w-full rounded-full py-3 text-sm font-extrabold disabled:opacity-60" onClick={() => void up()}>
-                {busy ? "Working…" : staff ? "Create owner account" : "Create account"}
+                {busy ? "Working…" : staff ? "Create owner account" : "Let's Go!"}
               </button>
             ) : (
               <button type="button" disabled={busy} className="btn-yellow w-full rounded-full py-3 text-sm font-extrabold disabled:opacity-60" onClick={() => void inn()}>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   Award,
   Bookmark,
@@ -286,6 +286,11 @@ function QonvoAppInner() {
   }, [signedIn, store.roomId]);
   const [roomsOpen, setRoomsOpen] = useState(false);
   const [homeTab, setHomeTab] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials">("feeds");
+  useEffect(() => {
+    if (session.isPending || signedIn) return;
+    if (screen === "home" && homeTab === "feeds") return;
+    window.location.href = "/login?mode=up";
+  }, [session.isPending, signedIn, screen, homeTab]);
   const [marketDesk, setMarketDesk] = useState<MarketDesk | null>(null);
   const [feedQ, setFeedQ] = useState("");
   const [feedSearchOn, setFeedSearchOn] = useState(false);
@@ -620,8 +625,8 @@ function QonvoAppInner() {
           </div>
         </div>
         {/* Rooms/Live/Videos folded into Chat & Me — keep tab bar clear on mobile */}
-        <div className="kilode-chrome-ticker">
-          <div className="ticker-track px-8 text-[10px] leading-5 text-muted">
+        <div className="kilode-chrome-ticker flex items-center gap-1.5 pr-1.5">
+          <div className="ticker-track min-w-0 flex-1 px-3 text-[10px] leading-5 text-muted">
             {[...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10), ...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10)].map((r, i) => (
               <button key={r.id + i} type="button" aria-label={`Open room ${r.name}`} className="shrink-0 hover:text-fg" onClick={() => goHome(r.id)}>
                 {r.name}
@@ -636,6 +641,16 @@ function QonvoAppInner() {
                 </span>
               ))}
           </div>
+          <a href="/advertise" className="ads-slot" aria-label="Ads">
+            <span>Ads</span>
+            <span className="ads-run">
+              {(store.campaigns.filter((c) => c.status === "approved").map((c) => c.name).slice(0, 10).concat(["Glo", "MTN", "Airtel", "DStv", "Opay", "PalmPay", "Kuda", "Jumia", "Bet9ja", "Cowry"]).slice(0, 10)).concat(
+                store.campaigns.filter((c) => c.status === "approved").map((c) => c.name).slice(0, 10).concat(["Glo", "MTN", "Airtel", "DStv", "Opay", "PalmPay", "Kuda", "Jumia", "Bet9ja", "Cowry"]).slice(0, 10),
+              ).map((name, i) => (
+                <em key={name + i}><i>{name.slice(0, 1)}</i>{name}</em>
+              ))}
+            </span>
+          </a>
         </div>
       </header>
 
@@ -1190,7 +1205,7 @@ function QonvoAppInner() {
       {friendsOpen ? <FriendsSheet onClose={() => setFriendsOpen(false)} /> : null}
 
       {menuOpen ? (
-        <div className="app-drawer">
+        <div className="app-drawer menu-drawer">
           <aside className="menu-sheet flex h-full w-[min(320px,92vw)] flex-col">
             <div className="menu-head flex items-center gap-3">
               <AvatarImg handle={store.handle || "Guest"} face={store.face} size={48} />
@@ -2706,9 +2721,9 @@ function MembersRail({ onOpen }: { onOpen: (handle: string) => void }) {
   }
   if (!rows.length) return null;
   return (
-    <section className="mb-3">
-      <div className="mb-1.5 flex items-center justify-between px-0.5">
-        <div className="members-kicker text-[10px] font-semibold tracking-[0.14em]">All Members Feeds</div>
+    <section className="members-card">
+      <div className="members-head">
+        <span>Members</span>
         <div className="flex gap-1">
           <button type="button" className="round-arrow" aria-label="Previous members" onClick={() => nudge(-1)}>
             <ChevronLeft className="size-3.5" />
@@ -2718,12 +2733,10 @@ function MembersRail({ onOpen }: { onOpen: (handle: string) => void }) {
           </button>
         </div>
       </div>
-      <div ref={scroller} className="round-track">
+      <div ref={scroller} className="members-row">
         {rows.map((p) => (
-          <button key={p.id} type="button" className="round-card" onClick={() => onOpen(p.handle)}>
-            <span className="round-face"><img src={p.image} alt="" /></span>
-            <em>@{p.handle}</em>
-            <strong>{p.title}</strong>
+          <button key={p.id} type="button" className="member-dot" aria-label={p.handle} onClick={() => onOpen(p.handle)}>
+            <img src={p.image} alt="" />
           </button>
         ))}
       </div>
@@ -2742,11 +2755,18 @@ function PulseStrip({ posts }: { posts: { category?: string; views?: number }[] 
   const max = top[0][1] || 1;
   return (
     <section className="pulse-card mb-3">
-      <div className="pulse-kicker mb-1 text-[10px] font-semibold tracking-[0.14em]">TRENDING IN YOUR FEED</div>
+      <div className="mb-2 flex items-center gap-1.5">
+        <svg viewBox="0 0 16 16" className="size-3.5 text-lime-2" aria-hidden>
+          <path d="M2 12 6.1 7.6 8.5 9.8 14 3.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          <path d="M10.2 3.4H14v3.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        </svg>
+        <div className="pulse-kicker text-[10px] font-semibold tracking-[0.14em]">TRENDING IN YOUR FEED</div>
+      </div>
       {top.map(([name, n], i) => (
         <div key={name} className="pulse-row">
           <span>{name}</span>
-          <i className={i === 0 ? "lead" : ""} style={{ width: `${Math.max(18, Math.round((n / max) * 100))}%` }} />
+          <b><i className={i === 0 ? "lead" : ""} style={{ width: `${Math.max(18, Math.round((n / max) * 100))}%` }} /></b>
+          <em>{n} posts</em>
         </div>
       ))}
     </section>
@@ -2856,7 +2876,6 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
               }}
             />
             <DeskLine onLane={setLane} onLeave={onLeave} onDesk={onDesk} />
-            <MembersRail onOpen={(handle) => { window.location.href = `/u/${encodeURIComponent(handle)}`; }} />
             <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} />
           </>
         )}
@@ -2917,10 +2936,12 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
           {lane === "following" && follows && live.length === 0 ? (
             <p className="col-span-4 py-6 text-center text-[12px] text-muted">Connect with people on Socials. Their posts show here. Nothing is invented.</p>
           ) : null}
-          {live.filter((p) => !!p?.id).slice(0, shown).map((p) => {
+          {live.filter((p) => !!p?.id).slice(0, shown).map((p, i, all) => {
             const hot = (p.views ?? 0) >= 350 || (p.comments?.length ?? 0) >= 6;
+            const showMembers = !needle && (i === 3 || (all.length < 4 && i === all.length - 1));
             return (
-            <div key={p.id} role="button" tabIndex={0} data-feed-card="1" className="glass-3d overflow-hidden text-left" onClick={() => store.setOpenPost(p.id)} onKeyDown={(e) => { if (e.key === "Enter") store.setOpenPost(p.id); }}>
+            <Fragment key={p.id}>
+            <div role="button" tabIndex={0} data-feed-card="1" className="glass-3d overflow-hidden text-left" onClick={() => store.setOpenPost(p.id)} onKeyDown={(e) => { if (e.key === "Enter") store.setOpenPost(p.id); }}>
               <div className="relative">
                 {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
                 {hot ? (
@@ -2977,6 +2998,12 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
                 </div>
               </div>
             </div>
+            {showMembers ? (
+              <div className="col-span-4">
+                <MembersRail onOpen={(handle) => { window.location.href = `/u/${encodeURIComponent(handle)}`; }} />
+              </div>
+            ) : null}
+            </Fragment>
             );
           })}
         </div>

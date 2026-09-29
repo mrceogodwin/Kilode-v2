@@ -1,9 +1,9 @@
 /** App mark: the K icon plus the Kilode word. */
 export function OfficialLockup({ className = "kilode-lockup" }: { className?: string }) {
   return (
-    <span className={`brand-lockup ${className}`} role="img" aria-label="Kilode">
-      <img src="/kilode-mark.png" alt="" className="kilode-mark" draggable={false} />
-      <span className="brand-word">Kilode</span>
+    <span className={`login-brand ${className}`} role="img" aria-label="Kilode">
+      <img src="/kilode-mark.png" alt="" className="kilode-mark lg" draggable={false} />
+      <img src="/kilode-word.png" alt="Kilode" className="kilode-wordimg login" draggable={false} />
     </span>
   );
 }
@@ -18,11 +18,10 @@ export function BangMark({ className }: { className: string }) {
 
 export function BrandLockup({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const icon = size === "lg" ? "kilode-mark lg" : size === "sm" ? "kilode-mark sm" : "kilode-mark";
-  const word = size === "lg" ? "text-[28px]" : size === "sm" ? "text-[20px]" : "text-[22px]";
   return (
     <span className="brand-lockup inline-flex items-center gap-2">
       <img src="/kilode-mark.png" alt="" className={icon} draggable={false} />
-      <span className={`brand-word ${word}`}>Kilode</span>
+      <img src="/kilode-word.png" alt="Kilode" className="kilode-wordimg" draggable={false} />
     </span>
   );
 }
