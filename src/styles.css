@@ -1674,10 +1674,30 @@ html[data-skin="ivory"] .news-plus {
 .kilode-lockup,
 .login-logo,
 .kilode-splash-logo {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: auto;
+  width: auto;
+  max-width: none;
+}
+.kilode-mark {
+  width: 32px;
   height: 32px;
-  width: 148px;
-  max-width: 148px;
+  border-radius: 9px;
+  object-fit: cover;
+}
+.kilode-mark.sm { width: 28px; height: 28px; border-radius: 8px; }
+.kilode-mark.lg { width: 52px; height: 52px; border-radius: 14px; }
+.brand-word {
+  display: block;
+  font-family: Nunito, "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  color: #fff;
+  -webkit-text-fill-color: #fff;
+  text-shadow: none;
 }
 .login-logo,
 .kilode-splash-logo {
@@ -1893,6 +1913,10 @@ html[data-skin="ivory"] .menu-sheet .menu-ico { color: #facc15; }
 }
 .artist-hero { display: flex; align-items: center; gap: 14px; }
 .artist-hero-face { width: 92px; height: 92px; flex: 0 0 92px; }
+html[data-skin="ivory"] .login-card .brand-word {
+  color: #111 !important;
+  -webkit-text-fill-color: #111 !important;
+}
 html[data-skin="ivory"] .login-stage { background: #f4f4f2; }
 html[data-skin="ivory"] .login-card {
   background: #fff;
@@ -2464,10 +2488,10 @@ html:not([data-skin="ivory"]) .btn-yellow,
 html:not([data-skin="ivory"]) .dock-plus,
 html:not([data-skin="ivory"]) .btn-post,
 html:not([data-skin="ivory"]) .news-plus {
-  background: linear-gradient(180deg, #5f8f6c 0%, #3d6a48 100%) !important;
-  color: #f4f7f5 !important;
-  border-color: #355a40 !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 2px 0 #243d2c !important;
+  background: #facc15 !important;
+  color: #111 !important;
+  border-color: #eab308 !important;
+  box-shadow: 0 8px 18px rgba(250, 204, 21, 0.38) !important;
 }
 html:not([data-skin="ivory"]) .dock {
   background: #0c0c0c !important;

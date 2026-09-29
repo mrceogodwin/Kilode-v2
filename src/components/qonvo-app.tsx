@@ -538,7 +538,10 @@ function QonvoAppInner() {
     <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg">
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule">
-          <div className="flex min-h-12 flex-nowrap items-center gap-1 px-1.5">
+          <div className="flex min-h-12 flex-nowrap items-center gap-1.5 px-1.5">
+            <button type="button" className="hdr-ico" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}>
+              <Menu className="size-4" />
+            </button>
             <button
               type="button"
               className="flex min-w-0 shrink items-center"
@@ -612,9 +615,6 @@ function QonvoAppInner() {
               >
                 <MessageIcon />
                 {dmCount > 0 ? <span className="msg-badge">{dmCount > 9 ? "9+" : dmCount}</span> : null}
-              </button>
-              <button type="button" className="hdr-ico" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}>
-                <Menu className="size-4" />
               </button>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { connectFellow, disconnectFellow, listConnects, applyTake, deleteOwnTake, likeTake, listTakes, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -241,7 +241,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
     if (!pillsFor(account).some((k) => k.id === kind)) setKind("take");
   }, [account, kind]);
   const [busy, setBusy] = useState(false);
-  const [linked, setLinked] = useState<Record<string, "out" | "in">>({});
+  const [linked, setLinked] = useState<Record<string, "out" | "in" | "ask">>({});
   const likeLock = useRef(new Set<string>());
   const [dmFor, setDmFor] = useState<FellowRow | null>(null);
   const [dmBody, setDmBody] = useState("");
@@ -321,9 +321,9 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
     if (!authed) return;
     void listConnects()
       .then((rows) => {
-        const next: Record<string, "out" | "in"> = {};
+        const next: Record<string, "out" | "in" | "ask"> = {};
         for (const r of rows) {
-          const state = r.dir === "friend" ? "in" : r.dir === "out" ? "out" : undefined;
+          const state = r.dir === "friend" ? "in" : r.dir === "out" ? "out" : r.dir === "in" ? "ask" : undefined;
           if (!state) continue;
           if (next[r.id] !== "in") next[r.id] = state;
           const handle = (r.handle || "").toLowerCase();
@@ -516,14 +516,11 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
                 className="rounded-full border border-line bg-transparent px-2.5 py-1 text-[10px] font-bold text-fg disabled:opacity-70"
                 onClick={() => {
                   if (!authed) return goLogin();
-                  if (linkState(f) === "in") {
-                    void disconnectFellow({ data: { id: f.id } }).then(() => {
-                      setLinked((m) => {
-                        const next = { ...m };
-                        delete next[f.id];
-                        delete next[(f.handle || "").toLowerCase()];
-                        return next;
-                      });
+                  if (linkState(f) === "in") return;
+                  if (linkState(f) === "ask") {
+                    void replyConnect({ data: { id: f.id, accept: true } }).then((r) => {
+                      if (!r.ok) return;
+                      setLinked((m) => ({ ...m, [f.id]: "in", [(f.handle || "").toLowerCase()]: "in" }));
                     });
                     return;
                   }
@@ -550,7 +547,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
                   });
                 }}
               >
-                {linkState(f) === "in" ? "Friends" : linkState(f) === "out" ? "Asked" : "Connect"}
+                {linkState(f) === "in" ? "Friends" : linkState(f) === "out" ? "Asked" : linkState(f) === "ask" ? "Accept" : "Connect"}
               </button>
               {linkState(f) === "in" ? (
               <button

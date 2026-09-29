@@ -1,49 +1,28 @@
-import { useId } from "react";
-
-/** Branded K: white mark, gold chat bubble, green play, green-to-gold rim. */
+/** App mark: the K icon plus the Kilode word. */
 export function OfficialLockup({ className = "kilode-lockup" }: { className?: string }) {
-  const raw = useId().replace(/:/g, "");
-  const glow = `kglow-${raw}`;
   return (
-    <svg viewBox="0 0 168 36" className={className} role="img" aria-label="Kilode">
-      <defs>
-        <linearGradient id={glow} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#3ddea0" />
-          <stop offset="52%" stopColor="#c6e36a" />
-          <stop offset="100%" stopColor="#e6c15a" />
-        </linearGradient>
-      </defs>
-      <rect x="1.5" y="1.5" width="33" height="33" rx="9.5" fill="#070908" stroke={`url(#${glow})`} strokeWidth="1.7" />
-      <path fill="#f7f7f5" d="M8.6 8.4h4.1l4.7 5.8V8.4h3.7v19.2h-3.7v-7.2l-1.5 1.7-4.2 5.5H8.2l6.3-8.1-5.9-7.1z" />
-      <path fill="#e6c15a" d="M23.6 6.6c2.15 0 3.7 1.35 3.7 3.15 0 1.45-1 2.6-2.45 2.95l-1.35 1.25.35-1.45c-1.35-.35-2.25-1.4-2.25-2.75 0-1.8 1.55-3.15 3.7-3.15z" />
-      <path fill="#3ddea0" d="M22.2 19.6 28.2 23l-6 3.4z" />
-      <text x="42" y="25.5" className="kilode-word-svg">
-        Kilode
-      </text>
-    </svg>
+    <span className={`brand-lockup ${className}`} role="img" aria-label="Kilode">
+      <img src="/kilode-mark.png" alt="" className="kilode-mark" draggable={false} />
+      <span className="brand-word">Kilode</span>
+    </span>
   );
 }
 
 export function BangMark({ className }: { className: string }) {
   return (
     <span className={`brand-mark ${className}`} aria-hidden>
-      <img src="/kilode-bang-mark-white.png" alt="" className="h-full w-full object-contain p-[12%]" draggable={false} />
+      <img src="/kilode-mark.png" alt="" className="h-full w-full object-cover" draggable={false} />
     </span>
   );
 }
 
 export function BrandLockup({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const icon = size === "lg" ? "size-10 rounded-[12px]" : size === "sm" ? "size-6 rounded-[8px]" : "size-8 rounded-[10px] sm:size-9 sm:rounded-[11px]";
-  const word = size === "lg" ? "text-[19px]" : size === "sm" ? "text-[13px]" : "text-[15px] sm:text-[16px]";
+  const icon = size === "lg" ? "kilode-mark lg" : size === "sm" ? "kilode-mark sm" : "kilode-mark";
+  const word = size === "lg" ? "text-[28px]" : size === "sm" ? "text-[20px]" : "text-[22px]";
   return (
     <span className="brand-lockup inline-flex items-center gap-2">
-      <BangMark className={`${icon} shrink-0`} />
-      <span className="brand-copy min-w-0">
-        <span className={`brand-word ${word}`}>
-          <span className="brand-word-k">K</span>ILODE
-        </span>
-        <span className="brand-url">Talk News. Real People.</span>
-      </span>
+      <img src="/kilode-mark.png" alt="" className={icon} draggable={false} />
+      <span className={`brand-word ${word}`}>Kilode</span>
     </span>
   );
 }
