@@ -316,7 +316,7 @@
   padding-top: 0;
 }
 .menu-drawer {
-  top: var(--chrome-bottom, 108px);
+  top: calc(var(--chrome-bottom, 108px) - 14px);
   bottom: 0;
   z-index: 35;
   padding-top: 0;
@@ -325,6 +325,9 @@
   height: 100%;
   padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
+}
+.menu-drawer .menu-head {
+  padding-top: 18px;
 }
 .ads-slot {
   display: flex;
@@ -3199,12 +3202,12 @@ html[data-skin="ivory"] .me-hero {
   flex: 0 0 30px;
   place-items: center;
   border-radius: 10px;
-  background: linear-gradient(180deg, #f6e2a8 0%, #e4b53a 46%, #b8862a 100%) !important;
-  color: #1a1408 !important;
+  background: linear-gradient(180deg, #3ddc84 0%, #22c55e 52%, #16a34a 100%) !important;
+  color: #fff !important;
   font-size: 13px;
   font-weight: 800;
-  border: 1px solid #c99a32;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 2px 0 #8a6420, 0 4px 8px rgba(0, 0, 0, 0.28);
+  border: 1px solid #15803d;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 2px 0 #14532d, 0 3px 6px rgba(0, 0, 0, 0.25);
 }
 .hero-copy { color: #f7f4ee !important; }
 .sign-out {
