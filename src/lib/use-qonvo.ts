@@ -22,6 +22,7 @@ import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, list
 import { postBodyPlain } from "@/lib/post-body";
 import { listNotes } from "@/lib/social-server";
 import { hidePost as hidePostRow, setAdPlacement, setAdStatus, setAdWindow } from "@/lib/staff-server";
+import { DEMO_TRACKS } from "@/lib/qonvo-seed";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { publicUsername } from "@/lib/account-email";
 import {
@@ -360,7 +361,10 @@ export function useQonvo() {
     tracksOnce.current = true;
     void listTracks()
       .then((dbTracks) => {
-        if (!dbTracks.length) return;
+        if (!dbTracks.length) {
+          setTracks(DEMO_TRACKS.filter((t) => !!parseMusicUrl(t.url)).map((t) => ({ ...t, author: "Kilode" })));
+          return;
+        }
         const mapped = dbTracks
           .filter((t): t is NonNullable<typeof t> => !!t && typeof (t as { id?: string }).id === "string")
           .map((t) => ({
@@ -372,7 +376,9 @@ export function useQonvo() {
             note: t.note ?? undefined,
             tags: t.tags ?? undefined,
           }));
-        setTracks(mapped.filter((t) => !!t && !!parseMusicUrl(t.url) && !plantedId(t.id)));
+        const live = mapped.filter((t) => !!t && !!parseMusicUrl(t.url) && !plantedId(t.id));
+        const catalog = DEMO_TRACKS.filter((t) => !!parseMusicUrl(t.url)).map((t) => ({ ...t, author: "Kilode" }));
+        setTracks(live.length ? live : catalog);
       })
       .catch(() => {
         tracksOnce.current = false;

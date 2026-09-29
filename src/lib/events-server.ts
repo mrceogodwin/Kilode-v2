@@ -160,7 +160,14 @@ export const listEvents = createServerFn({ method: "GET" })
         return mapRow({ ...r, rsvps: counts.get(id) ?? 0, mine: mine.has(id) ? 1 : 0 }, mine.has(id));
       });
       const hero = events.find((e) => e.flagship) ?? events[0] ?? null;
-      return { hero, events };
+      if (events.length) return { hero, events };
+      const start = Date.now() + 86_400_000;
+      const showcase: EEvent[] = [
+        { id: "ev-lounge", title: "Kilode Lounge Live", blurb: "Talk and music.", category: "music", place: "Lagos", link: "", cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80", ticket: "", startsAt: start, endsAt: start + 3 * 3_600_000, status: "approved", flagship: true, submitter: "Kilode", rsvps: 0, mine: false, coin: "", amount: "", txHash: "", matchNote: "" },
+        { id: "ev-market", title: "Aba Makers Day", blurb: "Clothes, shoes, and craft.", category: "culture", place: "Aba", link: "", cover: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=800&q=80", ticket: "", startsAt: start + 86_400_000, endsAt: start + 86_400_000 + 4 * 3_600_000, status: "approved", flagship: false, submitter: "Kilode", rsvps: 0, mine: false, coin: "", amount: "", txHash: "", matchNote: "" },
+        { id: "ev-screen", title: "Cinema Night", blurb: "One film, then the argument.", category: "cinema", place: "Abuja", link: "", cover: "https://images.unsplash.com/photo-1470225620780-dba8ba60b75b?auto=format&fit=crop&w=800&q=80", ticket: "", startsAt: start + 2 * 86_400_000, endsAt: start + 2 * 86_400_000 + 3 * 3_600_000, status: "approved", flagship: false, submitter: "Kilode", rsvps: 0, mine: false, coin: "", amount: "", txHash: "", matchNote: "" },
+      ];
+      return { hero: showcase[0], events: showcase };
     } catch {
       return empty;
     }

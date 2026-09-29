@@ -13,18 +13,18 @@ function heatOf(t: TakeRow) {
 }
 
 function plainBits(s: string) {
-  return s
-    .replace(/&#(\d+);/g, (_, n) => {
-      const c = Number(n);
-      return c > 0 && c < 0x110000 ? String.fromCodePoint(c) : _;
-    })
-    .replace(/&#x([0-9a-f]+);/gi, (_, h) => {
-      const c = parseInt(h, 16);
-      return c > 0 && c < 0x110000 ? String.fromCodePoint(c) : _;
-    })
-    .replace(/&/g, "&")
-    .replace(/"/g, '"')
-    .replace(/&#39;|'/g, "'");
+  let out = s;
+  for (let i = 0; i < 2; i++) {
+    out = out
+      .replace(/&/g, "&")
+      .replace(/&#(\d+);/g, (_, n) => {
+        const c = Number(n);
+        return c > 0 && c < 0x110000 ? String.fromCodePoint(c) : _;
+      })
+      .replace(/'|&#39;/g, "'")
+      .replace(/"/g, '"');
+  }
+  return out;
 }
 
 function Face({ handle, photo, size = 28 }: { handle: string; photo?: string; size?: number }) {

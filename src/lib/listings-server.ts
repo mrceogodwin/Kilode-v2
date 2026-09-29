@@ -4,6 +4,7 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { asAccountKind, type AccountKind, safeHttpUrl } from "@/lib/qonvo-data";
 import { canKind, kindActionHint, type KindAction } from "@/lib/permissions";
 import { gateText } from "@/lib/mod-cache";
+import { DEMO_LISTINGS } from "@/lib/qonvo-seed";
 
 export type ListingKind = "job" | "market" | "rent";
 export type Listing = {
@@ -150,7 +151,24 @@ export const listListings = createServerFn({ method: "GET" })
     const kind = asKind(data.kind);
     const now = Date.now();
     const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at, image, meta from nf_listings where kind = ${kind} and status = 'approved' and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
-    return rows.map(map);
+    const live = rows.map(map);
+    if (live.length) return live;
+    return DEMO_LISTINGS.filter((l) => l.kind === kind).map((l) => ({
+      id: l.id,
+      kind,
+      title: l.title,
+      body: l.body,
+      city: l.city,
+      contact: l.contact,
+      link: l.link,
+      company: l.company,
+      status: "approved" as const,
+      submitter: l.submitter,
+      ts: l.ts,
+      views: l.views,
+      days: l.days,
+      image: l.image,
+    }));
   });
 
 export const saveListing = createServerFn({ method: "POST" })

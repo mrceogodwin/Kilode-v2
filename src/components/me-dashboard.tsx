@@ -723,8 +723,8 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
               {store.verified ? <VerifiedMark /> : null}
             </div>
             <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-              {staffLabel ? <span className="rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-fg">{staffLabel}</span> : null}
-              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-bold text-muted">{kindLabel}</span>
+              {staffLabel ? <span className="shrink-0 whitespace-nowrap rounded-full border border-white/25 bg-black/40 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white">{staffLabel}</span> : null}
+              <span className="shrink-0 whitespace-nowrap rounded-full border border-white/15 bg-white/10 px-2 py-0.5 text-[10px] font-bold text-white/80">{kindLabel}</span>
               {store.city ? <span className="truncate text-[11px] text-muted">{store.city}</span> : null}
             </div>
           </div>
