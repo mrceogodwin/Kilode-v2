@@ -91,8 +91,6 @@ import { BrandLockup } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
 import { DESKS, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
-import { listListings, type Listing } from "@/lib/listings-server";
-import { listEvents } from "@/lib/events-server";
 import { SocialsFeed, openSocialFellows, shareNewsToSocials } from "@/components/socials-feed";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
@@ -724,15 +722,6 @@ function QonvoAppInner() {
                     else if (where === "jobs") setScreen("jobs");
                     else if (where === "sports") setMarketDesk("sports");
                     else if (where === "tech") setMarketDesk("tech");
-                  }}
-                  onCircle={(where) => {
-                    if (where === "music") {
-                      setScreen("home");
-                      setHomeTab("music");
-                    } else if (where === "events") {
-                      setScreen("home");
-                      setHomeTab("cinema");
-                    } else setScreen(where);
                   }}
                 />
               ) : homeTab === "socials" ? (
@@ -2664,72 +2653,6 @@ function DeskLine({
   );
 }
 
-function CircleRail({
-  tracks,
-  onOpen,
-}: {
-  tracks: { id: string; title: string; artist?: string; cover?: string }[];
-  onOpen: (where: "market" | "jobs" | "events" | "music") => void;
-}) {
-  const [rows, setRows] = useState<{ id: string; title: string; image: string; where: "market" | "jobs" | "events" | "music" }[]>([]);
-  useEffect(() => {
-    let dead = false;
-    void Promise.all([
-      listListings({ data: { kind: "market" } }).catch(() => [] as Listing[]),
-      listListings({ data: { kind: "job" } }).catch(() => [] as Listing[]),
-      listEvents().catch(() => ({ hero: null, events: [] })),
-    ]).then(([market, jobs, ev]) => {
-      if (dead) return;
-      const next: { id: string; title: string; image: string; where: "market" | "jobs" | "events" | "music" }[] = [];
-      for (const t of tracks) {
-        if (!t.cover) continue;
-        next.push({ id: t.id, title: t.artist || t.title, image: t.cover, where: "music" });
-      }
-      for (const row of market) {
-        if (!row.image) continue;
-        next.push({ id: row.id, title: row.title, image: row.image, where: "market" });
-      }
-      for (const row of ev.events) {
-        if (!row.cover) continue;
-        next.push({ id: row.id, title: row.title, image: row.cover, where: "events" });
-      }
-      for (const row of jobs) {
-        if (!row.image) continue;
-        next.push({ id: row.id, title: row.title, image: row.image, where: "jobs" });
-      }
-      if (next.length < 8) {
-        const fill = [
-          { id: "fill-ankara", title: "Ankara set", image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=400&q=70", where: "market" as const },
-          { id: "fill-phone", title: "Phones", image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=400&q=70", where: "market" as const },
-          { id: "fill-sneaker", title: "Sneakers", image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=70", where: "market" as const },
-          { id: "fill-sofa", title: "Home", image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=70", where: "market" as const },
-          { id: "fill-flat", title: "Yaba flat", image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=400&q=70", where: "market" as const },
-          { id: "fill-live", title: "Lounge live", image: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=400&q=70", where: "events" as const },
-        ];
-        for (const row of fill) {
-          if (next.some((n) => n.image === row.image)) continue;
-          next.push(row);
-        }
-      }
-      setRows(next.slice(0, 18));
-    });
-    return () => {
-      dead = true;
-    };
-  }, [tracks]);
-  if (!rows.length) return null;
-  return (
-    <div className="circle-line mb-3">
-      {rows.map((row) => (
-        <button key={row.where + row.id} type="button" className="circle-card" onClick={() => onOpen(row.where)}>
-          <span className="circle-face"><img src={row.image} alt="" /></span>
-          <strong>{row.title}</strong>
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function SplitRail({ posts, onOpen }: { posts: { id: string; title: string; image?: string; category?: string }[]; onOpen: (id: string) => void }) {
   const scroller = useRef<HTMLDivElement>(null);
   if (posts.length < 1) return null;
@@ -2739,7 +2662,7 @@ function SplitRail({ posts, onOpen }: { posts: { id: string; title: string; imag
   return (
     <section className="mb-3">
       <div className="mb-1.5 flex items-center justify-between px-0.5">
-        <div className="text-[10px] font-semibold tracking-[0.14em] text-muted">IN THE FEED</div>
+        <div className="text-[10px] font-semibold tracking-[0.14em] text-muted">All Members Feeds</div>
         <div className="flex gap-1">
           <button type="button" className="round-arrow" aria-label="Previous stories" onClick={() => nudge(-1)}>
             <ChevronLeft className="size-3.5" />
@@ -2784,7 +2707,7 @@ function PulseStrip({ posts }: { posts: { category?: string; views?: number }[] 
   );
 }
 
-function FeedPane({ store, q = "", onDesk, onLeave, onCircle }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "jobs" | "sports" | "tech") => void; onCircle: (where: "market" | "jobs" | "events" | "music") => void }) {
+function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "jobs" | "sports" | "tech") => void }) {
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(48);
   const [catsOpen, setCatsOpen] = useState(false);
@@ -2887,7 +2810,6 @@ function FeedPane({ store, q = "", onDesk, onLeave, onCircle }: { store: ReturnT
               }}
             />
             <DeskLine onLane={setLane} onLeave={onLeave} onDesk={onDesk} />
-            <CircleRail tracks={store.tracks} onOpen={onCircle} />
             <SplitRail posts={store.posts.filter((p) => p.status !== "draft" && p.image).slice(0, 12)} onOpen={(id) => store.setOpenPost(id)} />
             <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} />
           </>

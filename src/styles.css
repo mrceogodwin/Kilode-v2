@@ -999,11 +999,8 @@ html[data-skin="ivory"] .menu-dock {
   display: inline-block;
   font-weight: 800;
   letter-spacing: inherit;
-  background: linear-gradient(180deg, #8fbf9a 0%, #5f8f6c 55%, #3f6a4c 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+  color: #fff;
+  -webkit-text-fill-color: #fff;
 }
 .brand-url {
   display: block;
@@ -1025,8 +1022,8 @@ html[data-skin="ivory"] .brand-word {
     0 2px 3px rgba(63, 106, 76, 0.12);
 }
 html[data-skin="ivory"] .brand-word-k {
-  color: #3f6a4c;
-  -webkit-text-fill-color: #3f6a4c;
+  color: #fff;
+  -webkit-text-fill-color: #fff;
 }
 .brand-mark {
   display: grid;
@@ -1126,7 +1123,7 @@ html[data-skin="ivory"] .dock {
   border-top: 1px solid rgba(20, 40, 24, 0.08);
 }
 .dock-pad {
-  padding-bottom: calc(7.5rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(9rem + env(safe-area-inset-bottom));
 }
 .live-dot {
   display: inline-block;
@@ -2473,9 +2470,10 @@ html:not([data-skin="ivory"]) .news-plus {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 2px 0 #243d2c !important;
 }
 html:not([data-skin="ivory"]) .dock {
-  background: linear-gradient(180deg, #141414, #0a0a0a) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  background: #0c0c0c !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 0 !important;
+  box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.55) !important;
 }
 html:not([data-skin="ivory"]) .dock::after { background: #070707; }
 html:not([data-skin="ivory"]) .app-tab {
@@ -2530,8 +2528,8 @@ html:not([data-skin="ivory"]) .chat-compose {
 }
 html:not([data-skin="ivory"]) .brand-word-k {
   background: none !important;
-  color: #6b9e78 !important;
-  -webkit-text-fill-color: #6b9e78 !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
 }
 html:not([data-skin="ivory"]) .brand-url { color: #8fbf9a; }
 .soc-chip {
