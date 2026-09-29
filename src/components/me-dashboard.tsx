@@ -712,10 +712,9 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   const faceSrc = photo && site.photosOn !== false ? photo : store.face;
 
   return (
-    <div className="mx-auto max-w-2xl p-4 pb-28">
+    <div className="mx-auto max-w-2xl p-4 pb-36">
       <div className="me-hero relative mb-4 overflow-hidden rounded-2xl border border-line bg-panel">
-        <div className="h-14 bg-[#121212]" />
-        <div className="-mt-8 flex items-end gap-3 px-4">
+        <div className="flex items-end gap-3 px-4 pt-4">
           <AvatarImg handle={store.handle} face={faceSrc} size={76} className="rounded-full ring-2 ring-bg" />
           <div className="min-w-0 pb-1">
             <div className="flex items-center gap-1 truncate text-xl font-extrabold tracking-tight">
@@ -766,7 +765,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         <section className="mb-3 rounded-2xl border border-white/10 bg-panel p-3">
           <div className="text-[10px] font-bold tracking-[0.16em] text-muted">YOUR POWER</div>
           <p className="mt-1 text-[12px] leading-snug text-muted">{staffPowers}</p>
-          <a href={STAFF_PATH} className="btn-3d mt-2 inline-flex rounded-lg px-3 py-2 text-[13px] font-bold">
+          <a href={STAFF_PATH} className="mt-2 inline-flex rounded-lg bg-[#141816] px-3 py-2 text-[13px] font-bold text-white">
             Staff desk
           </a>
         </section>

@@ -1123,7 +1123,7 @@ html[data-skin="ivory"] .dock {
   border-top: 1px solid rgba(20, 40, 24, 0.08);
 }
 .dock-pad {
-  padding-bottom: calc(9rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(10.5rem + env(safe-area-inset-bottom));
 }
 .live-dot {
   display: inline-block;
@@ -2620,6 +2620,20 @@ html[data-skin="ivory"] .glass-3d button.border {
 .foot-share:active .foot-3d {
   transform: translateY(1px);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+html[data-skin="ivory"] .kilode-chrome .brand-word,
+html[data-skin="ivory"] .kilode-chrome .brand-word-k {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  text-shadow: none !important;
+}
+html[data-skin="ivory"] .kilode-chrome .brand-url {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+.members-kicker { color: #d7d7d3; }
+html[data-skin="ivory"] .members-kicker { color: #1a1e1b !important; }
+html[data-skin="ivory"] .me-hero {
+  background: linear-gradient(180deg, #1c221f 0%, #121614 100%) !important;
 }
 .room-row {
   display: flex;

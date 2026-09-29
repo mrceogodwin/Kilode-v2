@@ -50,9 +50,9 @@ import {
   Sun,
   Tv,
 } from "lucide-react";
-import { ACCOUNT_KINDS, MENU, POST_CATS, ROOMS, AD_COINS, KIND_FACE, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
+import { ACCOUNT_KINDS, MENU, POST_CATS, ROOMS, AD_COINS, KIND_FACE, avatarUrl, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { canKind, canCreateMenu, createLabelFor } from "@/lib/permissions";
-import { disconnectFellow, listConnects, listLive, replyConnect, type ConnectRow } from "@/lib/takes-server";
+import { disconnectFellow, listConnects, listLive, listTakes, replyConnect, type ConnectRow } from "@/lib/takes-server";
 import { listInbox, sendDm } from "@/lib/social-server";
 import { SplashScreen } from "@/components/splash-screen";
 import { unlockSound, pingMessage } from "@/lib/ping";
@@ -911,7 +911,7 @@ function QonvoAppInner() {
                 }}
               />
               <form
-                className="chat-compose relative z-30 flex shrink-0 flex-wrap gap-2 border-t border-white/10 bg-[#101010] p-2 backdrop-blur-md mb-[calc(5.75rem+env(safe-area-inset-bottom))]"
+                className="chat-compose relative z-30 flex shrink-0 flex-wrap gap-2 border-t border-white/10 bg-[#101010] p-2 backdrop-blur-md mb-[calc(4.85rem+env(safe-area-inset-bottom))]"
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (store.livePausedUntil > Date.now()) return;
@@ -2653,30 +2653,73 @@ function DeskLine({
   );
 }
 
-function SplitRail({ posts, onOpen }: { posts: { id: string; title: string; image?: string; category?: string }[]; onOpen: (id: string) => void }) {
+function MembersRail({ onOpen }: { onOpen: (handle: string) => void }) {
   const scroller = useRef<HTMLDivElement>(null);
-  if (posts.length < 1) return null;
+  const [rows, setRows] = useState<{ id: string; handle: string; title: string; image: string }[]>([]);
+  useEffect(() => {
+    let dead = false;
+    void listTakes()
+      .then((pack) => {
+        if (dead) return;
+        const takes = [...(pack.takes || [])];
+        for (let i = takes.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          const a = takes[i];
+          takes[i] = takes[j];
+          takes[j] = a;
+        }
+        const seen = new Set<string>();
+        const next: { id: string; handle: string; title: string; image: string }[] = [];
+        for (const t of takes) {
+          const handle = (t.handle || "").trim();
+          const key = handle.toLowerCase();
+          if (!handle || !t.body || seen.has(key)) continue;
+          seen.add(key);
+          next.push({
+            id: t.id,
+            handle,
+            title: t.body.replace(/\s+/g, " ").slice(0, 72),
+            image: pack.faces?.[key] || avatarUrl(handle),
+          });
+          if (next.length >= 12) break;
+        }
+        if (!next.length) {
+          for (const f of pack.fellows || []) {
+            if (!f.handle) continue;
+            next.push({ id: f.id, handle: f.handle, title: f.line || f.role || "Member", image: f.photo || avatarUrl(f.handle) });
+          }
+        }
+        setRows(next);
+      })
+      .catch(() => {
+        if (!dead) setRows([]);
+      });
+    return () => {
+      dead = true;
+    };
+  }, []);
   function nudge(dir: number) {
     scroller.current?.scrollBy({ left: dir * 132, behavior: "smooth" });
   }
+  if (!rows.length) return null;
   return (
     <section className="mb-3">
       <div className="mb-1.5 flex items-center justify-between px-0.5">
-        <div className="text-[10px] font-semibold tracking-[0.14em] text-muted">All Members Feeds</div>
+        <div className="members-kicker text-[10px] font-semibold tracking-[0.14em]">All Members Feeds</div>
         <div className="flex gap-1">
-          <button type="button" className="round-arrow" aria-label="Previous stories" onClick={() => nudge(-1)}>
+          <button type="button" className="round-arrow" aria-label="Previous members" onClick={() => nudge(-1)}>
             <ChevronLeft className="size-3.5" />
           </button>
-          <button type="button" className="round-arrow" aria-label="Next stories" onClick={() => nudge(1)}>
+          <button type="button" className="round-arrow" aria-label="Next members" onClick={() => nudge(1)}>
             <ChevronRight className="size-3.5" />
           </button>
         </div>
       </div>
       <div ref={scroller} className="round-track">
-        {posts.slice(0, 12).map((p) => (
-          <button key={p.id} type="button" className="round-card" onClick={() => onOpen(p.id)}>
-            <span className="round-face">{p.image ? <img src={p.image} alt="" /> : <span>{(p.category || "K").slice(0, 1)}</span>}</span>
-            <em>{p.category || "Kilode"}</em>
+        {rows.map((p) => (
+          <button key={p.id} type="button" className="round-card" onClick={() => onOpen(p.handle)}>
+            <span className="round-face"><img src={p.image} alt="" /></span>
+            <em>@{p.handle}</em>
             <strong>{p.title}</strong>
           </button>
         ))}
@@ -2810,7 +2853,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
               }}
             />
             <DeskLine onLane={setLane} onLeave={onLeave} onDesk={onDesk} />
-            <SplitRail posts={store.posts.filter((p) => p.status !== "draft" && p.image).slice(0, 12)} onOpen={(id) => store.setOpenPost(id)} />
+            <MembersRail onOpen={(handle) => { window.location.href = `/u/${encodeURIComponent(handle)}`; }} />
             <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} />
           </>
         )}
