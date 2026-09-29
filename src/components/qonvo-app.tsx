@@ -1452,7 +1452,6 @@ function QonvoAppInner() {
               </DrawerGroup>
             </div>
             <MenuPin />
-            <Spotlight posts={store.posts} />
             <MenuLegal onDonate={() => { setDonateOpen(true); setMenuOpen(false); }} />
           </aside>
           <button type="button" className="flex-1 bg-black/60" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
@@ -2609,7 +2608,6 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
         <LandscapeGrid title="MORE NEWS" posts={store.posts.filter((p) => p.category === "News" || p.category === "Naija" || p.category === "Politics")} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
         <AdReserve id="feeds_news_ad" className="mt-8 mb-8" />
         <DontMissGrid posts={[...store.posts].sort((a, b) => b.ts - a.ts)} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
-        <Spotlight posts={store.posts} />
         <PortraitAd id="feeds_portrait_miss" />
         <div className="mt-8 grid grid-cols-2 gap-2">
           <AdReserve id="article_box" minH="min-h-[120px]" />
@@ -2773,44 +2771,19 @@ function MembersRail({ onOpen }: { onOpen: (handle: string) => void }) {
   );
 }
 
-function Spotlight({ posts }: { posts: { title?: string; category?: string; author?: string }[] }) {
-  const rows = useMemo(() => {
-    const live = posts.filter((p) => p.title).slice(0, 6).map((p) => ({
-      icon: "📌",
-      name: p.author || p.category || "Kilode",
-      act: p.title || "",
-      go: "View",
-    }));
-    const rest = [
-      { icon: "🎙️", name: "Lounge", act: "Started a live room", go: "Join" },
-      { icon: "🛍️", name: "Market", act: "Listed an item", go: "View" },
-      { icon: "🏠", name: "Aba", act: "Opened a new space", go: "View" },
-      { icon: "📍", name: "Lagos", act: "Trending in the city", go: "View" },
-      { icon: "🎵", name: "Music", act: "A new link is up", go: "View" },
-      { icon: "💼", name: "Jobs", act: "A role just opened", go: "View" },
-    ];
-    return [...live, ...rest].slice(0, 12);
-  }, [posts]);
-  const loop = [...rows, ...rows];
+function InFeed({ posts, onOpen }: { posts: { id: string; title?: string; image?: string }[]; onOpen: (id: string) => void }) {
+  const rows = posts.filter((p) => p.id && p.image && p.title).slice(0, 14);
+  if (rows.length < 4) return null;
   return (
-    <section className="spot-engine" aria-label="Spotlight Engine">
-      <header>
-        <i />
-        Spotlight Engine
-      </header>
-      <div className="spot-window">
-        <div className="spot-track">
-          {loop.map((row, i) => (
-            <div className="spot-row" key={`${row.name}-${i}`}>
-              <span>{row.icon}</span>
-              <p>
-                <b>{row.name}</b>
-                <em>{row.act}</em>
-              </p>
-              <button type="button">{row.go}</button>
-            </div>
-          ))}
-        </div>
+    <section className="in-feed" aria-label="In the feed">
+      <div className="in-feed-kicker">In the feed</div>
+      <div className="in-feed-row">
+        {rows.map((p) => (
+          <button key={p.id} type="button" onClick={() => onOpen(p.id)}>
+            <img src={p.image} alt="" />
+            <span>{(p.title || "").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&/g, "&")}</span>
+          </button>
+        ))}
       </div>
     </section>
   );
@@ -2948,6 +2921,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
               }}
             />
             <DeskLine onLane={setLane} onLeave={onLeave} onDesk={onDesk} />
+            <InFeed posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
             <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} />
           </>
         )}
@@ -3041,7 +3015,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
               </div>
               <div className="px-1 py-1 sm:px-1.5">
                 <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
-                <div className="mt-0.5 line-clamp-4 text-[10px] font-normal leading-tight text-fg sm:text-[11px] md:text-[12px]">{p.title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&/g, "&")}</div>
+                <div className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-tight text-fg">{p.title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&/g, "&")}</div>
                 <div className="mt-0.5 flex items-center gap-1.5 text-[8px] tabular-nums text-muted">
                   <span className="inline-flex items-center gap-0.5">
                     <Eye className="size-2.5" />

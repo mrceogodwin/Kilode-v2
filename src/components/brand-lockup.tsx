@@ -1,9 +1,8 @@
-/** Soft gold bang and the Kilode word. One row. No picture box. */
+/** The Kilode! wordmark. Transparent PNG, no black plate. */
 export function KilodeMark({ large = false }: { large?: boolean }) {
   return (
     <span className={`brand-lockup ${large ? "lg" : ""}`} role="img" aria-label="Kilode">
-      <span className="bang-ico" aria-hidden>!</span>
-      <span className="brand-word">Kilode</span>
+      <img src="/kilode-word.png" alt="" className="kilode-word" draggable={false} />
     </span>
   );
 }

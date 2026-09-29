@@ -70,9 +70,7 @@ function Login() {
     <main className="login-stage">
       <div className="login-card">
         <OfficialLockup className="login-logo" />
-        <p className="login-kicker">African First Digital Space</p>
-        <p className="login-lede">For News, Community, Business & Ads Placements Ecosystem</p>
-        <p className="login-line">Kilode is an interactive digital media & business App.</p>
+        <p className="login-line">The interactive digital media, community & business app.</p>
         {staff ? <p className="mt-2 text-center text-[12px] text-muted">Owner console. Username and password only.</p> : null}
         {!staff ? (
           <div className="login-tabs" role="tablist">
