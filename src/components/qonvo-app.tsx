@@ -820,7 +820,7 @@ function QonvoAppInner() {
               <div className="relative flex min-h-0 flex-1 flex-col">
               <div
                 ref={scroller}
-                className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain"
+                className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-3"
                 onScroll={() => {
                   const el = scroller.current;
                   if (!el) return;
@@ -922,7 +922,7 @@ function QonvoAppInner() {
                 }}
               />
               <form
-                className="chat-compose relative z-30 flex shrink-0 flex-wrap gap-2 border-t border-line bg-panel/75 p-2 backdrop-blur-md mb-[calc(3.4rem+env(safe-area-inset-bottom))] md:mb-0"
+                className="chat-compose relative z-30 flex shrink-0 flex-wrap gap-2 border-t border-white/10 bg-[#101010] p-2 backdrop-blur-md mb-[calc(5.75rem+env(safe-area-inset-bottom))]"
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (store.livePausedUntil > Date.now()) return;
