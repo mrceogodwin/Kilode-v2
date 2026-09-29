@@ -12,7 +12,7 @@ import { VerifiedMark } from "@/components/handle-link";
 import { GatewayPay } from "@/components/pay-checkout";
 import { listPayMethods, submitVerification } from "@/lib/pay-gateways";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import type { CardProvider } from "@/lib/pay-money";
+import type { PayProvider } from "@/lib/pay-money";
 
 export const Route = createFileRoute("/u/$handle")({
   loader: async ({ params }) => {
@@ -47,9 +47,9 @@ function PublicProfile() {
   const [gone, setGone] = useState<Record<string, boolean>>({});
   const [takes, setTakes] = useState<TakeRow[]>([]);
   const [friend, setFriend] = useState<"add" | "pending" | "friends">("add");
-  const [payWith, setPayWith] = useState<CardProvider>("paystack");
+  const [payWith, setPayWith] = useState<PayProvider>("paystack");
   const [payNote, setPayNote] = useState("");
-  const [gate, setGate] = useState<{ paystack: boolean; flutterwave: boolean; ngnPerUsd: number; verifyUsd: number } | null>(null);
+  const [gate, setGate] = useState<{ paystack: boolean; flutterwave: boolean; nowpayments: boolean; ngnPerUsd: number; verifyUsd: number } | null>(null);
   useEffect(() => {
     if (!profile?.handle) return;
     void listUserTakes({ data: profile.handle }).then(setTakes).catch(() => setTakes([]));
@@ -165,11 +165,11 @@ function PublicProfile() {
         {mine && !showBadge ? (
           <section className="mt-4 rounded-2xl border border-line bg-panel p-3">
             <h2 className="text-sm font-extrabold">Get verified</h2>
-            <p className="mt-1 text-[12px] text-muted">Pay the fee. Staff approve it. The badge shows after that, on this page and next to your name.</p>
-            <div className="mt-2 flex gap-2">
-              {(["paystack", "flutterwave"] as const).map((id) => (
+            <p className="mt-1 text-[12px] text-muted">Pay the fee. The badge turns on as soon as the payment confirms. No staff wait.</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(["paystack", "flutterwave", "nowpayments"] as const).map((id) => (
                 <button key={id} type="button" className={`rounded-full px-3 py-1 text-[12px] font-bold ${payWith === id ? "btn-join" : "border border-line"}`} onClick={() => setPayWith(id)}>
-                  {id === "paystack" ? "Paystack" : "Flutterwave"}
+                  {id === "paystack" ? "Paystack" : id === "flutterwave" ? "Flutterwave" : "Crypto"}
                 </button>
               ))}
             </div>
@@ -180,10 +180,11 @@ function PublicProfile() {
                 purpose="badge"
                 usd={gate?.verifyUsd ?? 5}
                 rate={gate?.ngnPerUsd ?? 1600}
-                ready={payWith === "paystack" ? Boolean(gate?.paystack) : Boolean(gate?.flutterwave)}
+                ready={payWith === "paystack" ? Boolean(gate?.paystack) : payWith === "flutterwave" ? Boolean(gate?.flutterwave) : Boolean(gate?.nowpayments)}
                 onPaid={(paid) => {
                   void submitVerification({ data: { reference: paid.reference } }).then((r) => {
-                    setPayNote(r.ok ? "Paid. Staff still have to approve the badge." : r.reason);
+                    setPayNote(r.ok && r.status === "verified" ? "Paid. Your badge is on." : r.ok ? "Paid." : r.reason);
+                    if (r.ok && r.status === "verified") window.location.reload();
                   });
                 }}
               />

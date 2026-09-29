@@ -21,7 +21,7 @@ const ROOMS = [
   },
   {
     title: "Ads",
-    body: "Paid slots, not a shout in the chat. You pay in crypto, staff check the creative, then it runs for the days you bought. A normal member never has to buy a slot just to talk.",
+    body: "Paid slots, not a shout in the chat. You pay with Paystack, Flutterwave, or crypto. When the payment confirms, the ad runs on that slot for the days you bought. Staff can still take down a scam. A normal member never has to buy a slot just to talk.",
   },
   {
     title: "Jobs",

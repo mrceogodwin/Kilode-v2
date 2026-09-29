@@ -140,7 +140,7 @@ export const KIND_PURPOSE: Record<AccountKind, string> = {
   member: "Chat live, post in Feeds, vote Cinema, apply to jobs.",
   artist: "Share the link to Spotify, Audiomack, Apple, or YouTube. Kilode does not play the file. Verified artists get the Kilode Artist mark and a public bio.",
   writer: "Publish news and opinion in Feeds under your handle.",
-  advertiser: "Place paid ads. Copy the wallet, pay crypto, staff approve.",
+  advertiser: "Place paid ads. Pay, and the slot goes live for the days you bought.",
   cinema: "Submit movie YouTube URLs. Staff approve. Votes send them to Watching Now.",
   job_poster: "List jobs. Seekers apply. Staff approve before they go live.",
   job_seeker: "Keep a profile and apply to jobs from Jobs.",
@@ -417,6 +417,19 @@ export function daysLeft(expiresAt?: number, fallbackDays?: number) {
   if (expiresAt && expiresAt > Date.now()) return Math.max(1, Math.ceil((expiresAt - Date.now()) / 86_400_000));
   if (expiresAt && expiresAt <= Date.now()) return 0;
   return fallbackDays ?? 0;
+}
+
+export function timeLeftLabel(expiresAt?: number) {
+  if (!expiresAt) return "";
+  const ms = expiresAt - Date.now();
+  if (ms <= 0) return "Ended";
+  const totalMin = Math.max(1, Math.floor(ms / 60_000));
+  const days = Math.floor(totalMin / (60 * 24));
+  const hours = Math.floor((totalMin % (60 * 24)) / 60);
+  const mins = totalMin % 60;
+  if (days > 0) return `${days}d ${hours}h left`;
+  if (hours > 0) return `${hours}h ${mins}m left`;
+  return `${mins}m left`;
 }
 
 export function adDayBucket(days?: number) {

@@ -28,6 +28,7 @@ import {
   roomName,
   safeHttpUrl,
   timeAgo,
+  timeLeftLabel,
   type AccountKind,
 } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
@@ -926,7 +927,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         <Section kicker="ADS" title="Your campaigns" action="Place ad" onAction={() => goto({ screen: "ads" })}>
           {myAds.length === 0 ? (
             <EmptyBlock
-              body="No campaigns yet. Pick a slot, upload creative, copy the Kilode wallet, pay crypto, paste the tx hash. Staff approve. Auto-pay needs a Kilode setup key — manual wallets are the live path."
+              body="No campaigns yet. Pick a slot, add the creative, and pay with Paystack, Flutterwave, or crypto. It goes live on that slot and the clock starts."
               cta="Place ad"
               onClick={() => goto({ screen: "ads" })}
             />
@@ -939,7 +940,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                     <StatusPill status={c.status} />
                   </div>
                   <div className="text-[10px] text-muted">
-                    {c.placement} · {c.days ?? 7}d · {fmtCount(c.views ?? 0)} views
+                    {c.placement} · {c.expiresAt ? timeLeftLabel(c.expiresAt) : `${c.days ?? 7}d`} · {fmtCount(c.views ?? 0)} views
                   </div>
                 </div>
               ))}
@@ -955,7 +956,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         <Section kicker="BRAND" title="Ads & showcase" action="Place ad" onAction={() => goto({ screen: "ads" })}>
           {myAds.length === 0 ? (
             <EmptyBlock
-              body="Brand ads go live after crypto payment + staff approve. Auto-pay needs a Kilode setup key — use the wallet Copy path today. You can also showcase products in Marketplace."
+              body="Pay for a slot with Paystack, Flutterwave, or crypto. The ad goes live on that slot for the days you bought. You can also showcase products in Marketplace."
               cta="Place ad"
               onClick={() => goto({ screen: "ads" })}
             />
@@ -968,7 +969,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                     <StatusPill status={c.status} />
                   </div>
                   <div className="text-[10px] text-muted">
-                    {c.placement} · {fmtCount(c.views ?? 0)} views
+                    {c.placement} · {c.expiresAt ? timeLeftLabel(c.expiresAt) : `${c.days ?? 7}d`} · {fmtCount(c.views ?? 0)} views
                   </div>
                 </div>
               ))}

@@ -9,7 +9,7 @@ import { asAccountKind, isAdPlacement } from "@/lib/qonvo-data";
 import { canKind, kindActionHint } from "@/lib/permissions";
 import { accountEmail } from "@/lib/account-email";
 import { SITE } from "@/lib/seo";
-import { cleanReceiptEmail, isCardProvider, koboFromNgn, ngnFromUsd, paystackSignature, safeEqual, type CardProvider } from "@/lib/pay-money";
+import { cleanReceiptEmail, isPayProvider, koboFromNgn, ngnFromUsd, nowpaymentsSignature, paystackSignature, safeEqual, type PayProvider } from "@/lib/pay-money";
 
 async function ensure() {
   const sql = await getSql();
@@ -26,16 +26,25 @@ async function ensure() {
     ts bigint not null,
     paid_at bigint not null default 0
   )`;
+  try {
+    await sql`alter table nf_checkouts add column if not exists provider_ref text not null default ''`;
+  } catch {
+    /* column already there */
+  }
   return sql;
 }
 
-async function secretOf(id: "paystack_secret" | "flutterwave_secret" | "flutterwave_hash") {
+async function secretOf(id: "paystack_secret" | "flutterwave_secret" | "flutterwave_hash" | "nowpayments_api" | "nowpayments_ipn") {
   const env =
     id === "paystack_secret"
       ? process.env.PAYSTACK_SECRET_KEY
       : id === "flutterwave_secret"
         ? process.env.FLUTTERWAVE_SECRET_KEY || process.env.FLW_SECRET_KEY
-        : process.env.FLUTTERWAVE_HASH || process.env.FLW_SECRET_HASH;
+        : id === "flutterwave_hash"
+          ? process.env.FLUTTERWAVE_HASH || process.env.FLW_SECRET_HASH
+          : id === "nowpayments_api"
+            ? process.env.NOWPAYMENTS_API_KEY
+            : process.env.NOWPAYMENTS_IPN_SECRET;
   const fromEnv = env?.trim() || "";
   if (fromEnv) return fromEnv;
   return readAiKey(id);
@@ -140,9 +149,55 @@ async function openFlutterwave(opts: { secret: string; email: string; reference:
   return { ok: true as const, url };
 }
 
+async function openNowPayments(opts: { apiKey: string; reference: string; usd: number; description: string }) {
+  const res = await fetch("https://api.nowpayments.io/v1/invoice", {
+    method: "POST",
+    headers: { "x-api-key": opts.apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      price_amount: opts.usd,
+      price_currency: "usd",
+      order_id: opts.reference,
+      order_description: opts.description.slice(0, 140),
+      ipn_callback_url: `${origin()}/api/pay/nowpayments`,
+      success_url: `${origin()}/pay/done`,
+      cancel_url: `${origin()}/pay/done`,
+    }),
+    signal: AbortSignal.timeout(12000),
+  });
+  const json = (await res.json().catch(() => null)) as { id?: string | number; invoice_url?: string; message?: string } | null;
+  const url = json?.invoice_url || "";
+  const invoiceId = String(json?.id || "");
+  if (!res.ok || !url.startsWith("https://") || !invoiceId) {
+    return { ok: false as const, reason: (json?.message || "Crypto checkout did not open.").slice(0, 160) };
+  }
+  return { ok: true as const, url, invoiceId };
+}
+
+const PAID_CRYPTO = new Set(["finished", "confirmed"]);
+
+async function verifyNowPayments(invoiceId: string, expectUsd: number): Promise<Verify> {
+  const key = await secretOf("nowpayments_api");
+  if (!key || !invoiceId) return { ok: false, reason: "Crypto payment is not confirmed yet." };
+  const res = await fetch(`https://api.nowpayments.io/v1/invoice-payment/${encodeURIComponent(invoiceId)}`, {
+    headers: { "x-api-key": key },
+    signal: AbortSignal.timeout(12000),
+  });
+  const json = (await res.json().catch(() => null)) as
+    | { payment_status?: string; price_amount?: number | string }
+    | { payment_status?: string; price_amount?: number | string }[]
+    | null;
+  const row = Array.isArray(json) ? json[0] : json;
+  const status = String(row?.payment_status || "");
+  if (!PAID_CRYPTO.has(status)) return { ok: false, reason: "Crypto payment is not confirmed yet." };
+  const amount = Number(row?.price_amount || 0);
+  if (amount > 0 && amount + 0.01 < expectUsd) return { ok: false, reason: "Crypto amount is lower than the price." };
+  return { ok: true, ngn: 0 };
+}
+
 type Verify = { ok: true; ngn: number } | { ok: false; reason: string };
 
-async function verifyWithProvider(provider: CardProvider, reference: string, expectNgn: number): Promise<Verify> {
+async function verifyWithProvider(provider: PayProvider, reference: string, expectNgn: number, expectUsd = 0, invoiceId = ""): Promise<Verify> {
+  if (provider === "nowpayments") return verifyNowPayments(invoiceId, expectUsd);
   if (provider === "paystack") {
     const secret = await secretOf("paystack_secret");
     if (!secret) return { ok: false, reason: "Paystack is not set up yet." };
@@ -170,9 +225,10 @@ async function verifyWithProvider(provider: CardProvider, reference: string, exp
 }
 
 export const listPayMethods = createServerFn({ method: "GET" }).handler(async () => {
-  const [paystack, flutterwave, ngnPerUsd, listingUsd, badgeUsd] = await Promise.all([
+  const [paystack, flutterwave, nowpayments, ngnPerUsd, listingUsd, badgeUsd] = await Promise.all([
     secretOf("paystack_secret"),
     secretOf("flutterwave_secret"),
+    secretOf("nowpayments_api"),
     rateOf(),
     eventUsd(),
     verifyUsd(),
@@ -180,6 +236,7 @@ export const listPayMethods = createServerFn({ method: "GET" }).handler(async ()
   return {
     paystack: Boolean(paystack),
     flutterwave: Boolean(flutterwave),
+    nowpayments: Boolean(nowpayments),
     ngnPerUsd,
     eventUsd: listingUsd,
     verifyUsd: badgeUsd,
@@ -192,7 +249,7 @@ export const startCheckout = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const provider = String(data.provider || "");
     const kind = data.kind === "event" ? "event" : data.kind === "verify" ? "verify" : data.kind === "ad" ? "ad" : "";
-    if (!isCardProvider(provider) || !kind) return { ok: false as const, reason: "Pick Paystack or Flutterwave." };
+    if (!isPayProvider(provider) || !kind) return { ok: false as const, reason: "Pick Paystack, Flutterwave, or crypto." };
     if (!(await allowWrite(`pay:${context.userId}`, 8, 600_000))) return { ok: false as const, reason: RATE_BLOCKED };
     if (kind === "ad") {
       const sql = await getSql();
@@ -201,20 +258,31 @@ export const startCheckout = createServerFn({ method: "POST" })
     }
     const priced = await quote(kind, String(data.purpose || ""));
     if (!priced) return { ok: false as const, reason: "That price is not set." };
-    const secret = await secretOf(provider === "paystack" ? "paystack_secret" : "flutterwave_secret");
-    if (!secret) return { ok: false as const, reason: provider === "paystack" ? "Paystack is not set up yet." : "Flutterwave is not set up yet." };
+    const secretId = provider === "paystack" ? "paystack_secret" : provider === "flutterwave" ? "flutterwave_secret" : "nowpayments_api";
+    const secret = await secretOf(secretId);
+    if (!secret) {
+      return {
+        ok: false as const,
+        reason: provider === "paystack" ? "Paystack is not set up yet." : provider === "flutterwave" ? "Flutterwave is not set up yet." : "Crypto checkout is not set up yet.",
+      };
+    }
     const reference = `kld_${randomBytes(9).toString("hex")}`;
     const email = await payerEmail(context.userId, String(data.email || ""));
     const sql = await ensure();
-    await sql`insert into nf_checkouts (reference, user_id, kind, purpose, provider, amount_usd, amount_ngn, status, used_by, ts, paid_at)
-      values (${reference}, ${context.userId}, ${kind}, ${priced.purpose}, ${provider}, ${priced.usd}, ${priced.ngn}, ${"pending"}, ${""}, ${Date.now()}, ${0})`;
+    await sql`insert into nf_checkouts (reference, user_id, kind, purpose, provider, amount_usd, amount_ngn, status, used_by, ts, paid_at, provider_ref)
+      values (${reference}, ${context.userId}, ${kind}, ${priced.purpose}, ${provider}, ${priced.usd}, ${priced.ngn}, ${"pending"}, ${""}, ${Date.now()}, ${0}, ${""})`;
     const opened =
       provider === "paystack"
         ? await openPaystack({ secret, email, reference, ngn: priced.ngn })
-        : await openFlutterwave({ secret, email, reference, ngn: priced.ngn, name: email.split("@")[0] || "Kilode" });
+        : provider === "flutterwave"
+          ? await openFlutterwave({ secret, email, reference, ngn: priced.ngn, name: email.split("@")[0] || "Kilode" })
+          : await openNowPayments({ apiKey: secret, reference, usd: priced.usd, description: `Kilode ${kind} ${priced.purpose}` });
     if (!opened.ok) {
       await sql`delete from nf_checkouts where reference = ${reference} and status = ${"pending"}`;
       return opened;
+    }
+    if ("invoiceId" in opened && opened.invoiceId) {
+      await sql`update nf_checkouts set provider_ref = ${opened.invoiceId} where reference = ${reference}`;
     }
     return { ok: true as const, reference, url: opened.url, amountNgn: priced.ngn, amountUsd: priced.usd, provider };
   });
@@ -226,17 +294,48 @@ export const confirmCheckout = createServerFn({ method: "POST" })
     const reference = String(data.reference || "").trim().slice(0, 80);
     if (!reference.startsWith("kld_")) return { ok: false as const, reason: "Unknown payment." };
     const sql = await ensure();
-    const rows = await sql<{ user_id: string; provider: string; amount_ngn: number; status: string }>`
-      select user_id, provider, amount_ngn, status from nf_checkouts where reference = ${reference} limit 1`;
+    const rows = await sql<{ user_id: string; provider: string; amount_ngn: number; amount_usd: number; status: string; provider_ref: string }>`
+      select user_id, provider, amount_ngn, amount_usd, status, provider_ref from nf_checkouts where reference = ${reference} limit 1`;
     const row = rows[0];
     if (!row || row.user_id !== context.userId) return { ok: false as const, reason: "That payment is not on this account." };
     if (row.status === "paid" || row.status === "used") return { ok: true as const, reference, amountNgn: Number(row.amount_ngn), status: row.status };
-    if (!isCardProvider(row.provider)) return { ok: false as const, reason: "Unknown payment." };
-    const verified = await verifyWithProvider(row.provider, reference, Number(row.amount_ngn));
+    if (!isPayProvider(row.provider)) return { ok: false as const, reason: "Unknown payment." };
+    const verified = await verifyWithProvider(row.provider, reference, Number(row.amount_ngn), Number(row.amount_usd), row.provider_ref || "");
     if (!verified.ok) return { ok: false as const, reason: verified.reason };
     await sql`update nf_checkouts set status = ${"paid"}, paid_at = ${Date.now()} where reference = ${reference} and status = ${"pending"}`;
     return { ok: true as const, reference, amountNgn: Number(row.amount_ngn), status: "paid" };
   });
+
+async function grantVerified(userId: string, reference: string) {
+  const sql = await getSql();
+  try {
+    await sql.query(`ALTER TABLE nf_profiles ADD COLUMN IF NOT EXISTS verified INTEGER NOT NULL DEFAULT 0`);
+  } catch {
+    /* exists */
+  }
+  await sql`update nf_profiles set verified = ${1} where user_id = ${userId}`;
+  const who = await sql<{ handle: string | null }>`select handle from nf_profiles where user_id = ${userId} limit 1`;
+  const handle = (who[0]?.handle || "").slice(0, 24);
+  await sql`create table if not exists nf_verify_requests (
+    user_id text primary key,
+    handle text not null default '',
+    reference text not null,
+    status text not null default 'approved',
+    ts bigint not null
+  )`;
+  const cur = await sql<{ user_id: string }>`select user_id from nf_verify_requests where user_id = ${userId} limit 1`;
+  if (cur[0]) {
+    await sql`update nf_verify_requests set handle = ${handle}, reference = ${reference.slice(0, 80)}, status = ${"approved"}, ts = ${Date.now()} where user_id = ${userId}`;
+  } else {
+    await sql`insert into nf_verify_requests (user_id, handle, reference, status, ts) values (${userId}, ${handle}, ${reference.slice(0, 80)}, ${"approved"}, ${Date.now()})`;
+  }
+  const note = "Kilode: your badge is on. Payment confirmed, so verification is live on your name.";
+  try {
+    await sql`insert into nf_notes (id, user_id, text, href, ts, seen) values (${`n-${Date.now().toString(36)}`}, ${userId}, ${note}, ${`/u/${handle}`}, ${Date.now()}, ${0})`;
+  } catch {
+    /* bell can miss */
+  }
+}
 
 export const submitVerification = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
@@ -253,29 +352,13 @@ export const submitVerification = createServerFn({ method: "POST" })
       refId: context.userId,
     });
     if (!taken.ok) return taken;
-    await sql`create table if not exists nf_verify_requests (
-      user_id text primary key,
-      handle text not null default '',
-      reference text not null,
-      status text not null default 'paid',
-      ts bigint not null
-    )`;
-    const who = await sql<{ handle: string | null }>`select handle from nf_profiles where user_id = ${context.userId} limit 1`;
-    const handle = (who[0]?.handle || "").slice(0, 24);
-    const cur = await sql<{ status: string }>`select status from nf_verify_requests where user_id = ${context.userId} limit 1`;
-    if (cur[0]?.status === "approved") return { ok: true as const, status: "verified" as const };
-    if (cur[0]) {
-      await sql`update nf_verify_requests set handle = ${handle}, reference = ${String(data.reference || "").slice(0, 80)}, status = ${"paid"}, ts = ${Date.now()} where user_id = ${context.userId}`;
-    } else {
-      await sql`insert into nf_verify_requests (user_id, handle, reference, status, ts)
-        values (${context.userId}, ${handle}, ${String(data.reference || "").slice(0, 80)}, ${"paid"}, ${Date.now()})`;
-    }
-    return { ok: true as const, status: "paid" as const };
+    await grantVerified(context.userId, String(data.reference || ""));
+    return { ok: true as const, status: "verified" as const };
   });
 
 export async function takePaidCheckout(opts: { reference: string; userId: string; kind: "ad" | "event" | "verify"; purpose: string; refId: string }) {
   const reference = opts.reference.trim().slice(0, 80);
-  if (!reference.startsWith("kld_")) return { ok: false as const, reason: "Pay with Paystack or Flutterwave first." };
+  if (!reference.startsWith("kld_")) return { ok: false as const, reason: "Pay with Paystack, Flutterwave, or crypto first." };
   const sql = await ensure();
   const rows = await sql<{ user_id: string; kind: string; purpose: string; status: string; amount_ngn: number; provider: string }>`
     select user_id, kind, purpose, status, amount_ngn, provider from nf_checkouts where reference = ${reference} limit 1`;
@@ -317,18 +400,40 @@ export const pingGateway = createServerFn({ method: "POST" })
       const res = await fetch("https://api.flutterwave.com/v3/balances", { headers: { Authorization: `Bearer ${secret}` }, signal: AbortSignal.timeout(12000) });
       return res.ok ? { ok: true as const, reason: "Flutterwave answered." } : { ok: false as const, reason: "Flutterwave rejected that secret." };
     }
+    if (provider === "nowpayments") {
+      const secret = await secretOf("nowpayments_api");
+      if (!secret) return { ok: false as const, reason: "Paste the NOWPayments API key first." };
+      const res = await fetch("https://api.nowpayments.io/v1/status", { headers: { "x-api-key": secret }, signal: AbortSignal.timeout(12000) });
+      return res.ok ? { ok: true as const, reason: "NOWPayments answered." } : { ok: false as const, reason: "NOWPayments rejected that key." };
+    }
     return { ok: false as const, reason: "Unknown provider." };
   });
 
-export async function markCheckoutFromWebhook(provider: CardProvider, reference: string) {
+export async function markCheckoutFromWebhook(provider: PayProvider, reference: string, paidUsd?: number) {
   const sql = await ensure();
-  const rows = await sql<{ amount_ngn: number; status: string }>`select amount_ngn, status from nf_checkouts where reference = ${reference} and provider = ${provider} limit 1`;
+  const rows = await sql<{ user_id: string; kind: string; purpose: string; amount_ngn: number; amount_usd: number; status: string; provider_ref: string }>`
+    select user_id, kind, purpose, amount_ngn, amount_usd, status, provider_ref from nf_checkouts where reference = ${reference} and provider = ${provider} limit 1`;
   const row = rows[0];
   if (!row) return { ok: false as const, status: 404 };
-  if (row.status === "paid" || row.status === "used") return { ok: true as const, status: 200 };
-  const verified = await verifyWithProvider(provider, reference, Number(row.amount_ngn));
-  if (!verified.ok) return { ok: false as const, status: 409 };
-  await sql`update nf_checkouts set status = ${"paid"}, paid_at = ${Date.now()} where reference = ${reference} and status = ${"pending"}`;
+  if (row.status !== "paid" && row.status !== "used") {
+    if (provider === "nowpayments") {
+      if (paidUsd != null && Number(paidUsd) + 0.01 < Number(row.amount_usd)) return { ok: false as const, status: 409 };
+    } else {
+      const verified = await verifyWithProvider(provider, reference, Number(row.amount_ngn), Number(row.amount_usd), row.provider_ref || "");
+      if (!verified.ok) return { ok: false as const, status: 409 };
+    }
+    await sql`update nf_checkouts set status = ${"paid"}, paid_at = ${Date.now()} where reference = ${reference} and status = ${"pending"}`;
+  }
+  if (row.kind === "verify") {
+    await takePaidCheckout({
+      reference,
+      userId: row.user_id,
+      kind: "verify",
+      purpose: row.purpose || "badge",
+      refId: row.user_id,
+    }).catch(() => undefined);
+    await grantVerified(row.user_id, reference);
+  }
   return { ok: true as const, status: 200 };
 }
 
@@ -360,5 +465,25 @@ export async function handleFlutterwaveWebhook(raw: string, verifHash: string) {
     return new Response("bad json", { status: 400 });
   }
   const result = await markCheckoutFromWebhook("flutterwave", reference);
+  return new Response(result.ok ? "ok" : "not verified", { status: result.status });
+}
+
+export async function handleNowPaymentsWebhook(raw: string, signature: string) {
+  const secret = await secretOf("nowpayments_ipn");
+  if (!secret) return new Response("ipn secret not set", { status: 503 });
+  if (!safeEqual(signature || "", nowpaymentsSignature(secret, raw))) return new Response("bad signature", { status: 401 });
+  let reference = "";
+  let status = "";
+  let paidUsd = 0;
+  try {
+    const body = JSON.parse(raw) as { payment_status?: string; order_id?: string; price_amount?: number | string };
+    status = String(body.payment_status || "");
+    reference = String(body.order_id || "");
+    paidUsd = Number(body.price_amount || 0);
+  } catch {
+    return new Response("bad json", { status: 400 });
+  }
+  if (!PAID_CRYPTO.has(status)) return new Response("ok", { status: 200 });
+  const result = await markCheckoutFromWebhook("nowpayments", reference, paidUsd);
   return new Response(result.ok ? "ok" : "not verified", { status: result.status });
 }

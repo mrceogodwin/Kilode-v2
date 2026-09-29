@@ -1508,7 +1508,7 @@ export function useQonvo() {
         days: extra?.days ?? 7,
       } as Campaign;
       setCampaigns((prev) => [row, ...prev]);
-      void saveAdRow({
+      return saveAdRow({
         data: {
           name: n,
           note: text.trim(),
@@ -1526,14 +1526,16 @@ export function useQonvo() {
         if (r && typeof r === "object" && "ok" in r && r.ok === false) {
           setCampaigns((prev) => prev.filter((c) => c.id !== row.id));
           note(r.reason);
-          return;
+          return false;
         }
         if (r && typeof r === "object" && "status" in r && typeof r.status === "string") {
-          setCampaigns((prev) => prev.map((c) => (c.id === row.id ? { ...c, status: r.status as Campaign["status"] } : c)));
-          if ("match" in r && typeof r.match === "string") note(r.match);
+          const expiresAt = "expiresAt" in r && typeof r.expiresAt === "number" ? r.expiresAt : undefined;
+          setCampaigns((prev) => prev.map((c) => (c.id === row.id ? { ...c, status: r.status as Campaign["status"], expiresAt: expiresAt ?? c.expiresAt } : c)));
+          note(r.status === "approved" ? `Live on ${row.placement}: ${n}` : `Ad submitted: ${n}`);
+          return r.status === "approved";
         }
-      }).catch(() => undefined);
-      note(`Ad submitted: ${n}`);
+        return false;
+      }).catch(() => false);
     },
     [needAccount, note],
   );

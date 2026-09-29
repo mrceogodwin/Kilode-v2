@@ -1,7 +1,7 @@
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { STAFF_PATH } from "@/lib/staff-path";
 import { Eye, Mail, MessageSquare, Share2, Bookmark } from "lucide-react";
-import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, daysLeft, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
+import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, timeLeftLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 import { approveTeamAsk, getProfile, leaveTeam, postTeamNote, reportPost, requestJoinTeam, teamDesk } from "@/lib/forum-server";
 import { claimOps, clearModUser, deleteGist, deletePost, dismissReport, assignReport, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, listStaffPosts, listVerifyQueue, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, scoreMembers, staffMe, unhidePost } from "@/lib/staff-server";
@@ -24,7 +24,7 @@ import { readBag, writeBag } from "@/components/socials-feed";
 import { listAdCatalog } from "@/lib/ad-catalog-server";
 import { listPayMethods } from "@/lib/pay-gateways";
 import { GatewayPay } from "@/components/pay-checkout";
-import type { CardProvider } from "@/lib/pay-money";
+import type { PayProvider } from "@/lib/pay-money";
 import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { authClient, signOut } from "@/lib/auth/client";
@@ -148,7 +148,7 @@ function PricingPage() {
     { name: "Member", price: "Free", note: "Post, chat, apply, and browse. No card.", href: "/login?mode=up", cta: "Join" },
     { name: "Verified", price: rates ? `$${rates.verifyUsd}` : "Set in Super admin", note: "Paid badge. Staff still approve it. Change the number in Super admin → Verification fee.", href: "/?open=me", cta: "Get verified" },
     { name: "Event", price: rates ? `$${rates.eventUsd}` : "Set in Super admin", note: "A listed event. Pay, then it goes to the queue. Change it under Event listing fee.", href: "/?tab=cinema", cta: "List an event" },
-    { name: "Ad placement", price: "You set it", note: "30-day placement. Paystack, Flutterwave, or crypto. Staff switch it live. Ad prices live in the catalog.", href: "/advertise", cta: "Place an ad" },
+    { name: "Ad placement", price: "You set it", note: "Pick a slot and days. Paystack, Flutterwave, or crypto. It goes live when the payment confirms.", href: "/advertise", cta: "Place an ad" },
   ];
   return (
     <div className="price-page mx-auto max-w-lg px-4 py-5">
@@ -1818,29 +1818,23 @@ function Ads({ store }: { store: Store }) {
   const [place, setPlace] = useState<AdPlacement>("board");
   const [days, setDays] = useState<number>(7);
   const [coin, setCoin] = useState("usdt");
-  const [payWith, setPayWith] = useState<"crypto" | CardProvider>("crypto");
-  const [gate, setGate] = useState({ paystack: false, flutterwave: false, ngnPerUsd: 1600 });
+  const [payWith, setPayWith] = useState<PayProvider>("paystack");
+  const [gate, setGate] = useState({ paystack: false, flutterwave: false, nowpayments: false, ngnPerUsd: 1600 });
   const [txHash, setTxHash] = useState("");
   const adsPay = !usePublicSite().site.payOff.split(",").includes("ads");
   const [amount, setAmount] = useState("");
   const [agree, setAgree] = useState(false);
   const [err, setErr] = useState("");
-  const [copied, setCopied] = useState(false);
   const [done, setDone] = useState<string | null>(null);
-  const [wallets, setWallets] = useState<{ coin: string; address: string }[]>([]);
   const [prices, setPrices] = useState<Record<string, number>>({});
   useEffect(() => {
-    void listWallets()
-      .then(setWallets)
-      .catch(() => setWallets([]));
     void listAdCatalog()
       .then((c) => setPrices(c.prices))
       .catch(() => undefined);
     void listPayMethods()
-      .then((m) => setGate({ paystack: m.paystack, flutterwave: m.flutterwave, ngnPerUsd: m.ngnPerUsd }))
+      .then((m) => setGate({ paystack: m.paystack, flutterwave: m.flutterwave, nowpayments: m.nowpayments, ngnPerUsd: m.ngnPerUsd }))
       .catch(() => undefined);
   }, []);
-  const payTo = wallets.find((w) => w.coin === coin)?.address;
   const mine = store.campaigns.filter((c) => !!c?.id && (c.status !== "approved" || c.expiresAt));
   const size = AD_SIZES[place] ?? AD_SIZES.board;
   const slot = AD_PLACEMENTS.find((p) => p.id === place);
@@ -1861,7 +1855,7 @@ function Ads({ store }: { store: Store }) {
   }
   if (!store.handle) {
     return (
-      <Screen kicker="ADS" title="Place an ad" sub="Ads Poster and Brand accounts pay crypto. Staff approve. Guests can browse live ads on the Ads tab.">
+      <Screen kicker="ADS" title="Place an ad" sub="Pay for a slot. It goes live on its own when the payment confirms.">
         <JoinCta />
       </Screen>
     );
@@ -1875,14 +1869,14 @@ function Ads({ store }: { store: Store }) {
   }
   if (done) {
     return (
-      <Screen kicker="ADS" title="Submitted" sub="Staff have your creative and the tx hash.">
+      <Screen kicker="ADS" title="Live" sub="Payment confirmed. This creative is on the slot you bought.">
         <div className="raised rounded-2xl p-4">
           <h3 className="text-lg font-extrabold">{done}</h3>
           <ol className="mt-3 list-decimal space-y-2 pl-4 text-[13px] leading-6 text-muted">
-            <li>We match the transaction on the chain (first and last 6 of the address you copied).</li>
-            <li>Staff approve, reject, or ask for a correction. You will see status here — not by email.</li>
-            <li>If approved, the ad goes live on the slot you paid for until the {days}-day window ends.</li>
-            <li>If rejected before it runs, Contact us. Chain fees are never refunded.</li>
+            <li>It is on the slot you paid for. No staff click.</li>
+            <li>The clock below counts down the days you bought.</li>
+            <li>When it hits zero, the slot stops showing it.</li>
+            <li>Staff can still take down a scam creative. Chain and card fees are not refunded.</li>
           </ol>
         </div>
         <button type="button" className="btn-3d mt-3 rounded-xl px-3 py-2 text-sm" onClick={() => setDone(null)}>
@@ -1894,7 +1888,7 @@ function Ads({ store }: { store: Store }) {
             {c.image ? <img src={c.image} alt="" className="h-16 w-20 object-cover" /> : <div className="grid h-16 w-20 place-items-center bg-panel-3 text-[10px] text-lime-2">AD</div>}
             <div className="min-w-0 py-2 pr-2">
               <div className="truncate text-sm font-bold">{c.name}</div>
-              <div className="text-[10px] text-lime-2">{c.status} · {c.days ?? 7} days · {c.placement}</div>
+              <div className="text-[10px] text-lime-2">{c.status} · {c.placement} · {c.expiresAt ? timeLeftLabel(c.expiresAt) : `${c.days ?? 7} days`}</div>
             </div>
           </div>
         ))}
@@ -1902,9 +1896,9 @@ function Ads({ store }: { store: Store }) {
     );
   }
   return (
-    <Screen kicker="ADS" title="Place an ad" sub="Pick a slot, creative type, and duration. Pay crypto. Staff approve. Then it appears on that slot.">
+    <Screen kicker="ADS" title="Place an ad" sub="Pick a slot, the days, and a creative. Pay. It goes live on that slot.">
       <div className="mb-3 rounded-xl border border-lime-2/30 bg-lime-2/5 px-3 py-2 text-[11px] leading-snug text-muted">
-        <span className="font-bold text-lime-2">1 · Slot</span> → <span className="font-bold text-lime-2">2 · Creative</span> → <span className="font-bold text-lime-2">3 · Pay</span> crypto, Paystack, or Flutterwave → submit. Staff still approve the creative.
+        <span className="font-bold text-lime-2">1 · Slot</span> → <span className="font-bold text-lime-2">2 · Creative</span> → <span className="font-bold text-lime-2">3 · Pay</span>. Paystack, Flutterwave, or crypto. No staff approval. The countdown starts when the payment confirms.
       </div>
       <div className="mb-3 grid gap-1.5" role="group" aria-label="Ad slot">
         {AD_PLACEMENTS.map((p) => {
@@ -1913,7 +1907,7 @@ function Ads({ store }: { store: Store }) {
             <button
               key={p.id}
               type="button"
-              onClick={() => { setPlace(p.id); if (payWith !== "crypto") setTxHash(""); }}
+              onClick={() => { setPlace(p.id); setTxHash(""); }}
               aria-pressed={on}
               className={`raised rounded-2xl px-3 py-3 text-left transition ${
                 on
@@ -1975,130 +1969,113 @@ function Ads({ store }: { store: Store }) {
       ) : null}
       <div className="mb-1 text-[11px] font-medium text-muted">Pay with</div>
       <div className="mb-2 flex flex-wrap gap-1">
-        {(["crypto", "paystack", "flutterwave"] as const).map((id) => (
+        {(["paystack", "flutterwave", "nowpayments"] as const).map((id) => (
           <button key={id} type="button" onClick={() => { setPayWith(id); setTxHash(""); }} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${payWith === id ? "btn-3d" : "border border-line text-muted"}`}>
-            {id === "crypto" ? "Crypto" : id === "paystack" ? "Paystack" : "Flutterwave"}
+            {id === "nowpayments" ? "Crypto" : id === "paystack" ? "Paystack" : "Flutterwave"}
           </button>
         ))}
       </div>
-      {adsPay && payWith === "crypto" ? (
-        <>
-      <div className="mb-2 flex flex-wrap gap-1">
-        {AD_COINS.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            onClick={() => setCoin(c.id)}
-            className={`rounded-full px-2 py-1 text-[11px] ${coin === c.id ? "btn-3d font-semibold" : "border border-line text-muted"}`}
-          >
-            {c.ticker}
-          </button>
-        ))}
-      </div>
-      <div className="raised mb-3 rounded-2xl p-3 text-xs">
-        <div className="text-muted">Send {AD_COINS.find((c) => c.id === coin)?.label} to this Kilode wallet only</div>
-        <div className="mt-1 break-all font-mono text-[11px]">{payTo || "Wallet not set yet."}</div>
-        {payTo ? (
-          <button
-            type="button"
-            className="mt-2 rounded border border-line px-2 py-1 text-[11px] font-semibold"
-            onClick={() => {
-              void navigator.clipboard?.writeText(payTo).then(() => {
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1400);
-              });
-            }}
-          >
-            {copied ? "Copied" : "Copy address"}
-          </button>
-        ) : null}
-        <p className="mt-2 text-[10px] leading-snug text-danger">
-          Verify the first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet. We match your tx on the public chain.
+      {mine.some((c) => c.placement === place && c.status === "approved" && (c.expiresAt ?? 0) > Date.now()) ? (
+        <p className="mb-2 text-[12px] font-semibold text-lime-2">
+          Your ad is in this slot · {timeLeftLabel(mine.find((c) => c.placement === place && c.status === "approved")?.expiresAt)}
         </p>
-      </div>
-      <input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Amount sent (about $${usd} USD in crypto)`} className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-      <input value={txHash} onChange={(e) => setTxHash(e.target.value)} placeholder="Transaction hash after you pay" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-        </>
-      ) : null}
-      {adsPay && payWith !== "crypto" ? (
+      ) : (
+        <p className="mb-2 text-[11px] text-muted">${usd} · {days} days on {slot?.label || place}. Price is the one set in Super admin.</p>
+      )}
+      {adsPay ? (
         <div className="mb-3">
+          {!name.trim() || !agree ? <p className="mb-2 text-[12px] text-muted">Add the campaign name and tick the terms. Then pay. The ad goes live on this slot when the payment confirms.</p> : null}
           <GatewayPay
             provider={payWith}
             kind="ad"
             purpose={place}
             usd={usd}
             rate={gate.ngnPerUsd}
-            ready={payWith === "paystack" ? gate.paystack : gate.flutterwave}
+            ready={payWith === "paystack" ? gate.paystack : payWith === "flutterwave" ? gate.flutterwave : gate.nowpayments}
             onPaid={(paid) => {
-              setTxHash(paid.reference);
-              setCoin(paid.provider);
-              setAmount(String(paid.amountNgn));
-              setErr("");
+              if (!agree || !name.trim()) {
+                setTxHash(paid.reference);
+                setCoin(paid.provider);
+                setAmount(String(paid.amountNgn || paid.reference));
+                setErr("Add the name and tick the terms, then tap Go live.");
+                return;
+              }
+              const img = kind.includes("image") ? (image.startsWith("data:") ? image : safeHttpUrl(image)) : undefined;
+              void Promise.resolve(store.saveAd(name, note, {
+                placement: place,
+                txHash: paid.reference,
+                amount: String(paid.amountNgn || usd),
+                coin: paid.provider,
+                link: safeHttpUrl(link),
+                image: img,
+                video: kind.includes("video") ? youtubeId(video) || safeHttpUrl(video) : undefined,
+                kind,
+                days,
+              })).then((ok) => {
+                if (ok) {
+                  setDone(name.trim());
+                  setName("");
+                  setNote("");
+                  setLink("");
+                  setImage("");
+                  setVideo("");
+                  setTxHash("");
+                  setErr("");
+                }
+              });
             }}
           />
-          {txHash.startsWith("kld_") ? <p className="mt-2 text-[12px] font-semibold text-lime-2">Paid. Submit the creative below.</p> : null}
         </div>
-      ) : null}
-      {!adsPay ? <p className="mb-3 text-[12px] text-lime-2">Payment is off for ads. Staff still approve.</p> : null}
+      ) : <p className="mb-3 text-[12px] text-lime-2">Payment is off for ads right now.</p>}
       {err ? <p className="mb-2 text-sm text-danger">{err}</p> : null}
       <label className="mb-3 flex items-start gap-2 text-[11px] text-muted">
         <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
         <span>
           I agree to the{" "}
           <a href="/ads-policy" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
-            Ads & crypto terms
+            Ads terms
           </a>
-          . I paid from my own wallet. Staff may reject a bad or missing hash.
+          . I am paying for this slot and these days. It goes live when the payment confirms.
         </span>
       </label>
-      <button
-        type="button"
-        className="btn-join mb-4 w-full rounded-xl py-3 text-sm font-bold"
-        onClick={() => {
-          if (!agree) {
-            setErr("Accept the Terms.");
-            return;
-          }
-          if (!name.trim() || (adsPay && !txHash.trim())) {
-            setErr(adsPay ? "Name and payment tx are required." : "Name is required.");
-            return;
-          }
-          const img = kind.includes("image") ? (image.startsWith("data:") ? image : safeHttpUrl(image)) : undefined;
-          store.saveAd(name, note, {
-            placement: place,
-            txHash,
-            amount,
-            coin,
-            link: safeHttpUrl(link),
-            image: img,
-            video: kind.includes("video") ? youtubeId(video) || safeHttpUrl(video) : undefined,
-            kind,
-            days,
-          });
-          setDone(name.trim());
-          setName("");
-          setNote("");
-          setLink("");
-          setImage("");
-          setVideo("");
-          setTxHash("");
-          setAmount("");
-          setErr("");
-        }}
-      >
-        Submit for approval
-      </button>
+      {txHash.startsWith("kld_") && name.trim() ? (
+        <button
+          type="button"
+          className="btn-join mb-4 w-full rounded-xl py-3 text-sm font-bold"
+          onClick={() => {
+            const img = kind.includes("image") ? (image.startsWith("data:") ? image : safeHttpUrl(image)) : undefined;
+            void Promise.resolve(store.saveAd(name, note, {
+              placement: place,
+              txHash,
+              amount,
+              coin,
+              link: safeHttpUrl(link),
+              image: img,
+              video: kind.includes("video") ? youtubeId(video) || safeHttpUrl(video) : undefined,
+              kind,
+              days,
+            })).then((ok) => {
+              if (!ok) return;
+              setDone(name.trim());
+              setName("");
+              setTxHash("");
+              setErr("");
+            });
+          }}
+        >
+          Go live
+        </button>
+      ) : null}
       <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">YOUR CAMPAIGNS</div>
-      {mine.length === 0 ? <p className="text-sm text-muted">None yet. After you submit, status shows here: paid → approved or rejected.</p> : null}
+      {mine.length === 0 ? <p className="text-sm text-muted">None yet. A paid ad shows here with the time left on that slot.</p> : null}
       {mine.map((c) => (
         <div key={c.id} className="raised mb-2 flex gap-2 overflow-hidden rounded-2xl">
           {c.image ? <img src={c.image} alt="" className="h-16 w-20 object-cover" /> : <div className="grid h-16 w-20 place-items-center bg-panel-3 text-[10px] text-lime-2">AD</div>}
           <div className="min-w-0 py-2 pr-2">
             <div className="truncate text-sm font-bold">{c.name}</div>
-            <div className="text-[10px] text-lime-2">{c.status} · {c.days ?? 7} days · {c.placement}</div>
+            <div className="text-[10px] text-lime-2">{c.status === "approved" ? "Live" : c.status} · {c.placement}</div>
             <div className="truncate text-[10px] text-muted">
-              {(c.coin || "").toUpperCase()} {c.amount || ""}
-              {c.expiresAt ? ` · ${daysLeft(c.expiresAt, c.days)}d left` : ""}
+              {c.expiresAt ? timeLeftLabel(c.expiresAt) : `${c.days ?? 7} days`}
               {" · "}
               {fmtCount(c.views ?? 0)} views
             </div>

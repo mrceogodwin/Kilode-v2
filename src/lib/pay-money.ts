@@ -2,9 +2,15 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const CARD_PROVIDERS = ["paystack", "flutterwave"] as const;
 export type CardProvider = (typeof CARD_PROVIDERS)[number];
+export const PAY_PROVIDERS = ["paystack", "flutterwave", "nowpayments"] as const;
+export type PayProvider = (typeof PAY_PROVIDERS)[number];
 
 export function isCardProvider(v: string): v is CardProvider {
   return v === "paystack" || v === "flutterwave";
+}
+
+export function isPayProvider(v: string): v is PayProvider {
+  return v === "paystack" || v === "flutterwave" || v === "nowpayments";
 }
 
 /** Whole naira from a whole-dollar price. Rate is naira per 1 USD. */
@@ -23,6 +29,27 @@ export function koboFromNgn(ngn: number) {
 
 export function paystackSignature(secret: string, rawBody: string) {
   return createHmac("sha512", secret).update(rawBody).digest("hex");
+}
+
+function sortJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortJson);
+  if (value && typeof value === "object") {
+    const src = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const key of Object.keys(src).sort()) out[key] = sortJson(src[key]);
+    return out;
+  }
+  return value;
+}
+
+/** NOWPayments IPN: HMAC-SHA512 of the recursively key-sorted JSON body. */
+export function nowpaymentsSignature(secret: string, rawBody: string) {
+  try {
+    const sorted = sortJson(JSON.parse(rawBody) as unknown);
+    return createHmac("sha512", secret).update(JSON.stringify(sorted)).digest("hex");
+  } catch {
+    return "";
+  }
 }
 
 export function safeEqual(a: string, b: string) {

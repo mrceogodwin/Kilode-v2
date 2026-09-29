@@ -26,10 +26,12 @@ export const AI_KEY_SLOTS = [
   { id: "custom_webhook", label: "Custom webhook", hint: "POST JSON when a post is boosted" },
   { id: "paystack_secret", label: "Paystack secret", hint: "sk_live_… Server only. Or set env PAYSTACK_SECRET_KEY." },
   { id: "flutterwave_secret", label: "Flutterwave secret", hint: "FLWSECK_… Server only. Or set env FLUTTERWAVE_SECRET_KEY." },
-  { id: "flutterwave_hash", label: "Flutterwave webhook hash", hint: "Secret hash from the Flutterwave dashboard. Or env FLUTTERWAVE_HASH." },
+  { id: "flutterwave_hash", label: "Flutterwave webhook hash", hint: "Secret hash from the Flutterwave dashboard. Webhook URL: https://kilode.ng/api/pay/flutterwave" },
+  { id: "nowpayments_api", label: "NOWPayments API key", hint: "Crypto invoices. Server only. Or env NOWPAYMENTS_API_KEY." },
+  { id: "nowpayments_ipn", label: "NOWPayments IPN secret", hint: "Webhook secret. URL: https://kilode.ng/api/pay/nowpayments" },
   { id: "ngn_per_usd", label: "Naira per 1 USD", hint: "Paystack and Flutterwave rate. Example 1600. Or env KILODE_NGN_PER_USD." },
   { id: "event_usd", label: "Event listing fee (USD)", hint: "Price to submit an event when payment is on. Example 10." },
-  { id: "verify_usd", label: "Verification fee (USD)", hint: "Price to request a verified badge. Staff still approve. Example 5." },
+  { id: "verify_usd", label: "Verification fee (USD)", hint: "Badge turns on as soon as Paystack, Flutterwave, or crypto confirms. Example 5." },
 ] as const;
 
 export type AiKeyId = (typeof AI_KEY_SLOTS)[number]["id"];
@@ -42,7 +44,7 @@ export const listAiKeys = createServerFn({ method: "GET" })
     await sql`create table if not exists nf_ai_keys (id text primary key, label text not null, value text not null default '', hint text not null default '', ts bigint not null)`;
     const rows = await sql<{ id: string; value: string }>`select id, value from nf_ai_keys`;
     const map = Object.fromEntries(rows.map((r) => [r.id, r.value]));
-    const hidden = new Set(["paystack_secret", "flutterwave_secret", "flutterwave_hash"]);
+    const hidden = new Set(["paystack_secret", "flutterwave_secret", "flutterwave_hash", "nowpayments_api", "nowpayments_ipn"]);
     return AI_KEY_SLOTS.map((s) => ({
       ...s,
       value: hidden.has(s.id) ? "" : (map[s.id] ?? ""),

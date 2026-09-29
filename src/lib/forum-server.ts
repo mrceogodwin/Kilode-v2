@@ -7,8 +7,7 @@ import { gateText } from "@/lib/mod-cache";
 import { postBodyPlain, sanitizePostHtml } from "@/lib/post-body";
 import { pushNote, userIdByHandle } from "@/lib/social-server";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
-import { claimTx, releaseTx } from "@/lib/tx-ledger";
-import { isCardProvider } from "@/lib/pay-money";
+import { isPayProvider } from "@/lib/pay-money";
 import { releaseCheckout, takePaidCheckout } from "@/lib/pay-gateways";
 import { DB_TIMEOUT_MS, withTimeout } from "@/lib/with-timeout";
 
@@ -604,26 +603,20 @@ export const saveAdRow = createServerFn({ method: "POST" })
     } catch {
       payOff = false;
     }
-    if (!payOff && !txHash) return { ok: false as const, reason: "Pay first. Crypto, Paystack, or Flutterwave." };
+    if (!payOff && !txHash.startsWith("kld_")) return { ok: false as const, reason: "Pay with Paystack, Flutterwave, or crypto. A pasted wallet hash is not accepted." };
     let cardNote = "";
-    if (!payOff && isCardProvider(coin)) {
+    let live = false;
+    if (!payOff) {
       const taken = await takePaidCheckout({ reference: txHash, userId: context.userId, kind: "ad", purpose: placement, refId: id });
       if (!taken.ok) return taken;
       cardNote = taken.note;
-    } else if (!payOff && txHash) {
-      const claimed = await claimTx({
-        hash: txHash,
-        kind: "ad",
-        refId: id,
-        userId: context.userId,
-        coin,
-        amount: data.amount ?? "",
-      });
-      if (!claimed.ok) return { ok: false as const, reason: claimed.reason };
+      live = isPayProvider(coin) || txHash.startsWith("kld_");
     }
+    const status = live ? "approved" : "pending";
+    const expires = live ? ts + days * 86_400_000 : null;
     try {
-      await sql`insert into nf_ads (id, user_id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts, days)
-        values (${id}, ${context.userId}, ${name}, ${data.note}, ${placement}, ${"pending"}, ${data.amount ?? ""}, ${txHash}, ${coin}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.kind ?? "image-text"}, ${data.video ?? ""}, ${0}, ${ts}, ${days})`;
+      await sql`insert into nf_ads (id, user_id, name, note, placement, status, amount, tx_hash, coin, link, image, kind, video, views, ts, days, expires_at)
+        values (${id}, ${context.userId}, ${name}, ${data.note}, ${placement}, ${status}, ${data.amount ?? ""}, ${txHash}, ${coin}, ${data.link ?? ""}, ${data.image ?? ""}, ${data.kind ?? "image-text"}, ${data.video ?? ""}, ${0}, ${ts}, ${days}, ${expires})`;
       if (cardNote) {
         try {
           await sql`update nf_ads set match_note = ${cardNote} where id = ${id}`;
@@ -632,11 +625,10 @@ export const saveAdRow = createServerFn({ method: "POST" })
         }
       }
     } catch (e) {
-      if (!payOff && isCardProvider(coin)) await releaseCheckout(txHash, id);
-      else if (txHash) await releaseTx(txHash, id);
+      if (!payOff && txHash) await releaseCheckout(txHash, id);
       throw e;
     }
-    return { id, status: "pending" as const };
+    return { id, status, expiresAt: expires ?? undefined };
   });
 
 export const listWallets = createServerFn({ method: "GET" }).handler(async () => {

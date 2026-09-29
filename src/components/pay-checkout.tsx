@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { confirmCheckout, startCheckout } from "@/lib/pay-gateways";
-import type { CardProvider } from "@/lib/pay-money";
+import type { PayProvider } from "@/lib/pay-money";
 
 export function GatewayPay({
   provider,
@@ -11,13 +11,13 @@ export function GatewayPay({
   ready,
   onPaid,
 }: {
-  provider: CardProvider;
+  provider: PayProvider;
   kind: "ad" | "event" | "verify";
   purpose: string;
   usd: number;
   rate: number;
   ready: boolean;
-  onPaid: (paid: { reference: string; provider: CardProvider; amountNgn: number }) => void;
+  onPaid: (paid: { reference: string; provider: PayProvider; amountNgn: number }) => void;
 }) {
   const [email, setEmail] = useState("");
   const [open, setOpen] = useState(false);
@@ -26,8 +26,9 @@ export function GatewayPay({
   const [ngn, setNgn] = useState(0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const label = provider === "paystack" ? "Paystack" : "Flutterwave";
+  const label = provider === "paystack" ? "Paystack" : provider === "flutterwave" ? "Flutterwave" : "Crypto";
   const quote = usd > 0 && rate > 0 ? usd * rate : 0;
+  const priceLabel = provider === "nowpayments" ? `$${usd} in crypto` : `₦${quote.toLocaleString("en-NG")}`;
 
   async function check(reference: string, quiet = false) {
     const r = await confirmCheckout({ data: { reference } });
@@ -61,7 +62,7 @@ export function GatewayPay({
       <div className="flex items-center justify-between gap-2">
         <div>
           <div className="text-sm font-extrabold">{label}</div>
-          <p className="text-[11px] text-muted">{ready ? `₦${quote.toLocaleString("en-NG")} for this $${usd} price.` : "Not set up yet. Add the secret in Super admin."}</p>
+          <p className="text-[11px] text-muted">{ready ? `${priceLabel} for this placement.` : "Not set up yet. Add the secret in Super admin."}</p>
         </div>
       </div>
       <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Receipt email (optional)" className="mt-2 w-full rounded-lg border border-line bg-bg px-3 py-2 text-base" />
@@ -88,7 +89,7 @@ export function GatewayPay({
             .finally(() => setBusy(false));
         }}
       >
-        {busy ? "Opening…" : ready ? `Pay ₦${quote.toLocaleString("en-NG")} with ${label}` : `${label} not connected`}
+        {busy ? "Opening…" : ready ? `Pay ${priceLabel} with ${label}` : `${label} not connected`}
       </button>
       {err ? <p className="mt-2 text-[12px] text-danger">{err}</p> : null}
       {open ? (
