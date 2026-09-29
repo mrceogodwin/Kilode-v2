@@ -68,11 +68,13 @@ function decodeBits(s: string) {
   let out = s;
   for (let i = 0; i < 2; i++) {
     out = out
-      .replace(/&/g, "&")
       .replace(/&#(\d+);/g, (_, n) => {
         const c = Number(n);
         return c > 0 && c < 0x110000 ? String.fromCodePoint(c) : _;
-      });
+      })
+      .replace(/&/g, "&")
+      .replace(/"/g, '"')
+      .replace(/&#039;|'/g, "'");
   }
   return out;
 }

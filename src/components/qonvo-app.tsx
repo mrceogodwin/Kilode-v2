@@ -3029,7 +3029,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
               </div>
               <div className="px-1 py-1 sm:px-1.5">
                 <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
-                <div className="mt-0.5 line-clamp-4 text-[10px] font-normal leading-tight text-fg sm:text-[11px] md:text-[12px]">{p.title}</div>
+                <div className="mt-0.5 line-clamp-4 text-[10px] font-normal leading-tight text-fg sm:text-[11px] md:text-[12px]">{p.title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&/g, "&")}</div>
                 <div className="mt-0.5 flex items-center gap-1.5 text-[8px] tabular-nums text-muted">
                   <span className="inline-flex items-center gap-0.5">
                     <Eye className="size-2.5" />

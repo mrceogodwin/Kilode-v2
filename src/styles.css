@@ -3016,3 +3016,100 @@ html[data-skin="ivory"] .me-hero {
   color: #d7f0de;
 }
 
+/* Light skin: off-white page, dark cards, light type. Docks stay dark. */
+html[data-skin="ivory"] {
+  --color-bg: #ebe7df;
+  --color-fg: #1c1c1a;
+}
+html[data-skin="ivory"] body { background: #ebe7df; }
+html[data-skin="ivory"] .kilode-chrome .brand-word {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+html[data-skin="ivory"] .bang-ico {
+  border-color: #e6c56a !important;
+  background: #12110e !important;
+  color: #e6c56a !important;
+}
+html[data-skin="ivory"] .me-hero,
+html[data-skin="ivory"] .me-hero p,
+html[data-skin="ivory"] .me-hero .text-fg,
+html[data-skin="ivory"] .me-hero h2,
+html[data-skin="ivory"] .glass-3d,
+html[data-skin="ivory"] .glass-3d .text-fg,
+html[data-skin="ivory"] .raised,
+html[data-skin="ivory"] .raised .text-fg,
+html[data-skin="ivory"] .pulse-card,
+html[data-skin="ivory"] .pulse-row {
+  color: #f4f6f5 !important;
+}
+html[data-skin="ivory"] .me-hero .text-muted,
+html[data-skin="ivory"] .glass-3d .text-muted,
+html[data-skin="ivory"] .raised .text-muted {
+  color: rgba(255, 255, 255, 0.62) !important;
+}
+html[data-skin="ivory"] .me-hero,
+html[data-skin="ivory"] .glass-3d,
+html[data-skin="ivory"] .raised,
+html[data-skin="ivory"] .pulse-card {
+  background: linear-gradient(180deg, #1a221e 0%, #101412 100%) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+html[data-skin="ivory"] .me-hero [class*="text-white"],
+html[data-skin="ivory"] .glass-3d [class*="text-white"],
+html[data-skin="ivory"] .raised [class*="text-white"],
+html[data-skin="ivory"] .dock [class*="text-white"] {
+  color: #fff !important;
+}
+html[data-skin="ivory"] .trend-ticker,
+html[data-skin="ivory"] .kilode-chrome-ticker {
+  background: #141816 !important;
+  color: #f4f6f5 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+html[data-skin="ivory"] .btn-3d {
+  background: #161816 !important;
+  color: #f4f6f5 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+html[data-skin="ivory"] .btn-yellow,
+html[data-skin="ivory"] .dock-plus,
+html[data-skin="ivory"] .btn-post,
+html[data-skin="ivory"] .news-plus {
+  background: #e6c56a !important;
+  color: #1a1408 !important;
+  border-color: #c9a84a !important;
+}
+html[data-skin="ivory"] .login-stage {
+  background: #111 !important;
+}
+html[data-skin="ivory"] .login-stage::before {
+  content: "" !important;
+  display: block !important;
+  background: url("/login-portrait.jpg") 68% 36% / cover no-repeat !important;
+}
+html[data-skin="ivory"] .login-card {
+  background: rgba(255, 252, 247, 0.78) !important;
+  color: #1c1c1a !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+html[data-skin="ivory"] .login-card .brand-word {
+  color: #1c1c1a !important;
+  -webkit-text-fill-color: #1c1c1a !important;
+}
+html[data-skin="ivory"] .lane-chip {
+  background: #fff !important;
+  color: #1c1c1a !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+html[data-skin="ivory"] .lane-chip.on {
+  background: #161816 !important;
+  color: #f4f6f5 !important;
+}
+.staff-power {
+  background: #141816;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #f4f6f5;
+}
+.staff-power .text-muted { color: rgba(255, 255, 255, 0.7) !important; }
+

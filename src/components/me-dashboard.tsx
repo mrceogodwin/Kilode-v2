@@ -762,7 +762,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       </div>
       <p className="mb-3 text-sm text-muted">{purpose}</p>
       {staffRole ? (
-        <section className="mb-3 rounded-2xl border border-white/10 bg-panel p-3">
+        <section className="staff-power mb-3 rounded-2xl border p-3">
           <div className="text-[10px] font-bold tracking-[0.16em] text-muted">YOUR POWER</div>
           <p className="mt-1 text-[12px] leading-snug text-muted">{staffPowers}</p>
           <a href={STAFF_PATH} className="mt-2 inline-flex rounded-lg bg-[#141816] px-3 py-2 text-[13px] font-bold text-white">
