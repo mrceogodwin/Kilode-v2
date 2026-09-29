@@ -515,7 +515,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
               <button
                 type="button"
                 disabled={linkState(f) === "out"}
-                className="rounded-full border border-line bg-transparent px-2.5 py-1 text-[10px] font-bold text-fg disabled:opacity-70"
+                className="fellow-act rounded-full border px-2.5 py-1 text-[10px] font-bold disabled:opacity-70"
                 onClick={() => {
                   if (!authed) return goLogin();
                   if (linkState(f) === "in") return;

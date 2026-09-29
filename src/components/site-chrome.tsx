@@ -224,7 +224,7 @@ export function SiteFooter() {
       </div>
 
       <div className="foot-section mt-3 border-t pt-2.5 text-center">
-        <img src="/kilode-word.png" alt="Kilode" className="mx-auto mb-2 h-7 w-auto" />
+        <img src="/kilode-word.png" alt="Kilode" className="foot-mark mx-auto mb-2 h-7 w-auto" />
         <p className="text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">About Kilode</p>
         <p className="mx-auto mt-1 max-w-[18rem] px-2 text-center text-[11px] leading-snug break-words text-muted">{ABOUT_SHORT}</p>
         <a href="/about" className="mt-1 inline-block text-[11px] font-semibold text-lime-2 underline-offset-2 hover:underline">

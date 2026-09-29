@@ -400,7 +400,7 @@ function QonvoAppInner() {
     const el = document.querySelector(".kilode-chrome");
     if (!el) return;
     const apply = () => {
-      document.documentElement.style.setProperty("--chrome-bottom", `${Math.round(el.getBoundingClientRect().bottom)}px`);
+      document.documentElement.style.setProperty("--chrome-bottom", `${Math.round(el.getBoundingClientRect().bottom) + 6}px`);
     };
     apply();
     const ro = new ResizeObserver(apply);
@@ -1746,24 +1746,36 @@ function FriendBlock({
   onWait?: () => void;
   active?: string;
 }) {
+  const [shown, setShown] = useState(4);
+  const list = rows.slice(0, shown);
   return (
-    <section>
-      <div className="mb-1.5 text-[10px] font-semibold tracking-[0.14em] text-white/50 uppercase">{title}</div>
+    <section className="friend-sec">
+      <div className="friend-kicker">{title}</div>
+      {onMessage && rows.length > 0 ? (
+        <div className="friend-faces">
+          {rows.slice(0, 10).map((r) => (
+            <button key={`face-${r.id}`} type="button" onClick={() => onMessage(r.handle)}>
+              <AvatarImg handle={r.handle} size={36} />
+              <span>@{r.handle}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
       {rows.length === 0 ? <p className="text-[12px] text-muted">{empty}</p> : null}
-      <div className="space-y-1.5">
-        {rows.map((r) => {
+      <div className="space-y-2">
+        {list.map((r) => {
           const on = live.includes(r.handle.toLowerCase());
           return (
-          <div key={r.dir + r.id} className={`rounded-xl ${active === r.handle ? "bg-white/5" : ""}`}>
-          <div className="menu-row flex items-center gap-2 rounded-xl px-2.5 py-2">
+          <div key={r.dir + r.id} className="friend-card">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               className="flex min-w-0 flex-1 items-center gap-2 text-left"
               onClick={() => (onMessage ? onMessage(r.handle) : onWait?.())}
             >
               <span className="relative shrink-0">
-                <AvatarImg handle={r.handle} size={32} />
-                {on ? <span className="live-dot absolute -top-0.5 -right-0.5 ring-2 ring-[#121412]" title="Online" /> : null}
+                <AvatarImg handle={r.handle} size={36} />
+                {on ? <span className="live-dot absolute -top-0.5 -right-0.5 ring-2 ring-[#141816]" title="Online" /> : null}
               </span>
               <span className="min-w-0">
                 <span className="block truncate text-[13px] font-semibold">@{r.handle}</span>
@@ -1771,30 +1783,30 @@ function FriendBlock({
               </span>
             </button>
             {onMessage ? (
-              <button type="button" className="shrink-0 rounded-full border border-white/30 px-2 py-1 text-[10px] font-bold text-white" onClick={() => onMessage(r.handle)}>
+              <button type="button" className="friend-act" onClick={() => onMessage(r.handle)}>
                 Message
               </button>
             ) : null}
             {onDisconnect ? (
-              <button type="button" className="rounded-full border border-white/25 px-2 py-1 text-[10px] font-semibold text-white" onClick={() => onDisconnect(r.id)}>
+              <button type="button" className="friend-act ghost" onClick={() => onDisconnect(r.id)}>
                 {onMessage ? "Disconnect" : "Cancel"}
               </button>
             ) : null}
             <ReportMenu handle={r.handle} signedIn />
             {onAccept ? (
-              <button type="button" className="menu-press rounded-full px-2.5 py-1 text-[10px] font-bold" onClick={() => onAccept(r.id)}>
+              <button type="button" className="friend-act" onClick={() => onAccept(r.id)}>
                 Accept
               </button>
             ) : null}
             {onDecline ? (
-              <button type="button" className="rounded-full border border-white/25 px-2 py-1 text-[10px] font-semibold text-white" onClick={() => onDecline(r.id)}>
+              <button type="button" className="friend-act ghost" onClick={() => onDecline(r.id)}>
                 No
               </button>
             ) : null}
           </div>
           {active === r.handle && onMessage ? (
             <form
-              className="flex gap-1 px-2 pb-2"
+              className="mt-2 flex gap-1"
               onSubmit={(e) => {
                 e.preventDefault();
                 const input = e.currentTarget.elements.namedItem("body") as HTMLInputElement;
@@ -1806,13 +1818,18 @@ function FriendBlock({
               }}
             >
               <input name="body" maxLength={500} placeholder={`Message @${r.handle}`} className="min-w-0 flex-1 rounded-[10px] border border-white/20 bg-black px-2 py-1.5 text-[13px] text-white outline-none" style={{ fontSize: 16 }} />
-              <button type="submit" className="rounded-full bg-white px-3 text-[11px] font-bold text-black">Send</button>
+              <button type="submit" className="rounded-full bg-[#E4B53A] px-3 text-[11px] font-bold text-[#1a1408]">Send</button>
             </form>
           ) : null}
           </div>
           );
         })}
       </div>
+      {rows.length > shown ? (
+        <button type="button" className="friend-more" onClick={() => setShown((n) => n + 6)}>
+          Load more
+        </button>
+      ) : null}
     </section>
   );
 }
