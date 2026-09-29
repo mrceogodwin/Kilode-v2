@@ -448,19 +448,25 @@
 .brand-lockup.lg .brand-word { font-size: 28px; }
 .bang-ico {
   display: grid;
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
+  width: 30px;
+  height: 32px;
+  flex: 0 0 30px;
   place-items: center;
-  border-radius: 8px;
-  border: 1.5px solid #e6c56a;
-  background: #12110e;
-  color: #e6c56a;
-  font-family: Nunito, ui-sans-serif, system-ui, sans-serif;
-  font-size: 18px;
+  border-radius: 9px;
+  border: 2.5px solid #E4B53A;
+  background: #12110c;
+  color: #E4B53A;
+  font-family: Syne, Nunito, ui-sans-serif, system-ui, sans-serif;
+  font-size: 20px;
   font-weight: 800;
   line-height: 1;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.brand-word {
+  font-family: Syne, Nunito, ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.04em;
+  color: #fff;
 }
 .staff-pill {
   display: inline-flex;
@@ -528,16 +534,29 @@
 .login-stage::before {
   content: "";
   position: absolute;
-  inset: -12%;
-  background: url("/login-portrait.jpg") 68% 36% / cover no-repeat;
+  inset: -8%;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.55)),
+    url("/login-portrait.jpg") 62% 78% / cover no-repeat;
   animation: face-zoom 12s ease-in-out infinite;
   z-index: 0;
+}
+.login-stage::after {
+  content: "";
+  position: absolute;
+  inset: -8%;
+  background: url("/login-portrait.jpg") 62% 78% / cover no-repeat;
+  mix-blend-mode: screen;
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+  animation: login-glitch 7s steps(1) infinite;
 }
 .login-card {
   position: relative;
   z-index: 1;
-  background: rgba(8, 10, 9, 0.62) !important;
-  backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, rgba(8, 10, 9, 0.28) 0%, rgba(8, 10, 9, 0.72) 28%, rgba(8, 10, 9, 0.82) 100%) !important;
+  backdrop-filter: blur(6px);
 }
 @keyframes face-zoom {
   0% { transform: scale(1); }
@@ -3014,6 +3033,229 @@ html[data-skin="ivory"] .me-hero {
   font-size: 10px;
   font-weight: 700;
   color: #d7f0de;
+}
+
+@keyframes login-glitch {
+  0%, 88%, 100% { opacity: 0; transform: none; }
+  90% { opacity: 0.35; transform: translate(4px, -2px); }
+  93% { opacity: 0.15; transform: translate(-5px, 1px); }
+  96% { opacity: 0; transform: none; }
+}
+.login-kicker {
+  margin-top: 10px;
+  text-align: center;
+  font-family: Syne, Nunito, sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #f7f1e4;
+}
+.login-lede, .login-line {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(247, 241, 228, 0.82);
+}
+.login-id {
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #E4B53A;
+}
+.login-stage { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px 28px; }
+.spot-engine {
+  margin: 10px 12px 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(22, 24, 28, 0.8);
+  backdrop-filter: blur(8px);
+}
+.spot-engine header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f4f1ea;
+}
+.spot-engine header i {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: #E4B53A;
+  box-shadow: 0 0 0 0 rgba(228, 181, 58, 0.7);
+  animation: spot-pulse 1.8s ease-out infinite;
+}
+@keyframes spot-pulse {
+  70% { box-shadow: 0 0 0 6px rgba(228, 181, 58, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(228, 181, 58, 0); }
+}
+.spot-window { height: 168px; overflow: hidden; }
+.spot-track { animation: spot-up 22s linear infinite; }
+@keyframes spot-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+.spot-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+}
+.spot-row > span { width: 20px; text-align: center; font-size: 14px; }
+.spot-row p { min-width: 0; flex: 1; }
+.spot-row b, .spot-row em { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spot-row b { font-size: 12px; color: #fff; }
+.spot-row em { font-style: normal; font-size: 11px; color: #9aa0a6; }
+.spot-row button {
+  border: 0;
+  border-radius: 99px;
+  background: #E4B53A;
+  color: #1a1408;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.price-card {
+  display: block;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(80% 60% at 0% 0%, rgba(228, 181, 58, 0.14), transparent 50%),
+    linear-gradient(180deg, #1b211e, #101412);
+  padding: 12px;
+  color: #f4f1ea;
+}
+.price-card b { font-size: 15px; }
+.price-card span { color: #E4B53A; font-weight: 800; }
+.price-card p { margin-top: 4px; font-size: 12px; color: rgba(244, 241, 234, 0.72); }
+.price-card em {
+  display: inline-block;
+  margin-top: 8px;
+  border-radius: 99px;
+  background: #E4B53A;
+  color: #1a1408;
+  padding: 4px 10px;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 800;
+}
+.social-desk { margin: 10px 0 12px; }
+.social-desk header { margin-bottom: 6px; font-size: 12px; font-weight: 800; }
+.desk-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.desk-grid button {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #141816;
+  color: #f4f1ea;
+  padding: 8px 2px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.desk-grid button.on { border-color: #E4B53A; color: #E4B53A; }
+.desk-body {
+  margin-top: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #121614;
+  padding: 8px;
+  color: #f4f1ea;
+  font-size: 12px;
+}
+.desk-body b { display: block; margin-bottom: 6px; }
+.desk-body em { display: block; font-style: normal; color: rgba(244, 241, 234, 0.75); font-size: 11px; }
+.desk-body input {
+  width: 100%;
+  margin: 4px 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0c0e0d;
+  color: #fff;
+  padding: 6px 8px;
+  font-size: 16px;
+}
+.desk-body button, .desk-pills button, .desk-pills span {
+  border-radius: 99px;
+  border: 1px solid rgba(228, 181, 58, 0.5);
+  background: transparent;
+  color: #E4B53A;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.desk-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.desk-pills button.on { background: #E4B53A; color: #1a1408; }
+.wave {
+  display: block;
+  height: 10px;
+  margin: 4px 0;
+  background: repeating-linear-gradient(90deg, #E4B53A 0 2px, transparent 2px 6px);
+  opacity: 0.7;
+}
+.top-n {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(228, 181, 58, 0.16);
+  color: #E4B53A;
+  font-size: 12px;
+  font-weight: 800;
+}
+.hero-copy { color: #f7f4ee !important; }
+.sign-out {
+  background: #161816 !important;
+  color: #f4f1ea !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+.btn-yellow, .dock-plus, .btn-post, .news-plus {
+  background: #E4B53A !important;
+  color: #1a1408 !important;
+  border-color: #c99a32 !important;
+}
+.ticker-track { color: #f6f1e6 !important; }
+html[data-skin="ivory"] .me-hero,
+html[data-skin="ivory"] .glass-3d,
+html[data-skin="ivory"] .raised,
+html[data-skin="ivory"] .pulse-card,
+html[data-skin="ivory"] .staff-power {
+  background:
+    radial-gradient(90% 70% at 100% 0%, rgba(228, 181, 58, 0.1), transparent 42%),
+    linear-gradient(165deg, #24302a 0%, #141a17 48%, #0c100e 100%) !important;
+  color: #f7f4ee !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+html[data-skin="ivory"] .me-hero .hero-copy,
+html[data-skin="ivory"] .me-hero p,
+html[data-skin="ivory"] .me-hero [class*="text-fg"],
+html[data-skin="ivory"] .glass-3d,
+html[data-skin="ivory"] .glass-3d svg,
+html[data-skin="ivory"] .raised,
+html[data-skin="ivory"] .raised svg {
+  color: #f7f4ee !important;
+}
+html[data-skin="ivory"] .login-card {
+  background: linear-gradient(180deg, rgba(8, 10, 9, 0.2), rgba(8, 10, 9, 0.78)) !important;
+  color: #f7f4ee !important;
+}
+html[data-skin="ivory"] .login-card .brand-word {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+html[data-skin="ivory"] .bang-ico {
+  border-color: #E4B53A !important;
+  color: #E4B53A !important;
+  background: #12110c !important;
 }
 
 /* Light skin: off-white page, dark cards, light type. Docks stay dark. */

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
+import { SocialDesk } from "@/components/social-desk";
 import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
@@ -464,6 +465,7 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
           ))}
         </div>
       ) : null}
+      <SocialDesk takes={takes} fellows={fellows} me={me} />
       <div className="mb-2">
         <div className="mb-1.5 text-[12px] font-semibold text-fg">Connect with Fellows</div>
         <div className="flex gap-1.5">

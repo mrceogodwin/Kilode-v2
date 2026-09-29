@@ -101,6 +101,7 @@ export function QonvoScreen({
   else if (id === "rent") view = <ListingsPane kind="rent" />;
   else if (id === "help") view = <Help />;
   else if (id === "how") view = <HowKilodePage />;
+  else if (id === "pricing") view = <PricingPage />;
   else if (id === "dashboard")
     view = (
       <MeDashboard
@@ -132,6 +133,34 @@ export function QonvoScreen({
     <PaneGuard key={id} name={id}>
       <div className="h-full overflow-y-auto dock-pad md:pb-4">{view}</div>
     </PaneGuard>
+  );
+}
+
+function PricingPage() {
+  const plans = [
+    { name: "Member", price: "Free", note: "Post, chat, apply, and browse. No card.", href: "/login?mode=up", cta: "Join" },
+    { name: "Verified", price: "From $5", note: "Paid badge. Staff still approve it. The live rate is whatever the desk has set.", href: "/?open=me", cta: "Get verified" },
+    { name: "Event", price: "From $10", note: "A listed event. Pay, then it goes to the queue.", href: "/?tab=cinema", cta: "List an event" },
+    { name: "Ad placement", price: "You set it", note: "30-day placement. Paystack, Flutterwave, or crypto. Staff switch it live.", href: "/advertise", cta: "Place an ad" },
+  ];
+  return (
+    <div className="price-page mx-auto max-w-lg px-4 py-5">
+      <p className="text-[10px] font-bold tracking-[0.2em] text-[#E4B53A]">KILODE</p>
+      <h1 className="mt-1 font-[Syne,sans-serif] text-3xl font-extrabold tracking-tight">Pricing</h1>
+      <p className="mt-2 text-[13px] leading-snug text-muted">Four ways in. Pay only when you want a badge, an event, or an ad. The buttons open the real desk, not a fake checkout.</p>
+      <div className="mt-4 grid gap-2">
+        {plans.map((p) => (
+          <a key={p.name} href={p.href} className="price-card">
+            <div className="flex items-baseline justify-between gap-2">
+              <b>{p.name}</b>
+              <span>{p.price}</span>
+            </div>
+            <p>{p.note}</p>
+            <em>{p.cta}</em>
+          </a>
+        ))}
+      </div>
+    </div>
   );
 }
 

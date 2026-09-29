@@ -728,8 +728,8 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             </div>
           </div>
         </div>
-        <p className="px-4 pt-3 text-[10px] font-bold tracking-[0.16em] text-muted">{staffLabel ? `${staffLabel} desk` : hubTitleFor(kind)}</p>
-        <p className="px-4 pt-1 text-[13px] leading-snug text-fg/90">{store.bio?.trim() || "No bio yet. Edit profile to add one."}</p>
+        <p className="hero-copy px-4 pt-3 text-[10px] font-bold tracking-[0.16em]">{staffLabel ? `${staffLabel} desk` : hubTitleFor(kind)}</p>
+        <p className="hero-copy px-4 pt-1 text-[13px] leading-snug">{store.bio?.trim() || "No bio yet. Edit profile to add one."}</p>
         {!store.verified ? <a href={`/u/${encodeURIComponent(store.handle || "me")}`} className="mt-1 block px-4 text-[12px] font-bold text-lime-2">Get verified</a> : null}
         {store.interests ? <p className="px-4 pt-1 text-[11px] text-muted">{store.interests.split(",").join(" · ")}</p> : null}
         {store.website ? (
@@ -1510,7 +1510,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           <button
             type="button"
             disabled={signingOut}
-            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-panel px-3 py-2 text-[12px] font-semibold text-muted hover:border-danger/40 hover:text-ink disabled:cursor-wait"
+            className="sign-out inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-semibold disabled:cursor-wait"
             onClick={() => {
               setSigningOut(true);
               void Promise.resolve(onLogout())

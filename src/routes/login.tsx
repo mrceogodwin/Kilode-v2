@@ -70,9 +70,10 @@ function Login() {
     <main className="login-stage">
       <div className="login-card">
         <OfficialLockup className="login-logo" />
-        <p className="mt-2 text-center text-[12px] text-muted">
-          {staff ? "Owner console. Username and password only." : "Username and password. No email."}
-        </p>
+        <p className="login-kicker">African First Digital Space</p>
+        <p className="login-lede">For News, Community, Business & Ads Placements Ecosystem</p>
+        <p className="login-line">Kilode is an interactive digital media & business App.</p>
+        {staff ? <p className="mt-2 text-center text-[12px] text-muted">Owner console. Username and password only.</p> : null}
         {!staff ? (
           <div className="login-tabs" role="tablist">
             <button type="button" role="tab" aria-selected={mode === "in"} className={mode === "in" ? "on" : ""} onClick={() => { setErr(""); setMode("in"); }}>
@@ -186,6 +187,7 @@ function Login() {
           <p className="text-sm text-muted">Sign-in is disabled.</p>
         )}
       </div>
+      <p className="login-id">@BuiltbyStacks</p>
     </main>
   );
 }

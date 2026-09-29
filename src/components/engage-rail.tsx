@@ -158,8 +158,8 @@ export function TopTen({ posts, exclude, onOpen }: { posts: Post[]; exclude: str
       <ol className="space-y-1.5">
         {pool.map((p, i) => (
           <li key={p.id}>
-            <button type="button" className="raised flex w-full items-center gap-2 rounded-xl p-1.5 text-left" onClick={() => onOpen(p.id)}>
-              <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-lime-2/15 text-[11px] font-extrabold text-lime-2">{i + 1}</span>
+            <button type="button" className="top-row raised flex w-full items-center gap-2 rounded-xl p-1.5 text-left" onClick={() => onOpen(p.id)}>
+              <span className="top-n">{i + 1}</span>
               {p.image ? <img src={p.image} alt="" className="h-10 w-12 shrink-0 rounded-md object-cover" /> : <div className="h-10 w-12 shrink-0 rounded-md bg-panel-3" />}
               <span className="min-w-0 flex-1">
                 <span className="line-clamp-2 text-[12px] font-normal leading-snug">{p.title}</span>

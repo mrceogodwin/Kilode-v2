@@ -121,6 +121,7 @@ const ICONS: Record<MenuId, typeof Home> = {
   settings: Settings,
   help: HelpCircle,
   how: Play,
+  pricing: Coins,
 };
 
 const MENU_GROUPS: { label: string; ids: MenuId[] }[] = [
@@ -290,6 +291,7 @@ function QonvoAppInner() {
   useEffect(() => {
     if (session.isPending || signedIn) return;
     if (screen === "home" && homeTab === "feeds") return;
+    if (screen === "pricing" || screen === "how" || screen === "help" || screen === "contact") return;
     window.location.href = "/login?mode=up";
   }, [session.isPending, signedIn, screen, homeTab]);
   useEffect(() => {
@@ -1446,6 +1448,7 @@ function QonvoAppInner() {
                 <DrawerRow icon={HelpCircle} label="Help & FAQ" hint="Terms, safety, how to use" onClick={() => { setScreen("help"); setMenuOpen(false); }} on={screen === "help"} />
                 <DrawerRow icon={Mail} label="Contact" hint="Talk to Kilode" onClick={() => { setScreen("contact"); setMenuOpen(false); }} on={screen === "contact"} />
                 {signedIn ? <DrawerRow icon={Settings} label="Settings" onClick={() => { setScreen("settings"); setMenuOpen(false); }} on={screen === "settings"} /> : null}
+                <DrawerRow icon={Coins} label="Pricing" hint="Member, badge, event, ads" onClick={() => { setScreen("pricing"); setMenuOpen(false); }} on={screen === "pricing"} />
               </DrawerGroup>
             </div>
             <MenuPin />
@@ -2770,37 +2773,46 @@ function MembersRail({ onOpen }: { onOpen: (handle: string) => void }) {
   );
 }
 
-function Spotlight({ posts }: { posts: { title?: string; category?: string }[] }) {
-  const lines = useMemo(() => {
-    const out: string[] = [];
-    for (const p of posts) {
-      if (!p?.title || out.length >= 10) break;
-      out.push(`${p.category || "Feed"} · ${p.title}`);
-    }
-    out.push(
-      "Chat rooms are open",
-      "A friend request needs a yes",
-      "Music opens on the artist link",
-      "Jobs take a short note",
-      "Market waits for a real photo",
-      "Events take an RSVP",
-      "An ad goes live after it is paid",
-      "Verification is a paid badge",
-      "Saved stories stay on your desk",
-      "Trending uses real views",
-    );
-    return out.slice(0, 20);
+function Spotlight({ posts }: { posts: { title?: string; category?: string; author?: string }[] }) {
+  const rows = useMemo(() => {
+    const live = posts.filter((p) => p.title).slice(0, 6).map((p) => ({
+      icon: "📌",
+      name: p.author || p.category || "Kilode",
+      act: p.title || "",
+      go: "View",
+    }));
+    const rest = [
+      { icon: "🎙️", name: "Lounge", act: "Started a live room", go: "Join" },
+      { icon: "🛍️", name: "Market", act: "Listed an item", go: "View" },
+      { icon: "🏠", name: "Aba", act: "Opened a new space", go: "View" },
+      { icon: "📍", name: "Lagos", act: "Trending in the city", go: "View" },
+      { icon: "🎵", name: "Music", act: "A new link is up", go: "View" },
+      { icon: "💼", name: "Jobs", act: "A role just opened", go: "View" },
+    ];
+    return [...live, ...rest].slice(0, 12);
   }, [posts]);
-  const loop = [...lines, ...lines];
+  const loop = [...rows, ...rows];
   return (
-    <div className="spot" aria-label="Spotlight">
-      <b>Spotlight</b>
-      <div>
-        {loop.map((line, i) => (
-          <span key={i}>{line}</span>
-        ))}
+    <section className="spot-engine" aria-label="Spotlight Engine">
+      <header>
+        <i />
+        Spotlight Engine
+      </header>
+      <div className="spot-window">
+        <div className="spot-track">
+          {loop.map((row, i) => (
+            <div className="spot-row" key={`${row.name}-${i}`}>
+              <span>{row.icon}</span>
+              <p>
+                <b>{row.name}</b>
+                <em>{row.act}</em>
+              </p>
+              <button type="button">{row.go}</button>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
