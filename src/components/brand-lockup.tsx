@@ -1,10 +1,22 @@
-/** Transparent lockup. Night keeps the yellow ring. Light skin is black so it does not glow on ivory. */
+import { useId } from "react";
+
+/** Branded K: white mark, gold chat bubble, green play, green-to-gold rim. */
 export function OfficialLockup({ className = "kilode-lockup" }: { className?: string }) {
+  const raw = useId().replace(/:/g, "");
+  const glow = `kglow-${raw}`;
   return (
     <svg viewBox="0 0 168 36" className={className} role="img" aria-label="Kilode">
-      <rect className="kilode-ring" x="1.4" y="1.4" width="33.2" height="33.2" rx="9" strokeWidth="2.3" />
-      <path className="kilode-bang-ink" d="M16.1 8.4h3.4l-.8 12.6h-1.9L16.1 8.4z" />
-      <circle className="kilode-bang-ink" cx="17.8" cy="25.8" r="1.75" />
+      <defs>
+        <linearGradient id={glow} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#3ddea0" />
+          <stop offset="52%" stopColor="#c6e36a" />
+          <stop offset="100%" stopColor="#e6c15a" />
+        </linearGradient>
+      </defs>
+      <rect x="1.5" y="1.5" width="33" height="33" rx="9.5" fill="#070908" stroke={`url(#${glow})`} strokeWidth="1.7" />
+      <path fill="#f7f7f5" d="M8.6 8.4h4.1l4.7 5.8V8.4h3.7v19.2h-3.7v-7.2l-1.5 1.7-4.2 5.5H8.2l6.3-8.1-5.9-7.1z" />
+      <path fill="#e6c15a" d="M23.6 6.6c2.15 0 3.7 1.35 3.7 3.15 0 1.45-1 2.6-2.45 2.95l-1.35 1.25.35-1.45c-1.35-.35-2.25-1.4-2.25-2.75 0-1.8 1.55-3.15 3.7-3.15z" />
+      <path fill="#3ddea0" d="M22.2 19.6 28.2 23l-6 3.4z" />
       <text x="42" y="25.5" className="kilode-word-svg">
         Kilode
       </text>

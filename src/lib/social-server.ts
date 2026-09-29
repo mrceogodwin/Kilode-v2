@@ -238,7 +238,32 @@ export const listNotes = createServerFn({ method: "GET" })
       await ensureNotes(sql);
       const rows = await sql<{ id: string; text: string; href: string | null; ts: number | string; seen: number }>`
         select id, text, href, ts, seen from nf_notes where user_id = ${context.userId} order by ts desc limit 40`;
-      return rows.map((r) => ({ id: r.id, text: r.text, href: r.href || undefined, ts: Number(r.ts), seen: Number(r.seen) }));
+      let pals = new Set<string>();
+      try {
+        const friends = await sql<{ handle: string }>`
+          select p.handle from nf_profiles p
+          join nf_connects c on (
+            (c.user_id = p.user_id and c.fellow_id = ${context.userId})
+            or (c.fellow_id = p.user_id and c.user_id = ${context.userId})
+          )
+          where lower(coalesce(c.status, '')) = 'accepted' and p.user_id <> ${context.userId}`;
+        pals = new Set(friends.map((f) => f.handle.toLowerCase()));
+      } catch {
+        pals = new Set();
+      }
+      const drop = new Set<string>();
+      for (const r of rows) {
+        const m = /^@([A-Za-z0-9._-]+) wants to connect/i.exec(r.text);
+        if (m && pals.has(m[1].toLowerCase())) drop.add(r.id);
+      }
+      if (drop.size) {
+        for (const id of drop) {
+          await sql`delete from nf_notes where id = ${id} and user_id = ${context.userId}`;
+        }
+      }
+      return rows
+        .filter((r) => !drop.has(r.id))
+        .map((r) => ({ id: r.id, text: r.text, href: r.href || undefined, ts: Number(r.ts), seen: Number(r.seen) }));
     } catch {
       return [];
     }

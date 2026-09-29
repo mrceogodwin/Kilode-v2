@@ -8,6 +8,7 @@ import {
   Download,
   Eye,
   Film,
+  Flame,
   Globe,
   Hash,
   Heart,
@@ -19,6 +20,7 @@ import {
   Megaphone,
   Menu,
   MessageSquare,
+  Music,
   Plus,
   PlusSquare,
   Radio,
@@ -577,6 +579,10 @@ function QonvoAppInner() {
                   setScreen("inbox");
                   setMenuOpen(false);
                 }}
+                onOpenFriends={() => {
+                  setMenuOpen(false);
+                  setFriendsOpen(true);
+                }}
                 onOpenPost={(id) => {
                   store.setOpenPost(id);
                   setHomeTab("feeds");
@@ -705,7 +711,19 @@ function QonvoAppInner() {
               {homeTab === "feeds" && marketDesk ? (
                 <MarketsDesk desk={marketDesk} onDesk={setMarketDesk} onBack={() => setMarketDesk(null)} />
               ) : homeTab === "feeds" ? (
-                <FeedPane store={store} q={feedQ} onDesk={setMarketDesk} />
+                <FeedPane
+                  store={store}
+                  q={feedQ}
+                  onDesk={setMarketDesk}
+                  onLeave={(where) => {
+                    if (where === "trending") setScreen("trending");
+                    else if (where === "music") setHomeTab("music");
+                    else if (where === "cinema") setHomeTab("cinema");
+                    else if (where === "jobs") setScreen("jobs");
+                    else if (where === "sports") setMarketDesk("sports");
+                    else if (where === "tech") setMarketDesk("tech");
+                  }}
+                />
               ) : homeTab === "socials" ? (
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
                   <SocialsFeed authed={store.authed || !!session.user} account={store.kind} me={store.handle} />
@@ -2600,6 +2618,28 @@ const LANE_MATCH: Record<string, string[]> = {
   jobs: ["Jobs"],
 };
 
+function ServiceRail({ onLane, onLeave }: { onLane: (lane: string) => void; onLeave: (where: "trending" | "music" | "cinema" | "jobs" | "sports" | "tech") => void }) {
+  const items = [
+    { id: "trending", label: "Trending", Icon: Flame, go: () => onLeave("trending") },
+    { id: "naija", label: "Naija", Icon: Globe, go: () => onLane("naija") },
+    { id: "music", label: "Music", Icon: Music, go: () => onLeave("music") },
+    { id: "cinema", label: "Cinema", Icon: Film, go: () => onLeave("cinema") },
+    { id: "sports", label: "Sports", Icon: Trophy, go: () => onLeave("sports") },
+    { id: "jobs", label: "Jobs", Icon: Briefcase, go: () => onLeave("jobs") },
+    { id: "tech", label: "Tech & Biz", Icon: Cpu, go: () => onLeave("tech") },
+  ] as const;
+  return (
+    <div className="svc-rail mb-3">
+      {items.map((item) => (
+        <button key={item.id} type="button" className="svc-ico" onClick={item.go}>
+          <item.Icon className="size-[18px]" strokeWidth={1.75} />
+          <span>{item.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function SplitRail({ posts, onOpen }: { posts: { id: string; title: string; image?: string; category?: string }[]; onOpen: (id: string) => void }) {
   const scroller = useRef<HTMLDivElement>(null);
   if (posts.length < 1) return null;
@@ -2654,7 +2694,7 @@ function PulseStrip({ posts }: { posts: { category?: string; views?: number }[] 
   );
 }
 
-function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void }) {
+function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "jobs" | "sports" | "tech") => void }) {
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(48);
   const [catsOpen, setCatsOpen] = useState(false);
@@ -2756,6 +2796,7 @@ function FeedPane({ store, q = "", onDesk }: { store: ReturnType<typeof useQonvo
                 setCap("");
               }}
             />
+            <ServiceRail onLane={setLane} onLeave={onLeave} />
             <MarketRail onPick={onDesk} />
             <SplitRail posts={store.posts.filter((p) => p.status !== "draft" && p.image).slice(0, 12)} onOpen={(id) => store.setOpenPost(id)} />
             <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} />

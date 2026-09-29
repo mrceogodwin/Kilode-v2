@@ -244,6 +244,10 @@ export function LivePausePanel() {
 export function PaywaysPanel() {
   const [rate, setRate] = useState("1600");
   const [eventUsd, setEventUsd] = useState("10");
+  const [verifyUsd, setVerifyUsd] = useState("5");
+  const [paystack, setPaystack] = useState("");
+  const [flutterSecret, setFlutterSecret] = useState("");
+  const [flutterHash, setFlutterHash] = useState("");
   const [live, setLive] = useState({ paystack: false, flutterwave: false });
   const [msg, setMsg] = useState("");
   function load() {
@@ -254,66 +258,89 @@ export function PaywaysPanel() {
         setLive({ paystack: m.paystack, flutterwave: m.flutterwave });
       })
       .catch(() => undefined);
+    void listAiKeys()
+      .then((rows) => {
+        const v = rows.find((r) => r.id === "verify_usd");
+        if (v?.value) setVerifyUsd(v.value);
+      })
+      .catch(() => undefined);
   }
   useEffect(() => {
     load();
   }, []);
+  function save(id: string, value: string, note: string) {
+    void saveAiKey({ data: { id, value: value.trim() } }).then((r) => {
+      setMsg(r.ok ? note : r.reason);
+      if (id === "paystack_secret") setPaystack("");
+      if (id === "flutterwave_secret") setFlutterSecret("");
+      if (id === "flutterwave_hash") setFlutterHash("");
+      load();
+    });
+  }
   return (
-    <div className="md:col-span-2 min-w-0 max-w-full raised space-y-3 rounded-2xl p-4">
-      <div>
-        <div className="text-[10px] font-bold tracking-[0.18em] text-[#FACC15]">PAYMENTS</div>
-        <h3 className="text-lg font-extrabold">Paystack and Flutterwave</h3>
-        <p className="text-[11px] leading-5 text-muted">
-          Paste the secrets in API keys below, or set PAYSTACK_SECRET_KEY, FLUTTERWAVE_SECRET_KEY, and FLUTTERWAVE_HASH on Vercel. Prices stay in dollars. Kilode converts them with the naira rate here. A payment is accepted only after Paystack or Flutterwave confirms it.
-        </p>
+    <div className="md:col-span-2 min-w-0 max-w-full space-y-3">
+      <div className="raised space-y-2 rounded-2xl p-4">
+        <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">SHARED</div>
+        <h3 className="text-lg font-extrabold">Prices</h3>
+        <p className="text-[11px] leading-5 text-muted">These are not secret keys. One naira rate is used by both Paystack and Flutterwave.</p>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <label className="rounded-xl border border-line bg-panel p-2 text-[11px]">
+            Naira per 1 USD
+            <input value={rate} onChange={(e) => setRate(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
+          </label>
+          <label className="rounded-xl border border-line bg-panel p-2 text-[11px]">
+            Event fee (USD)
+            <input value={eventUsd} onChange={(e) => setEventUsd(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
+          </label>
+          <label className="rounded-xl border border-line bg-panel p-2 text-[11px]">
+            Verify fee (USD)
+            <input value={verifyUsd} onChange={(e) => setVerifyUsd(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
+          </label>
+        </div>
+        <button
+          type="button"
+          className="btn-3d rounded-lg px-3 py-1.5 text-[11px] font-bold"
+          onClick={() => {
+            void Promise.all([
+              saveAiKey({ data: { id: "ngn_per_usd", value: rate.trim() } }),
+              saveAiKey({ data: { id: "event_usd", value: eventUsd.trim() } }),
+              saveAiKey({ data: { id: "verify_usd", value: verifyUsd.trim() } }),
+            ]).then(() => {
+              setMsg("Prices saved");
+              load();
+            });
+          }}
+        >
+          Save prices
+        </button>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <label className="rounded-xl border border-line bg-panel p-2 text-[11px]">
-          Naira per 1 USD
-          <input value={rate} onChange={(e) => setRate(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
-        </label>
-        <label className="rounded-xl border border-line bg-panel p-2 text-[11px]">
-          Event fee (USD)
-          <input value={eventUsd} onChange={(e) => setEventUsd(e.target.value)} className="mt-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
-        </label>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="raised space-y-2 rounded-2xl p-4">
+          <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">PAYSTACK ONLY</div>
+          <h3 className="text-lg font-extrabold">Paystack</h3>
+          <p className="text-[11px] leading-5 text-muted">Secret key only. Do not paste a Flutterwave key here. {live.paystack ? "A key is saved." : "No key yet."}</p>
+          <input value={paystack} onChange={(e) => setPaystack(e.target.value)} placeholder="sk_live_…" type="password" autoComplete="off" className="w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn-3d rounded-lg px-3 py-1.5 text-[11px] font-bold" onClick={() => save("paystack_secret", paystack, "Paystack secret saved")}>Save Paystack</button>
+            <button type="button" className="rounded-lg border border-line px-3 py-1.5 text-[11px] font-bold" onClick={() => { void pingGateway({ data: { provider: "paystack" } }).then((r) => setMsg(r.reason)); }}>Test Paystack</button>
+          </div>
+          <p className="break-all text-[11px] text-muted">Webhook: https://kilode.ng/api/pay/paystack</p>
+        </div>
+        <div className="raised space-y-2 rounded-2xl p-4">
+          <div className="text-[10px] font-bold tracking-[0.18em] text-lime-2">FLUTTERWAVE ONLY</div>
+          <h3 className="text-lg font-extrabold">Flutterwave</h3>
+          <p className="text-[11px] leading-5 text-muted">Secret and webhook hash. Do not paste a Paystack key here. {live.flutterwave ? "A secret is saved." : "No secret yet."}</p>
+          <input value={flutterSecret} onChange={(e) => setFlutterSecret(e.target.value)} placeholder="FLWSECK_…" type="password" autoComplete="off" className="w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
+          <input value={flutterHash} onChange={(e) => setFlutterHash(e.target.value)} placeholder="Webhook hash" type="password" autoComplete="off" className="w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn-3d rounded-lg px-3 py-1.5 text-[11px] font-bold" onClick={() => save("flutterwave_secret", flutterSecret, "Flutterwave secret saved")}>Save secret</button>
+            <button type="button" className="btn-3d rounded-lg px-3 py-1.5 text-[11px] font-bold" onClick={() => save("flutterwave_hash", flutterHash, "Flutterwave hash saved")}>Save hash</button>
+            <button type="button" className="rounded-lg border border-line px-3 py-1.5 text-[11px] font-bold" onClick={() => { void pingGateway({ data: { provider: "flutterwave" } }).then((r) => setMsg(r.reason)); }}>Test Flutterwave</button>
+          </div>
+          <p className="break-all text-[11px] text-muted">Webhook: https://kilode.ng/api/pay/flutterwave</p>
+        </div>
       </div>
-      <button
-        type="button"
-        className="btn-3d rounded-lg px-3 py-1.5 text-[11px] font-bold"
-        onClick={() => {
-          void Promise.all([
-            saveAiKey({ data: { id: "ngn_per_usd", value: rate.trim() } }),
-            saveAiKey({ data: { id: "event_usd", value: eventUsd.trim() } }),
-          ]).then(() => {
-            setMsg("Rate saved");
-            load();
-          });
-        }}
-      >
-        Save rate
-      </button>
-      <div className="flex flex-wrap gap-2">
-        {(["paystack", "flutterwave"] as const).map((id) => (
-          <button
-            key={id}
-            type="button"
-            className="rounded-full border border-line px-3 py-1 text-[11px] font-bold"
-            onClick={() => {
-              void pingGateway({ data: { provider: id } }).then((r) => {
-                setMsg(r.reason);
-                load();
-              });
-            }}
-          >
-            Test {id} {live[id] ? "· key set" : "· no key"}
-          </button>
-        ))}
-      </div>
-      <p className="break-all text-[11px] text-muted">
-        Paystack webhook: https://kilode.ng/api/pay/paystack
-        <br />
-        Flutterwave webhook: https://kilode.ng/api/pay/flutterwave
-      </p>
       {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
     </div>
   );
@@ -342,7 +369,7 @@ export function OpsKeysPanel() {
         <p className="break-words text-[11px] text-muted">Paste keys here. They stay on the server. Empty slots are skipped. RSS news works without a key. Translate uses DeepL or Google Cloud if you paste those, else MyMemory. SEO Boost uses Grok/OpenAI/Groq if set, else writes titles from the post itself. IndexNow pings Bing when that key is set (file served at /api/indexnow).</p>
       </div>
       <div className="grid min-w-0 gap-2 sm:grid-cols-2">
-        {rows.map((s) => (
+        {rows.filter((s) => !["paystack_secret", "flutterwave_secret", "flutterwave_hash", "ngn_per_usd", "event_usd", "verify_usd"].includes(s.id)).map((s) => (
           <label key={s.id} className="min-w-0 rounded-xl border border-line bg-panel p-2">
             <span className="flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px] font-semibold">
               <span className="min-w-0 break-words">{s.label}</span>

@@ -10,12 +10,14 @@ export function NotifyBell({
   onOpenNotes,
   onOpenInbox,
   onOpenPost,
+  onOpenFriends,
 }: {
   signedIn: boolean;
   posts: Post[];
   unread?: number;
   onOpenNotes: () => void;
   onOpenInbox?: () => void;
+  onOpenFriends?: () => void;
   onOpenPost: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -47,13 +49,17 @@ export function NotifyBell({
   const liveUnread = notes.filter((n) => !n.seen).length;
   const badge = !signedIn ? 0 : acked ? liveUnread : Math.max(unread, liveUnread);
 
-  function openNote(n: { href?: string }) {
+  function openNote(n: { href?: string; text: string }) {
     setOpen(false);
+    if (n.href?.includes("open=friends") || /wants to connect/i.test(n.text) || /accepted your connect/i.test(n.text)) {
+      onOpenFriends?.();
+      return;
+    }
     if (n.href?.includes("open=inbox")) {
       onOpenInbox?.();
       return;
     }
-    if (n.href && n.href !== "/" && n.href !== "#") window.location.href = n.href;
+    if (n.href && n.href !== "/" && n.href !== "#" && !n.href.includes("open=me")) window.location.href = n.href;
   }
 
   async function allow() {

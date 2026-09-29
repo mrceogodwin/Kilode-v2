@@ -158,60 +158,50 @@ export function TvPane() {
   }, []);
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
-      <section className="shop-hero mb-3 overflow-hidden rounded-2xl border border-line px-3 py-4 sm:px-4 sm:py-6">
-        <div className="flex items-center gap-2 text-lime-2">
-          <Tv className="size-4 sm:size-5" />
-          <span className="text-[10px] font-medium tracking-[0.2em]">KILODE TV & SOCIALS</span>
-        </div>
-        <h1 className="mt-1.5 text-[22px] font-bold leading-tight sm:text-[32px]">Watch. Follow. Share.</h1>
-        <p className="mt-1.5 max-w-md text-[12px] leading-relaxed text-muted sm:text-[13px]">
-          One tap to every Kilode channel. Live links and thumbs are curated by Kilode.
-        </p>
+      <section className="mb-3">
+        <div className="text-[10px] font-semibold tracking-[0.18em] text-lime-2">KILODE TV</div>
+        <h1 className="mt-1 text-[26px] font-extrabold leading-tight">Kilode TV</h1>
+        <p className="mt-1 max-w-md text-[13px] text-muted">Live, shows, and the channels Kilode actually runs.</p>
       </section>
 
-      <KilodeTvLiveBox live={tv} />
+      {tv.youtubeId || tv.live ? <KilodeTvLiveBox live={tv} /> : (
+        <section className="mb-3 rounded-2xl border border-line bg-panel px-3 py-3">
+          <div className="text-[11px] font-bold tracking-[0.14em] text-lime-2">NO LIVE STREAM</div>
+          <p className="mt-1 text-[13px] leading-snug">Kilode has not set a live video. The channels below are the real ones.</p>
+        </section>
+      )}
 
+      <div className="lane-rail mb-3">
+        {["Live", "Shows", "Channels"].map((label) => (
+          <span key={label} className="lane-chip">{label}</span>
+        ))}
+      </div>
+
+      <h2 className="mb-2 text-[13px] font-extrabold">On Kilode</h2>
       {rows.length === 0 ? (
-        <p className="text-sm text-muted">No channels yet. Kilode will publish them here soon.</p>
+        <p className="text-sm text-muted">No channels yet. Staff add them from the desk.</p>
       ) : (
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {rows.map((s) => (
-            <article key={s.id} className="raised flex min-w-0 flex-col overflow-hidden rounded-lg">
+            <article key={s.id} className="raised overflow-hidden rounded-xl">
               {s.thumb ? (
-                <img src={s.thumb} alt="" className="aspect-[4/3] w-full object-cover" />
+                <img src={s.thumb} alt="" className="aspect-video w-full object-cover" />
               ) : (
-                <div
-                  className="grid aspect-[4/3] place-items-center border-b border-white/5"
-                  style={{ background: TINT[s.id] || "#1a2420" }}
-                >
-                  <span className="text-[15px] font-black tracking-tight text-white/90 sm:text-[20px]">
-                    {s.name.slice(0, 2).toUpperCase()}
-                  </span>
+                <div className="grid aspect-video place-items-center text-[12px] font-bold text-white/80" style={{ background: TINT[s.id] || "#1a2420" }}>
+                  {s.name}
                 </div>
               )}
-              <div className="flex min-h-0 flex-1 flex-col px-1.5 py-1.5 sm:px-2 sm:py-2">
-                <div className="truncate text-[9px] font-medium tracking-[0.14em] text-lime-2">
-                  {s.followers || s.name.toUpperCase()}
-                </div>
-                <h2 className="mt-0.5 truncate text-[11px] font-bold leading-snug sm:text-[13px]">{s.name}</h2>
-                {s.handle ? <p className="truncate text-[10px] leading-snug text-muted">{s.handle}</p> : null}
-                {s.blurb ? (
-                  <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-muted sm:text-[11px]">{s.blurb}</p>
-                ) : null}
-                <div className="mt-auto pt-1.5">
-                  {s.url ? (
-                    <a
-                      href={s.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn-join inline-flex w-full items-center justify-center rounded-md px-1.5 py-1 text-[9px] font-extrabold tracking-[0.1em] sm:text-[10px]"
-                    >
-                      FOLLOW
-                    </a>
-                  ) : (
-                    <p className="text-[9px] leading-snug text-muted sm:text-[10px]">Live soon — Kilode sets the stream.</p>
-                  )}
-                </div>
+              <div className="px-2 py-2">
+                <div className="text-[10px] font-semibold tracking-wide text-muted">{s.followers || "Channel"}</div>
+                <h3 className="truncate text-[13px] font-bold">{s.name}</h3>
+                {s.blurb ? <p className="line-clamp-2 text-[11px] text-muted">{s.blurb}</p> : null}
+                {s.url ? (
+                  <a href={s.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex text-[11px] font-bold text-lime-2">
+                    Open
+                  </a>
+                ) : (
+                  <p className="mt-1 text-[11px] text-muted">Link not set</p>
+                )}
               </div>
             </article>
           ))}

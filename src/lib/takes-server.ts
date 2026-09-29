@@ -567,7 +567,15 @@ export const replyConnect = createServerFn({ method: "POST" })
         returning user_id`;
       if (!updated.length) return { ok: false as const, reason: "That request is not on this account." };
       const me = await profileOf(context.userId);
-      if (me.handle && me.handle !== "member") await pushNote(updated[0].user_id, `@${me.handle} accepted your connect`, "/?open=me");
+      const them = await profileOf(updated[0].user_id === context.userId ? id : updated[0].user_id);
+      if (me.handle && me.handle !== "member") await pushNote(updated[0].user_id, `@${me.handle} accepted your connect.`, "/?open=friends");
+      if (them.handle) {
+        try {
+          await sql`delete from nf_notes where user_id = ${context.userId} and text ilike ${"@" + them.handle + " wants to connect%"}`;
+        } catch {
+          /* note table may be missing */
+        }
+      }
     } else {
       await sql`delete from nf_connects where user_id = ${id} and fellow_id = ${context.userId}`;
     }
@@ -602,7 +610,7 @@ export const connectFellow = createServerFn({ method: "POST" })
     if (inserted[0]) {
       const me = await profileOf(context.userId);
       if (me.handle && me.handle !== "member") {
-        await pushNote(data.id, `@${me.handle} wants to connect. Open Me to accept.`, "/?open=me");
+        await pushNote(data.id, `@${me.handle} wants to connect.`, "/?open=friends");
       }
     }
     return { ok: true as const, status: "pending" as const };
@@ -627,7 +635,7 @@ export const connectByHandle = createServerFn({ method: "POST" })
     const inserted = await sql<{ fellow_id: string }>`insert into nf_connects (user_id, fellow_id, status) values (${context.userId}, ${id}, ${"pending"}) on conflict (user_id, fellow_id) do nothing returning fellow_id`;
     if (inserted[0]) {
       const me = await profileOf(context.userId);
-      if (me.handle && me.handle !== "member") await pushNote(id, `@${me.handle} wants to connect. Open Me to accept.`, "/?open=me");
+      if (me.handle && me.handle !== "member") await pushNote(id, `@${me.handle} wants to connect.`, "/?open=friends");
     }
     return { ok: true as const, status: "pending" as const };
   });

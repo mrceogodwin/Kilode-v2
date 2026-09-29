@@ -2249,10 +2249,10 @@ html[data-skin="ivory"] .kilode-shell {
   color: #121614;
 }
 html[data-skin="ivory"] .kilode-chrome {
-  background: linear-gradient(180deg, #3e4541 0%, #2a302d 58%, #222724 100%) !important;
+  background: linear-gradient(180deg, #2a2e2c 0%, #141716 55%, #0c0e0d 100%) !important;
   color: #fff !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 html[data-skin="ivory"] .kilode-chrome .kilode-wordmark,
 html[data-skin="ivory"] .kilode-chrome .kilode-word-svg {
@@ -2275,13 +2275,13 @@ html[data-skin="ivory"] .kilode-chrome .trend-ticker {
 }
 html[data-skin="ivory"] .kilode-chrome .ticker-track { color: rgba(255, 255, 255, 0.86) !important; }
 html[data-skin="ivory"] .dock {
-  background: linear-gradient(180deg, #343a37 0%, #242926 46%, #1b1f1d 100%) !important;
+  background: linear-gradient(180deg, #242826 0%, #121413 48%, #090b0a 100%) !important;
   color: #fff !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-bottom: 0 !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 -12px 28px rgba(22, 26, 24, 0.22) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 -12px 28px rgba(0, 0, 0, 0.28) !important;
 }
-html[data-skin="ivory"] .dock::after { background: #1b1f1d; }
+html[data-skin="ivory"] .dock::after { background: #090b0a; }
 html[data-skin="ivory"] .raised,
 html[data-skin="ivory"] .glass-3d {
   background: #f7faf8 !important;
@@ -2344,4 +2344,52 @@ html[data-skin="ivory"] .menu-sheet .menu-dock button {
   color: #111 !important;
   border-color: #fff !important;
 }
+
+.svc-rail {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.svc-ico {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, #1c201e 0%, #101211 100%);
+  padding: 10px 2px 8px;
+  color: #f4f1e8;
+  font-size: 9px;
+  font-weight: 700;
+}
+.svc-ico span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.svc-ico svg { color: #d7c49a; }
+html:not([data-skin="ivory"]) .btn-join,
+html:not([data-skin="ivory"]) .btn-yellow,
+html:not([data-skin="ivory"]) .dock-plus,
+html:not([data-skin="ivory"]) .btn-post,
+html:not([data-skin="ivory"]) .hdr-brand,
+html:not([data-skin="ivory"]) .kilode-bang-3d {
+  background: linear-gradient(180deg, #e7d7a8 0%, #c4a35a 52%, #8f7340 100%) !important;
+  color: #1a1408 !important;
+  border-color: #8f7340 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 16px rgba(143, 115, 64, 0.28) !important;
+}
+html:not([data-skin="ivory"]) .news-plus {
+  color: #d7c49a;
+  border-color: rgba(196, 163, 90, 0.55);
+  box-shadow: none;
+}
+html:not([data-skin="ivory"]) .menu-row.on .menu-ico {
+  color: #d7c49a;
+  border-color: rgba(196, 163, 90, 0.45);
+}
+html:not([data-skin="ivory"]) .kilode-ring { stroke: #c4a35a; }
 

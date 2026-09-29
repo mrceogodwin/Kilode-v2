@@ -169,7 +169,7 @@ export function FeedsHero({
             >
               <ChevronRight className="size-4" />
             </button>
-            {slides.length > 1 && slides.length <= 8 ? (
+            {slides.length <= 8 ? (
             <div className="absolute bottom-2 left-0 right-0 z-10 flex justify-center gap-1">
               {slides.map((_, n) => (
                 <button
@@ -181,17 +181,29 @@ export function FeedsHero({
                 />
               ))}
             </div>
-            ) : slides.length > 8 ? (
-            <div className="absolute bottom-2 left-0 right-0 z-10 flex justify-center">
-              <span className="rounded-full bg-black/50 px-2 py-0.5 text-[9px] font-semibold tabular-nums text-white/90">
-                {i + 1} / {slides.length}
+            ) : (
+            <div className="absolute top-2 right-12 z-10">
+              <span className="rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-white/90">
+                {i + 1}/{slides.length}
               </span>
             </div>
-            ) : null}
+            )}
           </>
         ) : null}
       </div>
     </section>
+  );
+}
+
+function HeroTitle({ title }: { title: string }) {
+  const parts = title.trim().split(/\s+/);
+  if (parts.length < 3) return title;
+  const tail = parts.slice(-2).join(" ");
+  const head = parts.slice(0, -2).join(" ");
+  return (
+    <>
+      {head} <span className="text-[#e6c15a]">{tail}</span>
+    </>
   );
 }
 
@@ -290,12 +302,17 @@ function HeroSlide({
             <Repeat2 className="size-4" strokeWidth={2.5} />
           </button>
         ) : null}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-3 pt-12 pb-4">
-          <div className="text-[9px] font-medium tracking-[0.16em] text-lime-2">
-            {(p.category || "TRENDING").toUpperCase()}
-            <span className="ml-2 font-normal tracking-normal text-white/70">{fmtCount(p.views ?? 0)}</span>
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/55 to-transparent px-3 pt-16 pb-3">
+          <span className="inline-flex rounded-full bg-black/50 px-2 py-0.5 text-[9px] font-bold tracking-[0.14em] text-[#b7f0c8] ring-1 ring-white/15">
+            {(p.category || "NEWS").toUpperCase()}
+          </span>
+          <div className="mt-2 line-clamp-3 text-[18px] font-extrabold leading-tight text-white sm:text-[22px]">
+            <HeroTitle title={p.title} />
           </div>
-          <div className="mt-0.5 line-clamp-2 text-[13px] font-medium leading-snug text-white">{p.title}</div>
+          <div className="mt-2 flex items-center gap-2 text-[11px] text-white/80">
+            {(p.comments?.length ?? 0) > 0 ? <span>{fmtCount(p.comments?.length ?? 0)} talking</span> : <span>{fmtCount(p.views ?? 0)} views</span>}
+            {Date.now() - p.ts < 6 * 3600_000 ? <span className="text-[#b7f0c8]">· Live updates</span> : null}
+          </div>
         </div>
       </div>
     );
