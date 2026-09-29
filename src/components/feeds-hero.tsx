@@ -202,7 +202,7 @@ function HeroTitle({ title }: { title: string }) {
   const head = parts.slice(0, -2).join(" ");
   return (
     <>
-      {head} <span className="text-[#e6c15a]">{tail}</span>
+      {head} <span className="text-white">{tail}</span>
     </>
   );
 }
@@ -310,8 +310,8 @@ function HeroSlide({
             <HeroTitle title={p.title} />
           </div>
           <div className="mt-2 flex items-center gap-2 text-[11px] text-white/80">
-            {(p.comments?.length ?? 0) > 0 ? <span>{fmtCount(p.comments?.length ?? 0)} talking</span> : <span>{fmtCount(p.views ?? 0)} views</span>}
-            {Date.now() - p.ts < 6 * 3600_000 ? <span className="text-[#b7f0c8]">· Live updates</span> : null}
+            {(p.comments?.length ?? 0) > 0 ? <span>{fmtCount(p.comments?.length ?? 0)} talking</span> : (p.views ?? 0) > 0 ? <span>{fmtCount(p.views ?? 0)} views</span> : null}
+            {Date.now() - p.ts < 6 * 3600_000 ? <span className="text-[#b7f0c8]">Live updates</span> : null}
           </div>
         </div>
       </div>

@@ -90,7 +90,9 @@ import { FeedsHero } from "@/components/feeds-hero";
 import { BrandLockup } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
-import { MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
+import { DESKS, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
+import { listListings, type Listing } from "@/lib/listings-server";
+import { listEvents } from "@/lib/events-server";
 import { SocialsFeed, openSocialFellows, shareNewsToSocials } from "@/components/socials-feed";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
@@ -722,6 +724,15 @@ function QonvoAppInner() {
                     else if (where === "jobs") setScreen("jobs");
                     else if (where === "sports") setMarketDesk("sports");
                     else if (where === "tech") setMarketDesk("tech");
+                  }}
+                  onCircle={(where) => {
+                    if (where === "music") {
+                      setScreen("home");
+                      setHomeTab("music");
+                    } else if (where === "events") {
+                      setScreen("home");
+                      setHomeTab("cinema");
+                    } else setScreen(where);
                   }}
                 />
               ) : homeTab === "socials" ? (
@@ -2618,22 +2629,87 @@ const LANE_MATCH: Record<string, string[]> = {
   jobs: ["Jobs"],
 };
 
-function ServiceRail({ onLane, onLeave }: { onLane: (lane: string) => void; onLeave: (where: "trending" | "music" | "cinema" | "jobs" | "sports" | "tech") => void }) {
+function DeskLine({
+  onLane,
+  onLeave,
+  onDesk,
+}: {
+  onLane: (lane: string) => void;
+  onLeave: (where: "trending" | "music" | "cinema" | "jobs" | "sports" | "tech") => void;
+  onDesk: (d: MarketDesk) => void;
+}) {
   const items = [
     { id: "trending", label: "Trending", Icon: Flame, go: () => onLeave("trending") },
     { id: "naija", label: "Naija", Icon: Globe, go: () => onLane("naija") },
     { id: "music", label: "Music", Icon: Music, go: () => onLeave("music") },
     { id: "cinema", label: "Cinema", Icon: Film, go: () => onLeave("cinema") },
-    { id: "sports", label: "Sports", Icon: Trophy, go: () => onLeave("sports") },
     { id: "jobs", label: "Jobs", Icon: Briefcase, go: () => onLeave("jobs") },
-    { id: "tech", label: "Tech & Biz", Icon: Cpu, go: () => onLeave("tech") },
-  ] as const;
+    { id: "techbiz", label: "Tech & Biz", Icon: Cpu, go: () => onLeave("tech") },
+    ...DESKS.filter((d) => d.id !== "sports" && d.id !== "tech").map((d) => ({
+      id: d.id,
+      label: d.label,
+      Icon: d.Icon,
+      go: () => onDesk(d.id),
+    })),
+  ];
   return (
-    <div className="svc-rail mb-3">
+    <div className="desk-line mb-3">
       {items.map((item) => (
         <button key={item.id} type="button" className="svc-ico" onClick={item.go}>
           <item.Icon className="size-[18px]" strokeWidth={1.75} />
           <span>{item.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function CircleRail({
+  tracks,
+  onOpen,
+}: {
+  tracks: { id: string; title: string; artist?: string; cover?: string }[];
+  onOpen: (where: "market" | "jobs" | "events" | "music") => void;
+}) {
+  const [rows, setRows] = useState<{ id: string; title: string; image: string; where: "market" | "jobs" | "events" | "music" }[]>([]);
+  useEffect(() => {
+    let dead = false;
+    void Promise.all([
+      listListings({ data: { kind: "market" } }).catch(() => [] as Listing[]),
+      listListings({ data: { kind: "job" } }).catch(() => [] as Listing[]),
+      listEvents().catch(() => ({ hero: null, events: [] })),
+    ]).then(([market, jobs, ev]) => {
+      if (dead) return;
+      const next: { id: string; title: string; image: string; where: "market" | "jobs" | "events" | "music" }[] = [];
+      for (const t of tracks) {
+        if (!t.cover) continue;
+        next.push({ id: t.id, title: t.artist || t.title, image: t.cover, where: "music" });
+      }
+      for (const row of market) {
+        if (!row.image) continue;
+        next.push({ id: row.id, title: row.title, image: row.image, where: "market" });
+      }
+      for (const row of ev.events) {
+        if (!row.cover) continue;
+        next.push({ id: row.id, title: row.title, image: row.cover, where: "events" });
+      }
+      for (const row of jobs) {
+        if (!row.image) continue;
+        next.push({ id: row.id, title: row.title, image: row.image, where: "jobs" });
+      }
+      setRows(next.slice(0, 18));
+    });
+    return () => {
+      dead = true;
+    };
+  }, [tracks]);
+  if (!rows.length) return null;
+  return (
+    <div className="circle-line mb-3">
+      {rows.map((row) => (
+        <button key={row.where + row.id} type="button" className="circle-card" onClick={() => onOpen(row.where)}>
+          <span className="circle-face"><img src={row.image} alt="" /></span>
+          <strong>{row.title}</strong>
         </button>
       ))}
     </div>
@@ -2694,7 +2770,7 @@ function PulseStrip({ posts }: { posts: { category?: string; views?: number }[] 
   );
 }
 
-function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "jobs" | "sports" | "tech") => void }) {
+function FeedPane({ store, q = "", onDesk, onLeave, onCircle }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "jobs" | "sports" | "tech") => void; onCircle: (where: "market" | "jobs" | "events" | "music") => void }) {
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(48);
   const [catsOpen, setCatsOpen] = useState(false);
@@ -2796,8 +2872,8 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
                 setCap("");
               }}
             />
-            <ServiceRail onLane={setLane} onLeave={onLeave} />
-            <MarketRail onPick={onDesk} />
+            <DeskLine onLane={setLane} onLeave={onLeave} onDesk={onDesk} />
+            <CircleRail tracks={store.tracks} onOpen={onCircle} />
             <SplitRail posts={store.posts.filter((p) => p.status !== "draft" && p.image).slice(0, 12)} onOpen={(id) => store.setOpenPost(id)} />
             <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} />
           </>
