@@ -438,7 +438,116 @@
   color: rgba(255, 255, 255, 0.55);
   white-space: nowrap;
 }
-.brand-lockup { display: inline-flex; align-items: center; max-width: 148px; }
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: none;
+}
+.brand-lockup.lg .bang-ico { width: 36px; height: 36px; font-size: 22px; border-radius: 10px; }
+.brand-lockup.lg .brand-word { font-size: 28px; }
+.bang-ico {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border-radius: 8px;
+  border: 1.5px solid #e6c56a;
+  background: #12110e;
+  color: #e6c56a;
+  font-family: Nunito, ui-sans-serif, system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.staff-pill {
+  display: inline-flex;
+  border-radius: 999px;
+  border: 1px solid rgba(107, 158, 120, 0.55);
+  background: rgba(61, 106, 72, 0.45);
+  color: #e7f5ec;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.spot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: #101211;
+  padding: 4px 8px;
+}
+.spot b {
+  flex: 0 0 auto;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #e6c56a;
+}
+.spot div {
+  display: flex;
+  min-width: 0;
+  gap: 16px;
+  animation: ads-slide 28s linear infinite;
+}
+.spot span { white-space: nowrap; font-size: 11px; color: rgba(255,255,255,0.82); }
+.profile-block {
+  margin-top: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: #121417;
+  padding: 12px;
+}
+.profile-block h2 {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #e6c56a;
+}
+.profile-pill {
+  display: inline-flex;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #0c0e0d;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+.login-stage { position: relative; overflow: hidden; background: #050706; }
+.login-stage::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  background: url("/login-portrait.jpg") 68% 36% / cover no-repeat;
+  animation: face-zoom 12s ease-in-out infinite;
+  z-index: 0;
+}
+.login-card {
+  position: relative;
+  z-index: 1;
+  background: rgba(8, 10, 9, 0.62) !important;
+  backdrop-filter: blur(8px);
+}
+@keyframes face-zoom {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+.me-hero {
+  background: linear-gradient(180deg, #1a2420 0%, #0c100e 42%, #090b0a 100%) !important;
+  color: #f4f6f5;
+}
 .kilode-lockimg { display: block; height: 28px; width: auto; max-width: 148px; object-fit: contain; object-position: left center; }
 .kilode-lockimg.sm { height: 26px; }
 .kilode-lockimg.lg { height: 46px; max-width: 220px; }

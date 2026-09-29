@@ -1,27 +1,29 @@
-/** One lockup: gold bang and the Kilode word. */
+/** Soft gold bang and the Kilode word. One row. No picture box. */
+export function KilodeMark({ large = false }: { large?: boolean }) {
+  return (
+    <span className={`brand-lockup ${large ? "lg" : ""}`} role="img" aria-label="Kilode">
+      <span className="bang-ico" aria-hidden>!</span>
+      <span className="brand-word">Kilode</span>
+    </span>
+  );
+}
+
 export function OfficialLockup({ className = "kilode-lockup" }: { className?: string }) {
   return (
-    <span className={`brand-lockup ${className}`} role="img" aria-label="Kilode">
-      <img src="/kilode-lockup.png" alt="Kilode" className="kilode-lockimg" draggable={false} />
+    <span className={className}>
+      <KilodeMark large={className.includes("login")} />
     </span>
   );
 }
 
 export function BangMark({ className }: { className: string }) {
   return (
-    <span className={`brand-mark ${className}`} aria-hidden>
-      <img src="/kilode-mark.png" alt="" className="h-full w-full object-cover" draggable={false} />
-    </span>
+    <span className={`bang-ico ${className}`} aria-hidden>!</span>
   );
 }
 
 export function BrandLockup({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  const cls = size === "lg" ? "kilode-lockimg lg" : size === "sm" ? "kilode-lockimg sm" : "kilode-lockimg";
-  return (
-    <span className="brand-lockup">
-      <img src="/kilode-lockup.png" alt="Kilode" className={cls} draggable={false} />
-    </span>
-  );
+  return <KilodeMark large={size === "lg"} />;
 }
 
 export function CinemaTvIcon({ className = "size-3.5" }: { className?: string }) {

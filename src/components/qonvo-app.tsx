@@ -250,6 +250,7 @@ function QonvoAppInner() {
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinName, setJoinName] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [staffChip, setStaffChip] = useState("");
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [forceOnboard, setForceOnboard] = useState(false);
   const [screen, setScreen] = useState<MenuId>("home");
@@ -291,6 +292,16 @@ function QonvoAppInner() {
     if (screen === "home" && homeTab === "feeds") return;
     window.location.href = "/login?mode=up";
   }, [session.isPending, signedIn, screen, homeTab]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    try {
+      const raw = sessionStorage.getItem("kilode-me-card");
+      const role = raw ? (JSON.parse(raw) as { staff?: string }).staff : "";
+      setStaffChip(role === "super" ? "Super admin" : role === "admin" ? "Admin" : role === "mod" ? "Sub-admin" : "");
+    } catch {
+      setStaffChip("");
+    }
+  }, [menuOpen]);
   const [marketDesk, setMarketDesk] = useState<MarketDesk | null>(null);
   const [feedQ, setFeedQ] = useState("");
   const [feedSearchOn, setFeedSearchOn] = useState(false);
@@ -1213,8 +1224,11 @@ function QonvoAppInner() {
               <AvatarImg handle={store.handle || "Guest"} face={store.face} size={48} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-extrabold tracking-tight">{session.user ? store.handle || "Member" : "Guest"}</div>
-                <div className="text-[10px] tracking-normal text-lime-2">
-                  {session.user ? ACCOUNT_KINDS.find((k) => k.id === store.kind)?.label ?? "Member" : "Browse free · join to post"}
+                <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                  {staffChip ? <span className="staff-pill">{staffChip}</span> : null}
+                  <span className="text-[10px] tracking-normal text-lime-2">
+                    {session.user ? ACCOUNT_KINDS.find((k) => k.id === store.kind)?.label ?? "Member" : "Browse free · join to post"}
+                  </span>
                 </div>
               </div>
               <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close">
@@ -1435,7 +1449,7 @@ function QonvoAppInner() {
               </DrawerGroup>
             </div>
             <MenuPin />
-            <MemberTicker />
+            <Spotlight posts={store.posts} />
             <MenuLegal onDonate={() => { setDonateOpen(true); setMenuOpen(false); }} />
           </aside>
           <button type="button" className="flex-1 bg-black/60" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
@@ -2592,6 +2606,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
         <LandscapeGrid title="MORE NEWS" posts={store.posts.filter((p) => p.category === "News" || p.category === "Naija" || p.category === "Politics")} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
         <AdReserve id="feeds_news_ad" className="mt-8 mb-8" />
         <DontMissGrid posts={[...store.posts].sort((a, b) => b.ts - a.ts)} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
+        <Spotlight posts={store.posts} />
         <PortraitAd id="feeds_portrait_miss" />
         <div className="mt-8 grid grid-cols-2 gap-2">
           <AdReserve id="article_box" minH="min-h-[120px]" />
@@ -2755,8 +2770,38 @@ function MembersRail({ onOpen }: { onOpen: (handle: string) => void }) {
   );
 }
 
-function MemberTicker() {
-  return <MembersRail onOpen={(handle) => { window.location.href = `/u/${encodeURIComponent(handle)}`; }} />;
+function Spotlight({ posts }: { posts: { title?: string; category?: string }[] }) {
+  const lines = useMemo(() => {
+    const out: string[] = [];
+    for (const p of posts) {
+      if (!p?.title || out.length >= 10) break;
+      out.push(`${p.category || "Feed"} · ${p.title}`);
+    }
+    out.push(
+      "Chat rooms are open",
+      "A friend request needs a yes",
+      "Music opens on the artist link",
+      "Jobs take a short note",
+      "Market waits for a real photo",
+      "Events take an RSVP",
+      "An ad goes live after it is paid",
+      "Verification is a paid badge",
+      "Saved stories stay on your desk",
+      "Trending uses real views",
+    );
+    return out.slice(0, 20);
+  }, [posts]);
+  const loop = [...lines, ...lines];
+  return (
+    <div className="spot" aria-label="Spotlight">
+      <b>Spotlight</b>
+      <div>
+        {loop.map((line, i) => (
+          <span key={i}>{line}</span>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function PulseStrip({ posts }: { posts: { category?: string; views?: number }[] }) {

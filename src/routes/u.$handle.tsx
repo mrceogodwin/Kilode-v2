@@ -152,12 +152,12 @@ function PublicProfile() {
             ) : null}
           </div>
         </div>
-        <section className="mt-4">
-          <h2 className="text-[11px] font-bold tracking-[0.14em] text-lime-2">FRIENDS</h2>
-          {profile.friends.length === 0 ? <p className="mt-1 text-sm text-muted">No friends yet.</p> : (
+        <section className="profile-block">
+          <h2>Friends</h2>
+          {profile.friends.length === 0 ? <p className="text-sm text-muted">No friends yet.</p> : (
             <div className="mt-2 flex flex-wrap gap-2">
               {profile.friends.map((name) => (
-                <a key={name} href={`/u/${encodeURIComponent(name)}`} className="rounded-full border border-line px-3 py-1 text-[12px] font-semibold">@{name}</a>
+                <a key={name} href={`/u/${encodeURIComponent(name)}`} className="profile-pill">@{name}</a>
               ))}
             </div>
           )}
@@ -194,7 +194,7 @@ function PublicProfile() {
         {!mine && friend === "friends" ? <ProfileMessage to={profile.handle} /> : !mine ? <p className="mt-3 text-[12px] text-muted">You can message after they accept.</p> : null}
         <button
           type="button"
-          className="mt-2 text-[12px] font-semibold text-muted"
+          className="profile-pill mt-3"
           onClick={() => {
             const reason = window.prompt("Why report this account?")?.trim();
             if (!reason) return;
@@ -203,8 +203,8 @@ function PublicProfile() {
         >
           Report account
         </button>
-        <section className="mt-5">
-          <h2 className="text-[11px] font-bold tracking-[0.14em] text-lime-2">TIMELINE</h2>
+        <section className="profile-block">
+          <h2>Timeline</h2>
           <div className="mt-2 space-y-2">
             {takes.length === 0 ? <p className="text-sm text-muted">No posts from this user yet.</p> : null}
             {takes.map((t) => (
@@ -215,8 +215,8 @@ function PublicProfile() {
             ))}
           </div>
         </section>
-        <section className="mt-5">
-          <h2 className="text-[11px] font-bold tracking-[0.14em] text-lime-2">POSTS</h2>
+        <section className="profile-block">
+          <h2>Posts</h2>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {posts.length === 0 ? <p className="col-span-2 text-sm text-muted">No public posts yet.</p> : null}
             {posts.map((p) => (
