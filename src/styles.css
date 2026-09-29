@@ -2357,12 +2357,13 @@ html[data-skin="ivory"] .menu-sheet .menu-dock button {
   align-items: center;
   gap: 6px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(180deg, #1c201e 0%, #101211 100%);
+  border: 1px solid rgba(107, 158, 120, 0.22);
+  background: linear-gradient(180deg, #1c2620 0%, #121816 100%);
   padding: 10px 2px 8px;
-  color: #f4f1e8;
+  color: #e7f3ea;
   font-size: 9px;
   font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 14px rgba(0, 0, 0, 0.28);
 }
 .svc-ico span {
   max-width: 100%;
@@ -2370,26 +2371,123 @@ html[data-skin="ivory"] .menu-sheet .menu-dock button {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.svc-ico svg { color: #d7c49a; }
+.svc-ico svg { color: #8fbf9a; }
+
+/* Night skin: original Kilode forest. No gold plate. */
+html:not([data-skin="ivory"]) body,
+html:not([data-skin="ivory"]) .kilode-shell {
+  background-color: #0c0e0c !important;
+  background-image:
+    radial-gradient(ellipse 70% 46% at 12% 0%, rgba(107, 158, 120, 0.12) 0%, transparent 52%),
+    linear-gradient(180deg, #101412 0%, #0c0e0c 48%, #090b0a 100%) !important;
+  color: #eeeae4;
+}
+html:not([data-skin="ivory"]) .kilode-chrome {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #f4f6f5 !important;
+}
+html:not([data-skin="ivory"]) .kilode-header-capsule {
+  border-radius: 18px !important;
+  border: 1px solid rgba(107, 158, 120, 0.32) !important;
+  background: linear-gradient(180deg, rgba(28, 36, 30, 0.98) 0%, rgba(14, 18, 15, 0.96) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 10px 28px rgba(0, 0, 0, 0.34),
+    0 0 28px rgba(107, 158, 120, 0.12) !important;
+}
+html:not([data-skin="ivory"]) .kilode-chrome-ticker,
+html:not([data-skin="ivory"]) .kilode-chrome .trend-ticker {
+  background: rgba(16, 20, 17, 0.82) !important;
+  border-color: rgba(107, 158, 120, 0.18) !important;
+  color: #c5d5c8 !important;
+}
+html:not([data-skin="ivory"]) .hdr-ico {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: #c5d5c8 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+html:not([data-skin="ivory"]) .raised,
+html:not([data-skin="ivory"]) .glass-3d,
+html:not([data-skin="ivory"]) .me-hero {
+  background: linear-gradient(180deg, #1c2420 0%, #121816 100%) !important;
+  color: #f3f6f4 !important;
+  border: 1px solid rgba(107, 158, 120, 0.18) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 22px rgba(0, 0, 0, 0.32) !important;
+}
+html:not([data-skin="ivory"]) .btn-3d {
+  background: linear-gradient(180deg, #2a332e 0%, #171c19 100%) !important;
+  color: #f4f6f5 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 0 #070908 !important;
+}
 html:not([data-skin="ivory"]) .btn-join,
 html:not([data-skin="ivory"]) .btn-yellow,
 html:not([data-skin="ivory"]) .dock-plus,
 html:not([data-skin="ivory"]) .btn-post,
-html:not([data-skin="ivory"]) .hdr-brand,
-html:not([data-skin="ivory"]) .kilode-bang-3d {
-  background: linear-gradient(180deg, #e7d7a8 0%, #c4a35a 52%, #8f7340 100%) !important;
-  color: #1a1408 !important;
-  border-color: #8f7340 !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 16px rgba(143, 115, 64, 0.28) !important;
-}
 html:not([data-skin="ivory"]) .news-plus {
-  color: #d7c49a;
-  border-color: rgba(196, 163, 90, 0.55);
-  box-shadow: none;
+  background: linear-gradient(180deg, #6b9e78 0%, #3f6a4c 100%) !important;
+  color: #f4f7f5 !important;
+  border-color: #355a40 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 2px 0 #243d2c, 0 8px 16px rgba(0, 0, 0, 0.28) !important;
 }
+html:not([data-skin="ivory"]) .dock {
+  background: linear-gradient(180deg, rgba(22, 28, 24, 0.94), rgba(10, 12, 11, 0.98)) !important;
+  border-top: 1px solid rgba(107, 158, 120, 0.2) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+html:not([data-skin="ivory"]) .dock::after { background: #090b0a; }
+html:not([data-skin="ivory"]) .app-tab {
+  color: #b7c4bb !important;
+  background: linear-gradient(180deg, #2c332f 0%, #161a17 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 14px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 0 #070908, 0 4px 10px rgba(0, 0, 0, 0.35) !important;
+}
+html:not([data-skin="ivory"]) .app-tab.on {
+  color: #f3faf5 !important;
+  background: linear-gradient(180deg, #4a7a56 0%, #2a4f34 58%, #1c3824 100%) !important;
+  border-color: rgba(143, 191, 154, 0.45) !important;
+}
+html:not([data-skin="ivory"]) .menu-sheet {
+  background:
+    linear-gradient(180deg, rgba(143, 191, 154, 0.08), transparent 120px),
+    #101412 !important;
+  border-right: 1px solid rgba(107, 158, 120, 0.22) !important;
+  box-shadow: 16px 0 40px rgba(0, 0, 0, 0.45) !important;
+}
+html:not([data-skin="ivory"]) .menu-sheet .menu-ico,
 html:not([data-skin="ivory"]) .menu-row.on .menu-ico {
-  color: #d7c49a;
-  border-color: rgba(196, 163, 90, 0.45);
+  color: #d7f0de !important;
+  background: #18211b !important;
+  border-color: rgba(107, 158, 120, 0.28) !important;
 }
-html:not([data-skin="ivory"]) .kilode-ring { stroke: #c4a35a; }
+html:not([data-skin="ivory"]) .menu-row.on {
+  border-color: rgba(107, 158, 120, 0.4) !important;
+  background: rgba(107, 158, 120, 0.08) !important;
+}
+html:not([data-skin="ivory"]) .lane-chip {
+  color: #d7e8db !important;
+  border-color: rgba(107, 158, 120, 0.4) !important;
+  background: transparent !important;
+}
+html:not([data-skin="ivory"]) .lane-chip.on {
+  background: linear-gradient(180deg, #4a7a56, #2f5a3c) !important;
+  color: #f4f7f5 !important;
+  border-color: #3d6a48 !important;
+}
+html:not([data-skin="ivory"]) .chat-compose {
+  background: #121816 !important;
+  border-color: rgba(107, 158, 120, 0.22) !important;
+}
+html:not([data-skin="ivory"]) .brand-word-k {
+  background: linear-gradient(180deg, #8fbf9a 0%, #5f8f6c 55%, #3f6a4c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+html:not([data-skin="ivory"]) .brand-url { color: #8fbf9a; }
 

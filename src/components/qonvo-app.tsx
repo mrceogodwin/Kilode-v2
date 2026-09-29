@@ -87,7 +87,7 @@ import { InstallToast, PublicSiteProvider, SiteFooter, TrendingTicker, usePublic
 import type { PublicSite } from "@/lib/site-server";
 import { OnboardSheet } from "@/components/onboard-sheet";
 import { FeedsHero } from "@/components/feeds-hero";
-import { BrandLockup, OfficialLockup } from "@/components/brand-lockup";
+import { BrandLockup } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
 import { MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
@@ -538,17 +538,14 @@ function QonvoAppInner() {
     <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg">
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule">
-          <div className="flex min-h-12 flex-nowrap items-center gap-1">
-            <button type="button" className="hdr-ico" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}>
-              <Menu className="size-4" />
-            </button>
+          <div className="flex min-h-12 flex-nowrap items-center gap-1 px-1.5">
             <button
               type="button"
-              className="flex shrink-0 items-center"
+              className="flex min-w-0 shrink items-center"
               aria-label="Kilode home"
               onClick={() => goHome()}
             >
-              <OfficialLockup />
+              <BrandLockup size="sm" />
             </button>
             <div className="ml-auto flex items-center gap-1">
               <button
@@ -615,6 +612,9 @@ function QonvoAppInner() {
               >
                 <MessageIcon />
                 {dmCount > 0 ? <span className="msg-badge">{dmCount > 9 ? "9+" : dmCount}</span> : null}
+              </button>
+              <button type="button" className="hdr-ico" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}>
+                <Menu className="size-4" />
               </button>
             </div>
           </div>
