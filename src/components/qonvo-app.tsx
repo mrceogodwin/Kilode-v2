@@ -2760,10 +2760,10 @@ function PulseStrip({ posts }: { posts: { category?: string; views?: number }[] 
   return (
     <section className="pulse-card mb-3">
       <div className="pulse-kicker mb-1 text-[10px] font-semibold tracking-[0.14em]">TRENDING IN YOUR FEED</div>
-      {top.map(([name, n]) => (
+      {top.map(([name, n], i) => (
         <div key={name} className="pulse-row">
           <span>{name}</span>
-          <i style={{ width: `${Math.max(12, Math.round((n / max) * 100))}%` }} />
+          <i className={i === 0 ? "lead" : ""} style={{ width: `${Math.max(18, Math.round((n / max) * 100))}%` }} />
         </div>
       ))}
     </section>
