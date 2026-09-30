@@ -265,7 +265,7 @@ export function openSocialFellows() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event("kilode:socials-fellows"));
 }
 
-export function SocialsFeed({ authed, account = "member", me = "", lane = "posts", onOpenPeople }: { authed: boolean; account?: string; me?: string; lane?: "people" | "posts"; onOpenPeople?: () => void }) {
+export function SocialsFeed({ authed, account = "member", me = "", lane = "posts", onOpenPeople, onOpenFeed }: { authed: boolean; account?: string; me?: string; lane?: "people" | "posts"; onOpenPeople?: () => void; onOpenFeed?: () => void }) {
   const pills = pillsFor(account);
   const boot = bootCache();
   const [takes, setTakes] = useState<TakeRow[]>(boot.takes);
@@ -507,7 +507,11 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         <button type="button" className="mb-2 text-[12px] font-semibold text-[#e6c56a]" onClick={() => onOpenPeople?.()}>
           Find people in Socials
         </button>
-      ) : null}
+      ) : (
+        <button type="button" className="mb-2 text-[12px] font-semibold text-[#e6c56a]" onClick={() => onOpenFeed?.()}>
+          Back to the feed
+        </button>
+      )}
       {lane !== "posts" ? (
       <>
       <SocialDesk takes={takes} fellows={fellows} me={me} />

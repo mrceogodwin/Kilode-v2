@@ -1404,7 +1404,7 @@ html, body {
   bottom: 0;
   z-index: 40;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: 1fr 1fr auto 1fr 1fr;
   align-items: end;
   height: auto;
   min-height: 58px;
@@ -3922,5 +3922,49 @@ a.login-id {
   animation: offline-spin 0.8s linear infinite;
 }
 @keyframes offline-spin { to { transform: rotate(360deg); } }
+
+/* My Space uses the same light-skin page as Feeds: #ebe7df, white cards, dark type. */
+html[data-skin="ivory"] .space-page {
+  background: #ebe7df;
+  color: #1c1c1a;
+}
+html[data-skin="ivory"] .space-page .me-hero {
+  background: #fff !important;
+  color: #1c1c1a !important;
+  border: 1px solid rgba(17, 17, 17, 0.12) !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .space-page .me-hero p,
+html[data-skin="ivory"] .space-page .me-hero .hero-copy,
+html[data-skin="ivory"] .space-page .me-hero .text-fg,
+html[data-skin="ivory"] .space-page .me-hero span,
+html[data-skin="ivory"] .space-page .me-hero b,
+html[data-skin="ivory"] .space-page .me-hero a,
+html[data-skin="ivory"] .space-page .me-hero h2 {
+  color: #1c1c1a !important;
+  background: transparent !important;
+  -webkit-text-fill-color: #1c1c1a !important;
+}
+html[data-skin="ivory"] .space-page .me-hero .text-muted {
+  color: #5c564c !important;
+}
+html[data-skin="ivory"] .space-page .me-stat {
+  background: #fff !important;
+  border: 1px solid rgba(17, 17, 17, 0.12) !important;
+}
+html[data-skin="ivory"] .space-page .me-stat,
+html[data-skin="ivory"] .space-page .me-stat * {
+  color: #1c1c1a !important;
+  background: transparent;
+}
+html[data-skin="ivory"] .space-page .me-stat { background: #fff !important; }
+html[data-skin="ivory"] .space-page .me-stat .text-muted { color: #5c564c !important; }
+html[data-skin="ivory"] .space-page .me-chip {
+  background: #fff !important;
+  color: #1c1c1a !important;
+  border: 1px solid rgba(17, 17, 17, 0.14) !important;
+}
+html[data-skin="ivory"] .space-page .me-chip,
+html[data-skin="ivory"] .space-page .me-chip * { color: #1c1c1a !important; }
 
 

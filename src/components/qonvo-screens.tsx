@@ -132,7 +132,7 @@ export function QonvoScreen({
   else if (id === "admin") view = <Admin store={store} />;
   return (
     <PaneGuard key={id} name={id}>
-      <div className="h-full overflow-y-auto dock-pad md:pb-4">{view}</div>
+      <div className={`h-full overflow-y-auto dock-pad md:pb-4${id === "dashboard" ? " space-page" : ""}`}>{view}</div>
     </PaneGuard>
   );
 }
