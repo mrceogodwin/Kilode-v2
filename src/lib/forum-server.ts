@@ -370,6 +370,40 @@ export const savePost = createServerFn({ method: "POST" })
     return { id };
   });
 
+async function ensureTopics(sql: Awaited<ReturnType<typeof getSql>>) {
+  await sql`create table if not exists nf_topic_follows (
+    user_id text not null,
+    topic text not null,
+    ts bigint not null,
+    primary key (user_id, topic)
+  )`;
+}
+
+export const listMyTopics = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    await ensureTopics(sql);
+    const rows = await sql<{ topic: string }>`select topic from nf_topic_follows where user_id = ${context.userId} order by ts desc`;
+    return rows.map((r) => r.topic);
+  });
+
+export const toggleTopic = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { topic: string }) => ({ topic: (d.topic || "").trim().slice(0, 40) }))
+  .handler(async ({ context, data }) => {
+    if (!data.topic) return { ok: false as const, reason: "Missing topic." };
+    const sql = await getSql();
+    await ensureTopics(sql);
+    const hit = await sql<{ topic: string }>`select topic from nf_topic_follows where user_id = ${context.userId} and topic = ${data.topic} limit 1`;
+    if (hit[0]) {
+      await sql`delete from nf_topic_follows where user_id = ${context.userId} and topic = ${data.topic}`;
+      return { ok: true as const, on: false };
+    }
+    await sql`insert into nf_topic_follows (user_id, topic, ts) values (${context.userId}, ${data.topic}, ${Date.now()}) on conflict (user_id, topic) do nothing`;
+    return { ok: true as const, on: true };
+  });
+
 export const saveComment = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { postId: string; body: string; parentTs?: number }) => d)

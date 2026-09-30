@@ -72,7 +72,7 @@ import { listRoomOverlay } from "@/lib/rooms-server";
 import { Link } from "@tanstack/react-router";
 import { SignedIn, SignedOut } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { getPublicPost, listPostSeen, listWallets, notePostSeen, deleteOwnPost, pingPresence } from "@/lib/forum-server";
+import { getPublicPost, listPostSeen, listWallets, notePostSeen, deleteOwnPost, pingPresence, listMyTopics, toggleTopic } from "@/lib/forum-server";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
@@ -2431,6 +2431,10 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
   const [seenOpen, setSeenOpen] = useState(false);
   const [dropping, setDropping] = useState(false);
   const [fullBody, setFullBody] = useState(post.body || "");
+  const [topics, setTopics] = useState<string[]>([]);
+  const [topicBusy, setTopicBusy] = useState(false);
+  const [socialNote, setSocialNote] = useState("");
+  const [socialBusy, setSocialBusy] = useState(false);
   useEffect(() => {
     setFullBody(post.body || "");
     void getPublicPost({ data: post.slug || post.id })
@@ -2439,6 +2443,10 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
       })
       .catch(() => undefined);
   }, [post.id, post.slug, post.body]);
+  useEffect(() => {
+    if (!session.user) return;
+    void listMyTopics().then(setTopics).catch(() => setTopics([]));
+  }, [session.user?.id]);
   const mine = Boolean(store.handle && post.author && store.handle.toLowerCase() === post.author.toLowerCase());
   const comments = post.comments ?? [];
   const roots = comments.filter((c) => !c.parentTs);
@@ -2474,7 +2482,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
     <article className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto dock-pad">
       <div className="mx-auto min-w-0 max-w-3xl overflow-x-hidden break-words px-4 py-4 [overflow-wrap:anywhere]">
         <button type="button" className="text-[11px] text-muted" onClick={() => store.setOpenPost(null)}>
-          ← Feeds
+          ← Media
         </button>
         <div className="raised mt-3 overflow-hidden rounded-2xl">
           {post.image ? (
@@ -2484,7 +2492,34 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
             </div>
           ) : null}
           <div className="p-4">
-            <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{post.category || "General"}</div>
+            <div className="flex items-center gap-2">
+              <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{post.category || "General"}</div>
+              <button
+                type="button"
+                disabled={topicBusy}
+                className="rounded-full border border-line px-2 py-0.5 text-[10px] font-bold text-fg disabled:opacity-60"
+                onClick={() => {
+                  if (!session.user) {
+                    window.location.href = "/login?mode=up";
+                    return;
+                  }
+                  const topic = post.category || "General";
+                  setTopicBusy(true);
+                  void toggleTopic({ data: { topic } })
+                    .then((r) => {
+                      if (!r.ok) return;
+                      setTopics((list) => (r.on ? [...list.filter((t) => t !== topic), topic] : list.filter((t) => t !== topic)));
+                    })
+                    .catch((e) => {
+                      const m = e instanceof Error ? e.message : "";
+                      if (/unauthor|sign in|forbidden/i.test(m)) window.location.href = "/login?mode=up";
+                    })
+                    .finally(() => setTopicBusy(false));
+                }}
+              >
+                {topics.includes(post.category || "General") ? "Following" : "Follow topic"}
+              </button>
+            </div>
             <h1 className="mt-1 text-2xl font-extrabold leading-tight">{post.title}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
               <AvatarImg handle={post.author} size={28} />
@@ -2574,7 +2609,55 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
           <ShareIco label="Share" onClick={() => share("native")}>
             <Share2 className="size-3.5 text-lime-2" />
           </ShareIco>
+          <ShareIco
+            label={socialBusy ? "…" : "Socials"}
+            onClick={() => {
+              if (!session.user) {
+                window.location.href = "/login?mode=up";
+                return;
+              }
+              setSocialBusy(true);
+              setSocialNote("");
+              void shareNewsToSocials({
+                title: post.title,
+                excerpt: post.excerpt,
+                author: post.author,
+                category: post.category,
+                href: `/p/${encodeURIComponent(post.slug || post.id)}`,
+              })
+                .then((r) => setSocialNote(r.ok ? "On your Socials." : r.reason))
+                .catch((e) => {
+                  const m = e instanceof Error ? e.message : "";
+                  if (/unauthor|sign in|forbidden/i.test(m)) window.location.href = "/login?mode=up";
+                  else setSocialNote("Could not post to Socials.");
+                })
+                .finally(() => setSocialBusy(false));
+            }}
+          >
+            <Repeat2 className="size-3.5" />
+          </ShareIco>
         </div>
+        {socialNote ? <p className="mt-2 text-[12px] font-semibold text-lime-2">{socialNote}</p> : null}
+        {(() => {
+          const related = store.posts
+            .filter((p) => p.id !== post.id && p.status !== "draft" && (p.category || "General") === (post.category || "General"))
+            .slice(0, 4);
+          if (related.length === 0) return null;
+          return (
+            <div className="mt-4">
+              <div className="mb-1 text-[10px] font-bold tracking-[0.16em] text-muted">MORE IN {post.category || "GENERAL"}</div>
+              {related.map((p) => (
+                <button key={p.id} type="button" className="flex w-full items-center gap-2 border-t border-line py-2 text-left" onClick={() => store.setOpenPost(p.id)}>
+                  {p.image ? <img src={p.image} alt="" className="size-10 rounded object-cover" /> : <span className="size-10 rounded bg-panel-3" />}
+                  <span className="min-w-0">
+                    <span className="line-clamp-2 text-[12px] font-semibold">{p.title}</span>
+                    <span className="block text-[10px] text-muted">{p.author}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          );
+        })()}
         <TrendingRail posts={store.posts} ads={store.campaigns} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
         <PostBody body={fullBody || ""} />
         {post.link ? (
@@ -2708,6 +2791,7 @@ const FEED_LANES: [string, string][] = [
   ["foryou", "For you"],
   ["latest", "Latest"],
   ["following", "Following"],
+  ["topics", "My topics"],
   ["entertainment", "Entertainment"],
   ["music", "Music"],
   ["nollywood", "Nollywood"],
@@ -2896,12 +2980,27 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
   const [cap, setCap] = useState("");
   const [lane, setLane] = useState("latest");
   const [follows, setFollows] = useState<string[] | null>(null);
+  const [topics, setTopics] = useState<string[] | null>(null);
   useEffect(() => {
     if (lane !== "following" || follows) return;
     void listConnects()
       .then((rows) => setFollows(rows.filter((r) => r.dir === "friend").map((r) => r.handle.toLowerCase())))
       .catch(() => setFollows([]));
   }, [lane, follows]);
+  useEffect(() => {
+    if (lane !== "topics") return;
+    let cancel = false;
+    void listMyTopics()
+      .then((rows) => {
+        if (!cancel) setTopics(rows);
+      })
+      .catch(() => {
+        if (!cancel) setTopics([]);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [lane]);
   const open = store.posts.find((p) => p.id === store.openPost);
   const needle = q.trim().toLowerCase();
   const live = store.posts
@@ -2910,7 +3009,8 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
         !!p?.id &&
         p.status !== "draft" &&
         (cat === "All" || p.category === cat) &&
-        (lane === "foryou" || lane === "latest" || lane === "following" || (LANE_MATCH[lane] || []).includes(p.category || "General")) &&
+        (lane === "foryou" || lane === "latest" || lane === "following" || lane === "topics" || (LANE_MATCH[lane] || []).includes(p.category || "General")) &&
+        (lane !== "topics" || (topics || []).includes(p.category || "General")) &&
         (!needle ||
           `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase().includes(needle)),
     )
@@ -3051,6 +3151,9 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {lane === "following" && follows && live.length === 0 ? (
             <p className="col-span-4 py-6 text-center text-[12px] text-muted">Connect with people on Socials. Their posts show here. Nothing is invented.</p>
+          ) : null}
+          {lane === "topics" && topics && live.length === 0 ? (
+            <p className="col-span-4 py-6 text-center text-[12px] text-muted">Follow a topic on a story. Those stories show here. Nothing is invented.</p>
           ) : null}
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => {
             const hot = (p.views ?? 0) >= 350 || (p.comments?.length ?? 0) >= 6;
