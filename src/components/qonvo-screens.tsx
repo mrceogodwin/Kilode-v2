@@ -2316,6 +2316,7 @@ function Admin({ store }: { store: Store }) {
   const [walletMsg, setWalletMsg] = useState("");
   const [extraCoin, setExtraCoin] = useState("");
   const [extraAddr, setExtraAddr] = useState("");
+  const [desk, setDesk] = useState<"pulse" | "inbox" | "people" | "money" | "content" | "staff">("pulse");
 
   useEffect(() => {
     void staffMe()
@@ -2407,6 +2408,15 @@ function Admin({ store }: { store: Store }) {
     );
   }
 
+  const deskTabs: { id: typeof desk; label: string }[] = [
+    ...(role === "super" || role === "admin" ? [{ id: "pulse" as const, label: "Pulse" }] : []),
+    { id: "inbox", label: reports.length ? `Inbox ${reports.length}` : "Inbox" },
+    { id: "people", label: "People" },
+    ...(role === "super" || role === "admin" ? [{ id: "money" as const, label: "Money" }, { id: "content" as const, label: "Content" }] : []),
+    ...(role === "super" || role === "admin" ? [{ id: "staff" as const, label: role === "super" ? "Staff" : "Account" }] : []),
+  ];
+  const onDesk = deskTabs.some((t) => t.id === desk) ? desk : deskTabs[0]?.id || "inbox";
+
   return (
     <div className="mx-auto grid w-full min-w-0 max-w-5xl grid-cols-1 gap-3 overflow-x-hidden overflow-y-auto p-4 md:grid-cols-2">
       <div className="md:col-span-2">
@@ -2415,23 +2425,39 @@ function Admin({ store }: { store: Store }) {
           Role {role} · id {userId}
         </p>
         {role === "mod" ? <p className="mt-1 text-[12px] text-muted">Your desk is reports, warnings, and hiding flagged posts. API keys, SEO, wallets, and news tools stay with the owner.</p> : null}
+        <div className="sticky top-0 z-20 -mx-1 mt-2 flex gap-1 overflow-x-auto bg-bg py-2" role="tablist" aria-label="Staff sections">
+          {deskTabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={onDesk === t.id}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-bold ${onDesk === t.id ? "border-lime-2 bg-lime-2 text-black" : "border-line text-fg"}`}
+              onClick={() => setDesk(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
-      {role === "super" ? <LivePausePanel /> : null}
-      {role === "super" || role === "admin" ? (
+      {onDesk === "pulse" && role === "super" ? <LivePausePanel /> : null}
+      {onDesk === "people" && (role === "super" || role === "admin") ? (
         <div className="md:col-span-2">
           <div className="mb-1 text-[10px] font-bold tracking-[0.16em] text-lime-2">STAFF · ACCOUNT TYPE</div>
           <VerifyKindPanel members={members} canKind={role === "super"} onReload={() => void listMembers().then(setMembers).catch(() => undefined)} />
         </div>
       ) : null}
-      {role === "super" ? <PaywaysPanel /> : null}
-      {role === "super" ? <OpsKeysPanel /> : null}
-      {role === "super" ? <OpsSeoPanel /> : null}
-      {role === "super" || role === "admin" ? <SitePulsePanel /> : null}
-      {role === "super" || role === "admin" ? <AdsQueuePanel store={store} /> : null}
-      {role === "super" ? <SiteFlagsPanel /> : null}
-      {role === "super" ? <AdCatalogPanel /> : null}
-      {role === "super" ? <AdSlotsPanel /> : null}
-      {role === "super" ? <RoomsAdminPanel /> : null}
+      {onDesk === "money" && role === "super" ? <PaywaysPanel /> : null}
+      {onDesk === "money" && role === "super" ? <OpsKeysPanel /> : null}
+      {onDesk === "content" && role === "super" ? <OpsSeoPanel /> : null}
+      {onDesk === "pulse" && (role === "super" || role === "admin") ? <SitePulsePanel /> : null}
+      {onDesk === "money" && (role === "super" || role === "admin") ? <AdsQueuePanel store={store} /> : null}
+      {onDesk === "money" && role === "super" ? <SiteFlagsPanel /> : null}
+      {onDesk === "money" && role === "super" ? <AdCatalogPanel /> : null}
+      {onDesk === "money" && role === "super" ? <AdSlotsPanel /> : null}
+      {onDesk === "content" && role === "super" ? <RoomsAdminPanel /> : null}
+      {onDesk === "inbox" ? (
+      <>
       <div className="md:col-span-2 space-y-2">
         <div className="text-[11px] font-medium text-muted">Inbox</div>
         {mail.length === 0 ? <p className="text-sm text-muted">No contact mail.</p> : null}
@@ -2503,20 +2529,22 @@ function Admin({ store }: { store: Store }) {
           );
         })}
       </div>
-      {role === "super" || role === "admin" ? <FeedsDeskPanel store={store} /> : null}
-      {role === "super" ? <ShopAdminPanel /> : null}
-      {role === "super" ? <SocialsAdminPanel /> : null}
-      {role === "super" ? <ChatTtlPanel /> : null}
-      {role === "super" ? <NewsEnginePanel store={store} /> : null}
-      {role === "super" || role === "admin" ? <EventsAdminPanel /> : null}
-      {role === "super" || role === "admin" ? <CinemaAdminPanel /> : null}
-      {role === "super" || role === "admin" ? <ListingsAdminPanel /> : null}
-      {role === "super" ? <DbPanel /> : null}
-      {role ? <BanMutePanel members={members} /> : null}
-      {role === "super" || role === "admin" ? <ModPanel /> : null}
-      {role === "super" || role === "admin" ? <AdminPassword /> : null}
-      {role === "super" || role === "admin" ? <AdminResetPassword members={members} /> : null}
-      {role === "super" || role === "admin" ? (
+      </>
+      ) : null}
+      {onDesk === "content" && (role === "super" || role === "admin") ? <FeedsDeskPanel store={store} /> : null}
+      {onDesk === "content" && role === "super" ? <ShopAdminPanel /> : null}
+      {onDesk === "content" && role === "super" ? <SocialsAdminPanel /> : null}
+      {onDesk === "content" && role === "super" ? <ChatTtlPanel /> : null}
+      {onDesk === "content" && role === "super" ? <NewsEnginePanel store={store} /> : null}
+      {onDesk === "content" && (role === "super" || role === "admin") ? <EventsAdminPanel /> : null}
+      {onDesk === "content" && (role === "super" || role === "admin") ? <CinemaAdminPanel /> : null}
+      {onDesk === "content" && (role === "super" || role === "admin") ? <ListingsAdminPanel /> : null}
+      {onDesk === "pulse" && role === "super" ? <DbPanel /> : null}
+      {onDesk === "people" && role ? <BanMutePanel members={members} /> : null}
+      {onDesk === "people" && (role === "super" || role === "admin") ? <ModPanel /> : null}
+      {onDesk === "staff" && (role === "super" || role === "admin") ? <AdminPassword /> : null}
+      {onDesk === "staff" && (role === "super" || role === "admin") ? <AdminResetPassword members={members} /> : null}
+      {onDesk === "money" && (role === "super" || role === "admin") ? (
         <div className="md:col-span-2 min-w-0 max-w-full raised space-y-2 rounded-xl p-3">
           <div className="text-[11px] font-medium text-muted">Pay-to wallets</div>
           <p className="break-words text-xs text-muted">Shown when users pay ads or donate. They copy from the app only. Add more coins below.</p>
@@ -2588,7 +2616,7 @@ function Admin({ store }: { store: Store }) {
           </div>
         </div>
       ) : null}
-      {role === "super" ? (
+      {onDesk === "staff" && role === "super" ? (
         <div className="md:col-span-2 min-w-0 max-w-full raised space-y-2 rounded-xl p-3">
           <div className="text-[11px] font-medium text-muted">Staff access</div>
           <p className="break-words text-xs text-muted">Only you are super. You grant sub-admin or admin. You can revoke. Nobody can take your seat.</p>
