@@ -563,6 +563,13 @@ export function AdCatalogPanel() {
           <label key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-line px-2 py-1.5 text-base">
             <span className="min-w-0 truncate">{p.label}</span>
             <span className="flex items-center gap-1">
+              <button
+                type="button"
+                className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${cat.paidSlots[p.id] === false ? "border-line text-muted" : "border-[#e6c56a]/50 text-[#e6c56a]"}`}
+                onClick={() => setCat({ ...cat, paidSlots: { ...cat.paidSlots, [p.id]: cat.paidSlots[p.id] === false } })}
+              >
+                {cat.paidSlots[p.id] === false ? "Free" : "Paid"}
+              </button>
               $
               <input
                 type="number"

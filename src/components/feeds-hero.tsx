@@ -19,6 +19,7 @@ const FALLBACK: AdCatalog = {
   pageSize: 12,
   featuredN: 8,
   prices: {},
+  paidSlots: {},
   heroPosts: true,
   heroPaid: true,
   heroGoogle: true,

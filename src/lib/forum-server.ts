@@ -597,16 +597,25 @@ export const saveAdRow = createServerFn({ method: "POST" })
     const coin = (data.coin ?? "").trim().toLowerCase();
     const placement = data.placement ?? "board";
     let payOff = false;
+    let slotFree = false;
     try {
       const flag = await sql<{ pay_off: string | null }>`select pay_off from nf_site where id = 1 limit 1`;
       payOff = String(flag[0]?.pay_off || "").split(",").includes("ads");
     } catch {
       payOff = false;
     }
-    if (!payOff && !txHash.startsWith("kld_")) return { ok: false as const, reason: "Pay with Paystack, Flutterwave, or crypto. A pasted wallet hash is not accepted." };
+    try {
+      const paidKey = `paid_${placement.replace(/-/g, "_")}`;
+      const slot = await sql<{ v: string }>`select v from nf_ad_catalog where k = ${paidKey}`;
+      slotFree = slot[0]?.v === "0";
+    } catch {
+      slotFree = false;
+    }
+    const skipPay = payOff || slotFree;
+    if (!skipPay && !txHash.startsWith("kld_")) return { ok: false as const, reason: "Pay with Paystack, Flutterwave, or crypto. A pasted wallet hash is not accepted." };
     let cardNote = "";
     let live = false;
-    if (!payOff) {
+    if (!skipPay) {
       const taken = await takePaidCheckout({ reference: txHash, userId: context.userId, kind: "ad", purpose: placement, refId: id });
       if (!taken.ok) return taken;
       cardNote = taken.note;
@@ -625,7 +634,7 @@ export const saveAdRow = createServerFn({ method: "POST" })
         }
       }
     } catch (e) {
-      if (!payOff && txHash) await releaseCheckout(txHash, id);
+      if (!skipPay && txHash) await releaseCheckout(txHash, id);
       throw e;
     }
     return { id, status, expiresAt: expires ?? undefined };

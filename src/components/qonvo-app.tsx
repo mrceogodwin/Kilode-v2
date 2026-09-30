@@ -14,6 +14,7 @@ import {
   Heart,
   HelpCircle,
   Home,
+  Layers,
   LayoutDashboard,
   Link2,
   Mail,
@@ -21,6 +22,7 @@ import {
   Menu,
   MessageSquare,
   Music,
+  Newspaper,
   Plus,
   PlusSquare,
   Radio,
@@ -257,6 +259,7 @@ function QonvoAppInner() {
   const [screen, setScreenNow] = useState<MenuId>("home");
   const setScreen = (id: MenuId) => startTransition(() => setScreenNow(id));
   const [homeTab, setHomeTabNow] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials">("feeds");
+  const [socialLane, setSocialLane] = useState<"people" | "posts">("posts");
   const setHomeTab = (tab: "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials") => startTransition(() => setHomeTabNow(tab));
   useEffect(() => {
     if (!signedIn) {
@@ -661,6 +664,26 @@ function QonvoAppInner() {
                 <MessageIcon />
                 {dmCount > 0 ? <span className="msg-badge">{dmCount > 9 ? "9+" : dmCount}</span> : null}
               </button>
+              <button
+                type="button"
+                className="hdr-ico"
+                aria-label="Your profile"
+                onClick={() => {
+                  setMenuOpen(false);
+                  if (session.isPending) return;
+                  if (!signedIn || !store.handle) {
+                    window.location.href = "/login";
+                    return;
+                  }
+                  window.location.href = `/u/${encodeURIComponent(store.handle)}`;
+                }}
+              >
+                {signedIn ? (
+                  <AvatarImg handle={store.handle || "me"} face={store.face} size={22} className="rounded-full" />
+                ) : (
+                  <User className="size-4" />
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -782,7 +805,7 @@ function QonvoAppInner() {
                 />
               ) : homeTab === "socials" ? (
                 <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
-                  <SocialsFeed authed={store.authed || !!session.user} account={store.kind} me={store.handle} />
+                  <SocialsFeed lane={socialLane} authed={store.authed || !!session.user} account={store.kind} me={store.handle} onOpenPeople={() => setSocialLane("people")} />
                 </div>
               ) : homeTab === "music" ? (
                 <MusicPane store={store} onAdd={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))} />
@@ -1155,45 +1178,28 @@ function QonvoAppInner() {
         />
       ) : null}
       <nav className="dock pointer-events-auto z-40">
-        <Tab icon={<Home className="size-5" />} label="Home" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
-        <Tab icon={<Search className="size-5" />} label="Explore" on={screen === "home" && homeTab === "socials"} onClick={() => { setMenuOpen(false); openSocialFellows(); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); store.setOpenPost(null); }} />
-        <button
-          type="button"
-          className="dock-plus"
-          aria-label={signedIn ? createLabelFor(store.kind) : "Create"}
-          title={signedIn ? createLabelFor(store.kind) : "Create"}
-          onClick={() => {
-            setMenuOpen(false);
-            if (session.isPending) return;
-            if (!signedIn) {
-              window.location.href = "/login?mode=up";
-              return;
-            }
-            openRoleCreate();
-            setScreen("create");
-          }}
-        >
-          <Plus className="size-6" strokeWidth={2.75} />
-        </button>
-        <Tab icon={<MessageSquare className="size-5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
-        <Tab
-          icon={
-            signedIn ? (
-              <AvatarImg handle={store.handle || "me"} face={store.face} size={22} className="ring-1 ring-white" />
-            ) : (
-              <User className="size-5" />
-            )
-          }
-          label="Profile"
-          on={screen === "dashboard" || screen === "profile"}
-          onClick={() => {
-            setMenuOpen(false);
-            if (session.isPending) return;
-            if (signedIn) setScreen("dashboard");
-            else window.location.href = "/login";
-          }}
-        />
+        <Tab icon={<UsersRound className="size-5" />} label="Socials" on={screen === "home" && homeTab === "socials" && socialLane === "people"} onClick={() => { setMenuOpen(false); if (session.isPending) return; if (!signedIn) { window.location.href = "/login?mode=up"; return; } openSocialFellows(); setSocialLane("people"); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); store.setOpenPost(null); }} />
+        <Tab icon={<Layers className="size-5" />} label="My Space" on={screen === "dashboard"} onClick={() => { setMenuOpen(false); if (session.isPending) return; if (!signedIn) { window.location.href = "/login?mode=up"; return; } setScreen("dashboard"); }} />
+        <Tab icon={<Hash className="size-5" />} label="Feeds" on={screen === "home" && homeTab === "socials" && socialLane === "posts"} onClick={() => { setMenuOpen(false); if (session.isPending) return; if (!signedIn) { window.location.href = "/login?mode=up"; return; } setSocialLane("posts"); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); store.setOpenPost(null); }} />
+        <Tab icon={<Newspaper className="size-5" />} label="Media" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
       </nav>
+      <button
+        type="button"
+        className="create-fab"
+        aria-label={signedIn ? createLabelFor(store.kind) : "Create"}
+        onClick={() => {
+          setMenuOpen(false);
+          if (session.isPending) return;
+          if (!signedIn) {
+            window.location.href = "/login?mode=up";
+            return;
+          }
+          openRoleCreate();
+          setScreen("create");
+        }}
+      >
+        <Plus className="size-5" strokeWidth={2.75} />
+      </button>
 
       {roomsOpen ? (
         <div className="app-drawer rooms-drawer">
@@ -1340,10 +1346,12 @@ function QonvoAppInner() {
 
               <DrawerGroup label="Kilode">
                 <DrawerRow icon={Briefcase} label="Jobs" hint="Roles and applications" onClick={() => { setScreen("jobs"); setMenuOpen(false); }} on={screen === "jobs"} />
-                <DrawerRow icon={Home} label="Feeds" hint="News for Nigeria" onClick={() => { store.setOpenPost(null); setMarketDesk(null); setScreen("home"); setHomeTab("feeds"); setMenuOpen(false); }} on={homeTab === "feeds" && screen === "home" && !marketDesk} />
+                <DrawerRow icon={Newspaper} label="Media" hint="News and stories" onClick={() => { store.setOpenPost(null); setMarketDesk(null); setScreen("home"); setHomeTab("feeds"); setMenuOpen(false); }} on={homeTab === "feeds" && screen === "home" && !marketDesk} />
                 <DrawerRow icon={MessageSquare} label="Chat" hint="Live rooms · topics & places" onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }} on={homeTab === "chat" && screen === "home"} />
                 <DrawerRow icon={Radio} label="Music" hint="Opens the artist's platform" onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
-                <DrawerRow icon={Globe} label="Socials" hint="Takes, fellows, gists" onClick={() => { setScreen("home"); setHomeTab("socials"); setMarketDesk(null); setMenuOpen(false); }} on={homeTab === "socials" && screen === "home"} />
+                <DrawerRow icon={UsersRound} label="Socials" hint="People and fellows" onClick={() => { if (!signedIn) { window.location.href = "/login?mode=up"; return; } setSocialLane("people"); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); setMenuOpen(false); }} on={homeTab === "socials" && socialLane === "people" && screen === "home"} />
+                <DrawerRow icon={Hash} label="Feeds" hint="Takes, debates, gists" onClick={() => { if (!signedIn) { window.location.href = "/login?mode=up"; return; } setSocialLane("posts"); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); setMenuOpen(false); }} on={homeTab === "socials" && socialLane === "posts" && screen === "home"} />
+                <DrawerRow icon={Layers} label="My Space" hint="Your posts, jobs, listings" onClick={() => { if (!signedIn) { window.location.href = "/login?mode=up"; return; } setScreen("dashboard"); setMenuOpen(false); }} on={screen === "dashboard"} />
                 <DrawerRow icon={Film} label="Events" hint="What's on, RSVP" onClick={() => { setScreen("home"); setHomeTab("cinema"); setMenuOpen(false); }} on={homeTab === "cinema" && screen === "home"} />
                 <DrawerRow icon={Play} label="Cinema" hint="Watch and vote. Not on the bottom bar." onClick={() => { setScreen("home"); setHomeTab("watch"); setMenuOpen(false); }} on={homeTab === "watch" && screen === "home"} />
                 <DrawerRow icon={Tv} label="Kilode TV" hint="Socials · follow in one place" onClick={() => { setScreen("tv"); setMenuOpen(false); }} on={screen === "tv"} />

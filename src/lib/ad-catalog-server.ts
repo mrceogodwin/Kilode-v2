@@ -9,6 +9,8 @@ export type AdCatalog = {
   pageSize: number;
   featuredN: number;
   prices: Record<string, number>;
+  /** Missing or true = paid checkout. False = free, staff review. */
+  paidSlots: Record<string, boolean>;
   heroPosts: boolean;
   heroPaid: boolean;
   heroGoogle: boolean;
@@ -21,6 +23,7 @@ const DEFAULTS: AdCatalog = {
   pageSize: 12,
   featuredN: 8,
   prices: Object.fromEntries(AD_PLACEMENTS.map((p) => [p.id, p.usd])),
+  paidSlots: Object.fromEntries(AD_PLACEMENTS.map((p) => [p.id, true])),
   heroPosts: true,
   heroPaid: true,
   heroGoogle: true,
@@ -45,15 +48,20 @@ export async function loadAdCatalog(): Promise<AdCatalog> {
     const rows = await sql<{ k: string; v: string }>`select k, v from nf_ad_catalog`;
     const map = Object.fromEntries(rows.map((r) => [r.k, r.v]));
     const prices = { ...DEFAULTS.prices };
+    const paidSlots = { ...DEFAULTS.paidSlots };
     for (const p of AD_PLACEMENTS) {
       const key = `price_${p.id.replace(/-/g, "_")}`;
       if (map[key]) prices[p.id] = num(map[key], p.usd);
+      const paidKey = `paid_${p.id.replace(/-/g, "_")}`;
+      if (map[paidKey] === "0") paidSlots[p.id] = false;
+      if (map[paidKey] === "1") paidSlots[p.id] = true;
     }
     return {
       dailyCap: Math.min(200, num(map.daily_cap, DEFAULTS.dailyCap)),
       pageSize: Math.min(48, num(map.page_size, DEFAULTS.pageSize)),
       featuredN: Math.min(24, num(map.featured_n, DEFAULTS.featuredN)),
       prices,
+      paidSlots,
       heroPosts: map.hero_posts !== "0",
       heroPaid: map.hero_paid !== "0",
       heroGoogle: map.hero_google !== "0",
@@ -69,7 +77,7 @@ export const listAdCatalog = createServerFn({ method: "GET" }).handler(async () 
 
 export const saveAdCatalog = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { dailyCap?: number; pageSize?: number; featuredN?: number; prices?: Record<string, number>; heroPosts?: boolean; heroPaid?: boolean; heroGoogle?: boolean; heroVideo?: boolean; heroMs?: number }) => d)
+  .validator((d: { dailyCap?: number; pageSize?: number; featuredN?: number; prices?: Record<string, number>; paidSlots?: Record<string, boolean>; heroPosts?: boolean; heroPaid?: boolean; heroGoogle?: boolean; heroVideo?: boolean; heroMs?: number }) => d)
   .handler(async ({ context, data }) => {
     await assertStaff(context.userId, "super");
     const sql = await table();
@@ -86,6 +94,11 @@ export const saveAdCatalog = createServerFn({ method: "POST" })
       for (const p of AD_PLACEMENTS) {
         const n = Number(data.prices[p.id]);
         if (Number.isFinite(n) && n > 0) pairs.push([`price_${p.id.replace(/-/g, "_")}`, String(Math.round(n))]);
+      }
+    }
+    if (data.paidSlots) {
+      for (const p of AD_PLACEMENTS) {
+        if (typeof data.paidSlots[p.id] === "boolean") pairs.push([`paid_${p.id.replace(/-/g, "_")}`, data.paidSlots[p.id] ? "1" : "0"]);
       }
     }
     for (const [k, v] of pairs) {

@@ -265,7 +265,7 @@ export function openSocialFellows() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event("kilode:socials-fellows"));
 }
 
-export function SocialsFeed({ authed, account = "member", me = "" }: { authed: boolean; account?: string; me?: string }) {
+export function SocialsFeed({ authed, account = "member", me = "", lane = "posts", onOpenPeople }: { authed: boolean; account?: string; me?: string; lane?: "people" | "posts"; onOpenPeople?: () => void }) {
   const pills = pillsFor(account);
   const boot = bootCache();
   const [takes, setTakes] = useState<TakeRow[]>(boot.takes);
@@ -503,6 +503,13 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
           ))}
         </div>
       ) : null}
+      {lane === "posts" ? (
+        <button type="button" className="mb-2 text-[12px] font-semibold text-[#e6c56a]" onClick={() => onOpenPeople?.()}>
+          Find people in Socials
+        </button>
+      ) : null}
+      {lane !== "posts" ? (
+      <>
       <SocialDesk takes={takes} fellows={fellows} me={me} />
       <div className="mb-2">
         <div className="mb-1.5 text-[12px] font-semibold text-fg">Connect with Fellows</div>
@@ -657,7 +664,11 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
           {dmNote ? <p className="mt-1 text-[10px] leading-snug text-muted">{dmNote}</p> : null}
         </form>
       ) : null}
+      </>
+      ) : null}
 
+      {lane !== "people" ? (
+      <>
       <div className="mb-3 glass-3d px-2.5 py-2">
         <div className="flex items-start gap-2">
           <img src={avatarUrl("me")} alt="" className="mt-0.5 size-7 rounded-full bg-panel-3" />
@@ -818,6 +829,8 @@ export function SocialsFeed({ authed, account = "member", me = "" }: { authed: b
         >
           Load more
         </button>
+      ) : null}
+      </>
       ) : null}
       {menuTake ? (
         <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setMenuTake(null)}>

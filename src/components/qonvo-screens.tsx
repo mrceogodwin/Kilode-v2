@@ -1846,10 +1846,15 @@ function Ads({ store }: { store: Store }) {
   const [agree, setAgree] = useState(false);
   const [err, setErr] = useState("");
   const [done, setDone] = useState<string | null>(null);
+  const [reviewDone, setReviewDone] = useState(false);
   const [prices, setPrices] = useState<Record<string, number>>({});
+  const [paidSlots, setPaidSlots] = useState<Record<string, boolean>>({});
   useEffect(() => {
     void listAdCatalog()
-      .then((c) => setPrices(c.prices))
+      .then((c) => {
+        setPrices(c.prices);
+        setPaidSlots(c.paidSlots || {});
+      })
       .catch(() => undefined);
     void listPayMethods()
       .then((m) => setGate({ paystack: m.paystack, flutterwave: m.flutterwave, nowpayments: m.nowpayments, cryptoEnabled: m.cryptoEnabled, ngnPerUsd: m.ngnPerUsd }))
@@ -1859,6 +1864,8 @@ function Ads({ store }: { store: Store }) {
   const size = AD_SIZES[place] ?? AD_SIZES.board;
   const slot = AD_PLACEMENTS.find((p) => p.id === place);
   const usd = prices[place] ?? slot?.usd ?? 40;
+  const slotPaid = paidSlots[place] !== false;
+  const mustPay = adsPay && slotPaid;
   async function onFile(file: File | undefined) {
     setErr("");
     if (!file) return;
@@ -1889,7 +1896,7 @@ function Ads({ store }: { store: Store }) {
   }
   if (done) {
     return (
-      <Screen kicker="ADS" title="Live" sub="Payment confirmed. This creative is on the slot you bought.">
+      <Screen kicker="ADS" title={reviewDone ? "With staff" : "Live"} sub={reviewDone ? "This slot is free. Staff approve it before it shows." : "Payment confirmed. This creative is on the slot you bought."}>
         <div className="raised rounded-2xl p-4">
           <h3 className="text-lg font-extrabold">{done}</h3>
           <ol className="mt-3 list-decimal space-y-2 pl-4 text-[13px] leading-6 text-muted">
@@ -2000,9 +2007,9 @@ function Ads({ store }: { store: Store }) {
           Your ad is in this slot · {timeLeftLabel(mine.find((c) => c.placement === place && c.status === "approved")?.expiresAt)}
         </p>
       ) : (
-        <p className="mb-2 text-[11px] text-muted">${usd} · {days} days on {slot?.label || place}. Price is the one set in Super admin.</p>
+        <p className="mb-2 text-[11px] text-muted">{slotPaid ? `$${usd} · ${days} days on ${slot?.label || place}. Price is the one set in Super admin.` : `Free slot · ${slot?.label || place}. Staff review it before it shows.`}</p>
       )}
-      {adsPay ? (
+      {mustPay ? (
         <div className="mb-3">
           {!name.trim() || !agree ? <p className="mb-2 text-[12px] text-muted">Add the campaign name and tick the terms. Then pay. The ad goes live on this slot when the payment confirms.</p> : null}
           <GatewayPay
@@ -2046,6 +2053,41 @@ function Ads({ store }: { store: Store }) {
             }}
           />
         </div>
+      ) : !slotPaid ? (
+        <button
+          type="button"
+          className="btn-join mb-3 w-full rounded-xl py-3 text-sm font-bold"
+          onClick={() => {
+            if (!agree || !name.trim()) {
+              setErr("Add the name and tick the terms.");
+              return;
+            }
+            const img = kind.includes("image") ? (image.startsWith("data:") ? image : safeHttpUrl(image)) : undefined;
+            void Promise.resolve(store.saveAd(name, note, {
+              placement: place,
+              txHash: "",
+              amount: "0",
+              coin: "",
+              link: safeHttpUrl(link),
+              image: img,
+              video: kind.includes("video") ? youtubeId(video) || safeHttpUrl(video) : undefined,
+              kind,
+              days,
+            })).then((ok) => {
+              if (!ok) {
+                setErr("Could not submit.");
+                return;
+              }
+              setReviewDone(true);
+              setDone(name.trim());
+              setName("");
+              setNote("");
+              setErr("");
+            });
+          }}
+        >
+          Submit for staff review
+        </button>
       ) : <p className="mb-3 text-[12px] text-lime-2">Payment is off for ads right now.</p>}
       {err ? <p className="mb-2 text-sm text-danger">{err}</p> : null}
       <label className="mb-3 flex items-start gap-2 text-[11px] text-muted">
