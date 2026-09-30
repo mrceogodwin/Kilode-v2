@@ -3967,4 +3967,115 @@ html[data-skin="ivory"] .space-page .me-chip {
 html[data-skin="ivory"] .space-page .me-chip,
 html[data-skin="ivory"] .space-page .me-chip * { color: #1c1c1a !important; }
 
+/* Light skin: My Space, Media, and Search share the same paper page. Cards stay white so type stays readable. */
+html[data-skin="ivory"] .space-page,
+html[data-skin="ivory"] .media-page,
+html[data-skin="ivory"] .paper-page {
+  background: #ebe7df !important;
+  color: #1c1c1a !important;
+}
+html[data-skin="ivory"] .space-page .me-hero,
+html[data-skin="ivory"] .space-page .staff-power,
+html[data-skin="ivory"] .space-page .me-stat,
+html[data-skin="ivory"] .space-page .glass-3d,
+html[data-skin="ivory"] .space-page .raised,
+html[data-skin="ivory"] .media-page .pulse-card,
+html[data-skin="ivory"] .media-page .glass-3d,
+html[data-skin="ivory"] .media-page .raised,
+html[data-skin="ivory"] .paper-page .bg-panel,
+html[data-skin="ivory"] .paper-page .rounded-xl {
+  background: #fff !important;
+  color: #1c1c1a !important;
+  border-color: rgba(17, 17, 17, 0.12) !important;
+}
+html[data-skin="ivory"] .space-page .me-hero p,
+html[data-skin="ivory"] .space-page .me-hero .hero-copy,
+html[data-skin="ivory"] .space-page .me-hero .text-fg,
+html[data-skin="ivory"] .space-page .me-hero span,
+html[data-skin="ivory"] .space-page .me-hero b,
+html[data-skin="ivory"] .space-page .me-hero a,
+html[data-skin="ivory"] .space-page .staff-power,
+html[data-skin="ivory"] .space-page .staff-power p,
+html[data-skin="ivory"] .space-page .staff-power .text-muted,
+html[data-skin="ivory"] .media-page .pulse-kicker,
+html[data-skin="ivory"] .media-page .pulse-row,
+html[data-skin="ivory"] .media-page h2,
+html[data-skin="ivory"] .media-page h3,
+html[data-skin="ivory"] .media-page .text-fg {
+  color: #1c1c1a !important;
+  -webkit-text-fill-color: #1c1c1a !important;
+  background: transparent !important;
+}
+html[data-skin="ivory"] .space-page .text-muted,
+html[data-skin="ivory"] .media-page .text-muted,
+html[data-skin="ivory"] .paper-page .text-muted {
+  color: #5c564c !important;
+  -webkit-text-fill-color: #5c564c !important;
+}
+html[data-skin="ivory"] .space-page .staff-pill {
+  color: #1f7a40 !important;
+  -webkit-text-fill-color: #1f7a40 !important;
+  background: rgba(31, 122, 64, 0.12) !important;
+  border-color: rgba(31, 122, 64, 0.45) !important;
+}
+html[data-skin="ivory"] .space-page .me-hero .rounded-full {
+  background: rgba(17, 17, 17, 0.05) !important;
+  border-color: rgba(17, 17, 17, 0.16) !important;
+  color: #1c1c1a !important;
+  -webkit-text-fill-color: #1c1c1a !important;
+}
+html[data-skin="ivory"] .space-page .staff-go,
+html[data-skin="ivory"] .space-page .btn-join,
+html[data-skin="ivory"] .me-hero .btn-join {
+  background: #e6c56a !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+}
+
+.take-follow {
+  margin-left: auto;
+  color: #c9a227;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.take-follow:disabled { opacity: 0.7; }
+.take-react {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
+  color: #8d938e;
+  font-size: 12px;
+  font-weight: 700;
+}
+.take-react button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.take-react svg { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round; }
+.take-react .on { color: #e6c56a; }
+.take-react .on svg { fill: #e6c56a; stroke: #e6c56a; }
+.take-faces { margin-left: auto; display: inline-flex; }
+.take-faces i {
+  width: 14px;
+  height: 14px;
+  margin-left: -4px;
+  border-radius: 999px;
+  border: 1.5px solid #101412;
+}
+.take-faces .spark { background: #e6c56a; }
+.take-faces .fact { background: #3d8f5a; }
+.take-faces .cap { background: #8a6420; }
+html[data-skin="ivory"] .take-react {
+  border-top-color: rgba(17, 17, 17, 0.1);
+  color: #3f4741;
+}
+html[data-skin="ivory"] .take-follow { color: #8a6420; }
+html[data-skin="ivory"] .take-faces i { border-color: #fff; }
+
+
 

@@ -713,7 +713,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   const faceSrc = photo && site.photosOn !== false ? photo : store.face;
 
   return (
-    <div className="mx-auto max-w-2xl p-4 pb-36">
+    <div className="space-page mx-auto max-w-2xl p-4 pb-36">
       <div className="mb-2 text-[10px] font-bold tracking-[0.18em] text-muted">MY SPACE</div>
       <div className="me-hero relative mb-4 overflow-hidden rounded-2xl border border-line bg-panel">
         <div className="flex items-end gap-3 px-4 pt-4">

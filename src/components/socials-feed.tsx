@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { BadgeCheck, Briefcase, Headphones, Heart, Lock, MessageSquare, Repeat2, Share2 } from "lucide-react";
+import { Briefcase, Headphones, Lock } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, connectByHandle, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -801,6 +801,33 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
               if (navigator.share) void navigator.share({ text });
               else void navigator.clipboard?.writeText(text);
             }}
+            mine={!!me && t.handle.toLowerCase() === me.toLowerCase()}
+            link={linked[t.id] || linked[(t.handle || "").toLowerCase()] || ""}
+            liked={!!liked[t.id]}
+            onFollow={() => {
+              if (!authed) return goLogin();
+              const h = (t.handle || "").toLowerCase();
+              if (!h || linked[h] === "in" || linked[h] === "out") return;
+              setLinked((m) => ({ ...m, [h]: "out" }));
+              void connectByHandle({ data: { handle: t.handle } }).then((r) => {
+                if (!r.ok) {
+                  setLinked((m) => {
+                    const next = { ...m };
+                    delete next[h];
+                    return next;
+                  });
+                  return;
+                }
+                if (r.status === "accepted") setLinked((m) => ({ ...m, [h]: "in" }));
+              }).catch((e) => {
+                if (needLogin(e)) goLogin();
+                setLinked((m) => {
+                  const next = { ...m };
+                  delete next[h];
+                  return next;
+                });
+              });
+            }}
             onReplyOpen={() => {
               setOpenReply(t.id);
               setReply("");
@@ -930,6 +957,36 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   );
 }
 
+function KSpark() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className="size-3.5">
+      <path d="M8 1.2 9.4 6.1 14.4 8 9.4 9.9 8 14.8 6.6 9.9 1.6 8 6.6 6.1Z" />
+    </svg>
+  );
+}
+function KTalk() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className="size-3.5">
+      <path d="M3 3.2h10a1 1 0 0 1 1 1v6.2a1 1 0 0 1-1 1H7.2L4 14.2v-2.8H3a1 1 0 0 1-1-1V4.2a1 1 0 0 1 1-1Z" />
+    </svg>
+  );
+}
+function KLoop() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className="size-3.5">
+      <path d="M12.5 6.2A4.6 4.6 0 0 0 4 5.2L2.6 6.4M3.5 9.8A4.6 4.6 0 0 0 12 10.8l1.4-1.2" />
+      <path d="M2.2 3.6v3h3M13.8 12.4v-3h-3" />
+    </svg>
+  );
+}
+function KSend() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className="size-3.5">
+      <path d="M2.2 8.2 13.6 2.6 9.2 13.4 7.4 8.8Z" />
+    </svg>
+  );
+}
+
 function TakeCard({
   take,
   photo,
@@ -949,6 +1006,10 @@ function TakeCard({
   onReplyOpen,
   onReplyChange,
   onReplySend,
+  mine,
+  link,
+  liked,
+  onFollow,
 }: {
   take: TakeRow;
   photo?: string;
@@ -968,6 +1029,10 @@ function TakeCard({
   onReplyOpen: () => void;
   onReplyChange: (v: string) => void;
   onReplySend: () => void;
+  mine: boolean;
+  link: "" | "out" | "in" | "ask";
+  liked: boolean;
+  onFollow: () => void;
 }) {
   const ghost = take.kind === "ghost";
   const locked = take.meta.lock === true && !revealed;
@@ -994,7 +1059,12 @@ function TakeCard({
             {!ghost && take.verified ? <VerifiedMark /> : null}
             {!ghost ? <span className="truncate text-[10px] text-muted">@{take.handle}</span> : null}
             <span className="shrink-0 text-[10px] text-muted">· {timeAgo(take.ts)}</span>
-            <button type="button" aria-label="Report gist" className="ml-auto shrink-0 px-1 text-[12px] font-bold tracking-widest text-muted" onClick={onReport}>
+            {!ghost && !mine ? (
+              <button type="button" className="take-follow" onClick={onFollow} disabled={link === "out" || link === "in"}>
+                {link === "in" ? "Friends" : link === "out" ? "Asked" : "+ Follow"}
+              </button>
+            ) : null}
+            <button type="button" aria-label="Report gist" className={`${!ghost && !mine ? "" : "ml-auto"} shrink-0 px-1 text-[12px] font-bold tracking-widest text-muted`} onClick={onReport}>
               =
             </button>
           </div>
@@ -1114,21 +1184,26 @@ function TakeCard({
             </form>
           ) : null}
 
-          <div className="mt-1.5 flex items-center gap-3 text-[10px] text-muted">
-            <button type="button" className="inline-flex items-center gap-1" onClick={onReplyOpen}>
-              <MessageSquare className="size-3.5" /> {take.comments}
-            </button>
-            <button type="button" className="inline-flex items-center gap-1" onClick={onRepost}>
-              <Repeat2 className="size-3.5" /> {take.reposts}
-            </button>
-            <button type="button" className="inline-flex items-center gap-1" onClick={onLike}>
-              <Heart className="size-3.5" /> {take.likes}
-            </button>
-            <button type="button" className="ml-auto inline-flex items-center" onClick={onShare} aria-label="Share">
-              <Share2 className="size-3.5" />
-            </button>
-          </div>
         </div>
+      </div>
+      <div className="take-react">
+        <button type="button" className={liked ? "on" : ""} onClick={onLike}>
+          <KSpark /> {take.likes.toLocaleString()}
+        </button>
+        <button type="button" onClick={onReplyOpen}>
+          <KTalk /> {take.comments.toLocaleString()}
+        </button>
+        <button type="button" onClick={onRepost}>
+          <KLoop /> {take.reposts.toLocaleString()}
+        </button>
+        <button type="button" onClick={onShare} aria-label="Share">
+          <KSend />
+        </button>
+        <span className="take-faces" aria-hidden>
+          {take.likes > 0 ? <i className="spark" /> : null}
+          {take.fact > 0 ? <i className="fact" /> : null}
+          {take.cap > 0 ? <i className="cap" /> : null}
+        </span>
       </div>
     </article>
   );

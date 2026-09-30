@@ -2970,7 +2970,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
     );
   }
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="media-page flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
         {needle ? (
           <p className="mb-2 text-[12px] text-muted">{live.length} stories for “{q.trim()}”. Press enter to open the first.</p>

@@ -189,9 +189,9 @@ function Card({ title, body, children }: { title: string; body?: string; childre
   );
 }
 
-function Screen({ kicker, title, sub, children }: { kicker: string; title: string; sub?: string; children: React.ReactNode }) {
+function Screen({ kicker, title, sub, children, className = "" }: { kicker: string; title: string; sub?: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className="mx-auto max-w-2xl p-4 pb-20">
+    <div className={`mx-auto max-w-2xl p-4 pb-20 ${className}`}>
       <div className="mb-4">
         <div className="text-[10px] font-bold tracking-[0.2em] text-lime-2">{kicker}</div>
         <h2 className="text-2xl font-extrabold tracking-tight">{title}</h2>
@@ -1239,7 +1239,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
       .catch(() => setJobs([]));
   }, [s]);
   return (
-    <Screen kicker="DISCOVER" title="Search" sub="Feeds, rooms, artists, jobs.">
+    <Screen kicker="DISCOVER" title="Search" sub="Feeds, rooms, artists, jobs." className="paper-page">
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
