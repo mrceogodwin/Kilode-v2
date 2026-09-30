@@ -4,7 +4,7 @@ import { fmtCount, type Post } from "@/lib/qonvo-data";
 import { DigestBox, TelegramLink } from "@/components/get-app";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { ABOUT_SHORT } from "@/lib/legal";
-import { getPublicSite, pingShare, pingVisit, saveSiteFlags, type PublicSite, type ShareKey } from "@/lib/site-server";
+import { getPublicSite, pingShare, pingVisit, saveSiteFlags, DEFAULT_DESKS, type PublicSite, type ShareKey } from "@/lib/site-server";
 
 const GONE_KEY = "kilode-install-toast";
 const SID_KEY = "kilode-vid";
@@ -13,6 +13,14 @@ export const EMPTY_PUBLIC_SITE: PublicSite = {
   videosMenuVisible: true,
   photosOn: true,
   payOff: "",
+  cryptoEnabled: true,
+  desks: {
+    jobs: { ...DEFAULT_DESKS.jobs },
+    market: { ...DEFAULT_DESKS.market },
+    rent: { ...DEFAULT_DESKS.rent },
+    events: { ...DEFAULT_DESKS.events },
+    cinema: { ...DEFAULT_DESKS.cinema },
+  },
   visitorsToday: 0,
   visitorsAll: 0,
   members: 0,
@@ -185,15 +193,9 @@ export function SiteFooter() {
     <footer className="site-foot mt-5 overflow-hidden rounded-2xl px-3.5 py-4 sm:px-4">
       {session.isPending || signedIn ? null : (
         <div className="text-center">
-          <div className="flex items-center justify-center gap-2.5">
-            <span className="kilode-bang-3d" aria-hidden>
-              <img src="/kilode-bang-mark-white.png" alt="" />
-            </span>
-            <div className="text-left">
-              <p className="text-[9px] font-semibold tracking-[0.22em] text-white/55 uppercase">Talk news. Real people.</p>
-              <h2 className="kilode-wordmark mt-0.5" style={{ fontSize: 26 }}>Join Kilode</h2>
-            </div>
-          </div>
+          <img src="/kilode-official.png" alt="Kilode" className="join-logo join-logo-dark mx-auto h-14 w-auto" />
+          <img src="/kilode-logo-ivory.png" alt="" className="join-logo join-logo-ivory mx-auto h-14 w-auto" />
+          <p className="mt-2 text-[10px] font-semibold tracking-[0.22em] text-white/55 uppercase">Talk news. Real people.</p>
           <p className="mx-auto mt-2 max-w-[20rem] text-[12px] leading-snug text-white/75">
             Password only. No email to sign up. {joinHint}
           </p>

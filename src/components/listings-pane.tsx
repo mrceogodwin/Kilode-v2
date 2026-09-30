@@ -7,6 +7,7 @@ import { daysLeft, fmtCount, timeAgo, timeLabel, type AccountKind } from "@/lib/
 import { canKind, kindActionHint } from "@/lib/permissions";
 import { AdReserve } from "@/components/ad-slot";
 import { JoinCta } from "@/components/get-app";
+import { DeskPayBox } from "@/components/pay-checkout";
 import { PortraitAd } from "@/components/premium-ad";
 import { uploadListingPhoto } from "@/lib/supabase";
 
@@ -220,6 +221,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [days, setDays] = useState(30);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
+  const [payFor, setPayFor] = useState<{ id: string; usd: number } | null>(null);
   const [shown, setShown] = useState(12);
   const [filter, setFilter] = useState("All");
   const [legal, setLegal] = useState(false);
@@ -450,6 +452,28 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
               </div>
               {err ? <p className="text-[11px] text-danger">{err}</p> : null}
               {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
+              {payFor ? (
+                <DeskPayBox
+                  kind={kind}
+                  purpose={payFor.id}
+                  usd={payFor.usd}
+                  onLive={() => {
+                    setPayFor(null);
+                    setMsg("Paid. It is live for the days you picked.");
+                    setTitle("");
+                    setBody("");
+                    setCity("");
+                    setContact("");
+                    setLink("");
+                    setCompany("");
+                    setSalary("");
+                    setPrice("");
+                    setImage("");
+                    setFormOn(false);
+                    load();
+                  }}
+                />
+              ) : null}
               {kind === "job" ? (
                 <label className="flex items-start gap-2 text-[11px] leading-snug text-muted">
                   <input type="checkbox" className="mt-0.5" checked={legal} onChange={(e) => setLegal(e.target.checked)} />
@@ -474,7 +498,11 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                   setBusy(true);
                   void saveListing({ data: { kind, title, body, city, contact, link, company, days, image, jobType, category, salary, condition, price } }).then((r) => {
                     if (!r?.ok) setErr(r && "reason" in r ? r.reason : "Could not post.");
-                    else {
+                    else if (r.needsPay) {
+                      setPayFor({ id: r.id, usd: r.priceUsd });
+                      setMsg("");
+                    } else {
+                      setPayFor(null);
                       setMsg("Submitted. Staff will approve before it is public.");
                       setTitle("");
                       setBody("");
@@ -491,7 +519,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                   }).finally(() => setBusy(false));
                 }}
               >
-                {busy ? "Saving…" : "Submit for approval"}
+                {busy ? "Saving…" : payFor ? "Waiting for payment" : "Submit"}
               </button>
             </>
           ) : (
@@ -932,7 +960,7 @@ export function ListingsAdminPanel() {
   return (
     <div className="md:col-span-2 raised space-y-2 rounded-xl p-3">
       <div className="text-[11px] font-medium text-muted">Jobs · Marketplace · Rent</div>
-      <p className="text-xs text-muted">Approve listings. Contact stays on the card. No in-app payments.</p>
+      <p className="text-xs text-muted">Free listings wait here for staff. Paid ones go live when payment confirms and skip this queue. Staff can still reject a scam.</p>
       {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
       {rows.map((r) => (
         <div key={r.id} className="flex items-center gap-2 rounded-lg border border-line bg-panel p-2">
@@ -942,7 +970,7 @@ export function ListingsAdminPanel() {
               {r.kind} · {r.status} · {r.submitter} · {r.city}
             </div>
           </div>
-          {r.status !== "approved" ? (
+          {r.status === "pending" ? (
             <button
               type="button"
               className="text-[10px] text-lime-2"

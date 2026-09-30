@@ -23,7 +23,7 @@ import { LEGAL_PAGES } from "@/lib/legal";
 import { readBag, writeBag } from "@/components/socials-feed";
 import { listAdCatalog } from "@/lib/ad-catalog-server";
 import { listPayMethods } from "@/lib/pay-gateways";
-import { GatewayPay } from "@/components/pay-checkout";
+import { GatewayPay, DeskPayBox } from "@/components/pay-checkout";
 import type { PayProvider } from "@/lib/pay-money";
 import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
@@ -381,6 +381,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   const [image, setImage] = useState("");
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
+  const [payFor, setPayFor] = useState<{ kind: "job" | "market" | "rent" | "cinema"; id: string; usd: number } | null>(null);
   const [agree, setAgree] = useState(false);
   const [artist, setArtist] = useState("");
   const [album, setAlbum] = useState("");
@@ -580,7 +581,11 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     }).then((r) => {
       setBusy(false);
       if (!r.ok) setErr(r.reason);
-      else {
+      else if (r.needsPay) {
+        setPayFor({ kind, id: r.id, usd: r.priceUsd });
+        setMsg("Saved. Pay to put it live. Staff do not approve a paid listing.");
+      } else {
+        setPayFor(null);
         setMsg(
           kind === "job"
             ? "Job submitted. Staff approve before seekers see it — check Me → Hiring desk."
@@ -629,7 +634,11 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     void submitMovie({ data: { title, url: link, section: cinSec } }).then((r) => {
       setBusy(false);
       if (!r.ok) setErr(r.reason);
-      else {
+      else if (r.needsPay) {
+        setPayFor({ kind: "cinema", id: r.id, usd: r.priceUsd });
+        setMsg("Saved. Pay to put it in the vote pool.");
+      } else {
+        setPayFor(null);
         setMsg("Submitted. Staff will approve before it enters the vote pool — track it on Me → Cinema.");
         setTitle("");
         setLink("");
@@ -731,6 +740,17 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           {kindLabel}: {sheetSub}
         </p>
       </div>
+      {payFor ? (
+        <DeskPayBox
+          kind={payFor.kind}
+          purpose={payFor.id}
+          usd={payFor.usd}
+          onLive={() => {
+            setMsg("Paid. It is live.");
+            setPayFor(null);
+          }}
+        />
+      ) : null}
 
       {showTabBar && visibleTabs.length > 1 ? (
         <div className="raised flex flex-wrap gap-1.5 rounded-xl p-1.5">
@@ -1819,7 +1839,7 @@ function Ads({ store }: { store: Store }) {
   const [days, setDays] = useState<number>(7);
   const [coin, setCoin] = useState("usdt");
   const [payWith, setPayWith] = useState<PayProvider>("paystack");
-  const [gate, setGate] = useState({ paystack: false, flutterwave: false, nowpayments: false, ngnPerUsd: 1600 });
+  const [gate, setGate] = useState({ paystack: false, flutterwave: false, nowpayments: false, cryptoEnabled: true, ngnPerUsd: 1600 });
   const [txHash, setTxHash] = useState("");
   const adsPay = !usePublicSite().site.payOff.split(",").includes("ads");
   const [amount, setAmount] = useState("");
@@ -1832,7 +1852,7 @@ function Ads({ store }: { store: Store }) {
       .then((c) => setPrices(c.prices))
       .catch(() => undefined);
     void listPayMethods()
-      .then((m) => setGate({ paystack: m.paystack, flutterwave: m.flutterwave, nowpayments: m.nowpayments, ngnPerUsd: m.ngnPerUsd }))
+      .then((m) => setGate({ paystack: m.paystack, flutterwave: m.flutterwave, nowpayments: m.nowpayments, cryptoEnabled: m.cryptoEnabled, ngnPerUsd: m.ngnPerUsd }))
       .catch(() => undefined);
   }, []);
   const mine = store.campaigns.filter((c) => !!c?.id && (c.status !== "approved" || c.expiresAt));
@@ -1969,7 +1989,7 @@ function Ads({ store }: { store: Store }) {
       ) : null}
       <div className="mb-1 text-[11px] font-medium text-muted">Pay with</div>
       <div className="mb-2 flex flex-wrap gap-1">
-        {(["paystack", "flutterwave", "nowpayments"] as const).map((id) => (
+        {(["paystack", "flutterwave", "nowpayments"] as const).filter((id) => id !== "nowpayments" || gate.cryptoEnabled).map((id) => (
           <button key={id} type="button" onClick={() => { setPayWith(id); setTxHash(""); }} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${payWith === id ? "btn-3d" : "border border-line text-muted"}`}>
             {id === "nowpayments" ? "Crypto" : id === "paystack" ? "Paystack" : "Flutterwave"}
           </button>

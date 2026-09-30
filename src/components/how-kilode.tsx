@@ -113,7 +113,7 @@ export function HowKilodePage() {
             Reading Feeds, joining a chat room, posting on Socials, and a normal member account are free. You do not pay to have an opinion.
           </p>
           <p>
-            Ads and cinema submissions are the paid doors. You pay in crypto. Staff still approve before it is public. A listing for a job can sit until staff pass it. Market and rent do not checkout inside Kilode. They show the listing and the contact.
+            Ads go live when Paystack, Flutterwave, or crypto confirms. Jobs, market, rent, events, and cinema are free until Super admin turns that desk to paid. Free listings wait for staff, so spam does not hit the public page. Paid ones skip that queue and expire when the days run out. Staff can still take a scam down. Market and rent never take the buyer's money inside Kilode. They show the listing and a way to reach the person.
           </p>
           <p>
             Super admin is not a type you can register. It is the desk that approves, hides, and removes. A report from Socials lands there. That desk is not for sale and it is not a badge you pick at join.

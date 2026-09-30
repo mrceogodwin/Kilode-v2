@@ -7,6 +7,18 @@ import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 
 export type ShareKey = "x" | "wa" | "tg" | "fb" | "copy";
 
+export const DESK_PAY = ["jobs", "market", "rent", "events", "cinema"] as const;
+export type DeskPay = (typeof DESK_PAY)[number];
+export type DeskMoney = { paid: boolean; usd: number };
+
+export const DEFAULT_DESKS: Record<DeskPay, DeskMoney> = {
+  jobs: { paid: false, usd: 5 },
+  market: { paid: false, usd: 3 },
+  rent: { paid: false, usd: 5 },
+  events: { paid: false, usd: 10 },
+  cinema: { paid: false, usd: 4 },
+};
+
 export type PublicSite = {
   installToast: boolean;
   /** When false, hamburger omits Videos (Clips on Kilode). Default true. */
@@ -15,6 +27,10 @@ export type PublicSite = {
   photosOn: boolean;
   /** Account desks that skip crypto for now. Comma list: ads,events */
   payOff: string;
+  /** When false, NOWPayments is hidden everywhere. */
+  cryptoEnabled: boolean;
+  /** Free = staff review. Paid = checkout, then the listing goes live. */
+  desks: Record<DeskPay, DeskMoney>;
   visitorsToday: number;
   visitorsAll: number;
   members: number;
@@ -24,6 +40,29 @@ export type PublicSite = {
 };
 
 const ZERO_SHARES: Record<ShareKey, number> = { x: 0, wa: 0, tg: 0, fb: 0, copy: 0 };
+
+function onFlag(v: unknown, fallback: boolean) {
+  if (v == null || v === "") return fallback;
+  return !(v === 0 || v === false || v === "0");
+}
+
+function usdOf(v: unknown, fallback: number) {
+  const n = Math.round(Number(v));
+  if (n >= 1 && n <= 500) return n;
+  return fallback;
+}
+
+function desksFrom(row: Record<string, unknown> | undefined): Record<DeskPay, DeskMoney> {
+  const desks = { ...DEFAULT_DESKS, jobs: { ...DEFAULT_DESKS.jobs }, market: { ...DEFAULT_DESKS.market }, rent: { ...DEFAULT_DESKS.rent }, events: { ...DEFAULT_DESKS.events }, cinema: { ...DEFAULT_DESKS.cinema } };
+  if (!row) return desks;
+  for (const k of DESK_PAY) {
+    desks[k] = {
+      paid: onFlag(row[`${k}_is_paid`], false),
+      usd: usdOf(row[`${k}_price`], DEFAULT_DESKS[k].usd),
+    };
+  }
+  return desks;
+}
 
 function utcDay(ts = Date.now()) {
   return new Date(ts).toISOString().slice(0, 10);
@@ -36,6 +75,17 @@ async function ensure() {
     await sql`alter table nf_site add column if not exists videos_menu_visible integer not null default 1`;
     await sql`alter table nf_site add column if not exists photos_on integer not null default 1`;
     await sql`alter table nf_site add column if not exists pay_off text not null default ''`;
+    await sql`alter table nf_site add column if not exists crypto_enabled integer not null default 1`;
+    await sql`alter table nf_site add column if not exists jobs_is_paid integer not null default 0`;
+    await sql`alter table nf_site add column if not exists jobs_price integer not null default 5`;
+    await sql`alter table nf_site add column if not exists market_is_paid integer not null default 0`;
+    await sql`alter table nf_site add column if not exists market_price integer not null default 3`;
+    await sql`alter table nf_site add column if not exists rent_is_paid integer not null default 0`;
+    await sql`alter table nf_site add column if not exists rent_price integer not null default 5`;
+    await sql`alter table nf_site add column if not exists events_is_paid integer not null default 0`;
+    await sql`alter table nf_site add column if not exists events_price integer not null default 10`;
+    await sql`alter table nf_site add column if not exists cinema_is_paid integer not null default 0`;
+    await sql`alter table nf_site add column if not exists cinema_price integer not null default 4`;
   } catch {
     /* exists */
   }
@@ -52,6 +102,14 @@ async function loadPublic(): Promise<PublicSite> {
     videosMenuVisible: true,
     photosOn: true,
     payOff: "",
+    cryptoEnabled: true,
+    desks: {
+      jobs: { ...DEFAULT_DESKS.jobs },
+      market: { ...DEFAULT_DESKS.market },
+      rent: { ...DEFAULT_DESKS.rent },
+      events: { ...DEFAULT_DESKS.events },
+      cinema: { ...DEFAULT_DESKS.cinema },
+    },
     visitorsToday: 0,
     visitorsAll: 0,
     members: 0,
@@ -68,7 +126,18 @@ async function loadPublic(): Promise<PublicSite> {
         videos_menu_visible: number | string | boolean | null;
         photos_on: number | string | boolean | null;
         pay_off: string | null;
-      }>`select install_toast, videos_menu_visible, photos_on, pay_off from nf_site where id = 1 limit 1`.catch(() => []),
+        crypto_enabled: number | string | boolean | null;
+        jobs_is_paid: number | string | boolean | null;
+        jobs_price: number | string | null;
+        market_is_paid: number | string | boolean | null;
+        market_price: number | string | null;
+        rent_is_paid: number | string | boolean | null;
+        rent_price: number | string | null;
+        events_is_paid: number | string | boolean | null;
+        events_price: number | string | null;
+        cinema_is_paid: number | string | boolean | null;
+        cinema_price: number | string | null;
+      }>`select install_toast, videos_menu_visible, photos_on, pay_off, crypto_enabled, jobs_is_paid, jobs_price, market_is_paid, market_price, rent_is_paid, rent_price, events_is_paid, events_price, cinema_is_paid, cinema_price from nf_site where id = 1 limit 1`.catch(() => []),
       sql<{ n: string | number }>`select n from nf_visits where day = ${today} limit 1`.catch(() => []),
       sql<{ n: string | number }>`select coalesce(sum(n), 0) as n from nf_visits`.catch(() => []),
       sql<{ n: string | number }>`select count(*) as n from "user"`.catch(() => []),
@@ -95,6 +164,8 @@ async function loadPublic(): Promise<PublicSite> {
       videosMenuVisible,
       photosOn,
       payOff: String(flag[0]?.pay_off || ""),
+      cryptoEnabled: onFlag(flag[0]?.crypto_enabled, true),
+      desks: desksFrom(flag[0] as Record<string, unknown> | undefined),
       visitorsToday: Number(dayRows[0]?.n ?? 0),
       visitorsAll: Number(allRows[0]?.n ?? 0),
       members: membersN,
@@ -131,9 +202,14 @@ export const pingVisit = createServerFn({ method: "POST" })
     return loadPublic();
   });
 
+export async function deskCharge(desk: DeskPay) {
+  const site = await loadPublic();
+  return { ...site.desks[desk], cryptoEnabled: site.cryptoEnabled };
+}
+
 export const saveSiteFlags = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { installToast?: boolean; videosMenuVisible?: boolean; photosOn?: boolean; payOff?: string }) => d)
+  .validator((d: { installToast?: boolean; videosMenuVisible?: boolean; photosOn?: boolean; payOff?: string; cryptoEnabled?: boolean; desks?: Partial<Record<DeskPay, Partial<DeskMoney>>> }) => d)
   .handler(async ({ context, data }) => {
     await assertStaff(context.userId, "super");
     const sql = await ensure();
@@ -161,7 +237,25 @@ export const saveSiteFlags = createServerFn({ method: "POST" })
     } else {
       await sql`insert into nf_site (id, chat_ttl_hours, install_toast, videos_menu_visible, photos_on, pay_off, ts) values (1, 24, ${toast}, ${videos}, ${photos}, ${payOff}, ${Date.now()})`;
     }
-    return { ok: true as const, installToast: toast === 1, videosMenuVisible: videos === 1, photosOn: photos === 1, payOff };
+    const current = await loadPublic();
+    const crypto = data.cryptoEnabled === undefined ? (current.cryptoEnabled ? 1 : 0) : data.cryptoEnabled ? 1 : 0;
+    const desks = {
+      jobs: { ...current.desks.jobs },
+      market: { ...current.desks.market },
+      rent: { ...current.desks.rent },
+      events: { ...current.desks.events },
+      cinema: { ...current.desks.cinema },
+    };
+    if (data.desks) {
+      for (const k of DESK_PAY) {
+        const patch = data.desks[k];
+        if (!patch) continue;
+        if (patch.paid !== undefined) desks[k].paid = !!patch.paid;
+        if (patch.usd !== undefined) desks[k].usd = usdOf(patch.usd, desks[k].usd);
+      }
+    }
+    await sql`update nf_site set crypto_enabled = ${crypto}, jobs_is_paid = ${desks.jobs.paid ? 1 : 0}, jobs_price = ${desks.jobs.usd}, market_is_paid = ${desks.market.paid ? 1 : 0}, market_price = ${desks.market.usd}, rent_is_paid = ${desks.rent.paid ? 1 : 0}, rent_price = ${desks.rent.usd}, events_is_paid = ${desks.events.paid ? 1 : 0}, events_price = ${desks.events.usd}, cinema_is_paid = ${desks.cinema.paid ? 1 : 0}, cinema_price = ${desks.cinema.usd} where id = 1`;
+    return { ok: true as const, installToast: toast === 1, videosMenuVisible: videos === 1, photosOn: photos === 1, payOff, cryptoEnabled: crypto === 1, desks };
   });
 
 export const pingShare = createServerFn({ method: "POST" })

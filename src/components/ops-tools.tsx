@@ -9,7 +9,7 @@ import { AD_PLACEMENTS } from "@/lib/qonvo-data";
 import { deleteRoom, listRoomsAdmin, renameRoom, saveCustomRoom, setRoomPaused } from "@/lib/rooms-server";
 import { ROOM_SECTION_ORDER } from "@/lib/qonvo-data";
 import { getLivePause, setLivePause, LIVE_PAUSE_OPEN_UNTIL } from "@/lib/forum-server";
-import { getPublicSite, saveSiteFlags } from "@/lib/site-server";
+import { getPublicSite, saveSiteFlags, DESK_PAY, DEFAULT_DESKS, type DeskMoney, type DeskPay } from "@/lib/site-server";
 
 
 type PauseKind = "chat" | "cinema";
@@ -108,7 +108,14 @@ export function LivePausePanel() {
   const [cinemaUntil, setCinemaUntil] = useState(0);
   const [videosOn, setVideosOn] = useState(true);
   const [photosOn, setPhotosOn] = useState(true);
-  const [payOff, setPayOff] = useState("");
+  const [cryptoOn, setCryptoOn] = useState(true);
+  const [desks, setDesks] = useState<Record<DeskPay, DeskMoney>>({
+    jobs: { ...DEFAULT_DESKS.jobs },
+    market: { ...DEFAULT_DESKS.market },
+    rent: { ...DEFAULT_DESKS.rent },
+    events: { ...DEFAULT_DESKS.events },
+    cinema: { ...DEFAULT_DESKS.cinema },
+  });
   const [videosBusy, setVideosBusy] = useState(false);
   const [msg, setMsg] = useState("");
   function apply(next: { chatUntil: number; cinemaUntil: number }) {
@@ -128,7 +135,8 @@ export function LivePausePanel() {
       .then((s) => {
         setVideosOn(s.videosMenuVisible !== false);
         setPhotosOn(s.photosOn !== false);
-        setPayOff(s.payOff || "");
+        setCryptoOn(s.cryptoEnabled !== false);
+        if (s.desks) setDesks(s.desks);
       })
       .catch(() => undefined);
   }, []);
@@ -206,34 +214,72 @@ export function LivePausePanel() {
         </div>
       </div>
       <div className="rounded-xl border border-line bg-panel p-3">
-        <div className="text-sm font-extrabold">Crypto required</div>
-        <p className="mt-0.5 text-[11px] text-muted">Off means that desk can submit without a payment. Staff still approve. Crypto, Paystack, and Flutterwave all count when this is on.</p>
-        <div className="mt-2 flex gap-2">
-          {(["ads", "events"] as const).map((k) => {
-            const off = payOff.split(",").includes(k);
-            return (
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="text-sm font-extrabold">Crypto checkout</div>
+            <p className="mt-0.5 text-[11px] text-muted">
+              {cryptoOn ? "On · Paystack, Flutterwave, and crypto all show." : "Off · crypto is hidden while a card gateway is under review."}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="rounded-full border border-line px-3 py-1 text-[11px] font-bold"
+            onClick={() => {
+              const next = !cryptoOn;
+              void saveSiteFlags({ data: { cryptoEnabled: next } }).then((r) => {
+                if (r.ok) {
+                  setCryptoOn(r.cryptoEnabled);
+                  setMsg(r.cryptoEnabled ? "Crypto checkout on" : "Crypto checkout hidden");
+                  setTimeout(() => setMsg(""), 1600);
+                }
+              });
+            }}
+          >
+            {cryptoOn ? "Hide crypto" : "Show crypto"}
+          </button>
+        </div>
+      </div>
+      <div className="rounded-xl border border-line bg-panel p-3">
+        <div className="text-sm font-extrabold">Listing desks</div>
+        <p className="mt-0.5 text-[11px] text-muted">Free sends the listing to staff, so spam stays off the public page. Paid opens Paystack, Flutterwave, or crypto and goes live when the webhook confirms. Prices are USD.</p>
+        <div className="mt-2 space-y-2">
+          {DESK_PAY.map((k) => (
+            <div key={k} className="flex flex-wrap items-center gap-2">
+              <div className="w-16 text-[12px] font-bold capitalize">{k}</div>
               <button
-                key={k}
                 type="button"
-                className={`rounded-full border px-3 py-1 text-[11px] font-bold ${off ? "border-line text-muted" : "border-lime-2/50 text-lime-2"}`}
+                className={`rounded-full border px-3 py-1 text-[11px] font-bold ${desks[k].paid ? "border-[#e6c56a]/50 text-[#e6c56a]" : "border-line text-muted"}`}
                 onClick={() => {
-                  const set = new Set(payOff.split(",").filter(Boolean));
-                  if (set.has(k)) set.delete(k);
-                  else set.add(k);
-                  const next = [...set].join(",");
-                  void saveSiteFlags({ data: { payOff: next } }).then((r) => {
-                    if (r.ok) {
-                      setPayOff(r.payOff);
-                      setMsg(r.payOff ? `Crypto off for ${r.payOff}` : "Crypto required again");
-                      setTimeout(() => setMsg(""), 1600);
-                    }
+                  const next = { ...desks, [k]: { ...desks[k], paid: !desks[k].paid } };
+                  setDesks(next);
+                  void saveSiteFlags({ data: { desks: { [k]: { paid: next[k].paid } } } }).then((r) => {
+                    if (r.ok) setMsg(`${k} is ${next[k].paid ? "paid" : "free"}`);
                   });
                 }}
               >
-                {k} {off ? "off" : "on"}
+                {desks[k].paid ? "Paid" : "Free · staff"}
               </button>
-            );
-          })}
+              <label className="flex items-center gap-1 text-[11px] text-muted">
+                $
+                <input
+                  defaultValue={desks[k].usd}
+                  key={`${k}-${desks[k].usd}`}
+                  inputMode="numeric"
+                  className="w-16 rounded-lg border border-line bg-bg px-2 py-1 text-base text-fg"
+                  onBlur={(e) => {
+                    const usd = Math.round(Number(e.target.value));
+                    if (!(usd >= 1 && usd <= 500)) return;
+                    void saveSiteFlags({ data: { desks: { [k]: { usd } } } }).then((r) => {
+                      if (r.ok) {
+                        setDesks(r.desks);
+                        setMsg(`${k} price saved`);
+                      }
+                    });
+                  }}
+                />
+              </label>
+            </div>
+          ))}
         </div>
       </div>
       {msg ? <p className="text-[11px] text-danger">{msg}</p> : null}

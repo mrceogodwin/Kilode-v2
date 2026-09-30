@@ -5,13 +5,14 @@ import { asAccountKind, type AccountKind, youtubeId } from "@/lib/qonvo-data";
 import { canKind, kindActionHint } from "@/lib/permissions";
 import { gateText } from "@/lib/mod-cache";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
+import { deskCharge } from "@/lib/site-server";
 
 export type CinemaMovie = {
   id: string;
   youtube_id: string;
   title: string;
   section: "nigerian" | "global" | "coming";
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "awaiting_pay";
   watching: boolean;
   votes: number;
   submitter: string;
@@ -71,7 +72,7 @@ function mapRow(r: {
     youtube_id: r.youtube_id,
     title: r.title,
     section: asSection(r.section),
-    status: r.status === "approved" || r.status === "rejected" ? r.status : "pending",
+    status: r.status === "approved" || r.status === "rejected" || r.status === "awaiting_pay" ? r.status : "pending",
     watching: Number(r.watching) === 1 || r.watching === true,
     votes: Number(r.votes ?? 0),
     submitter: r.submitter ?? "",
@@ -119,6 +120,11 @@ async function ensureMovies() {
     user_id TEXT NOT NULL, movie_id TEXT NOT NULL, day TEXT NOT NULL, ts BIGINT NOT NULL,
     PRIMARY KEY (user_id, movie_id, day))`);
   await sql.query(`CREATE UNIQUE INDEX IF NOT EXISTS nf_movies_yt ON nf_movies (youtube_id)`);
+  try {
+    await sql.query(`ALTER TABLE nf_movies ADD COLUMN IF NOT EXISTS expires_at BIGINT`);
+  } catch {
+    /* exists */
+  }
 }
 
 let cinemaSamplesCleared = false;
@@ -198,7 +204,7 @@ export const listCinema = createServerFn({ method: "GET" })
             select 1 from nf_votes v
             where v.movie_id = nf_movies.id and v.user_id = ${userId ?? ""} and v.day = ${day}
           ) then 1 else 0 end as voted_today
-      from nf_movies where status = 'approved' and id not like ${"seed-%"} order by watching desc, votes desc, ts desc limit 80`;
+      from nf_movies where status = 'approved' and id not like ${"seed-%"} and (expires_at is null or expires_at > ${Date.now()}) order by watching desc, votes desc, ts desc limit 80`;
     const movies = rows.map(mapRow);
     const watching = movies.find((m) => m.watching) ?? movies[0] ?? null;
     const sec = data.section || "watching";
@@ -233,9 +239,11 @@ export const submitMovie = createServerFn({ method: "POST" })
     const dup = await sql<{ id: string }>`select id from nf_movies where youtube_id = ${yt} limit 1`;
     if (dup[0]) return { ok: false as const, reason: "That YouTube URL is already in Cinema." };
     const id = nid();
+    const charge = await deskCharge("cinema").catch(() => ({ paid: false, usd: 0, cryptoEnabled: true }));
+    const status = charge.paid ? "awaiting_pay" : "pending";
     await sql`insert into nf_movies (id, youtube_id, title, section, status, watching, votes, submitter, user_id, ts)
-      values (${id}, ${yt}, ${title}, ${section}, ${"pending"}, ${0}, ${0}, ${submitter}, ${context.userId}, ${Date.now()})`;
-    return { ok: true as const, id };
+      values (${id}, ${yt}, ${title}, ${section}, ${status}, ${0}, ${0}, ${submitter}, ${context.userId}, ${Date.now()})`;
+    return { ok: true as const, id, needsPay: charge.paid, priceUsd: charge.usd, cryptoEnabled: charge.cryptoEnabled };
   });
 
 export const voteMovie = createServerFn({ method: "POST" })

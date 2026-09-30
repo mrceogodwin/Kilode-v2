@@ -5,6 +5,7 @@ import { asAccountKind, type AccountKind, safeHttpUrl } from "@/lib/qonvo-data";
 import { canKind, kindActionHint, type KindAction } from "@/lib/permissions";
 import { gateText } from "@/lib/mod-cache";
 import { DEMO_LISTINGS } from "@/lib/qonvo-seed";
+import { deskCharge } from "@/lib/site-server";
 
 export type ListingKind = "job" | "market" | "rent";
 export type Listing = {
@@ -16,7 +17,7 @@ export type Listing = {
   contact: string;
   link: string;
   company: string;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "awaiting_pay";
   submitter: string;
   ts: number;
   views: number;
@@ -117,7 +118,7 @@ function map(r: ListingRow): Listing {
     contact: r.contact ?? "",
     link: r.link ?? "",
     company: r.company ?? "",
-    status: r.status === "approved" || r.status === "rejected" ? r.status : "pending",
+    status: r.status === "approved" || r.status === "rejected" || r.status === "awaiting_pay" ? r.status : "pending",
     submitter: r.submitter ?? "",
     ts: Number(r.ts),
     views: Number(r.views ?? 0),
@@ -203,9 +204,12 @@ export const saveListing = createServerFn({ method: "POST" })
       condition: (data.condition ?? "").slice(0, 40),
       price: (data.price ?? "").slice(0, 40),
     });
+    const desk = kind === "job" ? "jobs" : kind;
+    const charge = await deskCharge(desk).catch(() => ({ paid: false, usd: 0, cryptoEnabled: true }));
+    const status = charge.paid ? "awaiting_pay" : "pending";
     await sql`insert into nf_listings (id, kind, title, body, city, contact, link, company, status, submitter, user_id, ts, views, days, image, meta)
-      values (${id}, ${kind}, ${title}, ${(data.body ?? "").slice(0, 2000)}, ${(data.city ?? "").slice(0, 80)}, ${(data.contact ?? "").slice(0, 120)}, ${link}, ${(data.company ?? "").slice(0, 80)}, ${"pending"}, ${submitter}, ${context.userId}, ${Date.now()}, ${0}, ${days}, ${image}, ${meta})`;
-    return { ok: true as const, id };
+      values (${id}, ${kind}, ${title}, ${(data.body ?? "").slice(0, 2000)}, ${(data.city ?? "").slice(0, 80)}, ${(data.contact ?? "").slice(0, 120)}, ${link}, ${(data.company ?? "").slice(0, 80)}, ${status}, ${submitter}, ${context.userId}, ${Date.now()}, ${0}, ${days}, ${image}, ${meta})`;
+    return { ok: true as const, id, needsPay: charge.paid, priceUsd: charge.usd, cryptoEnabled: charge.cryptoEnabled };
   });
 
 export const applyListing = createServerFn({ method: "POST" })

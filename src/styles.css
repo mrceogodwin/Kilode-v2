@@ -894,6 +894,9 @@ html[data-skin="ivory"] header {
   object-fit: contain;
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.25));
 }
+.join-logo-ivory { display: none; }
+html[data-skin="ivory"] .join-logo-dark { display: none; }
+html[data-skin="ivory"] .join-logo-ivory { display: block; }
 .kilode-bang {
   color: #e6c56a;
 }

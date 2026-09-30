@@ -4,10 +4,9 @@ import { authMiddleware, optionalAuthMiddleware } from "@/lib/auth/middleware";
 import { safeHttpUrl } from "@/lib/qonvo-data";
 import { gateText } from "@/lib/mod-cache";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
-import { claimTx, releaseTx } from "@/lib/tx-ledger";
 import { verifyCryptoTx } from "@/lib/pay-match";
 import { isCardProvider } from "@/lib/pay-money";
-import { releaseCheckout, takePaidCheckout } from "@/lib/pay-gateways";
+import { deskCharge } from "@/lib/site-server";
 
 const CATS = ["tech", "music", "culture", "cinema", "food", "sports"] as const;
 export type EventCat = (typeof CATS)[number];
@@ -195,40 +194,15 @@ export const submitEvent = createServerFn({ method: "POST" })
     if (data.link && !link) throw new Error("Link must start with https.");
     const cover = data.cover ? safeHttpUrl(data.cover) || "" : "";
     if (data.cover && !cover) throw new Error("Cover must be an https image link.");
-    const coin = String(data.coin || "").trim().toLowerCase().slice(0, 12);
-    const amount = String(data.amount || "").trim().slice(0, 40);
-    const txHash = String(data.txHash || "").trim();
     const ticket = String(data.ticket || "").trim().slice(0, 40);
     const sql = await getSql();
-    let payOff = false;
-    try {
-      const flag = await sql<{ pay_off: string | null }>`select pay_off from nf_site where id = 1 limit 1`;
-      payOff = String(flag[0]?.pay_off || "").split(",").includes("events");
-    } catch {
-      payOff = false;
-    }
-    if (!payOff) {
-      if (!coin) throw new Error("Pick the coin you paid with.");
-      if (!amount) throw new Error("Type the amount you sent.");
-    }
+    const charge = await deskCharge("events").catch(() => ({ paid: false, usd: 0, cryptoEnabled: true }));
     await ensure();
     const id = nid();
-    if (!payOff && isCardProvider(coin)) {
-      const taken = await takePaidCheckout({ reference: txHash, userId: context.userId, kind: "event", purpose: "listing", refId: id });
-      if (!taken.ok) throw new Error(taken.reason);
-    } else if (!payOff) {
-      const claimed = await claimTx({ hash: txHash, kind: "event", refId: id, userId: context.userId, coin, amount });
-      if (!claimed.ok) throw new Error(claimed.reason);
-    }
-    try {
-      await sql`insert into nf_events (id, title, blurb, category, place, link, cover, ticket, starts_at, ends_at, status, flagship, submitter, user_id, ts, coin, amount, tx_hash)
-        values (${id}, ${title}, ${blurb}, ${catOf(String(data.category || ""))}, ${String(data.place || "").trim().slice(0, 60)}, ${link}, ${cover}, ${ticket}, ${startsAt}, ${endsAt}, ${"pending"}, ${0}, ${handle}, ${context.userId}, ${now}, ${coin}, ${amount}, ${txHash})`;
-    } catch (e) {
-      if (!payOff && isCardProvider(coin)) await releaseCheckout(txHash, id);
-      else if (!payOff) await releaseTx(txHash, id);
-      throw e;
-    }
-    return { ok: true as const, id };
+    const status = charge.paid ? "awaiting_pay" : "pending";
+    await sql`insert into nf_events (id, title, blurb, category, place, link, cover, ticket, starts_at, ends_at, status, flagship, submitter, user_id, ts, coin, amount, tx_hash)
+      values (${id}, ${title}, ${blurb}, ${catOf(String(data.category || ""))}, ${String(data.place || "").trim().slice(0, 60)}, ${link}, ${cover}, ${ticket}, ${startsAt}, ${endsAt}, ${status}, ${0}, ${handle}, ${context.userId}, ${now}, ${""}, ${""}, ${""})`;
+    return { ok: true as const, id, needsPay: charge.paid, priceUsd: charge.usd, cryptoEnabled: charge.cryptoEnabled };
   });
 
 export const rsvpEvent = createServerFn({ method: "POST" })

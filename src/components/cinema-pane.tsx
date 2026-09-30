@@ -22,6 +22,7 @@ import { canKind } from "@/lib/permissions";
 import { HandleLink } from "@/components/handle-link";
 import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
 import { AdSlot } from "@/components/ad-slot";
+import { DeskPayBox } from "@/components/pay-checkout";
 import {
   ACTIVITY_EVENTS,
   CINEMA_POLL_ACTIVE_MS,
@@ -40,6 +41,7 @@ export function CinemaPane() {
   const [movies, setMovies] = useState<CinemaMovie[]>([]);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
+  const [payFor, setPayFor] = useState<{ id: string; usd: number } | null>(null);
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [submitSec, setSubmitSec] = useState<"nigerian" | "global" | "coming">("nigerian");
@@ -190,7 +192,7 @@ export function CinemaPane() {
         {canKind(kind, "cinema.submit") ? (
         <div className="mb-3 rounded-xl border border-line bg-panel p-2">
           <div className="text-[11px] font-medium text-muted">Cinema Poster — submit a YouTube URL</div>
-          <p className="mb-2 text-[10px] text-muted">Staff approve. Votes send it to Watching Now. No video files on Kilode.</p>
+          <p className="mb-2 text-[10px] text-muted">Free titles wait for staff. If Cinema is set to paid, you pay and it enters the vote pool.</p>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Movie title" className="mb-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
           <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://youtube.com/watch?v=…" className="mb-1 w-full rounded-lg border border-line bg-bg px-2 py-1.5 text-base" />
           <div className="mb-1 flex gap-1">
@@ -202,6 +204,19 @@ export function CinemaPane() {
           </div>
           {err ? <p className="text-[11px] text-danger">{err}</p> : null}
           {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
+          {payFor ? (
+            <DeskPayBox
+              kind="cinema"
+              purpose={payFor.id}
+              usd={payFor.usd}
+              onLive={() => {
+                setPayFor(null);
+                setMsg("Paid. It is in the vote pool.");
+                setTitle("");
+                setUrl("");
+              }}
+            />
+          ) : null}
           <button
             type="button"
             className="btn-join mt-1 rounded-lg px-3 py-1.5 text-[11px] font-bold"
@@ -214,7 +229,11 @@ export function CinemaPane() {
               setMsg("");
               void submitMovie({ data: { title, url, section: submitSec } }).then((r) => {
                 if (!r.ok) setErr(r.reason);
-                else {
+                else if (r.needsPay) {
+                  setPayFor({ id: r.id, usd: r.priceUsd });
+                  setMsg("");
+                } else {
+                  setPayFor(null);
                   setMsg("Submitted. Staff will approve before it enters the vote pool.");
                   setTitle("");
                   setUrl("");
@@ -1124,7 +1143,7 @@ export function CinemaAdminPanel() {
               {m.watching ? " · NOW" : ""} · {m.section} · {m.votes} votes · {m.submitter}
             </div>
           </div>
-          {m.status !== "approved" ? (
+          {m.status === "pending" ? (
             <button type="button" className="text-[10px] text-lime-2" onClick={() => void setMovieStatus({ data: { id: m.id, status: "approved" } }).then(() => { setMsg("Approved"); load(); })}>
               Approve
             </button>

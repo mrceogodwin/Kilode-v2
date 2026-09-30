@@ -10,6 +10,23 @@ import { canKind, kindActionHint } from "@/lib/permissions";
 import { accountEmail } from "@/lib/account-email";
 import { SITE } from "@/lib/seo";
 import { cleanReceiptEmail, isPayProvider, koboFromNgn, ngnFromUsd, nowpaymentsSignature, paystackSignature, safeEqual, type PayProvider } from "@/lib/pay-money";
+import { deskCharge, type DeskPay } from "@/lib/site-server";
+
+type CheckoutKind = "ad" | "event" | "verify" | "job" | "market" | "rent" | "cinema";
+
+function asCheckoutKind(v: string): CheckoutKind | "" {
+  if (v === "ad" || v === "event" || v === "verify" || v === "job" || v === "market" || v === "rent" || v === "cinema") return v;
+  return "";
+}
+
+function deskOf(kind: CheckoutKind): DeskPay | null {
+  if (kind === "job") return "jobs";
+  if (kind === "market") return "market";
+  if (kind === "rent") return "rent";
+  if (kind === "event") return "events";
+  if (kind === "cinema") return "cinema";
+  return null;
+}
 
 async function ensure() {
   const sql = await getSql();
@@ -74,19 +91,23 @@ async function eventUsd() {
   return 10;
 }
 
-async function quote(kind: "ad" | "event" | "verify", purpose: string) {
+async function quote(kind: CheckoutKind, purpose: string) {
   const rate = await rateOf();
+  const desk = deskOf(kind);
+  if (desk) {
+    const charge = await deskCharge(desk);
+    if (!charge.paid) return null;
+    const ngn = ngnFromUsd(charge.usd, rate);
+    if (!ngn) return null;
+    const id = purpose.trim().slice(0, 80);
+    if (id.length < 4) return null;
+    return { usd: charge.usd, ngn, purpose: id };
+  }
   if (kind === "verify") {
     const usd = await verifyUsd();
     const ngn = ngnFromUsd(usd, rate);
     if (!ngn) return null;
     return { usd, ngn, purpose: "badge" };
-  }
-  if (kind === "event") {
-    const usd = await eventUsd();
-    const ngn = ngnFromUsd(usd, rate);
-    if (!ngn) return null;
-    return { usd, ngn, purpose: "listing" };
   }
   if (!isAdPlacement(purpose)) return null;
   const catalog = await loadAdCatalog();
@@ -225,18 +246,21 @@ async function verifyWithProvider(provider: PayProvider, reference: string, expe
 }
 
 export const listPayMethods = createServerFn({ method: "GET" }).handler(async () => {
-  const [paystack, flutterwave, nowpayments, ngnPerUsd, listingUsd, badgeUsd] = await Promise.all([
+  const [paystack, flutterwave, nowpayments, ngnPerUsd, listingUsd, badgeUsd, monetize] = await Promise.all([
     secretOf("paystack_secret"),
     secretOf("flutterwave_secret"),
     secretOf("nowpayments_api"),
     rateOf(),
     eventUsd(),
     verifyUsd(),
+    deskCharge("events").catch(() => ({ paid: false, usd: 10, cryptoEnabled: true })),
   ]);
+  const cryptoOn = monetize.cryptoEnabled !== false;
   return {
     paystack: Boolean(paystack),
     flutterwave: Boolean(flutterwave),
-    nowpayments: Boolean(nowpayments),
+    nowpayments: Boolean(nowpayments) && cryptoOn,
+    cryptoEnabled: cryptoOn,
     ngnPerUsd,
     eventUsd: listingUsd,
     verifyUsd: badgeUsd,
@@ -248,8 +272,12 @@ export const startCheckout = createServerFn({ method: "POST" })
   .validator((d: { provider?: string; kind?: string; purpose?: string; email?: string }) => d)
   .handler(async ({ context, data }) => {
     const provider = String(data.provider || "");
-    const kind = data.kind === "event" ? "event" : data.kind === "verify" ? "verify" : data.kind === "ad" ? "ad" : "";
+    const kind = asCheckoutKind(String(data.kind || ""));
     if (!isPayProvider(provider) || !kind) return { ok: false as const, reason: "Pick Paystack, Flutterwave, or crypto." };
+    if (provider === "nowpayments") {
+      const gate = await deskCharge("events").catch(() => ({ cryptoEnabled: true }));
+      if (!gate.cryptoEnabled) return { ok: false as const, reason: "Crypto checkout is turned off." };
+    }
     if (!(await allowWrite(`pay:${context.userId}`, 8, 600_000))) return { ok: false as const, reason: RATE_BLOCKED };
     if (kind === "ad") {
       const sql = await getSql();
@@ -287,6 +315,40 @@ export const startCheckout = createServerFn({ method: "POST" })
     return { ok: true as const, reference, url: opened.url, amountNgn: priced.ngn, amountUsd: priced.usd, provider };
   });
 
+/** Paid Jobs, Market, Rent, Events, and Cinema go live here. Free listings never reach this. */
+async function fulfillDeskPayment(reference: string) {
+  const sql = await ensure();
+  const rows = await sql<{ user_id: string; kind: string; purpose: string; status: string }>`
+    select user_id, kind, purpose, status from nf_checkouts where reference = ${reference} limit 1`;
+  const row = rows[0];
+  if (!row || (row.status !== "paid" && row.status !== "used")) return;
+  const kind = asCheckoutKind(row.kind);
+  if (!kind || !deskOf(kind)) return;
+  const id = String(row.purpose || "").slice(0, 80);
+  if (id.length < 4) return;
+  const now = Date.now();
+  if (kind === "job" || kind === "market" || kind === "rent") {
+    const item = await sql<{ user_id: string | null; days: number | string | null; status: string }>`
+      select user_id, days, status from nf_listings where id = ${id} limit 1`;
+    const listing = item[0];
+    if (!listing || listing.user_id !== row.user_id) return;
+    if (listing.status !== "approved") {
+      const days = Number(listing.days || 30) || 30;
+      await sql`update nf_listings set status = ${"approved"}, expires_at = ${now + days * 86_400_000} where id = ${id}`;
+    }
+  } else if (kind === "event") {
+    await sql`update nf_events set status = ${"approved"} where id = ${id} and user_id = ${row.user_id} and status <> ${"rejected"}`;
+  } else if (kind === "cinema") {
+    try {
+      await sql`alter table nf_movies add column if not exists expires_at bigint`;
+    } catch {
+      /* exists */
+    }
+    await sql`update nf_movies set status = ${"approved"}, expires_at = ${now + 30 * 86_400_000} where id = ${id} and user_id = ${row.user_id} and status <> ${"rejected"}`;
+  }
+  await sql`update nf_checkouts set status = ${"used"}, used_by = ${id} where reference = ${reference} and status = ${"paid"}`;
+}
+
 export const confirmCheckout = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { reference?: string }) => d)
@@ -303,6 +365,7 @@ export const confirmCheckout = createServerFn({ method: "POST" })
     const verified = await verifyWithProvider(row.provider, reference, Number(row.amount_ngn), Number(row.amount_usd), row.provider_ref || "");
     if (!verified.ok) return { ok: false as const, reason: verified.reason };
     await sql`update nf_checkouts set status = ${"paid"}, paid_at = ${Date.now()} where reference = ${reference} and status = ${"pending"}`;
+    await fulfillDeskPayment(reference);
     return { ok: true as const, reference, amountNgn: Number(row.amount_ngn), status: "paid" };
   });
 
@@ -434,6 +497,7 @@ export async function markCheckoutFromWebhook(provider: PayProvider, reference: 
     }).catch(() => undefined);
     await grantVerified(row.user_id, reference);
   }
+  await fulfillDeskPayment(reference);
   return { ok: true as const, status: 200 };
 }
 

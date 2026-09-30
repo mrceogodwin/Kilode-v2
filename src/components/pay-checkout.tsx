@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { confirmCheckout, startCheckout } from "@/lib/pay-gateways";
+import { confirmCheckout, listPayMethods, startCheckout } from "@/lib/pay-gateways";
 import type { PayProvider } from "@/lib/pay-money";
+
+type PayKind = "ad" | "event" | "verify" | "job" | "market" | "rent" | "cinema";
 
 export function GatewayPay({
   provider,
@@ -12,7 +14,7 @@ export function GatewayPay({
   onPaid,
 }: {
   provider: PayProvider;
-  kind: "ad" | "event" | "verify";
+  kind: PayKind;
   purpose: string;
   usd: number;
   rate: number;
@@ -106,6 +108,58 @@ export function GatewayPay({
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/** Shown after a free-or-paid desk saves a row. Paid rows open checkout and go live on confirm. */
+export function DeskPayBox({
+  kind,
+  purpose,
+  usd,
+  onLive,
+}: {
+  kind: "job" | "market" | "rent" | "event" | "cinema";
+  purpose: string;
+  usd: number;
+  onLive: () => void;
+}) {
+  const [methods, setMethods] = useState<PayProvider[]>(["paystack", "flutterwave"]);
+  const [payWith, setPayWith] = useState<PayProvider>("paystack");
+  const [rate, setRate] = useState(1600);
+  const [ready, setReady] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    void listPayMethods()
+      .then((m) => {
+        const shown: PayProvider[] = ["paystack", "flutterwave"];
+        if (m.cryptoEnabled) shown.push("nowpayments");
+        setMethods(shown);
+        setPayWith((cur) => (shown.includes(cur) ? cur : "paystack"));
+        setRate(m.ngnPerUsd);
+        setReady({ paystack: m.paystack, flutterwave: m.flutterwave, nowpayments: m.nowpayments });
+      })
+      .catch(() => undefined);
+  }, []);
+  const label = (id: PayProvider) => (id === "nowpayments" ? "Crypto" : id === "paystack" ? "Paystack" : "Flutterwave");
+  return (
+    <div className="space-y-2 rounded-xl border border-[#e6c56a]/35 bg-black/30 p-3">
+      <p className="text-[12px] leading-snug">This desk is paid. Pay and it goes live. Staff do not have to approve a paid listing. They can still take a scam down.</p>
+      <div className="flex flex-wrap gap-1">
+        {methods.map((id) => (
+          <button key={id} type="button" onClick={() => setPayWith(id)} className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${payWith === id ? "btn-3d" : "border border-line text-muted"}`}>
+            {label(id)}
+          </button>
+        ))}
+      </div>
+      <GatewayPay
+        provider={payWith}
+        kind={kind}
+        purpose={purpose}
+        usd={usd}
+        rate={rate}
+        ready={!!ready[payWith]}
+        onPaid={() => onLive()}
+      />
     </div>
   );
 }
