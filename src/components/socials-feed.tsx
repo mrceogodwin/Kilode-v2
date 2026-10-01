@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Briefcase, Headphones, Lock } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listMyBlocks, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -292,6 +292,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [trendTakes, setTrendTakes] = useState<TakeRow[]>([]);
   const [trendNext, setTrendNext] = useState(0);
   const [trendLoaded, setTrendLoaded] = useState(false);
+  const [saved, setSaved] = useState<Record<string, true>>({});
+  const [blocked, setBlocked] = useState<Record<string, true>>({});
   const [suggested, setSuggested] = useState<{ id: string; handle: string; role: string; mutuals: number }[]>([]);
   const likeLock = useRef(new Set<string>());
   const [dmFor, setDmFor] = useState<FellowRow | null>(null);
@@ -408,7 +410,44 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     void suggestFollows()
       .then(setSuggested)
       .catch(() => setSuggested([]));
+    void listSavedTakeIds()
+      .then((ids) => {
+        const next: Record<string, true> = {};
+        for (const id of ids) next[id] = true;
+        setSaved(next);
+      })
+      .catch(() => undefined);
+    void listMyBlocks()
+      .then((rows) => {
+        const next: Record<string, true> = {};
+        for (const row of rows) if (row.handle) next[row.handle.toLowerCase()] = true;
+        setBlocked(next);
+      })
+      .catch(() => undefined);
   }, [authed]);
+
+  useEffect(() => {
+    const onBlock = (e: Event) => {
+      const handle = String((e as CustomEvent<string>).detail || "").toLowerCase();
+      if (!handle) return;
+      setBlocked((m) => ({ ...m, [handle]: true }));
+    };
+    const onUnblock = (e: Event) => {
+      const handle = String((e as CustomEvent<string>).detail || "").toLowerCase();
+      if (!handle) return;
+      setBlocked((m) => {
+        const next = { ...m };
+        delete next[handle];
+        return next;
+      });
+    };
+    window.addEventListener("kilode:block", onBlock);
+    window.addEventListener("kilode:unblock", onUnblock);
+    return () => {
+      window.removeEventListener("kilode:block", onBlock);
+      window.removeEventListener("kilode:unblock", onUnblock);
+    };
+  }, []);
 
   useEffect(() => {
     if (!authed || feedCut !== "following" || followLoaded) return;
@@ -641,13 +680,14 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [fellowCap, setFellowCap] = useState(8);
   const needle = q.trim().toLowerCase();
   const mineHandle = me.trim().toLowerCase();
-  const pool = fellows.filter((f) => f.handle && f.handle.toLowerCase() !== mineHandle);
+  const pool = fellows.filter((f) => f.handle && f.handle.toLowerCase() !== mineHandle && !blocked[f.handle.toLowerCase()]);
   const matched = needle
     ? pool.filter((f) => `${f.name} ${f.handle} ${f.role}`.toLowerCase().includes(needle))
     : pool;
   const shownFellows = matched.slice(0, fellowCap);
   const takeSource = feedCut === "following" ? followTakes : feedCut === "trending" ? trendTakes : feedCut === "tag" ? tagTakes : takes;
   const shownTakes = takeSource.filter((t) => {
+    if (blocked[(t.handle || "").toLowerCase()]) return false;
     if (!needle) return true;
     return `${t.name} ${t.handle} ${t.role} ${t.body}`.toLowerCase().includes(needle);
   });
@@ -826,7 +866,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         <div className="mb-3">
           <div className="mb-1.5 text-[12px] font-semibold text-fg">People you may know</div>
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-            {suggested.map((p) => (
+            {suggested.filter((p) => !blocked[p.handle.toLowerCase()]).map((p) => (
               <div key={p.id} className="w-[148px] shrink-0 rounded-[12px] border border-line px-2.5 py-2">
                 <a href={`/u/${encodeURIComponent(p.handle)}`} className="block truncate text-[12px] font-semibold">@{p.handle}</a>
                 <div className="truncate text-[10px] text-muted">{p.mutuals > 0 ? `${p.mutuals} mutual follows` : p.role}</div>
@@ -1052,6 +1092,39 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             liked={!!liked[t.id]}
             following={followed(t.handle)}
             followsYou={theyFollow(t.handle)}
+            saved={!!saved[t.id]}
+            onSave={() => {
+              if (!authed) return goLogin();
+              const was = !!saved[t.id];
+              setSaved((m) => {
+                const next = { ...m };
+                if (was) delete next[t.id];
+                else next[t.id] = true;
+                return next;
+              });
+              void toggleSaveTake({ data: { id: t.id } })
+                .then((r) => {
+                  if (!r.ok) {
+                    setSaved((m) => {
+                      const next = { ...m };
+                      if (was) next[t.id] = true;
+                      else delete next[t.id];
+                      return next;
+                    });
+                    if (r.reason) setErr(r.reason);
+                    return;
+                  }
+                  setSaved((m) => {
+                    const next = { ...m };
+                    if (r.on) next[t.id] = true;
+                    else delete next[t.id];
+                    return next;
+                  });
+                })
+                .catch((e) => {
+                  if (needLogin(e)) goLogin();
+                });
+            }}
             onFollow={() => flipFollow(t.handle)}
             onReplyOpen={() => {
               if (openReply === t.id) {
@@ -1251,6 +1324,13 @@ function KSend() {
     </svg>
   );
 }
+function KMark() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className="size-3.5">
+      <path d="M4 2.5h8a1 1 0 0 1 1 1V14l-5-2.6L3 14V3.5a1 1 0 0 1 1-1Z" />
+    </svg>
+  );
+}
 
 function TakeCard({
   take,
@@ -1277,6 +1357,8 @@ function TakeCard({
   liked,
   following,
   followsYou,
+  saved,
+  onSave,
   onFollow,
 }: {
   take: TakeRow;
@@ -1303,6 +1385,8 @@ function TakeCard({
   liked: boolean;
   following: boolean;
   followsYou: boolean;
+  saved: boolean;
+  onSave: () => void;
   onFollow: () => void;
 }) {
   const ghost = take.kind === "ghost";
@@ -1480,6 +1564,9 @@ function TakeCard({
         </button>
         <button type="button" onClick={onRepost}>
           <KLoop /> {take.reposts.toLocaleString()}
+        </button>
+        <button type="button" className={saved ? "on" : ""} onClick={onSave} aria-label={saved ? "Unsave" : "Save"}>
+          <KMark />
         </button>
         <button type="button" onClick={onShare} aria-label="Share">
           <KSend />

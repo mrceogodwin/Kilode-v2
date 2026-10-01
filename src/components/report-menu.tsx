@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { reportPost } from "@/lib/forum-server";
+import { toggleBlock } from "@/lib/takes-server";
 
 export const REPORT_REASONS = ["Spam", "Scam or fraud", "Harassment", "Fake account", "Nudity", "Other"] as const;
 
@@ -42,6 +43,26 @@ export function ReportMenu({ handle, signedIn }: { handle: string; signedIn: boo
               {reason}
             </button>
           ))}
+          <button
+            type="button"
+            className="mt-1 block w-full rounded-lg px-2 py-1.5 text-left text-[12px] font-semibold text-fg hover:bg-white/5"
+            onClick={() => {
+              void toggleBlock({ data: { handle } })
+                .then((r) => {
+                  if (!r.ok) {
+                    setNote(r.reason);
+                    return;
+                  }
+                  setNote(r.on ? "Blocked." : "Unblocked.");
+                  if (r.on) window.dispatchEvent(new CustomEvent("kilode:block", { detail: handle.toLowerCase() }));
+                  else window.dispatchEvent(new CustomEvent("kilode:unblock", { detail: handle.toLowerCase() }));
+                })
+                .catch(() => setNote("Sign in to block."));
+              setOpen(false);
+            }}
+          >
+            Block
+          </button>
         </div>
       ) : null}
       {note ? <p className="absolute right-0 top-7 z-30 w-28 text-right text-[9px] text-muted">{note}</p> : null}

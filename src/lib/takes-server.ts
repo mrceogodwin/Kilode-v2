@@ -546,13 +546,15 @@ export const replyTake = createServerFn({ method: "POST" })
     if (!checked.ok) return { ok: false as const, reason: checked.reason };
     const clean = checked.text;
     const sql = await getSql();
+    const owner = await sql<{ user_id: string | null }>`select user_id from nf_takes where id = ${data.id} limit 1`;
+    const ownerId = owner[0]?.user_id || "";
+    if (!ownerId) return { ok: false as const, reason: "That take is gone." };
+    if (await pairBlocked(sql, context.userId, ownerId)) return { ok: false as const, reason: "You can't reply to this person." };
     const id = nid();
     const ts = Date.now();
     await sql`insert into nf_take_replies (id, take_id, user_id, handle, body, ts) values (${id}, ${data.id}, ${context.userId}, ${handle}, ${clean}, ${ts})`;
     await sql`update nf_takes set comments = comments + 1 where id = ${data.id}`;
-    const owner = await sql<{ user_id: string | null }>`select user_id from nf_takes where id = ${data.id} limit 1`;
-    const ownerId = owner[0]?.user_id || "";
-    if (ownerId && ownerId !== context.userId && handle && handle !== "member") {
+    if (ownerId !== context.userId && handle && handle !== "member") {
       await pushNote(ownerId, `@${handle} replied to your take.`, "/?tab=socials");
     }
     for (const mentioned of mentionsOf(clean)) {
@@ -607,6 +609,143 @@ export const repostTake = createServerFn({ method: "POST" })
     if (!inserted[0]) return { ok: true as const, reposted: false };
     await sql`update nf_takes set reposts = reposts + 1 where id = ${data.id}`;
     return { ok: true as const, reposted: true };
+  });
+
+let savesReady = false;
+let blocksReady = false;
+
+async function ensureSaves(sql: Awaited<ReturnType<typeof getSql>>) {
+  if (savesReady) return;
+  await sql`create table if not exists nf_take_saves (
+    user_id text not null,
+    take_id text not null,
+    ts bigint not null default 0,
+    primary key (user_id, take_id)
+  )`;
+  savesReady = true;
+}
+
+async function ensureBlocks(sql: Awaited<ReturnType<typeof getSql>>) {
+  if (blocksReady) return;
+  await sql`create table if not exists nf_blocks (
+    user_id text not null,
+    blocked_id text not null,
+    ts bigint not null default 0,
+    primary key (user_id, blocked_id)
+  )`;
+  blocksReady = true;
+}
+
+async function pairBlocked(sql: Awaited<ReturnType<typeof getSql>>, a: string, b: string) {
+  try {
+    await ensureBlocks(sql);
+    const row = await sql<{ user_id: string }>`
+      select user_id from nf_blocks
+      where (user_id = ${a} and blocked_id = ${b}) or (user_id = ${b} and blocked_id = ${a})
+      limit 1`;
+    return Boolean(row[0]);
+  } catch {
+    return false;
+  }
+}
+
+export const toggleSaveTake = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id?: string }) => ({ id: (d?.id || "").slice(0, 40) }))
+  .handler(async ({ context, data }) => {
+    if (!data.id) return { ok: false as const, reason: "Missing take.", on: false };
+    if (!(await allowWrite(`save:${context.userId}`, 30))) return { ok: false as const, reason: RATE_BLOCKED, on: false };
+    const sql = await getSql();
+    await ensureSaves(sql);
+    const hit = await sql<{ take_id: string }>`select take_id from nf_take_saves where user_id = ${context.userId} and take_id = ${data.id} limit 1`;
+    if (hit[0]) {
+      await sql`delete from nf_take_saves where user_id = ${context.userId} and take_id = ${data.id}`;
+      return { ok: true as const, on: false };
+    }
+    const exists = await sql<{ id: string }>`select id from nf_takes where id = ${data.id} limit 1`;
+    if (!exists[0]) return { ok: false as const, reason: "That take is gone.", on: false };
+    await sql`insert into nf_take_saves (user_id, take_id, ts) values (${context.userId}, ${data.id}, ${Date.now()}) on conflict (user_id, take_id) do nothing`;
+    return { ok: true as const, on: true };
+  });
+
+export const listSavedTakeIds = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    try {
+      await ensureSaves(sql);
+      const rows = await sql<{ take_id: string }>`select take_id from nf_take_saves where user_id = ${context.userId} order by ts desc limit 200`;
+      return rows.map((r) => r.take_id);
+    } catch {
+      return [] as string[];
+    }
+  });
+
+export const listSavedTakes = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    try {
+      await ensureSaves(sql);
+      const rows = await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
+        from nf_take_saves s
+        join nf_takes t on t.id = s.take_id
+        where s.user_id = ${context.userId}
+        order by s.ts desc
+        limit 40`;
+      return (rows as Record<string, unknown>[]).map(mapTake);
+    } catch {
+      return [] as TakeRow[];
+    }
+  });
+
+export const listMyBlocks = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    try {
+      await ensureBlocks(sql);
+      const rows = await sql<{ id: string; handle: string | null }>`
+        select b.blocked_id as id, p.handle
+        from nf_blocks b
+        left join nf_profiles p on p.user_id = b.blocked_id
+        where b.user_id = ${context.userId}
+        order by b.ts desc
+        limit 100`;
+      return rows
+        .filter((r) => r.handle && r.handle !== "member")
+        .map((r) => ({ id: r.id, handle: r.handle || "" }));
+    } catch {
+      return [] as { id: string; handle: string }[];
+    }
+  });
+
+export const toggleBlock = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id?: string; handle?: string }) => ({
+    id: (d?.id || "").slice(0, 80),
+    handle: (d?.handle || "").replace(/^@/, "").slice(0, 24),
+  }))
+  .handler(async ({ context, data }) => {
+    if (!(await allowWrite(`block:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED, on: false };
+    const sql = await getSql();
+    await ensureBlocks(sql);
+    const id = await personId(sql, data.id, data.handle);
+    if (!id) return { ok: false as const, reason: "No user with that handle.", on: false };
+    if (id === context.userId) return { ok: false as const, reason: "That is you.", on: false };
+    const hit = await sql<{ blocked_id: string }>`select blocked_id from nf_blocks where user_id = ${context.userId} and blocked_id = ${id} limit 1`;
+    if (hit[0]) {
+      await sql`delete from nf_blocks where user_id = ${context.userId} and blocked_id = ${id}`;
+      return { ok: true as const, on: false };
+    }
+    await sql`insert into nf_blocks (user_id, blocked_id, ts) values (${context.userId}, ${id}, ${Date.now()}) on conflict (user_id, blocked_id) do nothing`;
+    await sql`delete from nf_follows where (follower_id = ${context.userId} and followee_id = ${id}) or (follower_id = ${id} and followee_id = ${context.userId})`;
+    try {
+      await sql`delete from nf_connects where (user_id = ${context.userId} and fellow_id = ${id}) or (user_id = ${id} and fellow_id = ${context.userId})`;
+    } catch {
+      /* connects table can be missing on a fresh database */
+    }
+    return { ok: true as const, on: true };
   });
 
 async function ensureConnects(sql: Awaited<ReturnType<typeof getSql>>) {
@@ -733,6 +872,7 @@ export const connectFellow = createServerFn({ method: "POST" })
     const sql = await getSql();
     await ensureConnects(sql);
     if (data.id === context.userId) return { ok: false as const, reason: "That is you." };
+    if (await pairBlocked(sql, context.userId, data.id)) return { ok: false as const, reason: "You can't connect with this person." };
     const existing = await sql<{ status: string | null }>`select status from nf_connects where user_id = ${context.userId} and fellow_id = ${data.id} limit 1`;
     if (String(existing[0]?.status || "").toLowerCase() === "accepted") return { ok: true as const, status: "accepted" as const };
     if (existing[0]) return { ok: true as const, status: "pending" as const };
@@ -757,6 +897,7 @@ export const connectByHandle = createServerFn({ method: "POST" })
     const id = rows[0]?.user_id || "";
     if (!id) return { ok: false as const, reason: "No user with that handle." };
     if (id === context.userId) return { ok: false as const, reason: "That is you." };
+    if (await pairBlocked(sql, context.userId, id)) return { ok: false as const, reason: "You can't connect with this person." };
     if (!(await allowWrite(`connect:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
     await ensureConnects(sql);
     const existing = await sql<{ status: string | null }>`select status from nf_connects where user_id = ${context.userId} and fellow_id = ${id} limit 1`;
@@ -909,6 +1050,7 @@ export const toggleFollow = createServerFn({ method: "POST" })
     const id = await personId(sql, data.id, data.handle);
     if (!id) return { ok: false as const, reason: "No user with that handle.", on: false };
     if (id === context.userId) return { ok: false as const, reason: "That is you.", on: false };
+    if (await pairBlocked(sql, context.userId, id)) return { ok: false as const, reason: "You can't follow this person.", on: false };
     const existing = await sql<{ followee_id: string }>`select followee_id from nf_follows where follower_id = ${context.userId} and followee_id = ${id} limit 1`;
     if (existing[0]) {
       await sql`delete from nf_follows where follower_id = ${context.userId} and followee_id = ${id}`;

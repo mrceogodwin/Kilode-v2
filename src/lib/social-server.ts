@@ -316,6 +316,15 @@ export const sendDm = createServerFn({ method: "POST" })
     if (!toId) return { ok: false as const, reason: "No user with that handle." };
     if (toId === context.userId) return { ok: false as const, reason: "That is you." };
     try {
+      const blocked = await sql<{ user_id: string }>`
+        select user_id from nf_blocks
+        where (user_id = ${context.userId} and blocked_id = ${toId}) or (user_id = ${toId} and blocked_id = ${context.userId})
+        limit 1`;
+      if (blocked[0]) return { ok: false as const, reason: "You can't message this person." };
+    } catch {
+      /* block table is created on first block */
+    }
+    try {
       const row = await sql<{ status: string | null }>`
         select status from nf_connects
         where lower(coalesce(status, '')) = 'accepted'

@@ -40,7 +40,7 @@ import { DigestBox } from "@/components/get-app";
 import { SiteFooter } from "@/components/site-chrome";
 import { listMyCinema, type CinemaMovie } from "@/lib/cinema-server";
 import { deleteListing, listListings, listMyApps, listMyApplicants, listMyListings, updateListing, type Listing, type MyApp, type MyApplicant } from "@/lib/listings-server";
-import { disconnectFellow, listConnects, listMyFollows, replyConnect, toggleFollow, type ConnectRow, type FollowPerson } from "@/lib/takes-server";
+import { disconnectFellow, listConnects, listMyFollows, listSavedTakes, replyConnect, toggleFollow, type ConnectRow, type FollowPerson, type TakeRow } from "@/lib/takes-server";
 import { getProfile } from "@/lib/forum-server";
 import { staffMe } from "@/lib/staff-server";
 import { usePublicSite } from "@/components/site-chrome";
@@ -242,6 +242,30 @@ function FollowsBlock({ onBack }: { onBack: () => void }) {
           )}
         </div>
       ))}
+    </section>
+  );
+}
+
+function SavedTakesBlock({ onBack }: { onBack: () => void }) {
+  const [rows, setRows] = useState<TakeRow[]>([]);
+  useEffect(() => {
+    void listSavedTakes().then(setRows).catch(() => setRows([]));
+  }, []);
+  return (
+    <section className="mb-4">
+      <button type="button" className="mb-3 text-[13px] font-semibold text-lime-2" onClick={onBack}>
+        ← Back
+      </button>
+      <h2 className="text-lg font-extrabold">Saved takes</h2>
+      {rows.length === 0 ? <p className="mt-3 text-[13px] text-muted">Save a take from Socials. It stays here.</p> : null}
+      <div className="mt-2 space-y-2">
+        {rows.map((t) => (
+          <article key={t.id} className="rounded-xl border border-line px-3 py-2">
+            <a href={`/u/${encodeURIComponent(t.handle)}`} className="text-[12px] font-semibold">@{t.handle}</a>
+            <p className="mt-1 whitespace-pre-wrap text-[13px] leading-snug">{t.body}</p>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -560,7 +584,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   const [connects, setConnects] = useState<ConnectRow[]>(Array.isArray(boot?.connects) ? boot.connects : []);
   const [staffRole, setStaffRole] = useState<string | null>(boot?.staff ?? null);
   const [photo, setPhoto] = useState(boot?.photo || "");
-  const [mePane, setMePane] = useState<null | "friends" | "follows">(null);
+  const [mePane, setMePane] = useState<null | "friends" | "follows" | "saved">(null);
   const { site } = usePublicSite();
 
   function loadConnects() {
@@ -838,6 +862,8 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         <FriendsBlock rows={connects} onChange={loadConnects} onBack={() => setMePane(null)} />
       ) : mePane === "follows" ? (
         <FollowsBlock onBack={() => setMePane(null)} />
+      ) : mePane === "saved" ? (
+        <SavedTakesBlock onBack={() => setMePane(null)} />
       ) : (
       <>
       <div className="me-shortcuts mb-3">
@@ -845,6 +871,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           [
             ["Friends", Users, () => setMePane("friends")],
             ["Follows", Users, () => setMePane("follows")],
+            ["Saved", Bookmark, () => setMePane("saved")],
             ["Groups", UsersRound, () => goto({ screen: "teams" })],
             ["Marketplace", Store, () => goto({ screen: "market" })],
             ["Messages", MessageSquare, () => goto({ screen: "inbox" })],
