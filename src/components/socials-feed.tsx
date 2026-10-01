@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Briefcase, Headphones, Lock } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, connectByHandle, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listMyFollows, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -280,6 +280,9 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   }, [account, kind]);
   const [busy, setBusy] = useState(false);
   const [linked, setLinked] = useState<Record<string, "out" | "in" | "ask">>(() => linksFrom(readBag<ConnectRow[]>("connects", [])));
+  const [following, setFollowing] = useState<Record<string, true>>({});
+  const [feedCut, setFeedCut] = useState<"all" | "following">("all");
+  const [suggested, setSuggested] = useState<{ id: string; handle: string; role: string; mutuals: number }[]>([]);
   const likeLock = useRef(new Set<string>());
   const [dmFor, setDmFor] = useState<FellowRow | null>(null);
   const [dmBody, setDmBody] = useState("");
@@ -374,6 +377,89 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   }, [authed]);
 
   useEffect(() => {
+    if (!authed) return;
+    void listMyFollows()
+      .then((r) => {
+        const next: Record<string, true> = {};
+        for (const p of r.following) {
+          if (p.id) next[p.id] = true;
+          if (p.handle) next[p.handle.toLowerCase()] = true;
+        }
+        setFollowing(next);
+      })
+      .catch(() => undefined);
+    void suggestFollows()
+      .then(setSuggested)
+      .catch(() => setSuggested([]));
+  }, [authed]);
+
+  function followed(handle: string, id?: string) {
+    return !!(following[(handle || "").toLowerCase()] || (id && following[id]));
+  }
+
+  function flipFollow(handle: string, id?: string) {
+    if (!authed) return goLogin();
+    const h = (handle || "").toLowerCase();
+    if (!h && !id) return;
+    const was = followed(handle, id);
+    setFollowing((m) => {
+      const next = { ...m };
+      if (was) {
+        if (h) delete next[h];
+        if (id) delete next[id];
+      } else {
+        if (h) next[h] = true;
+        if (id) next[id] = true;
+      }
+      return next;
+    });
+    void toggleFollow({ data: { id, handle } })
+      .then((r) => {
+        if (!r.ok) {
+          setFollowing((m) => {
+            const next = { ...m };
+            if (was) {
+              if (h) next[h] = true;
+              if (id) next[id] = true;
+            } else {
+              if (h) delete next[h];
+              if (id) delete next[id];
+            }
+            return next;
+          });
+          if (r.reason) setErr(r.reason);
+          return;
+        }
+        setFollowing((m) => {
+          const next = { ...m };
+          if (r.on) {
+            if (h) next[h] = true;
+            if (id) next[id] = true;
+          } else {
+            if (h) delete next[h];
+            if (id) delete next[id];
+          }
+          return next;
+        });
+        if (r.on) setSuggested((list) => list.filter((p) => p.handle.toLowerCase() !== h && p.id !== id));
+      })
+      .catch((e) => {
+        if (needLogin(e)) goLogin();
+        setFollowing((m) => {
+          const next = { ...m };
+          if (was) {
+            if (h) next[h] = true;
+            if (id) next[id] = true;
+          } else {
+            if (h) delete next[h];
+            if (id) delete next[id];
+          }
+          return next;
+        });
+      });
+  }
+
+  useEffect(() => {
     const needle = q.trim();
     if (needle.length < 2) {
       setPeople([]);
@@ -466,9 +552,11 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     ? pool.filter((f) => `${f.name} ${f.handle} ${f.role}`.toLowerCase().includes(needle))
     : pool;
   const shownFellows = matched.slice(0, fellowCap);
-  const shownTakes = needle
-    ? takes.filter((t) => `${t.name} ${t.handle} ${t.role} ${t.body}`.toLowerCase().includes(needle))
-    : takes;
+  const shownTakes = takes.filter((t) => {
+    if (feedCut === "following" && !followed(t.handle)) return false;
+    if (!needle) return true;
+    return `${t.name} ${t.handle} ${t.role} ${t.body}`.toLowerCase().includes(needle);
+  });
 
   if (trendOpen) {
     return (
@@ -563,6 +651,13 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             <div className="mt-1.5 flex gap-1">
               <button
                 type="button"
+                className={`fellow-act rounded-full border px-2.5 py-1 text-[10px] font-bold ${followed(f.handle, f.id) ? "opacity-70" : ""}`}
+                onClick={() => flipFollow(f.handle, f.id)}
+              >
+                {followed(f.handle, f.id) ? "Following" : "Follow"}
+              </button>
+              <button
+                type="button"
                 disabled={linkState(f) === "out"}
                 className="fellow-act rounded-full border px-2.5 py-1 text-[10px] font-bold disabled:opacity-70"
                 onClick={() => {
@@ -623,6 +718,22 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
           </button>
         ) : null}
       </div>
+      {suggested.length > 0 ? (
+        <div className="mb-3">
+          <div className="mb-1.5 text-[12px] font-semibold text-fg">People you may know</div>
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {suggested.map((p) => (
+              <div key={p.id} className="w-[148px] shrink-0 rounded-[12px] border border-line px-2.5 py-2">
+                <a href={`/u/${encodeURIComponent(p.handle)}`} className="block truncate text-[12px] font-semibold">@{p.handle}</a>
+                <div className="truncate text-[10px] text-muted">{p.mutuals > 0 ? `${p.mutuals} mutual follows` : p.role}</div>
+                <button type="button" className="fellow-act mt-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold" onClick={() => flipFollow(p.handle, p.id)}>
+                  Follow
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {dmFor ? (
         <form
           className="mb-3 glass-3d px-2.5 py-2"
@@ -673,6 +784,10 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
 
       {lane !== "people" ? (
       <>
+      <div className="mb-2 flex gap-1.5">
+        <button type="button" className={`soc-chip px-2.5 py-1 text-[12px] ${feedCut === "all" ? "on" : ""}`} onClick={() => setFeedCut("all")}>For you</button>
+        <button type="button" className={`soc-chip px-2.5 py-1 text-[12px] ${feedCut === "following" ? "on" : ""}`} onClick={() => setFeedCut("following")}>Following</button>
+      </div>
       <div className="mb-3 glass-3d px-2.5 py-2">
         <div className="flex items-start gap-2">
           <img src={avatarUrl("me")} alt="" className="mt-0.5 size-7 rounded-full bg-panel-3" />
@@ -726,7 +841,11 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         {err ? <p className="mt-1 text-[12px] font-semibold text-danger" role="alert">{err}</p> : null}
       </div>
 
-      {shownTakes.length === 0 ? <p className="py-3 text-center text-[11px] text-muted">No takes yet. Be first.</p> : null}
+      {shownTakes.length === 0 ? (
+        <p className="py-3 text-center text-[11px] text-muted">
+          {feedCut === "following" ? "Follow people. Their takes land here." : "No takes yet. Be first."}
+        </p>
+      ) : null}
       <div className="space-y-2">
         {shownTakes.map((t) => (
           <TakeCard
@@ -804,30 +923,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             mine={!!me && t.handle.toLowerCase() === me.toLowerCase()}
             link={linked[t.id] || linked[(t.handle || "").toLowerCase()] || ""}
             liked={!!liked[t.id]}
-            onFollow={() => {
-              if (!authed) return goLogin();
-              const h = (t.handle || "").toLowerCase();
-              if (!h || linked[h] === "in" || linked[h] === "out") return;
-              setLinked((m) => ({ ...m, [h]: "out" }));
-              void connectByHandle({ data: { handle: t.handle } }).then((r) => {
-                if (!r.ok) {
-                  setLinked((m) => {
-                    const next = { ...m };
-                    delete next[h];
-                    return next;
-                  });
-                  return;
-                }
-                if (r.status === "accepted") setLinked((m) => ({ ...m, [h]: "in" }));
-              }).catch((e) => {
-                if (needLogin(e)) goLogin();
-                setLinked((m) => {
-                  const next = { ...m };
-                  delete next[h];
-                  return next;
-                });
-              });
-            }}
+            following={followed(t.handle)}
+            onFollow={() => flipFollow(t.handle)}
             onReplyOpen={() => {
               setOpenReply(t.id);
               setReply("");
@@ -1009,6 +1106,7 @@ function TakeCard({
   mine,
   link,
   liked,
+  following,
   onFollow,
 }: {
   take: TakeRow;
@@ -1032,6 +1130,7 @@ function TakeCard({
   mine: boolean;
   link: "" | "out" | "in" | "ask";
   liked: boolean;
+  following: boolean;
   onFollow: () => void;
 }) {
   const ghost = take.kind === "ghost";
@@ -1060,8 +1159,8 @@ function TakeCard({
             {!ghost ? <span className="truncate text-[10px] text-muted">@{take.handle}</span> : null}
             <span className="shrink-0 text-[10px] text-muted">· {timeAgo(take.ts)}</span>
             {!ghost && !mine ? (
-              <button type="button" className="take-follow" onClick={onFollow} disabled={link === "out" || link === "in"}>
-                {link === "in" ? "Friends" : link === "out" ? "Asked" : "+ Follow"}
+              <button type="button" className={`take-follow ${following ? "on" : ""}`} onClick={onFollow}>
+                {following ? "Following" : "Follow"}
               </button>
             ) : null}
             <button type="button" aria-label="Report gist" className={`${!ghost && !mine ? "" : "ml-auto"} shrink-0 px-1 text-[12px] font-bold tracking-widest text-muted`} onClick={onReport}>

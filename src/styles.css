@@ -4040,6 +4040,7 @@ html[data-skin="ivory"] .me-hero .btn-join {
   letter-spacing: -0.01em;
 }
 .take-follow:disabled { opacity: 0.7; }
+.take-follow.on { color: #8d938e; }
 .take-react {
   display: flex;
   align-items: center;
@@ -4075,6 +4076,7 @@ html[data-skin="ivory"] .take-react {
   color: #3f4741;
 }
 html[data-skin="ivory"] .take-follow { color: #8a6420; }
+html[data-skin="ivory"] .take-follow.on { color: #5c6560; }
 html[data-skin="ivory"] .take-faces i { border-color: #fff; }
 
 

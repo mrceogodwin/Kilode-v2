@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Bell, Flame, Home, Menu, MessageSquare, Plus, Search, User, Users } from "lucide-react";
 import { getPublicProfile, sendDm } from "@/lib/social-server";
 import { deleteOwnPost, reportPost } from "@/lib/forum-server";
-import { connectByHandle, listConnects, listUserTakes, type TakeRow } from "@/lib/takes-server";
+import { connectByHandle, followLook, listConnects, listMyFollows, listUserTakes, toggleFollow, type TakeRow } from "@/lib/takes-server";
 import { seoHead } from "@/lib/seo";
 import { ACCOUNT_KINDS, avatarUrl, fmtCount, handleColor, isOfficialHandle, timeAgo, timeLabel } from "@/lib/qonvo-data";
 import { OfficialLockup } from "@/components/brand-lockup";
@@ -47,6 +47,9 @@ function PublicProfile() {
   const [gone, setGone] = useState<Record<string, boolean>>({});
   const [takes, setTakes] = useState<TakeRow[]>([]);
   const [friend, setFriend] = useState<"add" | "pending" | "friends">("add");
+  const [onFollow, setOnFollow] = useState(false);
+  const [look, setLook] = useState({ followers: 0, following: 0, followerHandles: [] as string[], followingHandles: [] as string[] });
+  const [followList, setFollowList] = useState<"" | "followers" | "following">("");
   const [payWith, setPayWith] = useState<PayProvider>("paystack");
   const [payNote, setPayNote] = useState("");
   const [gate, setGate] = useState<{ paystack: boolean; flutterwave: boolean; nowpayments: boolean; ngnPerUsd: number; verifyUsd: number } | null>(null);
@@ -63,6 +66,16 @@ function PublicProfile() {
         if (!hit) return;
         setFriend(hit.dir === "friend" ? "friends" : hit.dir === "out" ? "pending" : "add");
       })
+      .catch(() => undefined);
+  }, [session.user, profile?.handle, mine]);
+  useEffect(() => {
+    if (!profile?.handle) return;
+    void followLook({ data: { handle: profile.handle } }).then(setLook).catch(() => undefined);
+  }, [profile?.handle]);
+  useEffect(() => {
+    if (!session.user || !profile?.handle || mine) return;
+    void listMyFollows()
+      .then((r) => setOnFollow(r.following.some((p) => p.handle.toLowerCase() === profile.handle.toLowerCase())))
       .catch(() => undefined);
   }, [session.user, profile?.handle, mine]);
   const showBadge = Boolean(profile && (profile.verified || isOfficialHandle(profile.handle)));
@@ -128,27 +141,67 @@ function PublicProfile() {
             ) : null}
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px]">
               <span><b>{posts.length}</b> <span className="text-muted">posts</span></span>
-              <span><b>{profile.tracks.length}</b> <span className="text-muted">tracks</span></span>
+              <button type="button" className="text-left" onClick={() => setFollowList((v) => (v === "followers" ? "" : "followers"))}>
+                <b>{look.followers}</b> <span className="text-muted">followers</span>
+              </button>
+              <button type="button" className="text-left" onClick={() => setFollowList((v) => (v === "following" ? "" : "following"))}>
+                <b>{look.following}</b> <span className="text-muted">following</span>
+              </button>
               <span><b>{profile.friends.length}</b> <span className="text-muted">friends</span></span>
             </div>
+            {followList ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(followList === "followers" ? look.followerHandles : look.followingHandles).length === 0 ? (
+                  <p className="text-[12px] text-muted">None yet.</p>
+                ) : (followList === "followers" ? look.followerHandles : look.followingHandles).map((name) => (
+                  <a key={name} href={`/u/${encodeURIComponent(name)}`} className="profile-pill">@{name}</a>
+                ))}
+              </div>
+            ) : null}
             {!mine ? (
-              <button
-                type="button"
-                disabled={friend !== "add"}
-                className="btn-join mt-3 rounded-full px-4 py-2 text-[12px] font-bold disabled:opacity-70"
-                onClick={() => {
-                  if (!session.user) {
-                    window.location.href = "/login";
-                    return;
-                  }
-                  void connectByHandle({ data: { handle: profile.handle } }).then((r) => {
-                    if (!r.ok) return;
-                    setFriend(r.status === "accepted" ? "friends" : "pending");
-                  });
-                }}
-              >
-                {friend === "friends" ? "Friends" : friend === "pending" ? "Requested" : "Add friend"}
-              </button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="btn-join rounded-full px-4 py-2 text-[12px] font-bold"
+                  onClick={() => {
+                    if (!session.user) {
+                      window.location.href = "/login";
+                      return;
+                    }
+                    const next = !onFollow;
+                    setOnFollow(next);
+                    setLook((cur) => ({ ...cur, followers: Math.max(0, cur.followers + (next ? 1 : -1)) }));
+                    void toggleFollow({ data: { handle: profile.handle } }).then((r) => {
+                      if (!r.ok) {
+                        setOnFollow(!next);
+                        setLook((cur) => ({ ...cur, followers: Math.max(0, cur.followers + (next ? -1 : 1)) }));
+                        return;
+                      }
+                      setOnFollow(r.on);
+                      void followLook({ data: { handle: profile.handle } }).then(setLook).catch(() => undefined);
+                    });
+                  }}
+                >
+                  {onFollow ? "Following" : "Follow"}
+                </button>
+                <button
+                  type="button"
+                  disabled={friend !== "add"}
+                  className="rounded-full border border-line px-4 py-2 text-[12px] font-bold disabled:opacity-70"
+                  onClick={() => {
+                    if (!session.user) {
+                      window.location.href = "/login";
+                      return;
+                    }
+                    void connectByHandle({ data: { handle: profile.handle } }).then((r) => {
+                      if (!r.ok) return;
+                      setFriend(r.status === "accepted" ? "friends" : "pending");
+                    });
+                  }}
+                >
+                  {friend === "friends" ? "Friends" : friend === "pending" ? "Requested" : "Add friend"}
+                </button>
+              </div>
             ) : null}
           </div>
         </div>

@@ -642,6 +642,152 @@ export const connectByHandle = createServerFn({ method: "POST" })
     return { ok: true as const, status: "pending" as const };
   });
 
+export type FollowPerson = { id: string; handle: string; role: string };
+
+let followsReady = false;
+
+async function ensureFollows(sql: Awaited<ReturnType<typeof getSql>>) {
+  if (followsReady) return;
+  await sql`create table if not exists nf_follows (
+    follower_id text not null,
+    followee_id text not null,
+    ts bigint not null default 0,
+    primary key (follower_id, followee_id)
+  )`;
+  followsReady = true;
+}
+
+async function personId(sql: Awaited<ReturnType<typeof getSql>>, id: string, handle: string) {
+  const cleanId = id.trim().slice(0, 80);
+  if (cleanId) {
+    const byId = await sql<{ user_id: string }>`select user_id from nf_profiles where user_id = ${cleanId} limit 1`;
+    if (byId[0]?.user_id) return byId[0].user_id;
+  }
+  const h = handle.trim().replace(/^@/, "").slice(0, 24).toLowerCase();
+  if (!h) return "";
+  const byHandle = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = ${h} limit 1`;
+  return byHandle[0]?.user_id || "";
+}
+
+export const listMyFollows = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    await ensureFollows(sql);
+    const following = await sql<{ id: string; handle: string | null; role: string | null }>`
+      select f.followee_id as id, p.handle, p.kind as role
+      from nf_follows f
+      left join nf_profiles p on p.user_id = f.followee_id
+      where f.follower_id = ${context.userId}
+      order by f.ts desc
+      limit 80`;
+    const followers = await sql<{ id: string; handle: string | null; role: string | null }>`
+      select f.follower_id as id, p.handle, p.kind as role
+      from nf_follows f
+      left join nf_profiles p on p.user_id = f.follower_id
+      where f.followee_id = ${context.userId}
+      order by f.ts desc
+      limit 80`;
+    const map = (rows: { id: string; handle: string | null; role: string | null }[]): FollowPerson[] =>
+      rows
+        .filter((r) => r.handle && r.handle !== "member")
+        .map((r) => ({ id: r.id, handle: r.handle || "", role: r.role || "member" }));
+    return { following: map(following), followers: map(followers) };
+  });
+
+export const followLook = createServerFn({ method: "GET" })
+  .validator((d: { handle?: string }) => ({ handle: (d?.handle || "").replace(/^@/, "").slice(0, 24) }))
+  .handler(async ({ data }) => {
+    const empty = { followers: 0, following: 0, followerHandles: [] as string[], followingHandles: [] as string[] };
+    const handle = data.handle.trim().toLowerCase();
+    if (!handle) return empty;
+    const sql = await getSql();
+    await ensureFollows(sql);
+    const who = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = ${handle} limit 1`;
+    const id = who[0]?.user_id || "";
+    if (!id) return empty;
+    const followersN = await sql<{ n: string | number }>`select count(*) as n from nf_follows where followee_id = ${id}`;
+    const followingN = await sql<{ n: string | number }>`select count(*) as n from nf_follows where follower_id = ${id}`;
+    const followerRows = await sql<{ handle: string | null }>`
+      select p.handle from nf_follows f
+      join nf_profiles p on p.user_id = f.follower_id
+      where f.followee_id = ${id}
+      order by f.ts desc
+      limit 20`;
+    const followingRows = await sql<{ handle: string | null }>`
+      select p.handle from nf_follows f
+      join nf_profiles p on p.user_id = f.followee_id
+      where f.follower_id = ${id}
+      order by f.ts desc
+      limit 20`;
+    const names = (rows: { handle: string | null }[]) => rows.map((r) => r.handle || "").filter((h) => h && h !== "member");
+    return {
+      followers: Number(followersN[0]?.n || 0),
+      following: Number(followingN[0]?.n || 0),
+      followerHandles: names(followerRows),
+      followingHandles: names(followingRows),
+    };
+  });
+
+export const toggleFollow = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id?: string; handle?: string }) => ({
+    id: (d?.id || "").slice(0, 80),
+    handle: (d?.handle || "").replace(/^@/, "").slice(0, 24),
+  }))
+  .handler(async ({ context, data }) => {
+    if (!(await allowWrite(`follow:${context.userId}`, 40))) return { ok: false as const, reason: RATE_BLOCKED, on: false };
+    const sql = await getSql();
+    await ensureFollows(sql);
+    const id = await personId(sql, data.id, data.handle);
+    if (!id) return { ok: false as const, reason: "No user with that handle.", on: false };
+    if (id === context.userId) return { ok: false as const, reason: "That is you.", on: false };
+    const existing = await sql<{ followee_id: string }>`select followee_id from nf_follows where follower_id = ${context.userId} and followee_id = ${id} limit 1`;
+    if (existing[0]) {
+      await sql`delete from nf_follows where follower_id = ${context.userId} and followee_id = ${id}`;
+      return { ok: true as const, on: false };
+    }
+    await sql`insert into nf_follows (follower_id, followee_id, ts) values (${context.userId}, ${id}, ${Date.now()}) on conflict (follower_id, followee_id) do nothing`;
+    const me = await profileOf(context.userId);
+    if (me.handle && me.handle !== "member") await pushNote(id, `@${me.handle} followed you.`, `/u/${encodeURIComponent(me.handle)}`);
+    return { ok: true as const, on: true };
+  });
+
+export const suggestFollows = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    try {
+      await ensureFollows(sql);
+      const rows = await sql<{ id: string; handle: string | null; role: string | null; mutuals: string | number | null }>`
+        select p.user_id as id, p.handle, p.kind as role,
+          (
+            select count(*) from nf_follows mine
+            join nf_follows theirs on theirs.follower_id = mine.followee_id and theirs.followee_id = p.user_id
+            where mine.follower_id = ${context.userId}
+          ) as mutuals
+        from nf_profiles p
+        where p.user_id <> ${context.userId}
+          and p.handle is not null
+          and length(trim(p.handle)) > 1
+          and not exists (
+            select 1 from nf_follows f where f.follower_id = ${context.userId} and f.followee_id = p.user_id
+          )
+        order by mutuals desc
+        limit 8`;
+      return rows
+        .filter((r) => r.handle && r.handle !== "member")
+        .map((r) => ({
+          id: r.id,
+          handle: r.handle || "",
+          role: r.role || "member",
+          mutuals: Number(r.mutuals || 0),
+        }));
+    } catch {
+      return [] as { id: string; handle: string; role: string; mutuals: number }[];
+    }
+  });
+
 const REPORT_REASONS = new Set(["Spam", "Scam or fraud", "Harassment or hate", "Nudity or sexual", "Misinformation", "Other"]);
 
 export const reportTake = createServerFn({ method: "POST" })
