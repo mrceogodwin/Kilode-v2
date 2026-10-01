@@ -642,7 +642,7 @@ export const connectByHandle = createServerFn({ method: "POST" })
     return { ok: true as const, status: "pending" as const };
   });
 
-export type FollowPerson = { id: string; handle: string; role: string };
+export type FollowPerson = { id: string; handle: string; role: string; back: boolean };
 
 let followsReady = false;
 
@@ -674,31 +674,65 @@ export const listMyFollows = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const sql = await getSql();
     await ensureFollows(sql);
-    const following = await sql<{ id: string; handle: string | null; role: string | null }>`
-      select f.followee_id as id, p.handle, p.kind as role
+    const following = await sql<{ id: string; handle: string | null; role: string | null; back: boolean | number | string | null }>`
+      select f.followee_id as id, p.handle, p.kind as role,
+        exists(
+          select 1 from nf_follows b
+          where b.follower_id = f.followee_id and b.followee_id = ${context.userId}
+        ) as back
       from nf_follows f
       left join nf_profiles p on p.user_id = f.followee_id
       where f.follower_id = ${context.userId}
       order by f.ts desc
       limit 80`;
-    const followers = await sql<{ id: string; handle: string | null; role: string | null }>`
-      select f.follower_id as id, p.handle, p.kind as role
+    const followers = await sql<{ id: string; handle: string | null; role: string | null; back: boolean | number | string | null }>`
+      select f.follower_id as id, p.handle, p.kind as role,
+        exists(
+          select 1 from nf_follows b
+          where b.follower_id = ${context.userId} and b.followee_id = f.follower_id
+        ) as back
       from nf_follows f
       left join nf_profiles p on p.user_id = f.follower_id
       where f.followee_id = ${context.userId}
       order by f.ts desc
       limit 80`;
-    const map = (rows: { id: string; handle: string | null; role: string | null }[]): FollowPerson[] =>
+    const on = (v: boolean | number | string | null) => v === true || v === 1 || v === "t" || v === "true";
+    const map = (rows: { id: string; handle: string | null; role: string | null; back: boolean | number | string | null }[]): FollowPerson[] =>
       rows
         .filter((r) => r.handle && r.handle !== "member")
-        .map((r) => ({ id: r.id, handle: r.handle || "", role: r.role || "member" }));
+        .map((r) => ({ id: r.id, handle: r.handle || "", role: r.role || "member", back: on(r.back) }));
     return { following: map(following), followers: map(followers) };
+  });
+
+export const listFollowingTakes = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator((d: { before?: number } | undefined) => d ?? {})
+  .handler(async ({ context, data }) => {
+    await ensureSeed();
+    const sql = await getSql();
+    await ensureFollows(sql);
+    const before = Number(data?.before || 0);
+    const rows = before
+      ? await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
+          from nf_takes t
+          join nf_follows f on f.followee_id = t.user_id and f.follower_id = ${context.userId}
+          where t.ts < ${before} and t.user_id <> ${"seed"} and t.id not like ${"seed-%"}
+          order by t.ts desc
+          limit 20`
+      : await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
+          from nf_takes t
+          join nf_follows f on f.followee_id = t.user_id and f.follower_id = ${context.userId}
+          where t.user_id <> ${"seed"} and t.id not like ${"seed-%"}
+          order by t.ts desc
+          limit 20`;
+    const takes = (rows as Record<string, unknown>[]).map(mapTake);
+    return { takes, next: takes.length === 20 ? takes[takes.length - 1].ts : 0 };
   });
 
 export const followLook = createServerFn({ method: "GET" })
   .validator((d: { handle?: string }) => ({ handle: (d?.handle || "").replace(/^@/, "").slice(0, 24) }))
   .handler(async ({ data }) => {
-    const empty = { followers: 0, following: 0, followerHandles: [] as string[], followingHandles: [] as string[] };
+    const empty = { followers: 0, following: 0, mutuals: 0, followerHandles: [] as string[], followingHandles: [] as string[] };
     const handle = data.handle.trim().toLowerCase();
     if (!handle) return empty;
     const sql = await getSql();
@@ -708,6 +742,10 @@ export const followLook = createServerFn({ method: "GET" })
     if (!id) return empty;
     const followersN = await sql<{ n: string | number }>`select count(*) as n from nf_follows where followee_id = ${id}`;
     const followingN = await sql<{ n: string | number }>`select count(*) as n from nf_follows where follower_id = ${id}`;
+    const mutualN = await sql<{ n: string | number }>`
+      select count(*) as n from nf_follows a
+      join nf_follows b on b.follower_id = a.followee_id and b.followee_id = a.follower_id
+      where a.follower_id = ${id}`;
     const followerRows = await sql<{ handle: string | null }>`
       select p.handle from nf_follows f
       join nf_profiles p on p.user_id = f.follower_id
@@ -724,6 +762,7 @@ export const followLook = createServerFn({ method: "GET" })
     return {
       followers: Number(followersN[0]?.n || 0),
       following: Number(followingN[0]?.n || 0),
+      mutuals: Number(mutualN[0]?.n || 0),
       followerHandles: names(followerRows),
       followingHandles: names(followingRows),
     };

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Briefcase, Headphones, Lock } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listMyFollows, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listFollowingTakes, listMyFollows, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -281,6 +281,10 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [busy, setBusy] = useState(false);
   const [linked, setLinked] = useState<Record<string, "out" | "in" | "ask">>(() => linksFrom(readBag<ConnectRow[]>("connects", [])));
   const [following, setFollowing] = useState<Record<string, true>>({});
+  const [followsYou, setFollowsYou] = useState<Record<string, true>>({});
+  const [followTakes, setFollowTakes] = useState<TakeRow[]>([]);
+  const [followNext, setFollowNext] = useState(0);
+  const [followLoaded, setFollowLoaded] = useState(false);
   const [feedCut, setFeedCut] = useState<"all" | "following">("all");
   const [suggested, setSuggested] = useState<{ id: string; handle: string; role: string; mutuals: number }[]>([]);
   const likeLock = useRef(new Set<string>());
@@ -385,13 +389,47 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
           if (p.id) next[p.id] = true;
           if (p.handle) next[p.handle.toLowerCase()] = true;
         }
+        const you: Record<string, true> = {};
+        for (const p of r.followers) {
+          if (p.id) you[p.id] = true;
+          if (p.handle) you[p.handle.toLowerCase()] = true;
+        }
         setFollowing(next);
+        setFollowsYou(you);
       })
       .catch(() => undefined);
     void suggestFollows()
       .then(setSuggested)
       .catch(() => setSuggested([]));
   }, [authed]);
+
+  useEffect(() => {
+    if (!authed || feedCut !== "following" || followLoaded) return;
+    let dead = false;
+    void listFollowingTakes()
+      .then((r) => {
+        if (dead) return;
+        setFollowTakes(r.takes);
+        setFollowNext(r.next);
+        setFollowLoaded(true);
+      })
+      .catch(() => {
+        if (!dead) setFollowLoaded(true);
+      });
+    return () => {
+      dead = true;
+    };
+  }, [authed, feedCut, followLoaded]);
+
+  function theyFollow(handle: string, id?: string) {
+    return !!(followsYou[(handle || "").toLowerCase()] || (id && followsYou[id]));
+  }
+
+  function followLabel(handle: string, id?: string) {
+    if (followed(handle, id)) return "Following";
+    if (theyFollow(handle, id)) return "Follow back";
+    return "Follow";
+  }
 
   function followed(handle: string, id?: string) {
     return !!(following[(handle || "").toLowerCase()] || (id && following[id]));
@@ -442,6 +480,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
           return next;
         });
         if (r.on) setSuggested((list) => list.filter((p) => p.handle.toLowerCase() !== h && p.id !== id));
+        else if (h) setFollowTakes((list) => list.filter((t) => (t.handle || "").toLowerCase() !== h));
       })
       .catch((e) => {
         if (needLogin(e)) goLogin();
@@ -552,8 +591,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     ? pool.filter((f) => `${f.name} ${f.handle} ${f.role}`.toLowerCase().includes(needle))
     : pool;
   const shownFellows = matched.slice(0, fellowCap);
-  const shownTakes = takes.filter((t) => {
-    if (feedCut === "following" && !followed(t.handle)) return false;
+  const takeSource = feedCut === "following" ? followTakes : takes;
+  const shownTakes = takeSource.filter((t) => {
     if (!needle) return true;
     return `${t.name} ${t.handle} ${t.role} ${t.body}`.toLowerCase().includes(needle);
   });
@@ -654,7 +693,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
                 className={`fellow-act rounded-full border px-2.5 py-1 text-[10px] font-bold ${followed(f.handle, f.id) ? "opacity-70" : ""}`}
                 onClick={() => flipFollow(f.handle, f.id)}
               >
-                {followed(f.handle, f.id) ? "Following" : "Follow"}
+                {followLabel(f.handle, f.id)}
               </button>
               <button
                 type="button"
@@ -727,7 +766,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
                 <a href={`/u/${encodeURIComponent(p.handle)}`} className="block truncate text-[12px] font-semibold">@{p.handle}</a>
                 <div className="truncate text-[10px] text-muted">{p.mutuals > 0 ? `${p.mutuals} mutual follows` : p.role}</div>
                 <button type="button" className="fellow-act mt-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold" onClick={() => flipFollow(p.handle, p.id)}>
-                  Follow
+                  {theyFollow(p.handle, p.id) ? "Follow back" : "Follow"}
                 </button>
               </div>
             ))}
@@ -843,7 +882,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
 
       {shownTakes.length === 0 ? (
         <p className="py-3 text-center text-[11px] text-muted">
-          {feedCut === "following" ? "Follow people. Their takes land here." : "No takes yet. Be first."}
+          {feedCut === "following" && !followLoaded ? "Loading who you follow…" : feedCut === "following" ? "Follow people. Their takes land here." : "No takes yet. Be first."}
         </p>
       ) : null}
       <div className="space-y-2">
@@ -924,6 +963,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             link={linked[t.id] || linked[(t.handle || "").toLowerCase()] || ""}
             liked={!!liked[t.id]}
             following={followed(t.handle)}
+            followsYou={theyFollow(t.handle)}
             onFollow={() => flipFollow(t.handle)}
             onReplyOpen={() => {
               setOpenReply(t.id);
@@ -944,11 +984,18 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
           />
         ))}
       </div>
-      {next ? (
+      {(feedCut === "following" ? followNext : next) ? (
         <button
           type="button"
           className="mt-3 w-full rounded-[10px] border border-line py-2 text-[11px] font-semibold text-muted"
           onClick={() => {
+            if (feedCut === "following") {
+              void listFollowingTakes({ data: { before: followNext } }).then((r) => {
+                setFollowTakes((list) => [...list, ...r.takes.filter((t) => !list.some((x) => x.id === t.id))]);
+                setFollowNext(r.next);
+              });
+              return;
+            }
             void listTakes({ data: { before: next } }).then((r) => {
               setTakes((list) => [...list, ...r.takes]);
               setNext(r.next);
@@ -1107,6 +1154,7 @@ function TakeCard({
   link,
   liked,
   following,
+  followsYou,
   onFollow,
 }: {
   take: TakeRow;
@@ -1131,6 +1179,7 @@ function TakeCard({
   link: "" | "out" | "in" | "ask";
   liked: boolean;
   following: boolean;
+  followsYou: boolean;
   onFollow: () => void;
 }) {
   const ghost = take.kind === "ghost";
@@ -1160,7 +1209,7 @@ function TakeCard({
             <span className="shrink-0 text-[10px] text-muted">· {timeAgo(take.ts)}</span>
             {!ghost && !mine ? (
               <button type="button" className={`take-follow ${following ? "on" : ""}`} onClick={onFollow}>
-                {following ? "Following" : "Follow"}
+                {following ? "Following" : followsYou ? "Follow back" : "Follow"}
               </button>
             ) : null}
             <button type="button" aria-label="Report gist" className={`${!ghost && !mine ? "" : "ml-auto"} shrink-0 px-1 text-[12px] font-bold tracking-widest text-muted`} onClick={onReport}>

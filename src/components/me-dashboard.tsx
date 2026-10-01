@@ -40,7 +40,7 @@ import { DigestBox } from "@/components/get-app";
 import { SiteFooter } from "@/components/site-chrome";
 import { listMyCinema, type CinemaMovie } from "@/lib/cinema-server";
 import { deleteListing, listListings, listMyApps, listMyApplicants, listMyListings, updateListing, type Listing, type MyApp, type MyApplicant } from "@/lib/listings-server";
-import { disconnectFellow, listConnects, replyConnect, type ConnectRow } from "@/lib/takes-server";
+import { disconnectFellow, listConnects, listMyFollows, replyConnect, toggleFollow, type ConnectRow, type FollowPerson } from "@/lib/takes-server";
 import { getProfile } from "@/lib/forum-server";
 import { staffMe } from "@/lib/staff-server";
 import { usePublicSite } from "@/components/site-chrome";
@@ -176,6 +176,70 @@ function FriendsBlock({ rows, onChange, onBack }: { rows: ConnectRow[]; onChange
           >
             Remove
           </button>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function FollowsBlock({ onBack }: { onBack: () => void }) {
+  const [rows, setRows] = useState<{ following: FollowPerson[]; followers: FollowPerson[] }>({ following: [], followers: [] });
+  const [tab, setTab] = useState<"following" | "followers" | "mutual">("following");
+  useEffect(() => {
+    void listMyFollows().then(setRows).catch(() => undefined);
+  }, []);
+  const list = tab === "followers" ? rows.followers : tab === "mutual" ? rows.following.filter((p) => p.back) : rows.following;
+  return (
+    <section className="mb-4">
+      <button type="button" className="mb-3 text-[13px] font-semibold text-lime-2" onClick={onBack}>
+        ← Back
+      </button>
+      <h2 className="text-lg font-extrabold">Follows</h2>
+      <div className="mt-3 flex gap-1.5">
+        {(
+          [
+            ["following", "Following"],
+            ["followers", "Followers"],
+            ["mutual", "Mutuals"],
+          ] as const
+        ).map(([id, label]) => (
+          <button key={id} type="button" className={`rounded-full border px-3 py-1 text-[12px] font-bold ${tab === id ? "border-lime-2 bg-lime-2 text-black" : "border-line"}`} onClick={() => setTab(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {list.length === 0 ? <p className="mt-3 text-[13px] text-muted">None yet.</p> : null}
+      {list.map((p) => (
+        <div key={`${tab}-${p.id}`} className="mt-2 flex items-center gap-2 border-b border-line py-2">
+          <a href={`/u/${encodeURIComponent(p.handle)}`} className="flex min-w-0 flex-1 items-center gap-2">
+            <AvatarImg handle={p.handle} size={36} />
+            <span className="min-w-0">
+              <span className="block truncate text-[14px] font-semibold">@{p.handle}</span>
+              <span className="text-[11px] text-muted">{p.back ? "Follows you" : p.role || "member"}</span>
+            </span>
+          </a>
+          {tab === "followers" && !p.back ? (
+            <button
+              type="button"
+              className="rounded-full bg-lime-2 px-2.5 py-1 text-[12px] font-semibold text-[#102016]"
+              onClick={() => {
+                void toggleFollow({ data: { id: p.id, handle: p.handle } }).then((r) => {
+                  if (!r.ok || !r.on) return;
+                  setRows((cur) => ({
+                    ...cur,
+                    followers: cur.followers.map((x) => (x.id === p.id ? { ...x, back: true } : x)),
+                    following: cur.following.some((x) => x.id === p.id) ? cur.following : [...cur.following, { ...p, back: true }],
+                  }));
+                });
+              }}
+            >
+              Follow back
+            </button>
+          ) : (
+            <a href={`/u/${encodeURIComponent(p.handle)}`} className="rounded-full border border-line px-2.5 py-1 text-[12px] font-semibold">
+              Open
+            </a>
+          )}
         </div>
       ))}
     </section>
@@ -496,7 +560,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   const [connects, setConnects] = useState<ConnectRow[]>(Array.isArray(boot?.connects) ? boot.connects : []);
   const [staffRole, setStaffRole] = useState<string | null>(boot?.staff ?? null);
   const [photo, setPhoto] = useState(boot?.photo || "");
-  const [mePane, setMePane] = useState<null | "friends">(null);
+  const [mePane, setMePane] = useState<null | "friends" | "follows">(null);
   const { site } = usePublicSite();
 
   function loadConnects() {
@@ -772,12 +836,15 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       ) : null}
       {mePane === "friends" ? (
         <FriendsBlock rows={connects} onChange={loadConnects} onBack={() => setMePane(null)} />
+      ) : mePane === "follows" ? (
+        <FollowsBlock onBack={() => setMePane(null)} />
       ) : (
       <>
       <div className="me-shortcuts mb-3">
         {(
           [
             ["Friends", Users, () => setMePane("friends")],
+            ["Follows", Users, () => setMePane("follows")],
             ["Groups", UsersRound, () => goto({ screen: "teams" })],
             ["Marketplace", Store, () => goto({ screen: "market" })],
             ["Messages", MessageSquare, () => goto({ screen: "inbox" })],

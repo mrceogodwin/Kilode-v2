@@ -48,7 +48,8 @@ function PublicProfile() {
   const [takes, setTakes] = useState<TakeRow[]>([]);
   const [friend, setFriend] = useState<"add" | "pending" | "friends">("add");
   const [onFollow, setOnFollow] = useState(false);
-  const [look, setLook] = useState({ followers: 0, following: 0, followerHandles: [] as string[], followingHandles: [] as string[] });
+  const [followsMe, setFollowsMe] = useState(false);
+  const [look, setLook] = useState({ followers: 0, following: 0, mutuals: 0, followerHandles: [] as string[], followingHandles: [] as string[] });
   const [followList, setFollowList] = useState<"" | "followers" | "following">("");
   const [payWith, setPayWith] = useState<PayProvider>("paystack");
   const [payNote, setPayNote] = useState("");
@@ -75,7 +76,11 @@ function PublicProfile() {
   useEffect(() => {
     if (!session.user || !profile?.handle || mine) return;
     void listMyFollows()
-      .then((r) => setOnFollow(r.following.some((p) => p.handle.toLowerCase() === profile.handle.toLowerCase())))
+      .then((r) => {
+        const h = profile.handle.toLowerCase();
+        setOnFollow(r.following.some((p) => p.handle.toLowerCase() === h));
+        setFollowsMe(r.followers.some((p) => p.handle.toLowerCase() === h));
+      })
       .catch(() => undefined);
   }, [session.user, profile?.handle, mine]);
   const showBadge = Boolean(profile && (profile.verified || isOfficialHandle(profile.handle)));
@@ -147,6 +152,7 @@ function PublicProfile() {
               <button type="button" className="text-left" onClick={() => setFollowList((v) => (v === "following" ? "" : "following"))}>
                 <b>{look.following}</b> <span className="text-muted">following</span>
               </button>
+              <span><b>{look.mutuals}</b> <span className="text-muted">mutuals</span></span>
               <span><b>{profile.friends.length}</b> <span className="text-muted">friends</span></span>
             </div>
             {followList ? (
@@ -182,7 +188,7 @@ function PublicProfile() {
                     });
                   }}
                 >
-                  {onFollow ? "Following" : "Follow"}
+                  {onFollow && followsMe ? "Mutual" : onFollow ? "Following" : followsMe ? "Follow back" : "Follow"}
                 </button>
                 <button
                   type="button"

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { listNotes, markNotesRead } from "@/lib/social-server";
-import { replyConnect } from "@/lib/takes-server";
+import { replyConnect, toggleFollow } from "@/lib/takes-server";
 import { timeAgo, type Post } from "@/lib/qonvo-data";
 
 export function NotifyBell({
@@ -46,6 +46,7 @@ export function NotifyBell({
       dead = true;
     };
   }, [signedIn, open]);
+  const [backed, setBacked] = useState<Record<string, true>>({});
   const latest = posts.filter((p) => p.status !== "draft").slice(0, 8);
   const liveUnread = notes.filter((n) => !n.seen).length;
   const badge = !signedIn ? 0 : acked ? liveUnread : Math.max(unread, liveUnread);
@@ -119,6 +120,7 @@ export function NotifyBell({
             {signedIn
               ? (notes.length ? notes.slice(0, 12).map((n) => {
                   const ask = /wants to connect/i.test(n.text);
+                  const followed = /followed you/i.test(n.text);
                   const handle = (/@([A-Za-z0-9._-]+)/.exec(n.text) || [])[1] || "";
                   return (
                     <div key={n.id} className="border-b border-white/5 px-3 py-2">
@@ -142,6 +144,21 @@ export function NotifyBell({
                           Accept
                         </button>
                       ) : null}
+                      {followed && handle && !backed[n.id] ? (
+                        <button
+                          type="button"
+                          className="mt-1 rounded-full border border-white/20 px-2.5 py-1 text-[11px] font-bold"
+                          onClick={() => {
+                            void toggleFollow({ data: { handle } }).then((r) => {
+                              if (!r.ok || !r.on) return;
+                              setBacked((m) => ({ ...m, [n.id]: true }));
+                            });
+                          }}
+                        >
+                          Follow back
+                        </button>
+                      ) : null}
+                      {followed && backed[n.id] ? <p className="mt-1 text-[11px] text-muted">Following</p> : null}
                     </div>
                   );
                 }) : <p className="px-3 py-4 text-[12px] text-muted">Quiet. Messages and replies land here.</p>)
