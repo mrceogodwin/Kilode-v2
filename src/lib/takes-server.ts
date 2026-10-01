@@ -25,6 +25,7 @@ export type TakeRow = {
   likes: number;
   ts: number;
   lastReply: string;
+  via?: string;
 };
 
 export type FellowRow = {
@@ -88,8 +89,9 @@ function mapTake(r: Record<string, unknown>): TakeRow {
     comments: num(r.comments),
     reposts: num(r.reposts),
     likes: num(r.likes),
-    ts: num(r.ts),
+    ts: num(r.sort_ts) || num(r.ts),
     lastReply: String(r.last_reply || ""),
+    via: String(r.via || ""),
   };
 }
 
@@ -438,6 +440,13 @@ export const saveTake = createServerFn({ method: "POST" })
         }
       }
       await indexTake(sql, id, clean, ts, userId, who.handle);
+      if (kind === "quote" && meta.quoteHandle && meta.quoteHandle.toLowerCase() !== who.handle.toLowerCase()) {
+        const quoted = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = ${meta.quoteHandle.toLowerCase()} limit 1`;
+        const to = quoted[0]?.user_id || "";
+        if (to && to !== userId && !(await pairBlocked(sql, userId, to))) {
+          await pushNote(to, `@${who.handle} quoted your take.`, "/?tab=socials");
+        }
+      }
       return {
         ok: true as const,
         take: mapTake({
@@ -602,12 +611,20 @@ export const repostTake = createServerFn({ method: "POST" })
     if (!(await allowWrite(`repost:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED, reposted: false };
     const sql = await getSql();
     if (!repostTableReady) {
-      await sql`create table if not exists nf_take_reposts (take_id text not null, user_id text not null, primary key (take_id, user_id))`;
+      await sql`create table if not exists nf_take_reposts (take_id text not null, user_id text not null, ts bigint not null default 0, primary key (take_id, user_id))`;
+      await sql`alter table nf_take_reposts add column if not exists ts bigint not null default 0`;
       repostTableReady = true;
     }
-    const inserted = await sql<{ take_id: string }>`insert into nf_take_reposts (take_id, user_id) values (${data.id}, ${context.userId}) on conflict do nothing returning take_id`;
+    const now = Date.now();
+    const inserted = await sql<{ take_id: string }>`insert into nf_take_reposts (take_id, user_id, ts) values (${data.id}, ${context.userId}, ${now}) on conflict (take_id, user_id) do nothing returning take_id`;
     if (!inserted[0]) return { ok: true as const, reposted: false };
     await sql`update nf_takes set reposts = reposts + 1 where id = ${data.id}`;
+    const owner = await sql<{ user_id: string | null }>`select user_id from nf_takes where id = ${data.id} limit 1`;
+    const ownerId = owner[0]?.user_id || "";
+    if (ownerId && ownerId !== context.userId) {
+      const me = await profileOf(context.userId);
+      if (me.handle && me.handle !== "member") await pushNote(ownerId, `@${me.handle} reposted your take.`, "/?tab=socials");
+    }
     return { ok: true as const, reposted: true };
   });
 
@@ -745,6 +762,60 @@ export const toggleBlock = createServerFn({ method: "POST" })
     } catch {
       /* connects table can be missing on a fresh database */
     }
+    return { ok: true as const, on: true };
+  });
+
+let mutesReady = false;
+
+async function ensureMutes(sql: Awaited<ReturnType<typeof getSql>>) {
+  if (mutesReady) return;
+  await sql`create table if not exists nf_mutes (
+    user_id text not null,
+    muted_id text not null,
+    ts bigint not null default 0,
+    primary key (user_id, muted_id)
+  )`;
+  mutesReady = true;
+}
+
+export const listMyMutes = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    try {
+      await ensureMutes(sql);
+      const rows = await sql<{ id: string; handle: string | null }>`
+        select m.muted_id as id, p.handle
+        from nf_mutes m
+        left join nf_profiles p on p.user_id = m.muted_id
+        where m.user_id = ${context.userId}
+        order by m.ts desc
+        limit 100`;
+      return rows.filter((r) => r.handle && r.handle !== "member").map((r) => ({ id: r.id, handle: r.handle || "" }));
+    } catch {
+      return [] as { id: string; handle: string }[];
+    }
+  });
+
+export const toggleMute = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id?: string; handle?: string }) => ({
+    id: (d?.id || "").slice(0, 80),
+    handle: (d?.handle || "").replace(/^@/, "").slice(0, 24),
+  }))
+  .handler(async ({ context, data }) => {
+    if (!(await allowWrite(`mute:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED, on: false };
+    const sql = await getSql();
+    await ensureMutes(sql);
+    const id = await personId(sql, data.id, data.handle);
+    if (!id) return { ok: false as const, reason: "No user with that handle.", on: false };
+    if (id === context.userId) return { ok: false as const, reason: "That is you.", on: false };
+    const hit = await sql<{ muted_id: string }>`select muted_id from nf_mutes where user_id = ${context.userId} and muted_id = ${id} limit 1`;
+    if (hit[0]) {
+      await sql`delete from nf_mutes where user_id = ${context.userId} and muted_id = ${id}`;
+      return { ok: true as const, on: false };
+    }
+    await sql`insert into nf_mutes (user_id, muted_id, ts) values (${context.userId}, ${id}, ${Date.now()}) on conflict (user_id, muted_id) do nothing`;
     return { ok: true as const, on: true };
   });
 
@@ -980,22 +1051,67 @@ export const listFollowingTakes = createServerFn({ method: "GET" })
     await ensureSeed();
     const sql = await getSql();
     await ensureFollows(sql);
+    await sql`create table if not exists nf_take_reposts (take_id text not null, user_id text not null, ts bigint not null default 0, primary key (take_id, user_id))`;
+    await sql`alter table nf_take_reposts add column if not exists ts bigint not null default 0`;
     const before = Number(data?.before || 0);
-    const rows = before
-      ? await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
+    const posts = before
+      ? await sql`select t.*, '' as via, t.ts as sort_ts, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
           from nf_takes t
           join nf_follows f on f.followee_id = t.user_id and f.follower_id = ${context.userId}
           where t.ts < ${before} and t.user_id <> ${"seed"} and t.id not like ${"seed-%"}
           order by t.ts desc
           limit 20`
-      : await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
+      : await sql`select t.*, '' as via, t.ts as sort_ts, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
           from nf_takes t
           join nf_follows f on f.followee_id = t.user_id and f.follower_id = ${context.userId}
           where t.user_id <> ${"seed"} and t.id not like ${"seed-%"}
           order by t.ts desc
           limit 20`;
-    const takes = (rows as Record<string, unknown>[]).map(mapTake);
-    return { takes, next: takes.length === 20 ? takes[takes.length - 1].ts : 0 };
+    let reposts: Record<string, unknown>[] = [];
+    try {
+      reposts = (before
+        ? await sql`select t.*, coalesce(p.handle, '') as via, rp.ts as sort_ts, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
+            from nf_take_reposts rp
+            join nf_takes t on t.id = rp.take_id
+            join nf_follows f on f.followee_id = rp.user_id and f.follower_id = ${context.userId}
+            left join nf_profiles p on p.user_id = rp.user_id
+            where rp.ts < ${before} and rp.ts > 0
+              and t.user_id <> ${"seed"}
+              and not exists (
+                select 1 from nf_follows mine
+                where mine.follower_id = ${context.userId} and mine.followee_id = t.user_id
+              )
+            order by rp.ts desc
+            limit 20`
+        : await sql`select t.*, coalesce(p.handle, '') as via, rp.ts as sort_ts, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
+            from nf_take_reposts rp
+            join nf_takes t on t.id = rp.take_id
+            join nf_follows f on f.followee_id = rp.user_id and f.follower_id = ${context.userId}
+            left join nf_profiles p on p.user_id = rp.user_id
+            where rp.ts > 0
+              and t.user_id <> ${"seed"}
+              and not exists (
+                select 1 from nf_follows mine
+                where mine.follower_id = ${context.userId} and mine.followee_id = t.user_id
+              )
+            order by rp.ts desc
+            limit 20`) as Record<string, unknown>[];
+    } catch {
+      reposts = [];
+    }
+    const merged = [...(posts as Record<string, unknown>[]), ...reposts].sort((a, b) => num(b.sort_ts) - num(a.sort_ts));
+    const seen = new Set<string>();
+    const page: Record<string, unknown>[] = [];
+    for (const row of merged) {
+      const id = String(row.id || "");
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      page.push(row);
+      if (page.length === 20) break;
+    }
+    const takes = page.map(mapTake);
+    const last = page[page.length - 1];
+    return { takes, next: page.length === 20 ? num(last?.sort_ts) : 0 };
   });
 
 export const followLook = createServerFn({ method: "GET" })

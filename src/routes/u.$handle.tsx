@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Bell, Flame, Home, Menu, MessageSquare, Plus, Search, User, Users } from "lucide-react";
 import { getPublicProfile, sendDm } from "@/lib/social-server";
 import { deleteOwnPost, reportPost } from "@/lib/forum-server";
-import { connectByHandle, followLook, listConnects, listMyBlocks, listMyFollows, listUserTakes, toggleBlock, toggleFollow, type TakeRow } from "@/lib/takes-server";
+import { connectByHandle, followLook, listConnects, listMyBlocks, listMyFollows, listMyMutes, listUserTakes, toggleBlock, toggleFollow, toggleMute, type TakeRow } from "@/lib/takes-server";
 import { seoHead } from "@/lib/seo";
 import { ACCOUNT_KINDS, avatarUrl, fmtCount, handleColor, isOfficialHandle, timeAgo, timeLabel } from "@/lib/qonvo-data";
 import { OfficialLockup } from "@/components/brand-lockup";
@@ -50,6 +50,7 @@ function PublicProfile() {
   const [onFollow, setOnFollow] = useState(false);
   const [followsMe, setFollowsMe] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const [muted, setMuted] = useState(false);
   const [look, setLook] = useState({ followers: 0, following: 0, mutuals: 0, followerHandles: [] as string[], followingHandles: [] as string[] });
   const [followList, setFollowList] = useState<"" | "followers" | "following">("");
   const [payWith, setPayWith] = useState<PayProvider>("paystack");
@@ -85,6 +86,9 @@ function PublicProfile() {
       .catch(() => undefined);
     void listMyBlocks()
       .then((rows) => setBlocked(rows.some((p) => p.handle.toLowerCase() === profile.handle.toLowerCase())))
+      .catch(() => undefined);
+    void listMyMutes()
+      .then((rows) => setMuted(rows.some((p) => p.handle.toLowerCase() === profile.handle.toLowerCase())))
       .catch(() => undefined);
   }, [session.user, profile?.handle, mine]);
   const showBadge = Boolean(profile && (profile.verified || isOfficialHandle(profile.handle)));
@@ -230,6 +234,22 @@ function PublicProfile() {
                   }}
                 >
                   {blocked ? "Unblock" : "Block"}
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full border border-line px-4 py-2 text-[12px] font-bold"
+                  onClick={() => {
+                    if (!session.user) {
+                      window.location.href = "/login";
+                      return;
+                    }
+                    void toggleMute({ data: { handle: profile.handle } }).then((r) => {
+                      if (!r.ok) return;
+                      setMuted(r.on);
+                    });
+                  }}
+                >
+                  {muted ? "Unmute" : "Mute"}
                 </button>
               </div>
             ) : null}

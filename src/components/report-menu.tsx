@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { reportPost } from "@/lib/forum-server";
-import { toggleBlock } from "@/lib/takes-server";
+import { toggleBlock, toggleMute } from "@/lib/takes-server";
 
 export const REPORT_REASONS = ["Spam", "Scam or fraud", "Harassment", "Fake account", "Nudity", "Other"] as const;
 
@@ -62,6 +62,25 @@ export function ReportMenu({ handle, signedIn }: { handle: string; signedIn: boo
             }}
           >
             Block
+          </button>
+          <button
+            type="button"
+            className="block w-full rounded-lg px-2 py-1.5 text-left text-[12px] font-semibold text-fg hover:bg-white/5"
+            onClick={() => {
+              void toggleMute({ data: { handle } })
+                .then((r) => {
+                  if (!r.ok) {
+                    setNote(r.reason);
+                    return;
+                  }
+                  setNote(r.on ? "Muted." : "Unmuted.");
+                  window.dispatchEvent(new CustomEvent(r.on ? "kilode:mute" : "kilode:unmute", { detail: handle.toLowerCase() }));
+                })
+                .catch(() => setNote("Sign in to mute."));
+              setOpen(false);
+            }}
+          >
+            Mute
           </button>
         </div>
       ) : null}

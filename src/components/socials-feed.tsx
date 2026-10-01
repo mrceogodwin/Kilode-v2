@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Briefcase, Headphones, Lock } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listMyBlocks, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listMyBlocks, listMyMutes, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -294,6 +294,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [trendLoaded, setTrendLoaded] = useState(false);
   const [saved, setSaved] = useState<Record<string, true>>({});
   const [blocked, setBlocked] = useState<Record<string, true>>({});
+  const [muted, setMuted] = useState<Record<string, true>>({});
+  const [quoting, setQuoting] = useState<TakeRow | null>(null);
   const [suggested, setSuggested] = useState<{ id: string; handle: string; role: string; mutuals: number }[]>([]);
   const likeLock = useRef(new Set<string>());
   const [dmFor, setDmFor] = useState<FellowRow | null>(null);
@@ -424,6 +426,13 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         setBlocked(next);
       })
       .catch(() => undefined);
+    void listMyMutes()
+      .then((rows) => {
+        const next: Record<string, true> = {};
+        for (const row of rows) if (row.handle) next[row.handle.toLowerCase()] = true;
+        setMuted(next);
+      })
+      .catch(() => undefined);
   }, [authed]);
 
   useEffect(() => {
@@ -443,9 +452,27 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     };
     window.addEventListener("kilode:block", onBlock);
     window.addEventListener("kilode:unblock", onUnblock);
+    const onMute = (e: Event) => {
+      const handle = String((e as CustomEvent<string>).detail || "").toLowerCase();
+      if (!handle) return;
+      setMuted((m) => ({ ...m, [handle]: true }));
+    };
+    const onUnmute = (e: Event) => {
+      const handle = String((e as CustomEvent<string>).detail || "").toLowerCase();
+      if (!handle) return;
+      setMuted((m) => {
+        const next = { ...m };
+        delete next[handle];
+        return next;
+      });
+    };
+    window.addEventListener("kilode:mute", onMute);
+    window.addEventListener("kilode:unmute", onUnmute);
     return () => {
       window.removeEventListener("kilode:block", onBlock);
       window.removeEventListener("kilode:unblock", onUnblock);
+      window.removeEventListener("kilode:mute", onMute);
+      window.removeEventListener("kilode:unmute", onUnmute);
     };
   }, []);
 
@@ -619,7 +646,11 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     }
     setBusy(true);
     setErr("");
-    const pending = saveTake({ data: { body: text, kind, line } });
+    const pending = saveTake({
+      data: quoting
+        ? { body: text, kind: "quote", quoteName: quoting.name, quoteHandle: quoting.handle, quoteBody: quoting.body }
+        : { body: text, kind, line },
+    });
     const timeout = new Promise<{ ok: false; reason: string }>((resolve) => {
       window.setTimeout(() => resolve({ ok: false, reason: "The server took too long. Try Post again." }), 12000);
     });
@@ -631,6 +662,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         rememberTake(r.take, false);
         setBody("");
         setLine("");
+        setQuoting(null);
       }
     } catch (e) {
       if (needLogin(e)) goLogin();
@@ -680,14 +712,15 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [fellowCap, setFellowCap] = useState(8);
   const needle = q.trim().toLowerCase();
   const mineHandle = me.trim().toLowerCase();
-  const pool = fellows.filter((f) => f.handle && f.handle.toLowerCase() !== mineHandle && !blocked[f.handle.toLowerCase()]);
+  const hidden = (handle: string) => !!(blocked[(handle || "").toLowerCase()] || muted[(handle || "").toLowerCase()]);
+  const pool = fellows.filter((f) => f.handle && f.handle.toLowerCase() !== mineHandle && !hidden(f.handle));
   const matched = needle
     ? pool.filter((f) => `${f.name} ${f.handle} ${f.role}`.toLowerCase().includes(needle))
     : pool;
   const shownFellows = matched.slice(0, fellowCap);
   const takeSource = feedCut === "following" ? followTakes : feedCut === "trending" ? trendTakes : feedCut === "tag" ? tagTakes : takes;
   const shownTakes = takeSource.filter((t) => {
-    if (blocked[(t.handle || "").toLowerCase()]) return false;
+    if (hidden(t.handle)) return false;
     if (!needle) return true;
     return `${t.name} ${t.handle} ${t.role} ${t.body}`.toLowerCase().includes(needle);
   });
@@ -866,7 +899,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         <div className="mb-3">
           <div className="mb-1.5 text-[12px] font-semibold text-fg">People you may know</div>
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-            {suggested.filter((p) => !blocked[p.handle.toLowerCase()]).map((p) => (
+            {suggested.filter((p) => !hidden(p.handle)).map((p) => (
               <div key={p.id} className="w-[148px] shrink-0 rounded-[12px] border border-line px-2.5 py-2">
                 <a href={`/u/${encodeURIComponent(p.handle)}`} className="block truncate text-[12px] font-semibold">@{p.handle}</a>
                 <div className="truncate text-[10px] text-muted">{p.mutuals > 0 ? `${p.mutuals} mutual follows` : p.role}</div>
@@ -946,6 +979,12 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         </div>
       ) : null}
       <div className="mb-3 glass-3d px-2.5 py-2">
+        {quoting ? (
+          <div className="mb-2 flex items-start justify-between gap-2 rounded-[10px] border border-line px-2 py-1.5">
+            <p className="line-clamp-2 text-[11px] text-muted">Quoting @{quoting.handle}: {quoting.body}</p>
+            <button type="button" className="shrink-0 text-[10px] font-bold text-fg" onClick={() => setQuoting(null)}>Clear</button>
+          </div>
+        ) : null}
         <div className="flex items-start gap-2">
           <img src={avatarUrl("me")} alt="" className="mt-0.5 size-7 rounded-full bg-panel-3" />
           <textarea
@@ -1126,6 +1165,12 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
                 });
             }}
             onFollow={() => flipFollow(t.handle)}
+            onQuote={() => {
+              if (!authed) return goLogin();
+              setQuoting(t);
+              setBody("");
+              setErr("");
+            }}
             onReplyOpen={() => {
               if (openReply === t.id) {
                 setOpenReply("");
@@ -1359,6 +1404,7 @@ function TakeCard({
   followsYou,
   saved,
   onSave,
+  onQuote,
   onFollow,
 }: {
   take: TakeRow;
@@ -1387,6 +1433,7 @@ function TakeCard({
   followsYou: boolean;
   saved: boolean;
   onSave: () => void;
+  onQuote: () => void;
   onFollow: () => void;
 }) {
   const ghost = take.kind === "ghost";
@@ -1397,6 +1444,7 @@ function TakeCard({
   const hours = expires ? Math.max(0, Math.round((expires - Date.now()) / 3600000)) : 0;
   return (
     <article className="glass-3d px-2.5 py-2">
+      {take.via ? <div className="mb-1 text-[10px] font-semibold text-muted">Reposted by @{take.via}</div> : null}
       <div className="flex items-start gap-2">
         <Face handle={ghost ? "ghost" : take.handle} photo={ghost ? "" : photo} size={28} />
         <div className="min-w-0 flex-1">
@@ -1568,6 +1616,7 @@ function TakeCard({
         <button type="button" className={saved ? "on" : ""} onClick={onSave} aria-label={saved ? "Unsave" : "Save"}>
           <KMark />
         </button>
+        <button type="button" className="text-[11px] font-bold" onClick={onQuote}>Quote</button>
         <button type="button" onClick={onShare} aria-label="Share">
           <KSend />
         </button>
