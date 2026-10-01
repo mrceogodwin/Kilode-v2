@@ -419,6 +419,30 @@ export const likeTake = createServerFn({ method: "POST" })
     return { ok: true as const, liked: false, likes: Number(rows[0]?.likes ?? 0) };
   });
 
+export type TakeReply = { id: string; handle: string; body: string; ts: number };
+
+export const listTakeReplies = createServerFn({ method: "GET" })
+  .validator((d: { id?: string }) => ({ id: (d?.id || "").slice(0, 40) }))
+  .handler(async ({ data }) => {
+    if (!data.id) return [] as TakeReply[];
+    const sql = await getSql();
+    try {
+      const rows = await sql<{ id: string; handle: string | null; body: string | null; ts: string | number | null }>`
+        select id, handle, body, ts from nf_take_replies
+        where take_id = ${data.id}
+        order by ts asc
+        limit 40`;
+      return rows.map((r) => ({
+        id: String(r.id),
+        handle: r.handle || "member",
+        body: r.body || "",
+        ts: Number(r.ts || 0),
+      }));
+    } catch {
+      return [] as TakeReply[];
+    }
+  });
+
 export const replyTake = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { id: string; body: string }) => d)
@@ -431,9 +455,16 @@ export const replyTake = createServerFn({ method: "POST" })
     if (!checked.ok) return { ok: false as const, reason: checked.reason };
     const clean = checked.text;
     const sql = await getSql();
-    await sql`insert into nf_take_replies (id, take_id, user_id, handle, body, ts) values (${nid()}, ${data.id}, ${context.userId}, ${handle}, ${clean}, ${Date.now()})`;
+    const id = nid();
+    const ts = Date.now();
+    await sql`insert into nf_take_replies (id, take_id, user_id, handle, body, ts) values (${id}, ${data.id}, ${context.userId}, ${handle}, ${clean}, ${ts})`;
     await sql`update nf_takes set comments = comments + 1 where id = ${data.id}`;
-    return { ok: true as const, body: clean };
+    const owner = await sql<{ user_id: string | null }>`select user_id from nf_takes where id = ${data.id} limit 1`;
+    const ownerId = owner[0]?.user_id || "";
+    if (ownerId && ownerId !== context.userId && handle && handle !== "member") {
+      await pushNote(ownerId, `@${handle} replied to your take.`, "/?tab=socials");
+    }
+    return { ok: true as const, reply: { id, handle, body: clean, ts } satisfies TakeReply };
   });
 
 export const applyTake = createServerFn({ method: "POST" })

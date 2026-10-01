@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Briefcase, Headphones, Lock } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listFollowingTakes, listMyFollows, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -294,6 +294,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [dmBusy, setDmBusy] = useState(false);
   const [openReply, setOpenReply] = useState("");
   const [reply, setReply] = useState("");
+  const [threads, setThreads] = useState<Record<string, TakeReply[]>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [applied, setApplied] = useState<Record<string, boolean>>({});
   const [liked, setLiked] = useState<Record<string, boolean>>({});
@@ -966,20 +967,39 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             followsYou={theyFollow(t.handle)}
             onFollow={() => flipFollow(t.handle)}
             onReplyOpen={() => {
+              if (openReply === t.id) {
+                setOpenReply("");
+                return;
+              }
               setOpenReply(t.id);
               setReply("");
+              if (threads[t.id]) return;
+              void listTakeReplies({ data: { id: t.id } }).then((rows) => {
+                setThreads((m) => ({ ...m, [t.id]: rows }));
+              });
             }}
             onReplyChange={setReply}
+            replies={threads[t.id] || []}
             onReplySend={() => {
               if (!authed) return goLogin();
               const text = reply.trim();
-              if (!text) return;
-              patch(t.id, (row) => ({ ...row, comments: row.comments + 1, lastReply: text }));
-              setReply("");
-              setOpenReply("");
-              void replyTake({ data: { id: t.id, body: text } }).catch((e) => {
-                if (needLogin(e)) goLogin();
-              });
+              if (!text || busyId === t.id) return;
+              setBusyId(t.id);
+              void replyTake({ data: { id: t.id, body: text } })
+                .then((r) => {
+                  if (!r.ok) {
+                    setErr(r.reason);
+                    return;
+                  }
+                  patch(t.id, (row) => ({ ...row, comments: row.comments + 1, lastReply: r.reply.body }));
+                  setThreads((m) => ({ ...m, [t.id]: [...(m[t.id] || []), r.reply] }));
+                  setReply("");
+                })
+                .catch((e) => {
+                  if (needLogin(e)) goLogin();
+                  else setErr("Could not reply.");
+                })
+                .finally(() => setBusyId(""));
             }}
           />
         ))}
@@ -1150,6 +1170,7 @@ function TakeCard({
   onReplyOpen,
   onReplyChange,
   onReplySend,
+  replies,
   mine,
   link,
   liked,
@@ -1175,6 +1196,7 @@ function TakeCard({
   onReplyOpen: () => void;
   onReplyChange: (v: string) => void;
   onReplySend: () => void;
+  replies: TakeReply[];
   mine: boolean;
   link: "" | "out" | "in" | "ask";
   liked: boolean;
@@ -1318,7 +1340,21 @@ function TakeCard({
             </div>
           ) : null}
 
-          {take.lastReply ? <p className="mt-1.5 text-[11px] text-muted">Reply · {take.lastReply}</p> : null}
+          {replyOpen && replies.length > 0 ? (
+            <div className="mt-2 space-y-1.5 border-t border-line pt-2">
+              {replies.map((r) => (
+                <div key={r.id} className="text-[12px] leading-snug">
+                  <a href={`/u/${encodeURIComponent(r.handle)}`} className="font-semibold">@{r.handle}</a>
+                  <span className="text-muted"> · {timeAgo(r.ts)}</span>
+                  <p className="whitespace-pre-wrap">{r.body}</p>
+                </div>
+              ))}
+            </div>
+          ) : replyOpen ? (
+            <p className="mt-2 text-[11px] text-muted">No replies yet.</p>
+          ) : take.lastReply ? (
+            <p className="mt-1.5 text-[11px] text-muted">Reply · {take.lastReply}</p>
+          ) : null}
           {replyOpen ? (
             <form
               className="mt-1.5 flex gap-1"
