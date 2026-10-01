@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, startTransition } from "react";
 import {
+  Activity,
   Award,
   Bookmark,
   Briefcase,
@@ -383,21 +384,27 @@ function QonvoAppInner() {
   );
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || session.isPending) return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("tab") === "socials" || params.get("tab") === "chat" || params.get("tab") === "music" || params.get("tab") === "cinema" || params.get("tab") === "advert" || params.get("tab") === "feeds") {
-      setHomeTab(params.get("tab") as typeof homeTab);
-    }
+    const tab = params.get("tab");
     const open = params.get("open");
+    if (tab === "socials" || tab === "chat" || tab === "music" || tab === "cinema" || tab === "advert" || tab === "feeds") {
+      setHomeTab(tab as typeof homeTab);
+    } else if (!open && signedIn) {
+      setScreen("home");
+      setHomeTab("socials");
+    }
     if (open === "inbox" || open === "jobs" || open === "market" || open === "bookmarks" || open === "tv" || open === "pricing") {
       setScreen(open === "tv" ? "tv" : open);
     }
     if (open === "me") setScreen("dashboard");
+    if (open === "create") setScreen("create");
+    if (open === "search") setScreen("search");
     if (!open) return;
     params.delete("open");
     const next = params.toString();
     window.history.replaceState({}, "", `${window.location.pathname}${next ? `?${next}` : ""}${window.location.hash}`);
-  }, []);
+  }, [session.isPending, signedIn]);
 
   useEffect(() => {
     void listRoomOverlay()
@@ -1198,7 +1205,7 @@ function QonvoAppInner() {
         >
           <Plus className="size-6" strokeWidth={2.75} />
         </button>
-        <Tab icon={<Search className="size-5" />} label="Search" on={screen === "search"} onClick={() => { setMenuOpen(false); setScreen("search"); }} />
+        <Tab icon={<Activity className="size-5" />} label="Activity" on={screen === "search"} onClick={() => { setMenuOpen(false); if (session.isPending) return; if (!signedIn) { window.location.href = "/login?mode=up"; return; } setScreen("search"); }} />
         <Tab icon={<Layers className="size-5" />} label="My Space" on={screen === "dashboard"} onClick={() => { setMenuOpen(false); if (session.isPending) return; if (!signedIn) { window.location.href = "/login?mode=up"; return; } setScreen("dashboard"); }} />
       </nav>
 
@@ -1351,7 +1358,7 @@ function QonvoAppInner() {
                 <DrawerRow icon={MessageSquare} label="Chat" hint="Live rooms · topics & places" onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }} on={homeTab === "chat" && screen === "home"} />
                 <DrawerRow icon={Radio} label="Music" hint="Opens the artist's platform" onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
                 <DrawerRow icon={UsersRound} label="Socials" hint="Feed, people, and conversation" onClick={() => { if (!signedIn) { window.location.href = "/login?mode=up"; return; } setSocialLane("posts"); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); setMenuOpen(false); }} on={homeTab === "socials" && screen === "home"} />
-                <DrawerRow icon={Search} label="Search" hint="People, posts, jobs, listings" onClick={() => { setScreen("search"); setMenuOpen(false); }} on={screen === "search"} />
+                <DrawerRow icon={Activity} label="Activity" hint="All, Discover, Trending" onClick={() => { if (!signedIn) { window.location.href = "/login?mode=up"; return; } setScreen("search"); setMenuOpen(false); }} on={screen === "search"} />
                 <DrawerRow icon={Layers} label="My Space" hint="Your posts, jobs, listings" onClick={() => { if (!signedIn) { window.location.href = "/login?mode=up"; return; } setScreen("dashboard"); setMenuOpen(false); }} on={screen === "dashboard"} />
                 <DrawerRow icon={Film} label="Events" hint="What's on, RSVP" onClick={() => { setScreen("home"); setHomeTab("cinema"); setMenuOpen(false); }} on={homeTab === "cinema" && screen === "home"} />
                 <DrawerRow icon={Play} label="Cinema" hint="Watch and vote. Not on the bottom bar." onClick={() => { setScreen("home"); setHomeTab("watch"); setMenuOpen(false); }} on={homeTab === "watch" && screen === "home"} />

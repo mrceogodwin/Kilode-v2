@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Bell, Flame, Home, Menu, MessageSquare, Plus, Search, User, Users } from "lucide-react";
+import { Activity, Bell, Flame, Layers, Menu, MessageSquare, Newspaper, Plus, Users, UsersRound } from "lucide-react";
 import { getPublicProfile, sendDm } from "@/lib/social-server";
 import { deleteOwnPost, reportPost } from "@/lib/forum-server";
 import { connectByHandle, followLook, listConnects, listMyBlocks, listMyFollows, listMyMutes, listUserTakes, toggleBlock, toggleFollow, toggleMute, type TakeRow } from "@/lib/takes-server";
@@ -365,11 +365,11 @@ function PublicProfile() {
       </div>
       </div>
       <nav className="dock pointer-events-auto z-40" aria-label="Kilode">
-        <a href="/" className="app-tab grid place-items-center text-[10px] font-semibold"><Home className="size-5" />Home</a>
-        <a href="/?tab=socials" className="app-tab grid place-items-center text-[10px] font-semibold"><Search className="size-5" />Explore</a>
-        <a href="/" className="dock-plus" aria-label="Create"><Plus className="size-6" strokeWidth={2.75} /></a>
-        <a href="/" className="app-tab grid place-items-center text-[10px] font-semibold"><MessageSquare className="size-5" />Chat</a>
-        <a href="/?open=me" className="app-tab grid place-items-center text-[10px] font-semibold"><User className="size-5" />Profile</a>
+        <a href="/" className="app-tab grid place-items-center text-[10px] font-semibold"><Newspaper className="size-5" />Media</a>
+        <a href={session.user ? "/?tab=socials" : "/login?mode=up"} className="app-tab grid place-items-center text-[10px] font-semibold"><UsersRound className="size-5" />Socials</a>
+        <a href={session.user ? "/?open=create" : "/login?mode=up"} className="dock-plus" aria-label="Create"><Plus className="size-6" strokeWidth={2.75} /></a>
+        <a href={session.user ? "/?open=search" : "/login?mode=up"} className="app-tab grid place-items-center text-[10px] font-semibold"><Activity className="size-5" />Activity</a>
+        <a href={session.user ? "/?open=me" : "/login?mode=up"} className="app-tab grid place-items-center text-[10px] font-semibold"><Layers className="size-5" />My Space</a>
       </nav>
     </main>
   );

@@ -31,7 +31,11 @@ function Login() {
   const [busy, setBusy] = useState(false);
 
   function go() {
-    const next = search.next && search.next.startsWith("/") ? search.next : "/";
+    if (staff) {
+      window.location.href = STAFF_PATH;
+      return;
+    }
+    const next = search.next && search.next.startsWith("/") && search.next !== "/" ? search.next : "/?tab=socials";
     window.location.href = next;
   }
 
@@ -77,7 +81,7 @@ function Login() {
             className="google-go"
             onClick={() => {
               setErr("");
-              void signIn("grok-google", { callbackURL: search.next && search.next.startsWith("/") ? search.next : "/" }).catch((e: unknown) => {
+              void signIn("grok-google", { callbackURL: staff ? STAFF_PATH : search.next && search.next.startsWith("/") && search.next !== "/" ? search.next : "/?tab=socials" }).catch((e: unknown) => {
                 setErr(e instanceof Error ? e.message : "Google sign-in did not start.");
               });
             }}
