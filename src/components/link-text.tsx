@@ -1,4 +1,4 @@
-const URL_RE = /(https?:\/\/[^\s]+|\/p\/[A-Za-z0-9._~%-]+)/g;
+const URL_RE = /(https?:\/\/[^\s]+|\/p\/[A-Za-z0-9._~%-]+|#[A-Za-z0-9_]{2,24}|@[A-Za-z0-9._-]{2,24})/g;
 
 function plain(s: string) {
   let out = s;
@@ -44,6 +44,27 @@ export function LinkText({ text }: { text: string }) {
             >
               Open story
             </button>
+          );
+        }
+        if (part.startsWith("#") && part.length > 1) {
+          const tag = part.slice(1).toLowerCase();
+          return (
+            <button
+              key={i}
+              type="button"
+              className="font-semibold text-lime-2"
+              onClick={() => window.dispatchEvent(new CustomEvent("kilode:tag", { detail: tag }))}
+            >
+              {part}
+            </button>
+          );
+        }
+        if (part.startsWith("@") && part.length > 1) {
+          const handle = part.slice(1);
+          return (
+            <a key={i} href={`/u/${encodeURIComponent(handle)}`} className="font-semibold text-lime-2">
+              {part}
+            </a>
           );
         }
         return <span key={i}>{part}</span>;

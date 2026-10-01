@@ -233,6 +233,96 @@ function topicCounts(bodies: string[]) {
     .map(([word, n]) => ({ word, n }));
 }
 
+export function tagsOf(body: string) {
+  const out: string[] = [];
+  const re = /#([A-Za-z0-9_]{2,24})/g;
+  let hit: RegExpExecArray | null;
+  while ((hit = re.exec(body)) && out.length < 5) {
+    const tag = hit[1].toLowerCase();
+    if (!out.includes(tag)) out.push(tag);
+  }
+  return out;
+}
+
+function mentionsOf(body: string) {
+  const out: string[] = [];
+  const re = /@([A-Za-z0-9._-]{2,24})/g;
+  let hit: RegExpExecArray | null;
+  while ((hit = re.exec(body)) && out.length < 3) {
+    const handle = hit[1].toLowerCase();
+    if (!out.includes(handle)) out.push(handle);
+  }
+  return out;
+}
+
+let tagsReady = false;
+
+async function ensureTags(sql: Awaited<ReturnType<typeof getSql>>) {
+  if (tagsReady) return;
+  await sql`create table if not exists nf_take_tags (
+    take_id text not null,
+    tag text not null,
+    ts bigint not null default 0,
+    primary key (take_id, tag)
+  )`;
+  tagsReady = true;
+}
+
+async function indexTake(sql: Awaited<ReturnType<typeof getSql>>, id: string, body: string, ts: number, userId: string, handle: string) {
+  try {
+    await ensureTags(sql);
+    for (const tag of tagsOf(body)) {
+      await sql`insert into nf_take_tags (take_id, tag, ts) values (${id}, ${tag}, ${ts}) on conflict (take_id, tag) do nothing`;
+    }
+    for (const mentioned of mentionsOf(body)) {
+      if (mentioned === handle.toLowerCase()) continue;
+      const who = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = ${mentioned} limit 1`;
+      const to = who[0]?.user_id || "";
+      if (to && to !== userId) await pushNote(to, `@${handle} mentioned you.`, `/u/${encodeURIComponent(handle)}`);
+    }
+  } catch {
+    /* a missed tag must not fail the post */
+  }
+}
+
+export const listTakesByTag = createServerFn({ method: "GET" })
+  .validator((d: { tag?: string; before?: number }) => ({
+    tag: (d?.tag || "").toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24),
+    before: Number(d?.before || 0),
+  }))
+  .handler(async ({ data }) => {
+    if (data.tag.length < 2) return { takes: [] as TakeRow[], next: 0 };
+    const sql = await getSql();
+    await ensureTags(sql);
+    const pattern = `(^|[^A-Za-z0-9_])#${data.tag}([^A-Za-z0-9_]|$)`;
+    const before = data.before;
+    try {
+      const rows = before
+        ? await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
+            from nf_takes t
+            where t.ts < ${before} and t.user_id <> ${"seed"} and t.id not like ${"seed-%"}
+              and (
+                exists (select 1 from nf_take_tags g where g.take_id = t.id and g.tag = ${data.tag})
+                or t.body ~* ${pattern}
+              )
+            order by t.ts desc
+            limit 20`
+        : await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
+            from nf_takes t
+            where t.user_id <> ${"seed"} and t.id not like ${"seed-%"}
+              and (
+                exists (select 1 from nf_take_tags g where g.take_id = t.id and g.tag = ${data.tag})
+                or t.body ~* ${pattern}
+              )
+            order by t.ts desc
+            limit 20`;
+      const takes = (rows as Record<string, unknown>[]).map(mapTake);
+      return { takes, next: takes.length === 20 ? takes[takes.length - 1].ts : 0 };
+    } catch {
+      return { takes: [] as TakeRow[], next: 0 };
+    }
+  });
+
 export const listUserTakes = createServerFn({ method: "GET" })
   .validator((handle: string) => handle)
   .handler(async ({ data }) => {
@@ -347,6 +437,7 @@ export const saveTake = createServerFn({ method: "POST" })
           return { ok: false as const, reason: "Post did not save. Try again." };
         }
       }
+      await indexTake(sql, id, clean, ts, userId, who.handle);
       return {
         ok: true as const,
         take: mapTake({
@@ -463,6 +554,12 @@ export const replyTake = createServerFn({ method: "POST" })
     const ownerId = owner[0]?.user_id || "";
     if (ownerId && ownerId !== context.userId && handle && handle !== "member") {
       await pushNote(ownerId, `@${handle} replied to your take.`, "/?tab=socials");
+    }
+    for (const mentioned of mentionsOf(clean)) {
+      if (mentioned === handle.toLowerCase()) continue;
+      const who = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = ${mentioned} limit 1`;
+      const to = who[0]?.user_id || "";
+      if (to && to !== context.userId && to !== ownerId) await pushNote(to, `@${handle} mentioned you.`, `/u/${encodeURIComponent(handle)}`);
     }
     return { ok: true as const, reply: { id, handle, body: clean, ts } satisfies TakeReply };
   });

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Briefcase, Headphones, Lock } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -285,7 +285,13 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [followTakes, setFollowTakes] = useState<TakeRow[]>([]);
   const [followNext, setFollowNext] = useState(0);
   const [followLoaded, setFollowLoaded] = useState(false);
-  const [feedCut, setFeedCut] = useState<"all" | "following">("all");
+  const [feedCut, setFeedCut] = useState<"all" | "following" | "trending" | "tag">("all");
+  const [tag, setTag] = useState("");
+  const [tagTakes, setTagTakes] = useState<TakeRow[]>([]);
+  const [tagNext, setTagNext] = useState(0);
+  const [trendTakes, setTrendTakes] = useState<TakeRow[]>([]);
+  const [trendNext, setTrendNext] = useState(0);
+  const [trendLoaded, setTrendLoaded] = useState(false);
   const [suggested, setSuggested] = useState<{ id: string; handle: string; role: string; mutuals: number }[]>([]);
   const likeLock = useRef(new Set<string>());
   const [dmFor, setDmFor] = useState<FellowRow | null>(null);
@@ -421,6 +427,54 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
       dead = true;
     };
   }, [authed, feedCut, followLoaded]);
+
+  useEffect(() => {
+    const onTag = (e: Event) => {
+      const next = String((e as CustomEvent<string>).detail || "").toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24);
+      if (next.length < 2) return;
+      setTag(next);
+      setFeedCut("tag");
+      setTagTakes([]);
+      setTagNext(0);
+    };
+    window.addEventListener("kilode:tag", onTag);
+    return () => window.removeEventListener("kilode:tag", onTag);
+  }, []);
+
+  useEffect(() => {
+    if (feedCut !== "tag" || tag.length < 2) return;
+    let dead = false;
+    void listTakesByTag({ data: { tag } })
+      .then((r) => {
+        if (dead) return;
+        setTagTakes(r.takes);
+        setTagNext(r.next);
+      })
+      .catch(() => {
+        if (!dead) setTagTakes([]);
+      });
+    return () => {
+      dead = true;
+    };
+  }, [feedCut, tag]);
+
+  useEffect(() => {
+    if (feedCut !== "trending" || trendLoaded) return;
+    let dead = false;
+    void listTrending()
+      .then((r) => {
+        if (dead) return;
+        setTrendTakes(r.takes);
+        setTrendNext(r.next);
+        setTrendLoaded(true);
+      })
+      .catch(() => {
+        if (!dead) setTrendLoaded(true);
+      });
+    return () => {
+      dead = true;
+    };
+  }, [feedCut, trendLoaded]);
 
   function theyFollow(handle: string, id?: string) {
     return !!(followsYou[(handle || "").toLowerCase()] || (id && followsYou[id]));
@@ -592,11 +646,21 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     ? pool.filter((f) => `${f.name} ${f.handle} ${f.role}`.toLowerCase().includes(needle))
     : pool;
   const shownFellows = matched.slice(0, fellowCap);
-  const takeSource = feedCut === "following" ? followTakes : takes;
+  const takeSource = feedCut === "following" ? followTakes : feedCut === "trending" ? trendTakes : feedCut === "tag" ? tagTakes : takes;
   const shownTakes = takeSource.filter((t) => {
     if (!needle) return true;
     return `${t.name} ${t.handle} ${t.role} ${t.body}`.toLowerCase().includes(needle);
   });
+  const liveTags = (() => {
+    const bag = new Map<string, number>();
+    const re = /#([A-Za-z0-9_]{2,24})/g;
+    for (const t of takes) {
+      re.lastIndex = 0;
+      let hit: RegExpExecArray | null;
+      while ((hit = re.exec(t.body))) bag.set(hit[1].toLowerCase(), (bag.get(hit[1].toLowerCase()) || 0) + 1);
+    }
+    return [...bag.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name]) => name);
+  })();
 
   if (trendOpen) {
     return (
@@ -824,10 +888,23 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
 
       {lane !== "people" ? (
       <>
-      <div className="mb-2 flex gap-1.5">
-        <button type="button" className={`soc-chip px-2.5 py-1 text-[12px] ${feedCut === "all" ? "on" : ""}`} onClick={() => setFeedCut("all")}>For you</button>
-        <button type="button" className={`soc-chip px-2.5 py-1 text-[12px] ${feedCut === "following" ? "on" : ""}`} onClick={() => setFeedCut("following")}>Following</button>
+      <div className="mb-2 flex gap-1.5 overflow-x-auto">
+        <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "all" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("all"); }}>For you</button>
+        <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "following" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("following"); }}>Following</button>
+        <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "trending" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("trending"); }}>Trending</button>
+        {tag ? (
+          <button type="button" className="soc-chip on shrink-0 px-2.5 py-1 text-[12px]" onClick={() => setFeedCut("tag")}>#{tag}</button>
+        ) : null}
       </div>
+      {liveTags.length > 0 && feedCut !== "tag" ? (
+        <div className="mb-2 flex gap-1.5 overflow-x-auto">
+          {liveTags.map((name) => (
+            <button key={name} type="button" className="shrink-0 rounded-full border border-line px-2.5 py-1 text-[11px] font-semibold text-lime-2" onClick={() => { setTag(name); setFeedCut("tag"); setTagTakes([]); }}>
+              #{name}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="mb-3 glass-3d px-2.5 py-2">
         <div className="flex items-start gap-2">
           <img src={avatarUrl("me")} alt="" className="mt-0.5 size-7 rounded-full bg-panel-3" />
@@ -883,7 +960,17 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
 
       {shownTakes.length === 0 ? (
         <p className="py-3 text-center text-[11px] text-muted">
-          {feedCut === "following" && !followLoaded ? "Loading who you follow…" : feedCut === "following" ? "Follow people. Their takes land here." : "No takes yet. Be first."}
+          {feedCut === "following" && !followLoaded
+            ? "Loading who you follow…"
+            : feedCut === "following"
+              ? "Follow people. Their takes land here."
+              : feedCut === "trending" && !trendLoaded
+                ? "Loading what is moving…"
+                : feedCut === "trending"
+                  ? "Nothing is moving in the last two days."
+                  : feedCut === "tag"
+                    ? `No takes on #${tag} yet.`
+                    : "No takes yet. Be first."}
         </p>
       ) : null}
       <div className="space-y-2">
@@ -1004,7 +1091,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
           />
         ))}
       </div>
-      {(feedCut === "following" ? followNext : next) ? (
+      {(feedCut === "following" ? followNext : feedCut === "trending" ? trendNext : feedCut === "tag" ? tagNext : next) ? (
         <button
           type="button"
           className="mt-3 w-full rounded-[10px] border border-line py-2 text-[11px] font-semibold text-muted"
@@ -1013,6 +1100,20 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
               void listFollowingTakes({ data: { before: followNext } }).then((r) => {
                 setFollowTakes((list) => [...list, ...r.takes.filter((t) => !list.some((x) => x.id === t.id))]);
                 setFollowNext(r.next);
+              });
+              return;
+            }
+            if (feedCut === "trending") {
+              void listTrending({ data: { offset: trendNext } }).then((r) => {
+                setTrendTakes((list) => [...list, ...r.takes.filter((t) => !list.some((x) => x.id === t.id))]);
+                setTrendNext(r.next);
+              });
+              return;
+            }
+            if (feedCut === "tag") {
+              void listTakesByTag({ data: { tag, before: tagNext } }).then((r) => {
+                setTagTakes((list) => [...list, ...r.takes.filter((t) => !list.some((x) => x.id === t.id))]);
+                setTagNext(r.next);
               });
               return;
             }
@@ -1346,7 +1447,7 @@ function TakeCard({
                 <div key={r.id} className="text-[12px] leading-snug">
                   <a href={`/u/${encodeURIComponent(r.handle)}`} className="font-semibold">@{r.handle}</a>
                   <span className="text-muted"> · {timeAgo(r.ts)}</span>
-                  <p className="whitespace-pre-wrap">{r.body}</p>
+                  <p className="whitespace-pre-wrap"><LinkText text={r.body} /></p>
                 </div>
               ))}
             </div>
