@@ -258,10 +258,18 @@ function QonvoAppInner() {
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [forceOnboard, setForceOnboard] = useState(false);
   const [screen, setScreenNow] = useState<MenuId>("home");
-  const setScreen = (id: MenuId) => startTransition(() => setScreenNow(id));
+  const [keptScreens, setKeptScreens] = useState<Record<string, true>>({});
+  const setScreen = (id: MenuId) => startTransition(() => {
+    setScreenNow(id);
+    if (id === "search" || id === "dashboard" || id === "create") setKeptScreens((m) => (m[id] ? m : { ...m, [id]: true }));
+  });
   const [homeTab, setHomeTabNow] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials">("feeds");
   const [socialLane, setSocialLane] = useState<"people" | "posts">("posts");
-  const setHomeTab = (tab: "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials") => startTransition(() => setHomeTabNow(tab));
+  const [keptTabs, setKeptTabs] = useState<Record<string, true>>({ feeds: true });
+  const setHomeTab = (tab: "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials") => startTransition(() => {
+    setHomeTabNow(tab);
+    if (tab === "feeds" || tab === "socials") setKeptTabs((m) => (m[tab] ? m : { ...m, [tab]: true }));
+  });
   useEffect(() => {
     if (!signedIn) {
       setDmCount(0);
@@ -797,25 +805,30 @@ function QonvoAppInner() {
             <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-bg">
               {homeTab === "feeds" && marketDesk ? (
                 <MarketsDesk desk={marketDesk} onDesk={setMarketDesk} onBack={() => setMarketDesk(null)} />
-              ) : homeTab === "feeds" ? (
-                <FeedPane
-                  store={store}
-                  q={feedQ}
-                  onDesk={setMarketDesk}
-                  onLeave={(where) => {
-                    if (where === "trending") setScreen("trending");
-                    else if (where === "music") setHomeTab("music");
-                    else if (where === "cinema") setHomeTab("cinema");
-                    else if (where === "jobs") setScreen("jobs");
-                    else if (where === "sports") setMarketDesk("sports");
-                    else if (where === "tech") setMarketDesk("tech");
-                  }}
-                />
-              ) : homeTab === "socials" ? (
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
+              ) : null}
+              {keptTabs.feeds ? (
+                <div className={homeTab === "feeds" && !marketDesk ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "hidden"}>
+                  <FeedPane
+                    store={store}
+                    q={feedQ}
+                    onDesk={setMarketDesk}
+                    onLeave={(where) => {
+                      if (where === "trending") setScreen("trending");
+                      else if (where === "music") setHomeTab("music");
+                      else if (where === "cinema") setHomeTab("cinema");
+                      else if (where === "jobs") setScreen("jobs");
+                      else if (where === "sports") setMarketDesk("sports");
+                      else if (where === "tech") setMarketDesk("tech");
+                    }}
+                  />
+                </div>
+              ) : null}
+              {keptTabs.socials ? (
+                <div className={homeTab === "socials" ? "min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad" : "hidden"}>
                   <SocialsFeed lane={socialLane} authed={store.authed || !!session.user} account={store.kind} me={store.handle} onOpenPeople={() => setSocialLane("people")} onOpenFeed={() => setSocialLane("posts")} />
                 </div>
-              ) : homeTab === "music" ? (
+              ) : null}
+              {homeTab === "music" ? (
                 <MusicPane store={store} onAdd={() => (store.authed || session.user ? setScreen("create") : (window.location.href = "/login"))} />
               ) : homeTab === "cinema" ? (
                 <EventsPane />
@@ -831,7 +844,7 @@ function QonvoAppInner() {
                 />
               ) : homeTab === "downloads" ? (
                 <DownloadsPane />
-              ) : (
+              ) : homeTab === "feeds" || homeTab === "socials" ? null : (
                 <>
               <div className="flex shrink-0 items-center gap-1.5 border-b border-white/5 bg-panel px-2 py-1">
                 <div className="min-w-0 flex-1">
@@ -1153,7 +1166,22 @@ function QonvoAppInner() {
             </aside>
           </div>
         </div>
-      {screen !== "home" ? (
+      {(["search", "dashboard", "create"] as const).map((id) =>
+        keptScreens[id] ? (
+          <div key={id} className={screen === id ? "min-h-0 flex-1 overflow-hidden" : "hidden"} aria-hidden={screen !== id}>
+            <QonvoScreen
+              id={id}
+              store={store}
+              onHome={goHome}
+              onForum={() => {
+                setScreen("home");
+                setHomeTab(store.tracks[0] && Date.now() - store.tracks[0].ts < 4000 ? "music" : "feeds");
+              }}
+            />
+          </div>
+        ) : null,
+      )}
+      {screen !== "home" && screen !== "search" && screen !== "dashboard" && screen !== "create" ? (
         <div className="min-h-0 flex-1 overflow-hidden">
           <QonvoScreen
             id={screen}

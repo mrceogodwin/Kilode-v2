@@ -24,21 +24,81 @@ export function getSupabase(): SupabaseClient | null {
 
 /** Upload a listing photo. Uses the Supabase `market-images` bucket when configured, otherwise a compressed data URL stored on the Neon listing row. */
 export async function uploadListingPhoto(file: File): Promise<string> {
-  if (file.size > 5 * 1024 * 1024) throw new Error("Image must be 5MB or smaller.");
+  if (file.size > 7 * 1024 * 1024) throw new Error("Image must be 7MB or smaller.");
   if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) throw new Error("Use JPG, PNG, or WebP.");
-  const sb = getSupabase();
-  if (sb) {
-    const ext = file.type.includes("png") ? "png" : file.type.includes("webp") ? "webp" : "jpg";
-    const path = `listings/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const up = await sb.storage.from("market-images").upload(path, file, { contentType: file.type, upsert: false });
-    if (!up.error) {
-      const pub = sb.storage.from("market-images").getPublicUrl(path);
-      if (pub.data.publicUrl) return pub.data.publicUrl;
-    }
-  }
+  const stored = await putInBucket(file, "listings");
+  if (stored) return stored;
   const data = await compressPhoto(file);
   if (data.length > 900_000) throw new Error("Image is still too large after compression. Try a smaller photo.");
   return data;
+}
+
+const IMAGE_CAP = 7 * 1024 * 1024;
+const VIDEO_CAP = 20 * 1024 * 1024;
+const VIDEO_SECONDS = 15;
+
+function mediaSeconds(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      const seconds = video.duration;
+      URL.revokeObjectURL(url);
+      resolve(Number.isFinite(seconds) ? seconds : 0);
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Could not read that video."));
+    };
+    video.src = url;
+  });
+}
+
+/** Photo (7MB) or video (20MB, 15 seconds) for a take. Stored in Supabase, not in the database row. */
+export async function uploadTakeMedia(file: File): Promise<{ kind: "image" | "video"; url: string }> {
+  const image = /^image\/(jpeg|png|webp)$/i.test(file.type);
+  const video = /^video\/(mp4|webm|quicktime)$/i.test(file.type);
+  if (!image && !video) throw new Error("Use a JPG, PNG, WebP, MP4, or WebM.");
+  if (image && file.size > IMAGE_CAP) throw new Error("Image must be 7MB or smaller.");
+  if (video && file.size > VIDEO_CAP) throw new Error("Video must be 20MB or smaller.");
+  if (video) {
+    const seconds = await mediaSeconds(file);
+    if (seconds > VIDEO_SECONDS + 0.25) throw new Error("Video must be 15 seconds or shorter.");
+  }
+  const stored = await putInBucket(file, "takes");
+  if (!stored) {
+    if (video) throw new Error("Video needs Supabase storage. Add the Supabase URL and anon key, and a public market-images bucket.");
+    const data = await compressPhoto(file);
+    if (data.length > 140_000) throw new Error("That photo needs Supabase storage. Add the keys, or use a smaller picture.");
+    return { kind: "image", url: data };
+  }
+  return { kind: image ? "image" : "video", url: stored };
+}
+
+async function putInBucket(file: File, folder: string): Promise<string> {
+  const sb = getSupabase();
+  if (!sb) return "";
+  const ext = file.type.includes("png")
+    ? "png"
+    : file.type.includes("webp")
+      ? "webp"
+      : file.type.includes("webm")
+        ? "webm"
+        : file.type.includes("quicktime")
+          ? "mov"
+          : file.type.startsWith("video/")
+            ? "mp4"
+            : "jpg";
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  for (const bucket of ["take-media", "market-images"]) {
+    const up = await sb.storage.from(bucket).upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+    if (!up.error) {
+      const pub = sb.storage.from(bucket).getPublicUrl(path);
+      if (pub.data.publicUrl) return pub.data.publicUrl;
+    }
+  }
+  return "";
 }
 
 function compressPhoto(file: File): Promise<string> {

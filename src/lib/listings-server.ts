@@ -178,6 +178,7 @@ export type ExploreTile = {
   image: string;
   href: string;
   video: boolean;
+  clip?: string;
 };
 
 export const listExploreGrid = createServerFn({ method: "GET" }).handler(async () => {
@@ -229,26 +230,31 @@ export const listExploreGrid = createServerFn({ method: "GET" }).handler(async (
   try {
     const shots = await sql<{ id: string; handle: string | null; body: string | null; meta: string | null }>`
       select id, handle, body, meta from nf_takes
-      where user_id <> ${"seed"} and id not like ${"seed-%"} and meta like ${'%"image":%'}
+      where user_id <> ${"seed"} and id not like ${"seed-%"}
+        and (meta like ${'%"image":%'} or meta like ${'%"video":%'})
       order by ts desc
       limit 24`;
     for (const row of shots) {
       let image = "";
+      let clip = "";
       try {
-        const meta = JSON.parse(row.meta || "{}") as { image?: string };
+        const meta = JSON.parse(row.meta || "{}") as { image?: string; video?: string };
         image = typeof meta.image === "string" ? meta.image : "";
+        clip = typeof meta.video === "string" ? meta.video : "";
       } catch {
         image = "";
       }
-      if (!image.startsWith("http") && !image.startsWith("data:image/")) continue;
-      const handle = row.handle || "member";
+      const photo = image.startsWith("http") || image.startsWith("data:image/") ? image : "";
+      const film = /^https:\/\//i.test(clip) ? clip : "";
+      if (!photo && !film) continue;
       tiles.unshift({
         id: row.id,
         kind: "take",
         title: (row.body || "Take").slice(0, 80),
-        image,
-        href: `/u/${encodeURIComponent(handle)}`,
-        video: false,
+        image: photo,
+        clip: film,
+        href: `/?tab=socials&take=${encodeURIComponent(row.id)}`,
+        video: Boolean(film),
       });
     }
   } catch {

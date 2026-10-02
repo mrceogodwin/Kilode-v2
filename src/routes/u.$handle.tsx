@@ -338,12 +338,24 @@ function PublicProfile() {
                 </article>
               ))
             ) : cut === "media" ? (
-              takes.filter((t) => typeof t.meta.image === "string" && (String(t.meta.image).startsWith("http") || String(t.meta.image).startsWith("data:image/"))).length === 0 ? (
+              takes.filter((t) => {
+                const image = typeof t.meta.image === "string" ? t.meta.image : "";
+                const video = typeof t.meta.video === "string" ? t.meta.video : "";
+                return image.startsWith("http") || image.startsWith("data:image/") || video.startsWith("http");
+              }).length === 0 ? (
                 <p className="text-sm text-muted">No photos yet.</p>
               ) : (
                 <div className="grid grid-cols-3 gap-1.5">
-                  {takes.filter((t) => typeof t.meta.image === "string" && (String(t.meta.image).startsWith("http") || String(t.meta.image).startsWith("data:image/"))).map((t) => (
-                    <img key={t.id} src={String(t.meta.image)} alt="" referrerPolicy="no-referrer" className="aspect-square w-full rounded-lg object-cover" />
+                  {takes.filter((t) => {
+                    const image = typeof t.meta.image === "string" ? t.meta.image : "";
+                    const video = typeof t.meta.video === "string" ? t.meta.video : "";
+                    return image.startsWith("http") || image.startsWith("data:image/") || video.startsWith("http");
+                  }).map((t) => (
+                    typeof t.meta.video === "string" && t.meta.video.startsWith("http") ? (
+                      <video key={t.id} src={t.meta.video} muted playsInline preload="metadata" className="aspect-square w-full rounded-lg object-cover" />
+                    ) : (
+                      <img key={t.id} src={String(t.meta.image)} alt="" referrerPolicy="no-referrer" className="aspect-square w-full rounded-lg object-cover" />
+                    )
                   ))}
                 </div>
               )

@@ -1,44 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Briefcase, Headphones, ImagePlus, Lock } from "lucide-react";
+import { Briefcase, Headphones, ImagePlus, Lock, Video } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
+import { uploadTakeMedia } from "@/lib/supabase";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, getTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, getTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
 import { VerifiedMark } from "@/components/handle-link";
 
-
-function shrinkPhoto(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("read"));
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const max = 960;
-        const scale = Math.min(1, max / Math.max(img.width, img.height));
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(img.width * scale));
-        canvas.height = Math.max(1, Math.round(img.height * scale));
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return reject(new Error("canvas"));
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        let q = 0.72;
-        let url = canvas.toDataURL("image/jpeg", q);
-        while (url.length > 120000 && q > 0.42) {
-          q -= 0.08;
-          url = canvas.toDataURL("image/jpeg", q);
-        }
-        if (!url.startsWith("data:image/jpeg") || url.length > 140000) return reject(new Error("big"));
-        resolve(url);
-      };
-      img.onerror = () => reject(new Error("img"));
-      img.src = String(reader.result || "");
-    };
-    reader.readAsDataURL(file);
-  });
-}
 
 function heatOf(t: TakeRow) {
   return t.likes * 3 + t.reposts * 4 + t.comments * 2 + t.fact + t.cap + t.voteA + t.voteB;
@@ -305,6 +275,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [err, setErr] = useState("");
   const [body, setBody] = useState("");
   const [shot, setShot] = useState("");
+  const [clip, setClip] = useState("");
+  const [mediaBusy, setMediaBusy] = useState(false);
   const [line, setLine] = useState("");
   const [kind, setKind] = useState<TakeKind>("take");
   useEffect(() => {
@@ -720,8 +692,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     setErr("");
     const pending = saveTake({
       data: quoting
-        ? { body: text, kind: "quote", quoteName: quoting.name, quoteHandle: quoting.handle, quoteBody: quoting.body, image: shot }
-        : { body: text, kind, line, image: shot },
+        ? { body: text, kind: "quote", quoteName: quoting.name, quoteHandle: quoting.handle, quoteBody: quoting.body, image: shot, video: clip }
+        : { body: text, kind, line, image: shot, video: clip },
     });
     const timeout = new Promise<{ ok: false; reason: string }>((resolve) => {
       window.setTimeout(() => resolve({ ok: false, reason: "The server took too long. Try Post again." }), 12000);
@@ -735,6 +707,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         setBody("");
         setLine("");
         setShot("");
+        setClip("");
         setQuoting(null);
       }
     } catch (e) {
@@ -1095,18 +1068,48 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             <button type="button" className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white" onClick={() => setShot("")}>Remove</button>
           </div>
         ) : null}
+        {clip ? (
+          <div className="relative mt-2">
+            <video src={clip} controls playsInline className="max-h-52 w-full rounded-[10px] bg-black" />
+            <button type="button" className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white" onClick={() => setClip("")}>Remove</button>
+          </div>
+        ) : null}
         <div className="mt-1.5 flex items-center gap-1">
           <label className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-full border border-line text-muted" aria-label="Add photo">
             <ImagePlus className="size-3.5" />
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               className="sr-only"
+              disabled={mediaBusy}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 e.target.value = "";
                 if (!file) return;
-                void shrinkPhoto(file).then(setShot).catch(() => setErr("That photo is too large. Try a smaller one."));
+                setMediaBusy(true);
+                void uploadTakeMedia(file)
+                  .then((r) => setShot(r.url))
+                  .catch((err) => setErr(err instanceof Error ? err.message : "Photo did not upload."))
+                  .finally(() => setMediaBusy(false));
+              }}
+            />
+          </label>
+          <label className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-full border border-line text-muted" aria-label="Add video">
+            <Video className="size-3.5" />
+            <input
+              type="file"
+              accept="video/mp4,video/webm,video/quicktime"
+              className="sr-only"
+              disabled={mediaBusy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                setMediaBusy(true);
+                void uploadTakeMedia(file)
+                  .then((r) => setClip(r.url))
+                  .catch((err) => setErr(err instanceof Error ? err.message : "Video did not upload."))
+                  .finally(() => setMediaBusy(false));
               }}
             />
           </label>
@@ -1123,8 +1126,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             ))}
           </div>
           <span className="shrink-0 text-[9px] tabular-nums text-muted">{body.length}/280</span>
-          <button type="button" disabled={busy || body.trim().length < 1} className="btn-join min-w-14 shrink-0 rounded-full px-3 py-1 text-[11px] font-bold disabled:opacity-50" onClick={() => void post()}>
-            {busy ? "Sending" : "Post"}
+          <button type="button" disabled={busy || mediaBusy || body.trim().length < 1} className="btn-join min-w-14 shrink-0 rounded-full px-3 py-1 text-[11px] font-bold disabled:opacity-50" onClick={() => void post()}>
+            {busy || mediaBusy ? "Sending" : "Post"}
           </button>
         </div>
         {err ? <p className="mt-1 text-[12px] font-semibold text-danger" role="alert">{err}</p> : null}
@@ -1215,9 +1218,9 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
                 .finally(() => setBusyId(""));
             }}
             onShare={() => {
-              const text = `${t.name}: ${t.body}`;
-              if (navigator.share) void navigator.share({ text });
-              else void navigator.clipboard?.writeText(text);
+              const url = `${window.location.origin}/?tab=socials&take=${encodeURIComponent(t.id)}`;
+              if (navigator.share) void navigator.share({ title: "Kilode", text: t.body, url }).catch(() => undefined);
+              else void navigator.clipboard?.writeText(url);
             }}
             mine={!!me && t.handle.toLowerCase() === me.toLowerCase()}
             link={linked[t.id] || linked[(t.handle || "").toLowerCase()] || ""}
@@ -1279,6 +1282,14 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             }}
             onReplyChange={setReply}
             replies={threads[t.id] || []}
+            meHandle={me}
+            onDeleteReply={(id) => {
+              void deleteOwnReply({ data: { id } }).then((r) => {
+                if (!r.ok) return;
+                setThreads((m) => ({ ...m, [t.id]: (m[t.id] || []).filter((row) => row.id !== id) }));
+                patch(t.id, (row) => ({ ...row, comments: Math.max(0, row.comments - 1) }));
+              });
+            }}
             onReplySend={() => {
               if (!authed) return goLogin();
               const text = reply.trim();
@@ -1491,6 +1502,8 @@ function TakeCard({
   onReplyChange,
   onReplySend,
   replies,
+  meHandle,
+  onDeleteReply,
   mine,
   link,
   liked,
@@ -1521,6 +1534,8 @@ function TakeCard({
   onReplyChange: (v: string) => void;
   onReplySend: () => void;
   replies: TakeReply[];
+  meHandle?: string;
+  onDeleteReply?: (id: string) => void;
   mine: boolean;
   link: "" | "out" | "in" | "ask";
   liked: boolean;
@@ -1601,7 +1616,9 @@ function TakeCard({
               <p className={`mt-1 whitespace-pre-wrap text-[13px] leading-snug ${ghost ? "text-white/80" : ""}`}>
                 <LinkText text={take.body} />
               </p>
-              {typeof take.meta.image === "string" && (take.meta.image.startsWith("http") || take.meta.image.startsWith("data:image/")) ? (
+              {typeof take.meta.video === "string" && take.meta.video.startsWith("http") ? (
+                <video src={take.meta.video} poster={typeof take.meta.image === "string" ? take.meta.image : undefined} controls playsInline className="mt-2 max-h-80 w-full rounded-[10px] bg-black" />
+              ) : typeof take.meta.image === "string" && (take.meta.image.startsWith("http") || take.meta.image.startsWith("data:image/")) ? (
                 <img src={take.meta.image} alt="" referrerPolicy="no-referrer" className="mt-2 max-h-72 w-full rounded-[10px] object-cover" />
               ) : null}
             </>
@@ -1680,6 +1697,9 @@ function TakeCard({
                 <div key={r.id} className="text-[12px] leading-snug">
                   <a href={`/u/${encodeURIComponent(r.handle)}`} className="font-semibold">@{r.handle}</a>
                   <span className="text-muted"> · {timeAgo(r.ts)}</span>
+                  {onDeleteReply && meHandle && r.handle.toLowerCase() === meHandle.toLowerCase() ? (
+                    <button type="button" className="ml-2 text-[10px] font-bold text-muted" onClick={() => onDeleteReply(r.id)}>Delete</button>
+                  ) : null}
                   <p className="whitespace-pre-wrap"><LinkText text={r.body} /></p>
                 </div>
               ))}

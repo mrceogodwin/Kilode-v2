@@ -1313,7 +1313,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           <div className="text-[11px] font-medium text-muted">Takes</div>
           {foundTakes.length === 0 ? <p className="text-sm text-muted">No takes match.</p> : null}
           {foundTakes.map((t) => (
-            <a key={t.id} href={`/u/${encodeURIComponent(t.handle)}`} className="block rounded-xl border border-line bg-panel p-3 text-left text-sm">
+            <a key={t.id} href={`/?tab=socials&take=${encodeURIComponent(t.id)}`} className="block rounded-xl border border-line bg-panel p-3 text-left text-sm">
               <div className="font-semibold">@{t.handle}</div>
               <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[13px]">{t.body}</p>
             </a>
@@ -1356,7 +1356,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           <div className="explore-grid">
             {grid.map((t) => (
               <a key={`${t.kind}-${t.id}`} href={t.href} className="explore-cell" aria-label={t.title}>
-                <img src={t.image} alt="" referrerPolicy="no-referrer" />
+                {t.clip ? <video src={t.clip} poster={t.image || undefined} muted playsInline preload="metadata" /> : <img src={t.image} alt="" referrerPolicy="no-referrer" />}
                 {t.video ? <span>▶</span> : null}
               </a>
             ))}

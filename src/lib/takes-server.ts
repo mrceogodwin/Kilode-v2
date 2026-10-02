@@ -449,17 +449,24 @@ async function profileOf(userId: string) {
   }
 }
 
+function takeLink(raw?: string) {
+  const v = (raw || "").trim();
+  if (!v) return "";
+  if (/^https:\/\//i.test(v) && v.length < 800) return v;
+  return null;
+}
+
 function takeShot(raw?: string) {
   const v = (raw || "").trim();
   if (!v) return "";
-  if (/^https:\/\//i.test(v) && v.length < 400) return v;
+  if (/^https:\/\//i.test(v) && v.length < 800) return v;
   if (v.startsWith("data:image/jpeg;base64,") && v.length < 140000) return v;
   return null;
 }
 
 export const saveTake = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string; quoteHref?: string; image?: string }) => d)
+  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string; quoteHref?: string; image?: string; video?: string }) => d)
   .handler(async ({ data, context }) => {
     try {
       const userId = context.userId;
@@ -497,8 +504,11 @@ export const saveTake = createServerFn({ method: "POST" })
         if (data.quoteHref && data.quoteHref.startsWith("/p/")) meta.quoteHref = data.quoteHref.slice(0, 180);
       }
       const shot = takeShot(data.image);
-      if (shot === null) return { ok: false as const, reason: "Photo must be a small JPG." };
+      if (shot === null) return { ok: false as const, reason: "Photo must be a stored image link." };
       if (shot) meta.image = shot;
+      const clip = takeLink(data.video);
+      if (clip === null) return { ok: false as const, reason: "Video must be a stored link." };
+      if (clip) meta.video = clip;
       const id = nid();
       const ts = Date.now();
       const sql = await getSql();
@@ -1370,6 +1380,20 @@ export const deleteOwnTake = createServerFn({ method: "POST" })
     const sql = await getSql();
     const gone = await sql<{ id: string }>`delete from nf_takes where id = ${id} and user_id = ${context.userId} returning id`;
     if (!gone[0]) return { ok: false as const, reason: "You can only delete your own gist." };
+    return { ok: true as const };
+  });
+
+export const deleteOwnReply = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    const id = (data.id || "").trim().slice(0, 40);
+    if (!id) return { ok: false as const, reason: "Missing reply." };
+    const sql = await getSql();
+    const gone = await sql<{ take_id: string }>`delete from nf_take_replies where id = ${id} and user_id = ${context.userId} returning take_id`;
+    const takeId = gone[0]?.take_id || "";
+    if (!takeId) return { ok: false as const, reason: "You can only delete your own reply." };
+    await sql`update nf_takes set comments = greatest(coalesce(comments, 0) - 1, 0) where id = ${takeId}`;
     return { ok: true as const };
   });
 
