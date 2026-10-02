@@ -153,8 +153,7 @@ export const listListings = createServerFn({ method: "GET" })
     const now = Date.now();
     const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at, image, meta from nf_listings where kind = ${kind} and status = 'approved' and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
     const live = rows.map(map);
-    if (live.length) return live;
-    return DEMO_LISTINGS.filter((l) => l.kind === kind).map((l) => ({
+    return live.length ? live : DEMO_LISTINGS.filter((l) => l.kind === kind).map((l) => ({
       id: l.id,
       kind,
       title: l.title,
@@ -171,6 +170,64 @@ export const listListings = createServerFn({ method: "GET" })
       image: l.image,
     }));
   });
+
+export type ExploreTile = {
+  id: string;
+  kind: string;
+  title: string;
+  image: string;
+  href: string;
+  video: boolean;
+};
+
+export const listExploreGrid = createServerFn({ method: "GET" }).handler(async () => {
+  const sql = await getSql();
+  const tiles: ExploreTile[] = [];
+  try {
+    const posts = await sql<{ id: string; title: string | null; slug: string | null; image: string | null; link: string | null }>`
+      select id, title, slug, image, link from nf_posts
+      where status is distinct from ${"draft"} and image is not null and image like ${"http%"}
+      order by ts desc
+      limit 36`;
+    for (const p of posts) {
+      if (!p.image) continue;
+      tiles.push({
+        id: p.id,
+        kind: "post",
+        title: p.title || "Post",
+        image: p.image,
+        href: `/p/${p.slug || p.id}`,
+        video: /youtu\.be|youtube\.com|vimeo\.com/i.test(p.link || ""),
+      });
+    }
+  } catch {
+    /* posts table can be missing on a fresh database */
+  }
+  try {
+    const now = Date.now();
+    const rows = await sql<{ id: string; kind: string; title: string | null; image: string | null }>`
+      select id, kind, title, image from nf_listings
+      where status = ${"approved"} and image is not null and length(image) > 12
+        and (expires_at is null or expires_at > ${now})
+      order by ts desc
+      limit 36`;
+    for (const r of rows) {
+      const image = r.image || "";
+      if (!image.startsWith("http") && !image.startsWith("data:image/")) continue;
+      tiles.push({
+        id: r.id,
+        kind: r.kind,
+        title: r.title || r.kind,
+        image,
+        href: r.kind === "rent" ? "/?open=rent" : r.kind === "job" ? "/?open=jobs" : "/?open=market",
+        video: false,
+      });
+    }
+  } catch {
+    /* listings table can be missing */
+  }
+  return tiles.slice(0, 60);
+});
 
 export const saveListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])

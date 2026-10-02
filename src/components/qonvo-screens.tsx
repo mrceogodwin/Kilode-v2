@@ -42,7 +42,7 @@ import { MeDashboard } from "@/components/me-dashboard";
 import { AdCatalogPanel, AdSlotsPanel, LivePausePanel, OpsKeysPanel, OpsSeoPanel, PaywaysPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { SiteFlagsPanel } from "@/components/site-chrome";
 import { matchAdPayments, matchOneAd } from "@/lib/pay-match-server";
-import { applyListing, listListings, saveListing, type Listing } from "@/lib/listings-server";
+import { applyListing, listExploreGrid, listListings, saveListing, type ExploreTile, type Listing } from "@/lib/listings-server";
 import { submitMovie } from "@/lib/cinema-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 import { SitePulsePanel } from "@/components/pulse-panel";
@@ -1213,7 +1213,8 @@ function Communities({ onHome }: { onHome: (roomId?: string) => void }) {
 
 function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => void }) {
   const [q, setQ] = useState("");
-  const [lane, setLane] = useState<"all" | "discover" | "trending">("all");
+  const [lane, setLane] = useState<"explore" | "all" | "discover" | "trending">("explore");
+  const [tiles, setTiles] = useState<ExploreTile[]>([]);
   const [jobs, setJobs] = useState<Listing[]>([]);
   const [people, setPeople] = useState<{ id: string; handle: string; role: string }[]>([]);
   const [foundPeople, setFoundPeople] = useState<{ handle: string; role: string; line: string }[]>([]);
@@ -1228,10 +1229,22 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
   );
   const posts = s ? store.posts.filter((p) => !!p?.id && `${p.title} ${p.body} ${p.author} ${p.category}`.toLowerCase().includes(s)) : [];
   const tracks = s ? store.tracks.filter((t) => !!t?.id && `${t.title} ${t.artist}`.toLowerCase().includes(s)) : [];
-  const ranked = useMemo(
-    () => store.posts.filter((p) => p?.id && p.status !== "draft").sort((a, b) => (b.views || 0) - (a.views || 0) || b.ts - a.ts).slice(0, 6),
-    [store.posts],
-  );
+  const grid = useMemo(() => {
+    const seen = new Set(tiles.map((t) => t.id));
+    const extra: ExploreTile[] = [];
+    for (const p of store.posts) {
+      if (!p?.id || p.status === "draft" || seen.has(p.id) || !p.image || !/^https?:/i.test(p.image)) continue;
+      extra.push({
+        id: p.id,
+        kind: "post",
+        title: p.title,
+        image: p.image,
+        href: `/p/${p.slug || p.id}`,
+        video: /youtu\.be|youtube\.com|vimeo\.com/i.test(p.link || ""),
+      });
+    }
+    return [...extra, ...tiles].slice(0, 60);
+  }, [store.posts, tiles]);
   useEffect(() => {
     if (!s) {
       setJobs([]);
@@ -1261,13 +1274,19 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
       .catch(() => setFoundTakes([]));
   }, [s]);
   useEffect(() => {
-    if (s || lane === "trending") return;
+    if (lane !== "explore") return;
+    void listExploreGrid()
+      .then((rows) => setTiles(Array.isArray(rows) ? rows : []))
+      .catch(() => setTiles([]));
+  }, [lane]);
+  useEffect(() => {
+    if (s || lane === "trending" || lane === "explore") return;
     void suggestFollows()
       .then((rows) => setPeople(rows.map((p) => ({ id: p.id, handle: p.handle, role: p.role }))))
       .catch(() => setPeople([]));
   }, [s, lane]);
   return (
-    <Screen kicker="KILODE" title="Activity" sub="Search the app. Discover people. See what is moving." className="paper-page">
+    <Screen kicker="KILODE" title="Activity" sub="Explore photos and videos first. Search the rest of Kilode." className="paper-page">
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -1275,9 +1294,9 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
         className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base"
       />
       <div className="flex gap-1.5 overflow-x-auto">
-        {(["all", "discover", "trending"] as const).map((id) => (
+        {(["explore", "all", "discover", "trending"] as const).map((id) => (
           <button key={id} type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${lane === id ? "on" : ""}`} onClick={() => setLane(id)}>
-            {id === "all" ? "All" : id === "discover" ? "Discover" : "Trending"}
+            {id === "explore" ? "Explore" : id === "all" ? "All" : id === "discover" ? "Discover" : "Trending"}
           </button>
         ))}
       </div>
@@ -1330,6 +1349,19 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
             </button>
           ))}
         </>
+      ) : lane === "explore" ? (
+        tiles.length === 0 && grid.length === 0 ? (
+          <p className="text-sm text-muted">No photos yet. Pictures, videos, products, and places show up in this grid as soon as they are posted.</p>
+        ) : (
+          <div className="-mx-4 grid grid-cols-3 gap-px">
+            {grid.map((t) => (
+              <a key={`${t.kind}-${t.id}`} href={t.href} className="relative aspect-square overflow-hidden bg-black" aria-label={t.title}>
+                <img src={t.image} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+                {t.video ? <span className="absolute right-1.5 top-1.5 text-[11px] font-black text-white drop-shadow">▶</span> : null}
+              </a>
+            ))}
+          </div>
+        )
       ) : lane === "trending" ? (
         <TrendingPane store={store} onHome={onHome} />
       ) : lane === "discover" ? (
@@ -1344,13 +1376,6 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
         </div>
       ) : (
         <>
-          <div className="text-[11px] font-medium text-muted">Moving now</div>
-          {ranked.map((p) => (
-            <button key={p.id} type="button" className="block w-full rounded-xl border border-line bg-panel p-3 text-left" onClick={() => { store.setOpenPost(p.id); onHome(); }}>
-              <div className="font-semibold">{p.title}</div>
-              <div className="text-xs text-muted">{p.category} · {p.views || 0} views</div>
-            </button>
-          ))}
           <div className="text-[11px] font-medium text-muted">People</div>
           {people.slice(0, 6).map((p) => (
             <a key={p.id || p.handle} href={`/u/${encodeURIComponent(p.handle)}`} className="block rounded-xl border border-line bg-panel p-3 text-sm">
