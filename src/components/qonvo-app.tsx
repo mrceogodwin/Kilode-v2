@@ -422,10 +422,32 @@ function QonvoAppInner() {
   }, []);
 
   useEffect(() => {
+    let timer = 0;
+    let lastY = 0;
+    const onScroll = (e: Event) => {
+      if (document.querySelector(".kilode-shell")?.getAttribute("data-chrome") !== "auto") return;
+      const node = e.target;
+      const y = node instanceof Element ? node.scrollTop : window.scrollY;
+      if (Math.abs(y - lastY) < 10) return;
+      lastY = y;
+      document.documentElement.classList.add("chrome-away");
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => document.documentElement.classList.remove("chrome-away"), 280);
+    };
+    document.addEventListener("scroll", onScroll, true);
+    return () => {
+      document.removeEventListener("scroll", onScroll, true);
+      window.clearTimeout(timer);
+      document.documentElement.classList.remove("chrome-away");
+    };
+  }, []);
+
+  useEffect(() => {
     const el = document.querySelector(".kilode-chrome");
     if (!el) return;
     const apply = () => {
       document.documentElement.style.setProperty("--chrome-bottom", `${Math.round(el.getBoundingClientRect().bottom) + 6}px`);
+      document.documentElement.style.setProperty("--chrome-h", `${Math.round(el.getBoundingClientRect().height)}px`);
     };
     apply();
     const ro = new ResizeObserver(apply);
@@ -599,7 +621,7 @@ function QonvoAppInner() {
   }
 
   return (
-    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg">
+    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg" data-chrome={screen === "home" && (homeTab === "feeds" || homeTab === "socials") && !marketDesk ? "auto" : "lock"}>
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule">
           <div className="flex min-h-12 flex-nowrap items-center gap-1.5 px-1.5">

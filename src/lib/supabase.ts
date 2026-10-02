@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { prepareTakeUpload } from "@/lib/media-server";
 
 function readEnv(name: string): string {
   const vite = import.meta.env as Record<string, string | undefined>;
@@ -55,25 +56,91 @@ function mediaSeconds(file: File): Promise<number> {
   });
 }
 
-/** Photo (7MB) or video (20MB, 15 seconds) for a take. Stored in Supabase, not in the database row. */
+/** Photo (7MB) or video (20MB, 15 seconds) for a take. The file is stored in Supabase. Neon only keeps the link. */
 export async function uploadTakeMedia(file: File): Promise<{ kind: "image" | "video"; url: string }> {
-  const image = /^image\/(jpeg|png|webp)$/i.test(file.type);
-  const video = /^video\/(mp4|webm|quicktime)$/i.test(file.type);
-  if (!image && !video) throw new Error("Use a JPG, PNG, WebP, MP4, or WebM.");
+  const video = file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name);
+  const image = !video && (file.type.startsWith("image/") || /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name));
+  if (!image && !video) throw new Error("Use a photo or a video.");
   if (image && file.size > IMAGE_CAP) throw new Error("Image must be 7MB or smaller.");
   if (video && file.size > VIDEO_CAP) throw new Error("Video must be 20MB or smaller.");
+  let body: Blob = file;
+  let type = file.type || (video ? "video/mp4" : "image/jpeg");
+  let ext = video ? (type.includes("webm") ? "webm" : type.includes("quicktime") ? "mov" : "mp4") : "jpg";
   if (video) {
     const seconds = await mediaSeconds(file);
     if (seconds > VIDEO_SECONDS + 0.25) throw new Error("Video must be 15 seconds or shorter.");
+  } else {
+    try {
+      body = await shrinkJpeg(file);
+      type = "image/jpeg";
+      ext = "jpg";
+    } catch {
+      if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) throw new Error("This phone sent a photo format Kilode cannot read. Choose a JPG.");
+    }
   }
-  const stored = await putInBucket(file, "takes");
-  if (!stored) {
-    if (video) throw new Error("Video needs Supabase storage. Add the Supabase URL and anon key, and a public market-images bucket.");
-    const data = await compressPhoto(file);
-    if (data.length > 140_000) throw new Error("That photo needs Supabase storage. Add the keys, or use a smaller picture.");
-    return { kind: "image", url: data };
+  const ticket = await prepareTakeUpload({ data: { ext, type } });
+  if (ticket.ok) {
+    const form = new FormData();
+    form.append("cacheControl", "3600");
+    form.append("", body, `upload.${ext}`);
+    const headers: Record<string, string> = { "x-upsert": "false" };
+    if (ticket.apikey) {
+      headers.apikey = ticket.apikey;
+      headers.Authorization = `Bearer ${ticket.apikey}`;
+    }
+    const target = `${ticket.endpoint}/object/upload/sign/${ticket.path}?token=${encodeURIComponent(ticket.token)}`;
+    const sent = await fetch(target, { method: "PUT", body: form, headers });
+    if (sent.ok && ticket.publicUrl) return { kind: video ? "video" : "image", url: ticket.publicUrl };
+    const detail = await sent.text().catch(() => "");
+    if (video) throw new Error(detail.slice(0, 180) || "Supabase refused the video. Check the market-images bucket is public.");
+  } else if (video) {
+    throw new Error(ticket.reason);
   }
-  return { kind: image ? "image" : "video", url: stored };
+  if (video) throw new Error("Video did not reach Supabase. Check the bucket is public, then try again.");
+  const data = body.type === "image/jpeg" ? await blobToData(body) : await compressPhoto(file);
+  if (data.length > 140_000) throw new Error(ticket.ok ? "That photo is still too large after compression." : ticket.reason);
+  return { kind: "image", url: data };
+}
+
+function blobToData(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read"));
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function shrinkJpeg(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const max = 1280;
+      const scale = Math.min(1, max / Math.max(img.width, img.height, 1));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        reject(new Error("canvas"));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("blob"))),
+        "image/jpeg",
+        0.72,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("img"));
+    };
+    img.src = url;
+  });
 }
 
 async function putInBucket(file: File, folder: string): Promise<string> {

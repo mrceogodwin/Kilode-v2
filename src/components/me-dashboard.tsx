@@ -32,6 +32,7 @@ import {
   type AccountKind,
 } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
+import { uploadTakeMedia } from "@/lib/supabase";
 import { canKind } from "@/lib/permissions";
 import { AvatarImg } from "@/components/account-kind";
 import { VerifiedMark } from "@/components/handle-link";
@@ -805,7 +806,27 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       <div className="mb-2 text-[10px] font-bold tracking-[0.18em] text-muted">MY SPACE</div>
       <div className="me-hero relative mb-4 overflow-hidden rounded-2xl border border-line bg-panel">
         <div className="flex items-end gap-3 px-4 pt-4">
-          <AvatarImg handle={store.handle} face={faceSrc} size={76} className="rounded-full ring-2 ring-bg" />
+          <label className="relative shrink-0">
+            <AvatarImg handle={store.handle} face={faceSrc} size={76} className="rounded-full ring-2 ring-bg" />
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic"
+              aria-label="Change photo"
+              className="absolute inset-0 cursor-pointer opacity-0"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                void uploadTakeMedia(file)
+                  .then(async (r) => {
+                    if (r.kind !== "image") return;
+                    setPhoto(r.url);
+                    await store.rename(store.handle, { photo: r.url });
+                  })
+                  .catch(() => undefined);
+              }}
+            />
+          </label>
           <div className="min-w-0 flex-1 pb-1">
             <div className="flex flex-wrap items-center gap-1 text-[18px] font-extrabold leading-tight tracking-tight">
               @{store.handle}

@@ -854,6 +854,7 @@ html[data-skin="ivory"] header {
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  transition: transform 220ms ease, margin-bottom 220ms ease;
 }
 @media (min-width: 640px) {
   .kilode-chrome {
@@ -1418,6 +1419,16 @@ html, body {
   border-bottom: 0;
   border-top-color: rgba(255, 255, 255, 0.4);
   box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.45);
+  transition: transform 220ms ease;
+}
+html.chrome-away .kilode-chrome {
+  transform: translateY(-110%);
+  margin-bottom: calc(-1 * var(--chrome-h, 132px));
+  pointer-events: none;
+}
+html.chrome-away .dock {
+  transform: translateY(120%);
+  pointer-events: none;
 }
 .dock::after {
   content: "";

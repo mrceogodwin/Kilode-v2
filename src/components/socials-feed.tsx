@@ -3,7 +3,7 @@ import { Briefcase, Headphones, ImagePlus, Lock, Video } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { uploadTakeMedia } from "@/lib/supabase";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, getTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, editOwnTake, getTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, listWordMutes, muteWord, pinOwnTake, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -379,6 +379,11 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   }, []);
   const [reportId, setReportId] = useState("");
   const [menuTake, setMenuTake] = useState<TakeRow | null>(null);
+  const [editTake, setEditTake] = useState<TakeRow | null>(null);
+  const [editBody, setEditBody] = useState("");
+  const [words, setWords] = useState<string[]>([]);
+  const [hiddenIds, setHiddenIds] = useState<Record<string, true>>({});
+  const [mentions, setMentions] = useState<{ handle: string; role: string }[]>([]);
   const [reportNote, setReportNote] = useState("");
 
   function goLogin() {
@@ -469,6 +474,9 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         for (const row of rows) if (row.handle) next[row.handle.toLowerCase()] = true;
         setBlocked(next);
       })
+      .catch(() => undefined);
+    void listWordMutes()
+      .then((rows) => setWords(rows))
       .catch(() => undefined);
     void listMyMutes()
       .then((rows) => {
@@ -664,6 +672,21 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   }
 
   useEffect(() => {
+    const hit = body.match(/(^|\s)@([a-z0-9._-]{1,24})$/i);
+    const q = hit?.[2]?.toLowerCase() || "";
+    if (q.length < 1) {
+      setMentions([]);
+      return;
+    }
+    const t = window.setTimeout(() => {
+      void searchPeople({ data: { q } })
+        .then((rows) => setMentions(rows.slice(0, 4).map((p) => ({ handle: p.handle, role: p.role }))))
+        .catch(() => setMentions([]));
+    }, 180);
+    return () => window.clearTimeout(t);
+  }, [body]);
+
+  useEffect(() => {
     const needle = q.trim();
     if (needle.length < 2) {
       setPeople([]);
@@ -766,7 +789,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const shownFellows = matched.slice(0, fellowCap);
   const takeSource = feedCut === "following" ? followTakes : feedCut === "trending" ? trendTakes : feedCut === "tag" ? tagTakes : takes;
   const shownTakes = takeSource.filter((t) => {
-    if (hidden(t.handle)) return false;
+    if (hidden(t.handle) || hiddenIds[t.id]) return false;
+    if (words.some((word) => t.body.toLowerCase().includes(word))) return false;
     if (!needle) return true;
     return `${t.name} ${t.handle} ${t.role} ${t.body}`.toLowerCase().includes(needle);
   });
@@ -1043,6 +1067,23 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             onChange={(e) => setBody(e.target.value)}
           />
         </div>
+        {mentions.length > 0 ? (
+          <div className="mt-1 overflow-hidden rounded-[10px] border border-line">
+            {mentions.map((p) => (
+              <button
+                key={p.handle}
+                type="button"
+                className="block w-full px-2 py-1.5 text-left text-[12px]"
+                onClick={() => {
+                  setBody((cur) => cur.replace(/(^|\s)@[a-z0-9._-]{0,24}$/i, `$1@${p.handle} `));
+                  setMentions([]);
+                }}
+              >
+                @{p.handle} <span className="text-muted">{p.role}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
         {kind === "job" ? (
           <input
             value={line}
@@ -1383,6 +1424,65 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
                 Delete
               </button>
             ) : null}
+            {me && menuTake.handle.toLowerCase() === me.toLowerCase() && Date.now() - menuTake.ts < 30 * 60 * 1000 ? (
+              <button
+                type="button"
+                className="block w-full border-b py-3 text-left text-[16px]"
+                style={{ color: "var(--report-fg)", borderColor: "var(--report-line)" }}
+                onClick={() => {
+                  setEditTake(menuTake);
+                  setEditBody(menuTake.body);
+                  setMenuTake(null);
+                }}
+              >
+                Edit
+              </button>
+            ) : null}
+            {me && menuTake.handle.toLowerCase() === me.toLowerCase() ? (
+              <button
+                type="button"
+                className="block w-full border-b py-3 text-left text-[16px]"
+                style={{ color: "var(--report-fg)", borderColor: "var(--report-line)" }}
+                onClick={() => {
+                  const row = menuTake;
+                  setMenuTake(null);
+                  void pinOwnTake({ data: { id: row.id } }).then((r) => {
+                    if (!r.ok) return;
+                    setTakes((list) => list.map((t) => t.handle.toLowerCase() === row.handle.toLowerCase() ? { ...t, meta: { ...t.meta, pinned: t.id === row.id && r.pinned ? "1" : "" } } : t));
+                  });
+                }}
+              >
+                {menuTake.meta.pinned === "1" ? "Unpin" : "Pin to profile"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="block w-full border-b py-3 text-left text-[16px]"
+              style={{ color: "var(--report-fg)", borderColor: "var(--report-line)" }}
+              onClick={() => {
+                setHiddenIds((m) => ({ ...m, [menuTake.id]: true }));
+                setMenuTake(null);
+              }}
+            >
+              Not for me
+            </button>
+            <button
+              type="button"
+              className="block w-full border-b py-3 text-left text-[16px]"
+              style={{ color: "var(--report-fg)", borderColor: "var(--report-line)" }}
+              onClick={() => {
+                const word = window.prompt("Mute which word?", "")?.trim().toLowerCase() || "";
+                setMenuTake(null);
+                if (!authed) return goLogin();
+                if (word.length < 2) return;
+                void muteWord({ data: { word } }).then((r) => {
+                  if (r.ok) setWords((list) => list.includes(r.word) ? list : [...list, r.word]);
+                  else setErr(r.reason);
+                });
+              }}
+            >
+              Mute a word
+            </button>
             <button
               type="button"
               className="block w-full border-b py-3 text-left text-[16px]"
@@ -1398,6 +1498,30 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
               Cancel
             </button>
           </div>
+        </div>
+      ) : null}
+      {editTake ? (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60" onClick={() => setEditTake(null)}>
+          <form
+            className="w-full rounded-t-2xl px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]"
+            style={{ background: "var(--report-bg)", color: "var(--report-fg)" }}
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const row = editTake;
+              const next = editBody.trim();
+              if (!row || next.length < 1) return;
+              void editOwnTake({ data: { id: row.id, body: next } }).then((r) => {
+                if (!r.ok) setErr(r.reason);
+                else setTakes((list) => list.map((t) => (t.id === row.id ? { ...t, body: r.body } : t)));
+                setEditTake(null);
+              });
+            }}
+          >
+            <div className="mb-2 text-[16px] font-bold">Edit take</div>
+            <textarea value={editBody} maxLength={280} onChange={(e) => setEditBody(e.target.value)} className="min-h-24 w-full rounded-xl border border-line bg-transparent p-2 text-[14px] outline-none" style={{ fontSize: 16 }} />
+            <button type="submit" className="btn-join mt-2 w-full rounded-full py-2 text-[13px] font-bold">Save</button>
+          </form>
         </div>
       ) : null}
       {reportId ? (
@@ -1606,6 +1730,7 @@ function TakeCard({
           ) : null}
           {take.meta.street === true ? <div className="mt-0.5 text-[9px] text-amber-200/80">Street Certified</div> : null}
           {hot ? <div className="trend-chip mt-1">Trending</div> : null}
+          {take.meta.pinned === "1" ? <div className="mt-1 text-[10px] font-semibold text-muted">Pinned</div> : null}
 
           {locked ? (
             <button type="button" className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-[10px] border border-line py-3 text-[11px] text-muted" onClick={onReveal}>

@@ -62,7 +62,9 @@ function PublicProfile() {
   const [gate, setGate] = useState<{ paystack: boolean; flutterwave: boolean; nowpayments: boolean; ngnPerUsd: number; verifyUsd: number } | null>(null);
   useEffect(() => {
     if (!profile?.handle) return;
-    void listUserTakes({ data: profile.handle }).then(setTakes).catch(() => setTakes([]));
+    void listUserTakes({ data: profile.handle }).then((rows) => {
+      setTakes([...rows].sort((a, b) => Number(b.meta.pinned === "1") - Number(a.meta.pinned === "1")));
+    }).catch(() => setTakes([]));
     void listUserReplies({ data: profile.handle }).then(setReplies).catch(() => setReplies([]));
     void listUserReposts({ data: profile.handle }).then(setReposts).catch(() => setReposts([]));
     void listUserLikes({ data: profile.handle }).then(setLikes).catch(() => setLikes([]));
@@ -326,7 +328,7 @@ function PublicProfile() {
             {cut === "takes" ? (
               takes.length === 0 ? <p className="text-sm text-muted">No takes yet.</p> : takes.map((t) => (
                 <article key={t.id} className="rounded-xl border border-line bg-panel px-3 py-2">
-                  <p className="whitespace-pre-wrap text-[13px] leading-snug">{t.body}</p>
+                  <p className="whitespace-pre-wrap text-[13px] leading-snug">{t.meta.pinned === "1" ? "Pinned · " : ""}{t.body}</p>
                   <p className="mt-1 text-[11px] text-muted">{timeAgo(t.ts)} · {t.likes} likes · {t.reposts} reposts · {t.comments} replies</p>
                 </article>
               ))

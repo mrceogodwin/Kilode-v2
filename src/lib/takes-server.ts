@@ -1397,6 +1397,70 @@ export const deleteOwnReply = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const editOwnTake = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string; body: string }) => d)
+  .handler(async ({ context, data }) => {
+    const id = (data.id || "").trim().slice(0, 40);
+    const body = (data.body || "").trim().slice(0, 280);
+    if (!id || body.length < 1) return { ok: false as const, reason: "Write something first." };
+    const sql = await getSql();
+    const rows = await sql<{ user_id: string; ts: string | number }>`select user_id, ts from nf_takes where id = ${id} limit 1`;
+    if (rows[0]?.user_id !== context.userId) return { ok: false as const, reason: "You can only edit your own take." };
+    if (Date.now() - Number(rows[0].ts) > 30 * 60 * 1000) return { ok: false as const, reason: "You can edit a take for 30 minutes." };
+    const handle = await handleOf(context.userId);
+    const checked = await gateText("feeds", body, { userId: context.userId, author: handle });
+    if (!checked.ok) return { ok: false as const, reason: checked.reason };
+    await sql`update nf_takes set body = ${checked.text} where id = ${id}`;
+    return { ok: true as const, body: checked.text };
+  });
+
+export const pinOwnTake = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    const id = (data.id || "").trim().slice(0, 40);
+    if (!id) return { ok: false as const, reason: "Missing take." };
+    const sql = await getSql();
+    const rows = await sql<{ user_id: string; meta: string | null }>`select user_id, meta from nf_takes where id = ${id} limit 1`;
+    if (rows[0]?.user_id !== context.userId) return { ok: false as const, reason: "You can only pin your own take." };
+    const mine = await sql<{ id: string; meta: string | null }>`select id, meta from nf_takes where user_id = ${context.userId} and meta like ${'%"pinned":"1"%'}`;
+    for (const row of mine) {
+      let meta: Record<string, string> = {};
+      try { meta = JSON.parse(row.meta || "{}") as Record<string, string>; } catch { meta = {}; }
+      delete meta.pinned;
+      await sql`update nf_takes set meta = ${JSON.stringify(meta)} where id = ${row.id}`;
+    }
+    let meta: Record<string, string> = {};
+    try { meta = JSON.parse(rows[0].meta || "{}") as Record<string, string>; } catch { meta = {}; }
+    const was = meta.pinned === "1" && mine.some((row) => row.id === id);
+    if (!was) meta.pinned = "1";
+    else delete meta.pinned;
+    await sql`update nf_takes set meta = ${JSON.stringify(meta)} where id = ${id}`;
+    return { ok: true as const, pinned: meta.pinned === "1" };
+  });
+
+export const listWordMutes = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    await sql`create table if not exists nf_word_mutes (user_id text not null, word text not null, primary key (user_id, word))`;
+    const rows = await sql<{ word: string }>`select word from nf_word_mutes where user_id = ${context.userId} limit 40`;
+    return rows.map((r) => r.word);
+  });
+
+export const muteWord = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { word: string }) => d)
+  .handler(async ({ context, data }) => {
+    const word = (data.word || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24);
+    if (word.length < 2) return { ok: false as const, reason: "Use a word of at least 2 letters." };
+    const sql = await getSql();
+    await sql`create table if not exists nf_word_mutes (user_id text not null, word text not null, primary key (user_id, word))`;
+    await sql`insert into nf_word_mutes (user_id, word) values (${context.userId}, ${word}) on conflict do nothing`;
+    return { ok: true as const, word };
+  });
+
 export const searchPeople = createServerFn({ method: "GET" })
   .validator((d: { q?: string }) => ({ q: (d?.q || "").slice(0, 24) }))
   .handler(async ({ data }) => {
