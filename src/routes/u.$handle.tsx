@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Activity, Bell, Flame, Layers, Menu, MessageSquare, Newspaper, Plus, Users, UsersRound } from "lucide-react";
 import { getPublicProfile, sendDm } from "@/lib/social-server";
 import { deleteOwnPost, reportPost } from "@/lib/forum-server";
-import { connectByHandle, followLook, listConnects, listMyBlocks, listMyFollows, listMyMutes, listUserTakes, toggleBlock, toggleFollow, toggleMute, type TakeRow } from "@/lib/takes-server";
+import { connectByHandle, followLook, listConnects, listMyBlocks, listMyFollows, listMyMutes, listUserReplies, listUserReposts, listUserTakes, toggleBlock, toggleFollow, toggleMute, type TakeRow } from "@/lib/takes-server";
 import { seoHead } from "@/lib/seo";
 import { ACCOUNT_KINDS, avatarUrl, fmtCount, handleColor, isOfficialHandle, timeAgo, timeLabel } from "@/lib/qonvo-data";
 import { OfficialLockup } from "@/components/brand-lockup";
@@ -46,6 +46,9 @@ function PublicProfile() {
   const session = useCurrentUserState();
   const [gone, setGone] = useState<Record<string, boolean>>({});
   const [takes, setTakes] = useState<TakeRow[]>([]);
+  const [replies, setReplies] = useState<{ id: string; takeId: string; body: string; ts: number }[]>([]);
+  const [reposts, setReposts] = useState<TakeRow[]>([]);
+  const [cut, setCut] = useState<"takes" | "replies" | "reposts">("takes");
   const [friend, setFriend] = useState<"add" | "pending" | "friends">("add");
   const [onFollow, setOnFollow] = useState(false);
   const [followsMe, setFollowsMe] = useState(false);
@@ -59,6 +62,8 @@ function PublicProfile() {
   useEffect(() => {
     if (!profile?.handle) return;
     void listUserTakes({ data: profile.handle }).then(setTakes).catch(() => setTakes([]));
+    void listUserReplies({ data: profile.handle }).then(setReplies).catch(() => setReplies([]));
+    void listUserReposts({ data: profile.handle }).then(setReposts).catch(() => setReposts([]));
   }, [profile?.handle]);
   const mine = (session.user?.displayName || "").toLowerCase() === (profile?.handle || "").toLowerCase();
   useEffect(() => {
@@ -123,9 +128,9 @@ function PublicProfile() {
             <a href="/" className="flex shrink-0 items-center" aria-label="Kilode home"><OfficialLockup /></a>
             <div className="ml-auto flex items-center gap-1">
               <a href="/?tab=socials" className="hdr-ico" aria-label="Friends"><Users className="size-4" /></a>
-              <a href="/" className="hdr-ico" aria-label="Alerts"><Bell className="size-4" /></a>
-              <a href="/" className="hdr-ico" aria-label="Trending"><Flame className="size-4" /></a>
-              <a href="/" className="hdr-ico" aria-label="Messages"><MessageSquare className="size-4" /></a>
+              <a href="/?open=notifications" className="hdr-ico" aria-label="Alerts"><Bell className="size-4" /></a>
+              <a href="/?open=trending" className="hdr-ico" aria-label="Trending"><Flame className="size-4" /></a>
+              <a href="/?open=inbox" className="hdr-ico" aria-label="Messages"><MessageSquare className="size-4" /></a>
             </div>
           </div>
         </div>
@@ -308,13 +313,32 @@ function PublicProfile() {
           Report account
         </button>
         <section className="profile-block">
-          <h2>Timeline</h2>
+          <div className="flex gap-1.5">
+            {(["takes", "replies", "reposts"] as const).map((id) => (
+              <button key={id} type="button" className={`rounded-full px-3 py-1 text-[12px] font-bold ${cut === id ? "btn-join" : "border border-line"}`} onClick={() => setCut(id)}>
+                {id === "takes" ? "Takes" : id === "replies" ? "Replies" : "Reposts"}
+              </button>
+            ))}
+          </div>
           <div className="mt-2 space-y-2">
-            {takes.length === 0 ? <p className="text-sm text-muted">No posts from this user yet.</p> : null}
-            {takes.map((t) => (
+            {cut === "takes" ? (
+              takes.length === 0 ? <p className="text-sm text-muted">No takes yet.</p> : takes.map((t) => (
+                <article key={t.id} className="rounded-xl border border-line bg-panel px-3 py-2">
+                  <p className="whitespace-pre-wrap text-[13px] leading-snug">{t.body}</p>
+                  <p className="mt-1 text-[11px] text-muted">{timeAgo(t.ts)} · {t.likes} likes · {t.reposts} reposts · {t.comments} replies</p>
+                </article>
+              ))
+            ) : cut === "replies" ? (
+              replies.length === 0 ? <p className="text-sm text-muted">No replies yet.</p> : replies.map((r) => (
+                <article key={r.id} className="rounded-xl border border-line bg-panel px-3 py-2">
+                  <p className="whitespace-pre-wrap text-[13px] leading-snug">{r.body}</p>
+                  <p className="mt-1 text-[11px] text-muted">{timeAgo(r.ts)}</p>
+                </article>
+              ))
+            ) : reposts.length === 0 ? <p className="text-sm text-muted">No reposts yet.</p> : reposts.map((t) => (
               <article key={t.id} className="rounded-xl border border-line bg-panel px-3 py-2">
-                <p className="whitespace-pre-wrap text-[13px] leading-snug">{t.body}</p>
-                <p className="mt-1 text-[11px] text-muted">{timeAgo(t.ts)} · {t.likes} likes · {t.reposts} reposts · {t.comments} replies</p>
+                <p className="text-[11px] font-semibold text-muted">Reposted from @{t.handle}</p>
+                <p className="mt-1 whitespace-pre-wrap text-[13px] leading-snug">{t.body}</p>
               </article>
             ))}
           </div>

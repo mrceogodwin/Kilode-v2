@@ -339,6 +339,58 @@ export const listUserTakes = createServerFn({ method: "GET" })
     }
   });
 
+export const searchTakes = createServerFn({ method: "GET" })
+  .validator((d: { q?: string }) => ({ q: (d?.q || "").trim().slice(0, 40) }))
+  .handler(async ({ data }) => {
+    const q = data.q.toLowerCase().replace(/[%_]/g, "");
+    if (q.length < 2) return [] as TakeRow[];
+    const like = `%${q}%`;
+    try {
+      const sql = await getSql();
+      const rows = await sql`select t.* from nf_takes t
+        where t.user_id <> ${"seed"} and t.id not like ${"seed-%"}
+          and (lower(t.body) like ${like} or lower(t.handle) like ${like})
+        order by t.ts desc
+        limit 12`;
+      return (rows as Record<string, unknown>[]).map(mapTake);
+    } catch {
+      return [] as TakeRow[];
+    }
+  });
+
+export const listUserReplies = createServerFn({ method: "GET" })
+  .validator((handle: string) => String(handle || "").trim().replace(/^@/, "").slice(0, 24).toLowerCase())
+  .handler(async ({ data }) => {
+    if (!data) return [] as { id: string; takeId: string; body: string; ts: number }[];
+    try {
+      const sql = await getSql();
+      const rows = await sql<{ id: string; take_id: string; body: string; ts: number | string }>`
+        select id, take_id, body, ts from nf_take_replies where lower(handle) = ${data} order by ts desc limit 20`;
+      return rows.map((r) => ({ id: r.id, takeId: r.take_id, body: r.body || "", ts: Number(r.ts || 0) }));
+    } catch {
+      return [] as { id: string; takeId: string; body: string; ts: number }[];
+    }
+  });
+
+export const listUserReposts = createServerFn({ method: "GET" })
+  .validator((handle: string) => String(handle || "").trim().replace(/^@/, "").slice(0, 24).toLowerCase())
+  .handler(async ({ data }) => {
+    if (!data) return [] as TakeRow[];
+    try {
+      const sql = await getSql();
+      await sql`create table if not exists nf_take_reposts (take_id text not null, user_id text not null, ts bigint not null default 0, primary key (take_id, user_id))`;
+      const rows = await sql`select t.* from nf_take_reposts rp
+        join nf_profiles p on p.user_id = rp.user_id
+        join nf_takes t on t.id = rp.take_id
+        where lower(p.handle) = ${data}
+        order by rp.ts desc
+        limit 20`;
+      return (rows as Record<string, unknown>[]).map(mapTake);
+    } catch {
+      return [] as TakeRow[];
+    }
+  });
+
 function kindsForAccount(account: string): TakeKind[] {
   if (account === "artist") return ["take", "music", "banter", "quote"];
   if (account === "job_poster") return ["take", "job", "banter", "quote"];

@@ -394,7 +394,7 @@ function QonvoAppInner() {
       setScreen("home");
       setHomeTab("socials");
     }
-    if (open === "inbox" || open === "jobs" || open === "market" || open === "bookmarks" || open === "tv" || open === "pricing") {
+    if (open === "inbox" || open === "jobs" || open === "market" || open === "bookmarks" || open === "tv" || open === "pricing" || open === "notifications" || open === "trending") {
       setScreen(open === "tv" ? "tv" : open);
     }
     if (open === "me") setScreen("dashboard");

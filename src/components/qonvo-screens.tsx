@@ -27,7 +27,7 @@ import { GatewayPay, DeskPayBox } from "@/components/pay-checkout";
 import type { PayProvider } from "@/lib/pay-money";
 import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
-import { suggestFollows } from "@/lib/takes-server";
+import { searchPeople, searchTakes, suggestFollows } from "@/lib/takes-server";
 import { authClient, signOut } from "@/lib/auth/client";
 import { AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { canKind, createSheetTitle } from "@/lib/permissions";
@@ -1216,6 +1216,8 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
   const [lane, setLane] = useState<"all" | "discover" | "trending">("all");
   const [jobs, setJobs] = useState<Listing[]>([]);
   const [people, setPeople] = useState<{ id: string; handle: string; role: string }[]>([]);
+  const [foundPeople, setFoundPeople] = useState<{ handle: string; role: string; line: string }[]>([]);
+  const [foundTakes, setFoundTakes] = useState<{ id: string; handle: string; body: string }[]>([]);
   const s = q.trim().toLowerCase();
   const rooms = useMemo(
     () =>
@@ -1246,6 +1248,19 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
       .catch(() => setJobs([]));
   }, [s]);
   useEffect(() => {
+    if (s.length < 2) {
+      setFoundPeople([]);
+      setFoundTakes([]);
+      return;
+    }
+    void searchPeople({ data: { q: s } })
+      .then((rows) => setFoundPeople(rows.map((p) => ({ handle: p.handle, role: p.role, line: p.line }))))
+      .catch(() => setFoundPeople([]));
+    void searchTakes({ data: { q: s } })
+      .then((rows) => setFoundTakes(rows.map((t) => ({ id: t.id, handle: t.handle, body: t.body }))))
+      .catch(() => setFoundTakes([]));
+  }, [s]);
+  useEffect(() => {
     if (s || lane === "trending") return;
     void suggestFollows()
       .then((rows) => setPeople(rows.map((p) => ({ id: p.id, handle: p.handle, role: p.role }))))
@@ -1268,6 +1283,22 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
       </div>
       {s ? (
         <>
+          <div className="text-[11px] font-medium text-muted">People</div>
+          {foundPeople.length === 0 ? <p className="text-sm text-muted">No people match.</p> : null}
+          {foundPeople.map((p) => (
+            <a key={p.handle} href={`/u/${encodeURIComponent(p.handle)}`} className="block rounded-xl border border-line bg-panel p-3 text-sm">
+              <div className="font-semibold">@{p.handle}</div>
+              <div className="text-xs text-muted">{p.role}{p.line ? ` · ${p.line}` : ""}</div>
+            </a>
+          ))}
+          <div className="text-[11px] font-medium text-muted">Takes</div>
+          {foundTakes.length === 0 ? <p className="text-sm text-muted">No takes match.</p> : null}
+          {foundTakes.map((t) => (
+            <a key={t.id} href={`/u/${encodeURIComponent(t.handle)}`} className="block rounded-xl border border-line bg-panel p-3 text-left text-sm">
+              <div className="font-semibold">@{t.handle}</div>
+              <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[13px]">{t.body}</p>
+            </a>
+          ))}
           <div className="text-[11px] font-medium text-muted">Feeds</div>
           {posts.length === 0 ? <p className="rounded-xl border border-line bg-panel p-6 text-center text-sm text-muted">No posts match. Try another word.</p> : null}
           {posts.map((p) => (
