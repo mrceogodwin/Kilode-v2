@@ -48,7 +48,7 @@ function PublicProfile() {
   const [takes, setTakes] = useState<TakeRow[]>([]);
   const [replies, setReplies] = useState<{ id: string; takeId: string; body: string; ts: number }[]>([]);
   const [reposts, setReposts] = useState<TakeRow[]>([]);
-  const [cut, setCut] = useState<"takes" | "replies" | "reposts">("takes");
+  const [cut, setCut] = useState<"takes" | "replies" | "reposts" | "media">("takes");
   const [friend, setFriend] = useState<"add" | "pending" | "friends">("add");
   const [onFollow, setOnFollow] = useState(false);
   const [followsMe, setFollowsMe] = useState(false);
@@ -314,9 +314,9 @@ function PublicProfile() {
         </button>
         <section className="profile-block">
           <div className="flex gap-1.5">
-            {(["takes", "replies", "reposts"] as const).map((id) => (
+            {(["takes", "replies", "reposts", "media"] as const).map((id) => (
               <button key={id} type="button" className={`rounded-full px-3 py-1 text-[12px] font-bold ${cut === id ? "btn-join" : "border border-line"}`} onClick={() => setCut(id)}>
-                {id === "takes" ? "Takes" : id === "replies" ? "Replies" : "Reposts"}
+                {id === "takes" ? "Takes" : id === "replies" ? "Replies" : id === "reposts" ? "Reposts" : "Media"}
               </button>
             ))}
           </div>
@@ -335,6 +335,16 @@ function PublicProfile() {
                   <p className="mt-1 text-[11px] text-muted">{timeAgo(r.ts)}</p>
                 </article>
               ))
+            ) : cut === "media" ? (
+              takes.filter((t) => typeof t.meta.image === "string" && (String(t.meta.image).startsWith("http") || String(t.meta.image).startsWith("data:image/"))).length === 0 ? (
+                <p className="text-sm text-muted">No photos yet.</p>
+              ) : (
+                <div className="grid grid-cols-3 gap-1.5">
+                  {takes.filter((t) => typeof t.meta.image === "string" && (String(t.meta.image).startsWith("http") || String(t.meta.image).startsWith("data:image/"))).map((t) => (
+                    <img key={t.id} src={String(t.meta.image)} alt="" referrerPolicy="no-referrer" className="aspect-square w-full rounded-lg object-cover" />
+                  ))}
+                </div>
+              )
             ) : reposts.length === 0 ? <p className="text-sm text-muted">No reposts yet.</p> : reposts.map((t) => (
               <article key={t.id} className="rounded-xl border border-line bg-panel px-3 py-2">
                 <p className="text-[11px] font-semibold text-muted">Reposted from @{t.handle}</p>

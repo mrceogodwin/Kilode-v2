@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Briefcase, Headphones, Lock } from "lucide-react";
+import { Briefcase, Headphones, ImagePlus, Lock } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { SocialDesk } from "@/components/social-desk";
 import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
@@ -8,6 +8,37 @@ import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
 import { VerifiedMark } from "@/components/handle-link";
 
+
+function shrinkPhoto(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 960;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("canvas"));
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        let q = 0.72;
+        let url = canvas.toDataURL("image/jpeg", q);
+        while (url.length > 120000 && q > 0.42) {
+          q -= 0.08;
+          url = canvas.toDataURL("image/jpeg", q);
+        }
+        if (!url.startsWith("data:image/jpeg") || url.length > 140000) return reject(new Error("big"));
+        resolve(url);
+      };
+      img.onerror = () => reject(new Error("img"));
+      img.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 function heatOf(t: TakeRow) {
   return t.likes * 3 + t.reposts * 4 + t.comments * 2 + t.fact + t.cap + t.voteA + t.voteB;
@@ -273,6 +304,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [next, setNext] = useState(0);
   const [err, setErr] = useState("");
   const [body, setBody] = useState("");
+  const [shot, setShot] = useState("");
   const [line, setLine] = useState("");
   const [kind, setKind] = useState<TakeKind>("take");
   useEffect(() => {
@@ -669,8 +701,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     setErr("");
     const pending = saveTake({
       data: quoting
-        ? { body: text, kind: "quote", quoteName: quoting.name, quoteHandle: quoting.handle, quoteBody: quoting.body }
-        : { body: text, kind, line },
+        ? { body: text, kind: "quote", quoteName: quoting.name, quoteHandle: quoting.handle, quoteBody: quoting.body, image: shot }
+        : { body: text, kind, line, image: shot },
     });
     const timeout = new Promise<{ ok: false; reason: string }>((resolve) => {
       window.setTimeout(() => resolve({ ok: false, reason: "The server took too long. Try Post again." }), 12000);
@@ -683,6 +715,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         rememberTake(r.take, false);
         setBody("");
         setLine("");
+        setShot("");
         setQuoting(null);
       }
     } catch (e) {
@@ -1037,7 +1070,27 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
           />
         ) : null}
         <p className="mt-1 text-[10px] text-muted">{HINT[kind]}</p>
+        {shot ? (
+          <div className="relative mt-2">
+            <img src={shot} alt="" className="max-h-52 w-full rounded-[10px] object-cover" />
+            <button type="button" className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white" onClick={() => setShot("")}>Remove</button>
+          </div>
+        ) : null}
         <div className="mt-1.5 flex items-center gap-1">
+          <label className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-full border border-line text-muted" aria-label="Add photo">
+            <ImagePlus className="size-3.5" />
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                void shrinkPhoto(file).then(setShot).catch(() => setErr("That photo is too large. Try a smaller one."));
+              }}
+            />
+          </label>
           <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
             {pills.map((k) => (
               <button
@@ -1525,9 +1578,14 @@ function TakeCard({
               <Lock className="size-3" /> Tap to reveal
             </button>
           ) : (
-            <p className={`mt-1 whitespace-pre-wrap text-[13px] leading-snug ${ghost ? "text-white/80" : ""}`}>
-              <LinkText text={take.body} />
-            </p>
+            <>
+              <p className={`mt-1 whitespace-pre-wrap text-[13px] leading-snug ${ghost ? "text-white/80" : ""}`}>
+                <LinkText text={take.body} />
+              </p>
+              {typeof take.meta.image === "string" && (take.meta.image.startsWith("http") || take.meta.image.startsWith("data:image/")) ? (
+                <img src={take.meta.image} alt="" referrerPolicy="no-referrer" className="mt-2 max-h-72 w-full rounded-[10px] object-cover" />
+              ) : null}
+            </>
           )}
 
           {take.kind === "quote" ? (

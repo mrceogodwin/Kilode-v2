@@ -416,9 +416,17 @@ async function profileOf(userId: string) {
   }
 }
 
+function takeShot(raw?: string) {
+  const v = (raw || "").trim();
+  if (!v) return "";
+  if (/^https:\/\//i.test(v) && v.length < 400) return v;
+  if (v.startsWith("data:image/jpeg;base64,") && v.length < 140000) return v;
+  return null;
+}
+
 export const saveTake = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string; quoteHref?: string }) => d)
+  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string; quoteHref?: string; image?: string }) => d)
   .handler(async ({ data, context }) => {
     try {
       const userId = context.userId;
@@ -455,6 +463,9 @@ export const saveTake = createServerFn({ method: "POST" })
         meta.quoteBody = (data.quoteBody || clean).slice(0, 180);
         if (data.quoteHref && data.quoteHref.startsWith("/p/")) meta.quoteHref = data.quoteHref.slice(0, 180);
       }
+      const shot = takeShot(data.image);
+      if (shot === null) return { ok: false as const, reason: "Photo must be a small JPG." };
+      if (shot) meta.image = shot;
       const id = nid();
       const ts = Date.now();
       const sql = await getSql();

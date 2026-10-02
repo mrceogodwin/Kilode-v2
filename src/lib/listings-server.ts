@@ -226,6 +226,34 @@ export const listExploreGrid = createServerFn({ method: "GET" }).handler(async (
   } catch {
     /* listings table can be missing */
   }
+  try {
+    const shots = await sql<{ id: string; handle: string | null; body: string | null; meta: string | null }>`
+      select id, handle, body, meta from nf_takes
+      where user_id <> ${"seed"} and id not like ${"seed-%"} and meta like ${'%"image":%'}
+      order by ts desc
+      limit 24`;
+    for (const row of shots) {
+      let image = "";
+      try {
+        const meta = JSON.parse(row.meta || "{}") as { image?: string };
+        image = typeof meta.image === "string" ? meta.image : "";
+      } catch {
+        image = "";
+      }
+      if (!image.startsWith("http") && !image.startsWith("data:image/")) continue;
+      const handle = row.handle || "member";
+      tiles.unshift({
+        id: row.id,
+        kind: "take",
+        title: (row.body || "Take").slice(0, 80),
+        image,
+        href: `/u/${encodeURIComponent(handle)}`,
+        video: false,
+      });
+    }
+  } catch {
+    /* takes table can be missing */
+  }
   return tiles.slice(0, 60);
 });
 
