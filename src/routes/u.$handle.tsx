@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Activity, Bell, Flame, Layers, Menu, MessageSquare, Newspaper, Plus, Users, UsersRound } from "lucide-react";
 import { getPublicProfile, sendDm } from "@/lib/social-server";
 import { deleteOwnPost, reportPost } from "@/lib/forum-server";
-import { connectByHandle, followLook, listConnects, listMyBlocks, listMyFollows, listMyMutes, listUserReplies, listUserReposts, listUserTakes, toggleBlock, toggleFollow, toggleMute, type TakeRow } from "@/lib/takes-server";
+import { connectByHandle, followLook, listConnects, listMyBlocks, listMyFollows, listMyMutes, listUserLikes, listUserReplies, listUserReposts, listUserTakes, toggleBlock, toggleFollow, toggleMute, type TakeRow } from "@/lib/takes-server";
 import { seoHead } from "@/lib/seo";
 import { ACCOUNT_KINDS, avatarUrl, fmtCount, handleColor, isOfficialHandle, timeAgo, timeLabel } from "@/lib/qonvo-data";
 import { OfficialLockup } from "@/components/brand-lockup";
@@ -48,7 +48,8 @@ function PublicProfile() {
   const [takes, setTakes] = useState<TakeRow[]>([]);
   const [replies, setReplies] = useState<{ id: string; takeId: string; body: string; ts: number }[]>([]);
   const [reposts, setReposts] = useState<TakeRow[]>([]);
-  const [cut, setCut] = useState<"takes" | "replies" | "reposts" | "media">("takes");
+  const [likes, setLikes] = useState<TakeRow[]>([]);
+  const [cut, setCut] = useState<"takes" | "replies" | "reposts" | "media" | "likes">("takes");
   const [friend, setFriend] = useState<"add" | "pending" | "friends">("add");
   const [onFollow, setOnFollow] = useState(false);
   const [followsMe, setFollowsMe] = useState(false);
@@ -64,6 +65,7 @@ function PublicProfile() {
     void listUserTakes({ data: profile.handle }).then(setTakes).catch(() => setTakes([]));
     void listUserReplies({ data: profile.handle }).then(setReplies).catch(() => setReplies([]));
     void listUserReposts({ data: profile.handle }).then(setReposts).catch(() => setReposts([]));
+    void listUserLikes({ data: profile.handle }).then(setLikes).catch(() => setLikes([]));
   }, [profile?.handle]);
   const mine = (session.user?.displayName || "").toLowerCase() === (profile?.handle || "").toLowerCase();
   useEffect(() => {
@@ -314,9 +316,9 @@ function PublicProfile() {
         </button>
         <section className="profile-block">
           <div className="flex gap-1.5">
-            {(["takes", "replies", "reposts", "media"] as const).map((id) => (
+            {(["takes", "replies", "reposts", "media", "likes"] as const).map((id) => (
               <button key={id} type="button" className={`rounded-full px-3 py-1 text-[12px] font-bold ${cut === id ? "btn-join" : "border border-line"}`} onClick={() => setCut(id)}>
-                {id === "takes" ? "Takes" : id === "replies" ? "Replies" : id === "reposts" ? "Reposts" : "Media"}
+                {id === "takes" ? "Takes" : id === "replies" ? "Replies" : id === "reposts" ? "Reposts" : id === "media" ? "Media" : "Likes"}
               </button>
             ))}
           </div>
@@ -345,6 +347,13 @@ function PublicProfile() {
                   ))}
                 </div>
               )
+            ) : cut === "likes" ? (
+              likes.length === 0 ? <p className="text-sm text-muted">No likes yet.</p> : likes.map((t) => (
+                <article key={t.id} className="rounded-xl border border-line bg-panel px-3 py-2">
+                  <p className="text-[11px] font-semibold text-muted">@{t.handle}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-[13px] leading-snug">{t.body}</p>
+                </article>
+              ))
             ) : reposts.length === 0 ? <p className="text-sm text-muted">No reposts yet.</p> : reposts.map((t) => (
               <article key={t.id} className="rounded-xl border border-line bg-panel px-3 py-2">
                 <p className="text-[11px] font-semibold text-muted">Reposted from @{t.handle}</p>

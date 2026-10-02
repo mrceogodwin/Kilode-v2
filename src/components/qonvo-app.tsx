@@ -389,6 +389,7 @@ function QonvoAppInner() {
     const tab = params.get("tab");
     const open = params.get("open");
     if (tab === "socials" || tab === "chat" || tab === "music" || tab === "cinema" || tab === "advert" || tab === "feeds") {
+      setScreen("home");
       setHomeTab(tab as typeof homeTab);
     } else if (!open && signedIn) {
       setScreen("home");

@@ -391,6 +391,39 @@ export const listUserReposts = createServerFn({ method: "GET" })
     }
   });
 
+export const getTake = createServerFn({ method: "GET" })
+  .validator((id: string) => String(id || "").trim().slice(0, 40))
+  .handler(async ({ data }) => {
+    if (!data) return null as TakeRow | null;
+    try {
+      const sql = await getSql();
+      const rows = await sql`select t.* from nf_takes t where t.id = ${data} and t.user_id <> ${"seed"} limit 1`;
+      const row = (rows as Record<string, unknown>[])[0];
+      return row ? mapTake(row) : null;
+    } catch {
+      return null as TakeRow | null;
+    }
+  });
+
+export const listUserLikes = createServerFn({ method: "GET" })
+  .validator((handle: string) => String(handle || "").trim().replace(/^@/, "").slice(0, 24).toLowerCase())
+  .handler(async ({ data }) => {
+    if (!data) return [] as TakeRow[];
+    try {
+      const sql = await getSql();
+      await sql`create table if not exists nf_take_likes (take_id text not null, user_id text not null, primary key (take_id, user_id))`;
+      const rows = await sql`select t.* from nf_take_likes l
+        join nf_profiles p on p.user_id = l.user_id
+        join nf_takes t on t.id = l.take_id
+        where lower(p.handle) = ${data}
+        order by t.ts desc
+        limit 20`;
+      return (rows as Record<string, unknown>[]).map(mapTake);
+    } catch {
+      return [] as TakeRow[];
+    }
+  });
+
 function kindsForAccount(account: string): TakeKind[] {
   if (account === "artist") return ["take", "music", "banter", "quote"];
   if (account === "job_poster") return ["take", "job", "banter", "quote"];
@@ -507,7 +540,7 @@ export const saveTake = createServerFn({ method: "POST" })
         const quoted = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = ${meta.quoteHandle.toLowerCase()} limit 1`;
         const to = quoted[0]?.user_id || "";
         if (to && to !== userId && !(await pairBlocked(sql, userId, to))) {
-          await pushNote(to, `@${who.handle} quoted your take.`, "/?tab=socials");
+          await pushNote(to, `@${who.handle} quoted your take.`, `/?tab=socials&take=${encodeURIComponent(id)}`);
         }
       }
       return {
@@ -575,6 +608,12 @@ export const likeTake = createServerFn({ method: "POST" })
     const inserted = await sql<{ take_id: string }>`insert into nf_take_likes (take_id, user_id) values (${data.id}, ${context.userId}) on conflict do nothing returning take_id`;
     if (inserted[0]) {
       const rows = await sql<{ likes: number | string }>`update nf_takes set likes = coalesce(likes, 0) + 1 where id = ${data.id} returning likes`;
+      const owner = await sql<{ user_id: string | null }>`select user_id from nf_takes where id = ${data.id} limit 1`;
+      const ownerId = owner[0]?.user_id || "";
+      if (ownerId && ownerId !== context.userId && !(await pairBlocked(sql, context.userId, ownerId))) {
+        const me = await profileOf(context.userId);
+        if (me.handle && me.handle !== "member") await pushNote(ownerId, `@${me.handle} liked your take.`, `/?tab=socials&take=${encodeURIComponent(data.id)}`);
+      }
       return { ok: true as const, liked: true, likes: Number(rows[0]?.likes ?? 0) };
     }
     await sql`delete from nf_take_likes where take_id = ${data.id} and user_id = ${context.userId}`;
@@ -656,7 +695,7 @@ export const replyTake = createServerFn({ method: "POST" })
     await sql`insert into nf_take_replies (id, take_id, user_id, handle, body, ts) values (${id}, ${data.id}, ${context.userId}, ${handle}, ${clean}, ${ts})`;
     await sql`update nf_takes set comments = comments + 1 where id = ${data.id}`;
     if (ownerId !== context.userId && handle && handle !== "member") {
-      await pushNote(ownerId, `@${handle} replied to your take.`, "/?tab=socials");
+      await pushNote(ownerId, `@${handle} replied to your take.`, `/?tab=socials&take=${encodeURIComponent(data.id)}`);
     }
     for (const mentioned of mentionsOf(clean)) {
       if (mentioned === handle.toLowerCase()) continue;
@@ -715,7 +754,7 @@ export const repostTake = createServerFn({ method: "POST" })
     const ownerId = owner[0]?.user_id || "";
     if (ownerId && ownerId !== context.userId) {
       const me = await profileOf(context.userId);
-      if (me.handle && me.handle !== "member") await pushNote(ownerId, `@${me.handle} reposted your take.`, "/?tab=socials");
+      if (me.handle && me.handle !== "member") await pushNote(ownerId, `@${me.handle} reposted your take.`, `/?tab=socials&take=${encodeURIComponent(data.id)}`);
     }
     return { ok: true as const, reposted: true };
   });

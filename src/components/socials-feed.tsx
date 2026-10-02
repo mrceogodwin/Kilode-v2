@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Briefcase, Headphones, ImagePlus, Lock } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, getTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -369,6 +369,25 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
       dead = true;
     };
   }, [takes, followTakes, trendTakes, tagTakes]);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("take") || "";
+    if (!id) return;
+    let dead = false;
+    void getTake({ data: id }).then((t) => {
+      if (dead || !t) return;
+      setTakes((list) => (list.some((x) => x.id === t.id) ? list : [t, ...list]));
+      setOpenReply(id);
+      void listTakeReplies({ data: { id } }).then((rows) => {
+        if (!dead) setThreads((m) => ({ ...m, [id]: rows }));
+      });
+      window.setTimeout(() => {
+        document.querySelector(`[data-take="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "center" });
+      }, 350);
+    });
+    return () => {
+      dead = true;
+    };
+  }, []);
   useEffect(() => {
     const onTrend = () => {
       wantSocialTrend = false;
@@ -1520,7 +1539,7 @@ function TakeCard({
   const expires = typeof take.meta.expires === "number" ? take.meta.expires : 0;
   const hours = expires ? Math.max(0, Math.round((expires - Date.now()) / 3600000)) : 0;
   return (
-    <article className="glass-3d px-2.5 py-2">
+    <article className="glass-3d px-2.5 py-2" data-take={take.id}>
       {take.via ? <div className="mb-1 text-[10px] font-semibold text-muted">Reposted by @{take.via}</div> : null}
       <div className="flex items-start gap-2">
         <Face handle={ghost ? "ghost" : take.handle} photo={ghost ? "" : photo} size={28} />
