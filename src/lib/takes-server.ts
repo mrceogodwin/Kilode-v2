@@ -571,6 +571,35 @@ export const likeTake = createServerFn({ method: "POST" })
     return { ok: true as const, liked: false, likes: Number(rows[0]?.likes ?? 0) };
   });
 
+export const listLikeFaces = createServerFn({ method: "GET" })
+  .validator((d: { ids?: string[] }) => ({
+    ids: (Array.isArray(d?.ids) ? d.ids : []).map((id) => String(id || "").slice(0, 40)).filter(Boolean).slice(0, 40),
+  }))
+  .handler(async ({ data }) => {
+    if (!data.ids.length) return [] as { takeId: string; handle: string; photo: string }[];
+    try {
+      const sql = await getSql();
+      const rows = await sql.query<{ take_id: string; handle: string; photo: string }>(
+        `select take_id, handle, photo from (
+           select l.take_id, p.handle,
+             case
+               when p.photo like 'https://%' then left(p.photo, 400)
+               when left(coalesce(p.photo, ''), 23) = 'data:image/jpeg;base64,' and length(p.photo) < 70000 then p.photo
+               else ''
+             end as photo,
+             row_number() over (partition by l.take_id) as n
+           from nf_take_likes l
+           join nf_profiles p on p.user_id = l.user_id
+           where l.take_id = any($1::text[])
+         ) x where n <= 3`,
+        [data.ids],
+      );
+      return rows.map((r) => ({ takeId: r.take_id, handle: r.handle, photo: r.photo || "" }));
+    } catch {
+      return [] as { takeId: string; handle: string; photo: string }[];
+    }
+  });
+
 export type TakeReply = { id: string; handle: string; body: string; ts: number };
 
 export const listTakeReplies = createServerFn({ method: "GET" })

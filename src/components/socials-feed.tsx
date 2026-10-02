@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Briefcase, Headphones, Lock } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listMyBlocks, listMyMutes, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -315,7 +315,28 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [people, setPeople] = useState<{ handle: string; name: string; role: string; line: string; verified: number }[]>([]);
   const [live, setLive] = useState<string[]>([]);
   const [faces, setFaces] = useState<Record<string, string>>({});
+  const [likeFaces, setLikeFaces] = useState<Record<string, { handle: string; photo: string }[]>>({});
   const [trendOpen, setTrendOpen] = useState(false);
+  useEffect(() => {
+    const ids = [...takes, ...followTakes, ...trendTakes, ...tagTakes].map((t) => t.id).filter(Boolean).slice(0, 40);
+    if (!ids.length) return;
+    let dead = false;
+    void listLikeFaces({ data: { ids } })
+      .then((rows) => {
+        if (dead) return;
+        const next: Record<string, { handle: string; photo: string }[]> = {};
+        for (const r of rows) {
+          const bag = next[r.takeId] || [];
+          if (!bag.some((x) => x.handle === r.handle)) bag.push({ handle: r.handle, photo: r.photo });
+          next[r.takeId] = bag;
+        }
+        setLikeFaces(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      dead = true;
+    };
+  }, [takes, followTakes, trendTakes, tagTakes]);
   useEffect(() => {
     const onTrend = () => {
       wantSocialTrend = false;
@@ -1165,6 +1186,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
                 });
             }}
             onFollow={() => flipFollow(t.handle)}
+            likers={likeFaces[t.id] || []}
             onQuote={() => {
               if (!authed) return goLogin();
               setQuoting(t);
@@ -1406,6 +1428,7 @@ function TakeCard({
   onSave,
   onQuote,
   onFollow,
+  likers = [],
 }: {
   take: TakeRow;
   photo?: string;
@@ -1435,6 +1458,7 @@ function TakeCard({
   onSave: () => void;
   onQuote: () => void;
   onFollow: () => void;
+  likers?: { handle: string; photo: string }[];
 }) {
   const ghost = take.kind === "ghost";
   const locked = take.meta.lock === true && !revealed;
@@ -1620,10 +1644,10 @@ function TakeCard({
         <button type="button" onClick={onShare} aria-label="Share">
           <KSend />
         </button>
-        <span className="take-faces" aria-hidden>
-          {take.likes > 0 ? <i className="spark" /> : null}
-          {take.fact > 0 ? <i className="fact" /> : null}
-          {take.cap > 0 ? <i className="cap" /> : null}
+        <span className="take-faces" aria-label="Liked by">
+          {likers.slice(0, 3).map((p) => (
+            <img key={p.handle} src={avatarUrl(p.handle, p.photo)} alt="" title={p.handle} />
+          ))}
         </span>
       </div>
     </article>

@@ -4079,5 +4079,157 @@ html[data-skin="ivory"] .take-follow { color: #8a6420; }
 html[data-skin="ivory"] .take-follow.on { color: #5c6560; }
 html[data-skin="ivory"] .take-faces i { border-color: #fff; }
 
+/* Light skin lock. Later rules were painting light type on white and white type on black. */
+html[data-skin="ivory"] .glass-3d:not(.hero-flag) {
+  background: #fff !important;
+  color: #1c1c1a !important;
+  border: 1px solid rgba(17, 17, 17, 0.1) !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .glass-3d:not(.hero-flag) p,
+html[data-skin="ivory"] .glass-3d:not(.hero-flag) span,
+html[data-skin="ivory"] .glass-3d:not(.hero-flag) a,
+html[data-skin="ivory"] .glass-3d:not(.hero-flag) h2,
+html[data-skin="ivory"] .glass-3d:not(.hero-flag) h3,
+html[data-skin="ivory"] .glass-3d:not(.hero-flag) label {
+  color: #1c1c1a !important;
+  -webkit-text-fill-color: #1c1c1a !important;
+}
+html[data-skin="ivory"] .glass-3d .text-muted,
+html[data-skin="ivory"] .glass-3d .take-follow.on {
+  color: #5c564c !important;
+  -webkit-text-fill-color: #5c564c !important;
+}
+html[data-skin="ivory"] .hero-caption,
+html[data-skin="ivory"] .hero-caption * {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+html[data-skin="ivory"] .raised,
+html[data-skin="ivory"] .raised p,
+html[data-skin="ivory"] .raised span,
+html[data-skin="ivory"] .raised label,
+html[data-skin="ivory"] .raised .text-lime-2 {
+  color: #1c1c1a !important;
+  -webkit-text-fill-color: #1c1c1a !important;
+}
+html[data-skin="ivory"] .raised .text-muted {
+  color: #5c564c !important;
+  -webkit-text-fill-color: #5c564c !important;
+}
+html[data-skin="ivory"] .raised .text-lime-2 {
+  color: #1f7a40 !important;
+  -webkit-text-fill-color: #1f7a40 !important;
+}
+html[data-skin="ivory"] .raised { overflow: visible !important; }
+html[data-skin="ivory"] .space-page .me-hero {
+  background: linear-gradient(180deg, #fbfaf6 0%, #f3efe6 100%) !important;
+  color: #1c1c1a !important;
+  border: 1px solid rgba(28, 28, 26, 0.12) !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .space-page .me-hero p,
+html[data-skin="ivory"] .space-page .me-hero span,
+html[data-skin="ivory"] .space-page .me-hero a,
+html[data-skin="ivory"] .space-page .me-hero b,
+html[data-skin="ivory"] .space-page .me-hero .hero-copy,
+html[data-skin="ivory"] .space-page .me-hero .text-fg {
+  color: #1c1c1a !important;
+  -webkit-text-fill-color: #1c1c1a !important;
+  background: transparent !important;
+}
+html[data-skin="ivory"] .space-page .me-hero .text-muted {
+  color: #5c564c !important;
+  -webkit-text-fill-color: #5c564c !important;
+}
+html[data-skin="ivory"] .top-n {
+  background: #2f6b45 !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  border: 1px solid #245536 !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .btn-join,
+html[data-skin="ivory"] button.btn-join {
+  background: #e6c56a !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+  border-color: #c9a84a !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .btn-3d,
+html[data-skin="ivory"] button.btn-3d {
+  background: #f7f4ee !important;
+  color: #1c1c1a !important;
+  -webkit-text-fill-color: #1c1c1a !important;
+  border: 1px solid rgba(28, 28, 26, 0.16) !important;
+  box-shadow: none !important;
+}
+html:not([data-skin="ivory"]) .btn-3d {
+  background: linear-gradient(180deg, #3a433e 0%, #242b28 100%) !important;
+  color: #f4f6f5 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .svc-ico {
+  background: linear-gradient(180deg, #3d4943 0%, #2a332f 100%) !important;
+  color: #f7f4ee !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .svc-ico span,
+html[data-skin="ivory"] .svc-ico svg {
+  color: #f7f4ee !important;
+  -webkit-text-fill-color: #f7f4ee !important;
+}
+html:not([data-skin="ivory"]) .svc-ico {
+  background: linear-gradient(180deg, #2c3530 0%, #1a221e 100%) !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .trend-ticker,
+html[data-skin="ivory"] .kilode-chrome .trend-ticker,
+html[data-skin="ivory"] .kilode-chrome-ticker {
+  background: linear-gradient(90deg, #314038 0%, #28332e 100%) !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .hero-flag {
+  box-shadow: none !important;
+}
+.take-faces { display: inline-flex; align-items: center; }
+.take-faces img {
+  width: 16px;
+  height: 16px;
+  margin-left: -4px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1.5px solid #fff;
+  background: #d9d3c8;
+}
+html:not([data-skin="ivory"]) .take-faces img { border-color: #1a1f1c; }
+.explore-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 2px 2px 12px;
+}
+.explore-cell {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #1a1f1c;
+}
+.explore-cell img { width: 100%; height: 100%; object-fit: cover; }
+.explore-cell span {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  color: #fff;
+  font-size: 11px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+
 
 

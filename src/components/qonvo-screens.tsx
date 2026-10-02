@@ -1353,11 +1353,11 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
         tiles.length === 0 && grid.length === 0 ? (
           <p className="text-sm text-muted">No photos yet. Pictures, videos, products, and places show up in this grid as soon as they are posted.</p>
         ) : (
-          <div className="-mx-4 grid grid-cols-3 gap-px">
+          <div className="explore-grid">
             {grid.map((t) => (
-              <a key={`${t.kind}-${t.id}`} href={t.href} className="relative aspect-square overflow-hidden bg-black" aria-label={t.title}>
-                <img src={t.image} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
-                {t.video ? <span className="absolute right-1.5 top-1.5 text-[11px] font-black text-white drop-shadow">▶</span> : null}
+              <a key={`${t.kind}-${t.id}`} href={t.href} className="explore-cell" aria-label={t.title}>
+                <img src={t.image} alt="" referrerPolicy="no-referrer" />
+                {t.video ? <span>▶</span> : null}
               </a>
             ))}
           </div>
