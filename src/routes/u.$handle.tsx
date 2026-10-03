@@ -185,7 +185,7 @@ function PublicProfile() {
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="btn-join rounded-full px-4 py-2 text-[12px] font-bold"
+                  className="follow-slim"
                   onClick={() => {
                     if (!session.user) {
                       window.location.href = "/login";

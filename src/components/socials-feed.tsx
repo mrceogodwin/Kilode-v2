@@ -1018,7 +1018,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             <div className="mt-1.5 flex gap-1">
               <button
                 type="button"
-                className={`fellow-act rounded-full border px-2.5 py-1 text-[10px] font-bold ${followed(f.handle, f.id) ? "opacity-70" : ""}`}
+                className={`follow-slim ${followed(f.handle, f.id) ? "on" : ""}`}
                 onClick={() => flipFollow(f.handle, f.id)}
               >
                 {followLabel(f.handle, f.id)}
@@ -1093,7 +1093,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
               <div key={p.id} className="w-[148px] shrink-0 rounded-[12px] border border-line px-2.5 py-2">
                 <a href={`/u/${encodeURIComponent(p.handle)}`} className="block truncate text-[12px] font-semibold">@{p.handle}</a>
                 <div className="truncate text-[10px] text-muted">{p.mutuals > 0 ? `${p.mutuals} mutual follows` : p.role}</div>
-                <button type="button" className="fellow-act mt-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold" onClick={() => flipFollow(p.handle, p.id)}>
+                <button type="button" className="follow-slim mt-1.5" onClick={() => flipFollow(p.handle, p.id)}>
                   {theyFollow(p.handle, p.id) ? "Follow back" : "Follow"}
                 </button>
               </div>
@@ -1296,7 +1296,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             <ImagePlus className="size-3.5" />
             <input
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,.jpg,.jpeg,.png,.webp"
               className="sr-only"
               disabled={mediaBusy}
               onChange={(e) => {
@@ -1373,7 +1373,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
               <div key={p.id || p.handle} className="know-card">
                 <a href={`/u/${encodeURIComponent(p.handle)}`} className="block truncate text-[12px] font-semibold">@{p.handle}</a>
                 <div className="truncate text-[10px] text-muted">{p.mutuals > 0 ? `${p.mutuals} mutual` : "New on Kilode"}</div>
-                <button type="button" className="soc-tool mt-1.5" onClick={() => flipFollow(p.handle, p.id)}>
+                <button type="button" className="follow-slim mt-1.5" onClick={() => flipFollow(p.handle, p.id)}>
                   {followed(p.handle, p.id) ? "Following" : theyFollow(p.handle, p.id) ? "Follow back" : "Follow"}
                 </button>
               </div>

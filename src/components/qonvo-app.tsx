@@ -80,7 +80,7 @@ import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
 import { ReportMenu } from "@/components/report-menu";
 import { NotifyBell } from "@/components/notify-bell";
-import { MenuLegal, MenuPin } from "@/components/get-app";
+import { MenuLegal } from "@/components/get-app";
 import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
 import { LinkText } from "@/components/link-text";
@@ -339,8 +339,6 @@ function QonvoAppInner() {
     }
   }, [menuOpen]);
   const [marketDesk, setMarketDesk] = useState<MarketDesk | null>(null);
-  const [feedQ, setFeedQ] = useState("");
-  const [feedSearchOn, setFeedSearchOn] = useState(false);
   const [joinPass, setJoinPass] = useState("");
   const [joinShowPass, setJoinShowPass] = useState(false);
   const [joinAgree, setJoinAgree] = useState(false);
@@ -434,7 +432,8 @@ function QonvoAppInner() {
       if (node.scrollHeight <= node.clientHeight + 24) return;
       const y = node.scrollTop;
       const now = Date.now();
-      const stage = root.dataset.stage === "1" && document.querySelector(".kilode-shell")?.getAttribute("data-chrome") === "auto";
+      const shellChrome = document.querySelector(".kilode-shell")?.getAttribute("data-chrome");
+      const stage = shellChrome === "auto" || root.dataset.stage === "1";
       if (!stage && away) {
         away = false;
         root.classList.remove("chrome-away");
@@ -486,7 +485,8 @@ function QonvoAppInner() {
   }, []);
 
   useEffect(() => {
-    if (!(screen === "home" && homeTab === "feeds" && !marketDesk)) {
+    const tuck = (screen === "home" && (homeTab === "feeds" || homeTab === "socials") && !marketDesk) || screen === "search";
+    if (!tuck && document.documentElement.dataset.stage !== "1") {
       document.documentElement.classList.remove("chrome-away");
     }
   }, [screen, homeTab, marketDesk]);
@@ -679,7 +679,7 @@ function QonvoAppInner() {
   }
 
   return (
-    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg" data-paper={(screen === "home" && homeTab === "feeds" && !marketDesk) || screen === "dashboard" || screen === "search" ? "1" : "0"} data-chrome={screen === "home" && homeTab === "feeds" && !marketDesk ? "auto" : "lock"}>
+    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg" data-paper={(screen === "home" && homeTab === "feeds" && !marketDesk) || screen === "dashboard" || screen === "search" ? "1" : "0"} data-chrome={(screen === "home" && (homeTab === "feeds" || homeTab === "socials") && !marketDesk) || screen === "search" ? "auto" : "lock"}>
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule">
           <div className="flex min-h-12 flex-nowrap items-center gap-1.5 px-1.5">
@@ -783,94 +783,6 @@ function QonvoAppInner() {
             </div>
           </div>
         </div>
-        {/* Rooms/Live/Videos folded into Chat & Me — keep tab bar clear on mobile */}
-        {homeTab === "socials" ? null : (
-        <div className="kilode-sub">
-        <div className="kilode-chrome-ticker flex items-center gap-1.5 pr-1.5">
-          <div className="ticker-track min-w-0 flex-1 px-3 text-[10px] leading-5 text-muted">
-            {[...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10), ...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10)].map((r, i) => (
-              <button key={r.id + i} type="button" aria-label={`Open room ${r.name}`} className="shrink-0 hover:text-fg" onClick={() => goHome(r.id)}>
-                {r.name}
-              </button>
-            ))}
-            {store.campaigns
-              .filter((c) => c.status === "approved")
-              .flatMap((c) => [c, c])
-              .map((c, i) => (
-                <button
-                  key={c.id + "ad" + i}
-                  type="button"
-                  className="ad-chip"
-                  onClick={() => {
-                    if (c.link) window.location.href = c.link;
-                    else setHomeTab("advert");
-                  }}
-                >
-                  {c.image ? <img src={c.image} alt="" /> : <i>{(c.name || "A").slice(0, 1)}</i>}
-                  {c.name}
-                </button>
-              ))}
-          </div>
-          <button type="button" className="ads-mini" onClick={() => { setScreen("home"); setHomeTab("advert"); }}>
-            Ads
-          </button>
-        </div>
-        {homeTab === "feeds" && !marketDesk ? (
-          <div className="feed-tools flex items-center gap-1.5 px-2 py-1">
-            {feedSearchOn ? (
-              <input
-                value={feedQ}
-                onChange={(e) => setFeedQ(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key !== "Enter") return;
-                  const n = feedQ.trim().toLowerCase();
-                  if (n.length < 2) return;
-                  const hit = store.posts.find((p) => {
-                    if (!p?.id || p.status === "draft") return false;
-                    const blob = `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase();
-                    return blob.includes(n);
-                  });
-                  if (hit) store.setOpenPost(hit.id);
-                }}
-                placeholder="Search feeds"
-                className="min-h-11 flex-1 rounded-md border border-line bg-panel px-2 text-base"
-                autoFocus
-              />
-            ) : (
-              <TrendingTicker posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
-            )}
-            <button
-              type="button"
-              aria-label="Search feeds"
-              className="chrome-tool"
-              onClick={() => {
-                setFeedSearchOn((v) => !v);
-                if (feedSearchOn) setFeedQ("");
-              }}
-            >
-              <Search className="size-3.5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Post news"
-              title="Post news"
-              className="chrome-tool"
-              onClick={() => {
-                if (session.isPending) return;
-                if (!signedIn) {
-                  window.location.href = "/login?mode=up";
-                  return;
-                }
-                queueNewsPost();
-                setScreen("create");
-              }}
-            >
-              <Plus className="size-4" strokeWidth={2.75} />
-            </button>
-          </div>
-        ) : null}
-        </div>
-        )}
       </header>
 
       <div className={screen === "home" ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "hidden"} aria-hidden={screen !== "home"}>
@@ -895,7 +807,7 @@ function QonvoAppInner() {
                 <div className={homeTab === "feeds" && !marketDesk ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "hidden"}>
                   <FeedPane
                     store={store}
-                    q={feedQ}
+                    q=""
                     onDesk={setMarketDesk}
                     onLeave={(where) => {
                       if (where === "trending") setScreen("trending");
@@ -1393,7 +1305,6 @@ function QonvoAppInner() {
               <SkinToggle />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-2.5 pb-4">
-              <StageSwitch />
               <div className="menu-hero-card mb-3">
                 <div className="grid grid-cols-3 gap-2">
                 {(signedIn
@@ -1608,8 +1519,10 @@ function QonvoAppInner() {
                 <DrawerRow icon={Coins} label="Pricing" hint="Member, badge, event, ads" onClick={() => { setScreen("pricing"); setMenuOpen(false); }} on={screen === "pricing"} />
               </DrawerGroup>
             </div>
-            <MenuPin onClose={() => setMenuOpen(false)} />
             <MenuLegal onDonate={() => { setDonateOpen(true); setMenuOpen(false); }} />
+            <div className="menu-stage shrink-0 border-t border-white/10 px-2.5 py-2">
+              <StageSwitch />
+            </div>
           </aside>
           <button type="button" className="flex-1 bg-black/60" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
         </div>

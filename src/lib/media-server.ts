@@ -39,10 +39,12 @@ export const prepareTakeUpload = createServerFn({ method: "POST" })
       return { ok: false as const, reason: signed.error?.message || "Supabase did not open an upload. Make the market-images bucket public." };
     }
     const pub = admin.storage.from(bucket).getPublicUrl(signed.data.path || path);
+    const signedUrl = signed.data.signedUrl || "";
     return {
       ok: true as const,
       path: signed.data.path || path,
       token: signed.data.token,
+      signedUrl,
       publicUrl: pub.data.publicUrl,
       apikey: anon,
       endpoint: `${url.replace(/\/$/, "")}/storage/v1`,

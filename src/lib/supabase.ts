@@ -154,20 +154,23 @@ export async function uploadTakeMedia(file: File, limits?: { maxSeconds?: number
   const ticket = await prepareTakeUpload({ data: { ext, type: safeType } });
   if (ticket.ok) {
     try {
-      const sent = await putSignedUpload(ticket, body, safeType, ext);
+      const sent = await putSignedUpload(ticket, body, safeType);
       if (sent.ok && ticket.publicUrl) return { kind: video ? "video" : "image", url: ticket.publicUrl };
-      const detail = await sent.text().catch(() => "");
-      if (video) throw new Error(detail.slice(0, 180) || "Supabase refused the video. Check the market-images bucket is public.");
+      const detail = (await sent.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 180);
+      const blocked = /bytestring|8288/i.test(detail);
+      throw new Error(
+        blocked
+          ? "This phone blocked the upload. Try a JPG or a shorter clip."
+          : detail || (video ? "Supabase refused the video. Check the market-images bucket is public." : "Supabase refused the photo. Try again."),
+      );
     } catch (e) {
       const raw = e instanceof Error ? e.message : "";
-      if (video) {
-        throw new Error(/bytestring|8288/i.test(raw) ? "This phone blocked the video upload. Try a shorter clip." : raw || "Video did not reach Supabase.");
-      }
+      throw new Error(raw || (video ? "Video did not reach Supabase." : "Photo did not reach Supabase."));
     }
   } else if (video) {
     throw new Error(ticket.reason);
   }
-  if (video) throw new Error("Video did not reach Supabase. Check the bucket is public, then try again.");
+  if (video) throw new Error(ticket.ok ? "Video did not reach Supabase." : ticket.reason);
   const data = body.type === "image/jpeg" ? await blobToData(body) : await compressPhoto(file);
   if (data.length > 140_000) throw new Error(ticket.ok ? "That photo is still too large after compression." : ticket.reason);
   return { kind: "image", url: data };
@@ -181,32 +184,41 @@ function latinHeader(value: string) {
   return out;
 }
 
-/** Signed upload without FormData. iOS puts a word-joiner (U+2060) on photo names, and WebKit then throws ByteString 8288. */
+/**
+ * Signed upload. The ticket URL includes the bucket. A hand-built path of
+ * /object/upload/sign/takes/... misses market-images and Supabase 404s.
+ * The body is a Blob, not the original File, so an iPhone word-joiner in the
+ * photo name cannot throw ByteString 8288.
+ */
 async function putSignedUpload(
-  ticket: { path: string; token: string; apikey?: string; endpoint: string },
+  ticket: { path: string; token: string; apikey?: string; endpoint: string; signedUrl?: string },
   file: Blob,
   mime: string,
-  ext: string,
 ) {
-  const boundary = `Kilode${Date.now().toString(16)}`;
   const type = latinHeader(mime || "application/octet-stream") || "application/octet-stream";
-  const name = `upload.${latinHeader(ext).replace(/[^\w]/g, "") || "bin"}`;
-  const bytes = file instanceof File ? new Blob([await file.arrayBuffer()], { type }) : file;
-  const head =
-    `--${boundary}\r\nContent-Disposition: form-data; name="cacheControl"\r\n\r\n3600\r\n` +
-    `--${boundary}\r\nContent-Disposition: form-data; name=""; filename="${name}"\r\nContent-Type: ${type}\r\n\r\n`;
-  const body = new Blob([head, bytes, `\r\n--${boundary}--\r\n`]);
+  const bytes = new Blob([await file.arrayBuffer()], { type });
+  const form = new FormData();
+  form.append("cacheControl", "3600");
+  form.append("", bytes);
   const headers = new Headers();
-  headers.set("content-type", `multipart/form-data; boundary=${boundary}`);
   headers.set("x-upsert", "false");
   const key = latinHeader(ticket.apikey || "");
   if (key) {
     headers.set("apikey", key);
     headers.set("authorization", `Bearer ${key}`);
   }
-  const path = ticket.path.split("/").map((part) => encodeURIComponent(part)).join("/");
+  return fetch(signedUploadUrl(ticket), { method: "PUT", body: form, headers });
+}
+
+function signedUploadUrl(ticket: { path: string; token: string; endpoint: string; signedUrl?: string }) {
+  const given = (ticket.signedUrl || "").trim();
+  if (/^https:\/\//i.test(given) && given.includes("/object/upload/sign/")) return given;
+  const bucket = "market-images";
+  const rel = (ticket.path || "").replace(/^\/+/, "");
+  const full = rel.startsWith(`${bucket}/`) ? rel : `${bucket}/${rel}`;
+  const path = full.split("/").filter(Boolean).map((part) => encodeURIComponent(part)).join("/");
   const token = encodeURIComponent(latinHeader(ticket.token));
-  return fetch(`${ticket.endpoint}/object/upload/sign/${path}?token=${token}`, { method: "PUT", body, headers });
+  return `${ticket.endpoint.replace(/\/$/, "")}/object/upload/sign/${path}?token=${token}`;
 }
 
 function blobToData(blob: Blob): Promise<string> {
