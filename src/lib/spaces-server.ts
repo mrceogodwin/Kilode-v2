@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
-import { authMiddleware } from "@/lib/auth/middleware";
+import { authMiddleware, optionalAuthMiddleware } from "@/lib/auth/middleware";
+import { assertStaff } from "@/lib/staff-server";
 import { safeHttpUrl } from "@/lib/qonvo-data";
 
 export type SpaceItem = {
@@ -58,6 +59,8 @@ async function ensure() {
     title TEXT NOT NULL, badge TEXT NOT NULL DEFAULT '', price TEXT NOT NULL DEFAULT '',
     duration TEXT NOT NULL DEFAULT '', image_url TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '',
     active INT NOT NULL DEFAULT 1)`);
+  await sql.query(`CREATE TABLE IF NOT EXISTS nf_space_follows (
+    user_id TEXT NOT NULL, space_id TEXT NOT NULL, ts BIGINT NOT NULL, PRIMARY KEY (user_id, space_id))`);
 }
 
 type SpaceRow = {
@@ -255,4 +258,74 @@ export const saveSpaceItem = createServerFn({ method: "POST" })
     await sql`insert into nf_space_items (id, space_id, kind, title, badge, price, duration, image_url, description, active)
       values (${id}, ${data.spaceId}, ${kind}, ${title}, ${(data.badge ?? "").slice(0, 40)}, ${(data.price ?? "").slice(0, 32)}, ${(data.duration ?? "").slice(0, 32)}, ${image}, ${(data.description ?? "").slice(0, 400)}, ${1})`;
     return { ok: true as const, id };
+  });
+
+export const spacePulse = createServerFn({ method: "GET" })
+  .middleware([optionalAuthMiddleware])
+  .validator((d: { spaceId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensure();
+    const rows = await sql<{ n: number }>`select count(*)::int as n from nf_space_follows where space_id = ${data.spaceId}`;
+    const mine = context.userId
+      ? await sql<{ user_id: string }>`select user_id from nf_space_follows where space_id = ${data.spaceId} and user_id = ${context.userId} limit 1`
+      : [];
+    return { followers: Number(rows[0]?.n ?? 0), followed: Boolean(mine[0]) };
+  });
+
+export const toggleSpaceFollow = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { spaceId: string }) => d)
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensure();
+    const hit = await sql<{ user_id: string }>`select user_id from nf_space_follows where space_id = ${data.spaceId} and user_id = ${context.userId} limit 1`;
+    if (hit[0]) {
+      await sql`delete from nf_space_follows where space_id = ${data.spaceId} and user_id = ${context.userId}`;
+      return { ok: true as const, followed: false };
+    }
+    await sql`insert into nf_space_follows (user_id, space_id, ts) values (${context.userId}, ${data.spaceId}, ${Date.now()})`;
+    return { ok: true as const, followed: true };
+  });
+
+export const noteEnquiry = createServerFn({ method: "POST" })
+  .validator((d: { spaceId: string }) => d)
+  .handler(async ({ data }) => {
+    const sql = await getSql();
+    await ensure();
+    await sql`update nf_spaces set enquiries = enquiries + 1 where id = ${data.spaceId}`;
+    return { ok: true as const };
+  });
+
+export const deleteSpaceItem = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    await ensure();
+    const own = await sql<{ id: string }>`select i.id from nf_space_items i join nf_spaces s on s.id = i.space_id where i.id = ${data.id} and s.user_id = ${context.userId} limit 1`;
+    if (!own[0]) return { ok: false as const, reason: "That item is not yours." };
+    await sql`delete from nf_space_items where id = ${data.id}`;
+    return { ok: true as const };
+  });
+
+export const listSpaceDesk = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    await assertStaff(context.userId);
+    const sql = await getSql();
+    await ensure();
+    const rows = await sql<{ id: string; business_name: string; username: string; status: string; handle: string }>`select id, business_name, username, status, handle from nf_spaces order by ts desc limit 20`;
+    return rows.map((r) => ({ id: r.id, name: r.business_name, username: r.username, status: r.status, handle: r.handle }));
+  });
+
+export const parkSpace = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string; status?: string }) => d)
+  .handler(async ({ context, data }) => {
+    await assertStaff(context.userId);
+    const sql = await getSql();
+    const status = data.status === "Published" ? "Published" : "Draft";
+    await sql`update nf_spaces set status = ${status} where id = ${data.id}`;
+    return { ok: true as const };
   });

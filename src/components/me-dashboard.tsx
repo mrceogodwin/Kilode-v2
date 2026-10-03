@@ -45,6 +45,7 @@ import { disconnectFellow, listConnects, listMyFollows, listSavedTakes, replyCon
 import { getProfile } from "@/lib/forum-server";
 import { staffMe } from "@/lib/staff-server";
 import { usePublicSite } from "@/components/site-chrome";
+import { listMySpaces, type SpaceCard } from "@/lib/spaces-server";
 import { getBearerToken } from "@/lib/auth/client";
 
 type Store = ReturnType<typeof useQonvo>;
@@ -562,6 +563,38 @@ function hubTitleFor(kind: AccountKind): string {
   }
 }
 
+function MySpacesHome() {
+  const [rows, setRows] = useState<SpaceCard[]>([]);
+  useEffect(() => {
+    void listMySpaces().then((r) => setRows(Array.isArray(r) ? r : [])).catch(() => setRows([]));
+  }, []);
+  function open(username?: string) {
+    if (username) {
+      try { sessionStorage.setItem("kilode-space", username); } catch { /* ignore */ }
+      window.dispatchEvent(new CustomEvent("kilode:space", { detail: username }));
+    }
+    goto({ screen: "spaces" });
+  }
+  return (
+    <Section kicker="BUSINESS" title="My Spaces" action={rows.length ? "Manage" : "Create"} onAction={() => open()}>
+      <p className="mb-2 text-[12px] text-muted">A page for your shop, studio, or service. People find it from Socials.</p>
+      <div className="grid grid-cols-2 gap-2">
+        {rows.slice(0, 4).map((s) => (
+          <button key={s.id} type="button" className="rounded-2xl border border-line bg-panel p-2.5 text-left" onClick={() => open(s.username)}>
+            <div className="truncate text-[13px] font-bold">{s.name}</div>
+            <div className="truncate text-[11px] text-muted">@{s.username} · {s.status}</div>
+            <div className="mt-1 text-[10px] text-muted">{s.visitors} visitors · {s.items.length} offers</div>
+          </button>
+        ))}
+        <button type="button" className="grid min-h-20 place-items-center rounded-2xl border border-dashed border-line p-3 text-center" onClick={() => open()}>
+          <Plus className="size-5" />
+          <span className="mt-1 text-[12px] font-bold">Create space</span>
+        </button>
+      </div>
+    </Section>
+  );
+}
+
 function meCardSnap(): { staff?: string | null; photo?: string; connects?: ConnectRow[] } | null {
   try {
     const raw = sessionStorage.getItem("kilode-me-card");
@@ -893,6 +926,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             ["Friends", Users, () => setMePane("friends")],
             ["Follows", Users, () => setMePane("follows")],
             ["Saved", Bookmark, () => setMePane("saved")],
+            ["Spaces", Store, () => goto({ screen: "spaces" })],
             ["Groups", UsersRound, () => goto({ screen: "teams" })],
             ["Marketplace", Store, () => goto({ screen: "market" })],
             ["Messages", MessageSquare, () => goto({ screen: "inbox" })],
@@ -904,6 +938,8 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           </button>
         ))}
       </div>
+
+      <MySpacesHome />
 
       <div className="mb-5 grid grid-cols-4 gap-1.5">
         {stats.map((s) => (

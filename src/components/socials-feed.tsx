@@ -3,6 +3,7 @@ import { Briefcase, Headphones, ImagePlus, Lock, Video } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { uploadTakeMedia, readVideoSeconds, trimTakeVideo } from "@/lib/supabase";
 import { getPublicSite } from "@/lib/site-server";
+import { listPublicSpaces, type SpaceCard } from "@/lib/spaces-server";
 import { SocialDesk } from "@/components/social-desk";
 import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, editOwnTake, getTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listMyTags, listSavedTakeIds, listSavedTakes, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTopicTakes, listTrending, listWordMutes, muteWord, pinOwnTake, replyTake, reportTake, repostTake, saveTake, searchPeople, seeTake, suggestFollows, toggleFollow, togglePing, toggleReplyLock, toggleSaveTake, toggleSensitive, toggleTagFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
@@ -285,6 +286,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [mediaBusy, setMediaBusy] = useState(false);
   const [videoCap, setVideoCap] = useState(15);
   const [pendingClip, setPendingClip] = useState<{ file: File; duration: number; start: number } | null>(null);
+  const [spaces, setSpaces] = useState<SpaceCard[]>([]);
   const trimHold = useRef(false);
   const clipping = useRef(false);
   const trimTimer = useRef(0);
@@ -295,6 +297,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   }, [account, kind]);
   useEffect(() => {
     void getPublicSite().then((s) => setVideoCap(s.takeVideoSeconds || 15)).catch(() => undefined);
+    void listPublicSpaces({ data: {} }).then((rows) => setSpaces(Array.isArray(rows) ? rows.slice(0, 8) : [])).catch(() => setSpaces([]));
   }, []);
   const [busy, setBusy] = useState(false);
   const [linked, setLinked] = useState<Record<string, "out" | "in" | "ask">>(() => linksFrom(readBag<ConnectRow[]>("connects", [])));
@@ -1374,6 +1377,32 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
                   {followed(p.handle, p.id) ? "Following" : theyFollow(p.handle, p.id) ? "Follow back" : "Follow"}
                 </button>
               </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {lane === "posts" && spaces.length > 0 ? (
+        <div className="mb-3">
+          <div className="mb-1.5 flex items-center justify-between">
+            <div className="text-[12px] font-semibold">Discover this space</div>
+            <button type="button" className="text-[11px] font-bold text-muted" onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "spaces" } }))}>See all</button>
+          </div>
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {spaces.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className="know-card text-left"
+                onClick={() => {
+                  try { sessionStorage.setItem("kilode-space", s.username); } catch { /* ignore */ }
+                  window.dispatchEvent(new CustomEvent("kilode:space", { detail: s.username }));
+                  window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "spaces" } }));
+                }}
+              >
+                <div className="truncate text-[12px] font-semibold">{s.name}</div>
+                <div className="truncate text-[10px] text-muted">{s.category || "Business"}{s.location ? ` · ${s.location}` : ""}</div>
+                <span className="soc-tool mt-1.5 inline-flex">View space</span>
+              </button>
             ))}
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { MapPin, Plus, Share2 } from "lucide-react";
-import { getSpace, listMySpaces, listPublicSpaces, saveSpace, saveSpaceItem, type SpaceCard } from "@/lib/spaces-server";
+import { getSpace, listMySpaces, listPublicSpaces, noteEnquiry, saveSpace, saveSpaceItem, deleteSpaceItem, spacePulse, toggleSpaceFollow, type SpaceCard } from "@/lib/spaces-server";
 import { uploadListingPhoto } from "@/lib/supabase";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
@@ -26,6 +26,19 @@ export function SpacesPane() {
   }
   useEffect(() => {
     reload();
+    let pending = "";
+    try { pending = sessionStorage.getItem("kilode-space") || ""; sessionStorage.removeItem("kilode-space"); } catch { pending = ""; }
+    const q = new URLSearchParams(window.location.search).get("space") || pending;
+    if (q) {
+      void getSpace({ data: { username: q } }).then((s) => { if (s) setOpen(s); });
+    }
+    const onOpen = (e: Event) => {
+      const name = String((e as CustomEvent<string>).detail || "");
+      if (!name) return;
+      void getSpace({ data: { username: name } }).then((s) => { if (s) setOpen(s); });
+    };
+    window.addEventListener("kilode:space", onOpen);
+    return () => window.removeEventListener("kilode:space", onOpen);
   }, [session.user?.id]);
 
   if (open) return <Storefront space={open} mine={mine.some((s) => s.id === open.id)} onBack={() => { setOpen(null); reload(); }} />;
@@ -189,60 +202,96 @@ function CreateSpace({ onBack, onDone }: { onBack: () => void; onDone: (username
 }
 
 function Storefront({ space, mine, onBack }: { space: SpaceCard; mine: boolean; onBack: () => void }) {
-  const [tab, setTab] = useState<"Home" | "Services" | "Offers" | "About">("Home");
+  const [tab, setTab] = useState<"Home" | "Products" | "Services" | "Offers" | "About">("Home");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
-  const [kind, setKind] = useState<"service" | "offer" | "product">("service");
+  const [kind, setKind] = useState<"service" | "offer" | "product">("product");
+  const [shot, setShot] = useState("");
   const [msg, setMsg] = useState("");
-  const services = space.items.filter((i) => i.kind !== "offer");
-  const offers = space.items.filter((i) => i.kind === "offer");
+  const [followers, setFollowers] = useState(0);
+  const [followed, setFollowed] = useState(false);
+  const [items, setItems] = useState(space.items);
+  useEffect(() => {
+    setItems(space.items);
+    void spacePulse({ data: { spaceId: space.id } }).then((p) => {
+      setFollowers(p.followers);
+      setFollowed(p.followed);
+    }).catch(() => undefined);
+  }, [space.id, space.items]);
+  const products = items.filter((i) => i.kind === "product");
+  const services = items.filter((i) => i.kind === "service");
+  const offers = items.filter((i) => i.kind === "offer");
+  const shown = tab === "Products" ? products : tab === "Services" ? services : tab === "Offers" ? offers : tab === "Home" ? items.slice(0, 4) : [];
   const wa = space.whatsapp.replace(/[^\d]/g, "");
+  function ask(label: string) {
+    void noteEnquiry({ data: { spaceId: space.id } }).catch(() => undefined);
+    if (wa) window.open(`https://wa.me/${wa}?text=${encodeURIComponent(label)}`, "_blank", "noopener");
+    else if (space.email) window.location.href = `mailto:${space.email}?subject=${encodeURIComponent(label)}`;
+    else setMsg("This space has no WhatsApp or email yet.");
+  }
+  async function share() {
+    const url = `${location.origin}/?space=${space.username}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: space.name, url }); return; } catch { /* copy instead */ }
+    }
+    await navigator.clipboard?.writeText(url);
+    setMsg("Link copied.");
+  }
   return (
-    <div className="pb-24">
+    <div className="space-store pb-24">
       <div className="relative h-40 bg-black">
         {space.banner ? <img src={space.banner} alt="" className="h-full w-full object-cover" /> : null}
         <button type="button" className="absolute top-3 left-3 rounded-full bg-black/60 px-2 py-1 text-[12px] text-white" onClick={onBack}>←</button>
       </div>
       <div className="mx-auto max-w-3xl px-3">
         <div className="-mt-8 flex items-end gap-3">
-          <span className="grid size-16 place-items-center overflow-hidden rounded-full border-2 border-[#e6c56a] bg-black text-lg font-extrabold">
+          <span className="grid size-16 place-items-center overflow-hidden rounded-full border-2 border-[#e6c56a] bg-black text-lg font-extrabold text-white">
             {space.logo ? <img src={space.logo} alt="" className="h-full w-full object-cover" /> : space.name.slice(0, 1)}
           </span>
           <div className="min-w-0 flex-1 pb-1">
             <h1 className="truncate text-xl font-extrabold">{space.name}</h1>
-            <p className="text-[12px] text-muted">{space.category}</p>
+            <p className="text-[12px] text-muted">@{space.username} · {space.category}</p>
           </div>
-          <button type="button" className="mb-1 rounded-full border border-white/15 px-3 py-1 text-[11px]" onClick={() => void navigator.clipboard?.writeText(`${location.origin}/?space=${space.username}`)}>
+          <button type="button" className="mb-1 rounded-full border border-line px-3 py-1 text-[11px]" onClick={() => void share()}>
             <Share2 className="inline size-3" /> Share
           </button>
         </div>
-        <p className="mt-2 flex items-center gap-1 text-[12px] text-muted"><MapPin className="size-3" /> {space.location || "Nigeria"}</p>
+        <p className="mt-2 flex items-center gap-1 text-[12px] text-muted"><MapPin className="size-3" /> {space.location || "Nigeria"} · {followers} followers</p>
         <p className="mt-1 text-[13px] leading-snug">{space.tagline || space.description}</p>
-        <div className="mt-3 flex gap-2">
-          {wa ? <a className="btn-yellow rounded-full px-3 py-1.5 text-[12px] font-extrabold text-black" href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer">WhatsApp</a> : null}
-          {space.email ? <a className="rounded-full border border-white/15 px-3 py-1.5 text-[12px]" href={`mailto:${space.email}`}>Email</a> : null}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button type="button" className="rounded-full border border-line px-3 py-1.5 text-[12px] font-bold" onClick={() => {
+            void toggleSpaceFollow({ data: { spaceId: space.id } }).then((r) => {
+              setFollowed(r.followed);
+              setFollowers((n) => Math.max(0, n + (r.followed ? 1 : -1)));
+            }).catch(() => { window.location.href = "/login"; });
+          }}>{followed ? "Following" : "Follow"}</button>
+          {wa ? <button type="button" className="btn-yellow rounded-full px-3 py-1.5 text-[12px] font-extrabold text-black" onClick={() => ask(space.name)}>WhatsApp</button> : null}
+          <button type="button" className="rounded-full border border-line px-3 py-1.5 text-[12px]" onClick={() => ask(`Hello ${space.name}`)}>Enquire</button>
         </div>
         <div className="lane-rail mt-3">
-          {(["Home", "Services", "Offers", "About"] as const).map((t) => (
+          {(["Home", "Products", "Services", "Offers", "About"] as const).map((t) => (
             <button key={t} type="button" className={`lane-chip ${tab === t ? "on" : ""}`} onClick={() => setTab(t)}>{t}</button>
           ))}
         </div>
         {tab === "About" ? (
           <div className="mt-3 space-y-2 text-[13px]">
-            <p>{space.description}</p>
-            <p className="text-muted">{space.hours}</p>
-            {space.website ? <a className="text-[#e6c56a]" href={space.website} target="_blank" rel="noreferrer">{space.website}</a> : null}
+            <p>{space.description || "No story yet."}</p>
+            <p className="text-muted">{space.hours || "Hours not listed"}</p>
+            <p className="text-muted">{space.location}</p>
+            {space.website ? <a className="text-[#e6c56a]" href={space.website} target="_blank" rel="noreferrer">{space.website.replace(/^https?:\/\//, "")}</a> : null}
           </div>
         ) : (
           <div className="mt-3 grid grid-cols-2 gap-2">
-            {(tab === "Offers" ? offers : services).map((item) => (
-              <article key={item.id} className="overflow-hidden rounded-2xl border border-white/10">
+            {shown.length === 0 ? <p className="col-span-2 text-[12px] text-muted">Nothing in this tab yet.</p> : null}
+            {shown.map((item) => (
+              <article key={item.id} className="overflow-hidden rounded-2xl border border-line bg-panel">
                 {item.image ? <img src={item.image} alt="" className="h-24 w-full object-cover" /> : <div className="h-16 bg-white/5" />}
                 <div className="p-2">
                   {item.badge ? <div className="text-[10px] font-bold text-[#e6c56a]">{item.badge}</div> : null}
                   <div className="text-[13px] font-bold">{item.title}</div>
                   <div className="text-[12px]">{item.price ? `₦${item.price}` : ""} {item.duration}</div>
-                  {wa ? <a className="mt-1 block rounded-full bg-black px-2 py-1 text-center text-[11px] font-bold text-white" href={`https://wa.me/${wa}?text=${encodeURIComponent(item.title)}`}>Book now</a> : null}
+                  <button type="button" className="mt-1 w-full rounded-full bg-black px-2 py-1 text-center text-[11px] font-bold text-white" onClick={() => ask(item.title)}>{item.kind === "product" ? "Order" : "Book"}</button>
+                  {mine ? <button type="button" className="mt-1 text-[10px] text-danger" onClick={() => void deleteSpaceItem({ data: { id: item.id } }).then((r) => { if (r.ok) setItems((rows) => rows.filter((x) => x.id !== item.id)); })}>Remove</button> : null}
                 </div>
               </article>
             ))}
@@ -250,27 +299,40 @@ function Storefront({ space, mine, onBack }: { space: SpaceCard; mine: boolean; 
         )}
         {mine ? (
           <form
-            className="mt-4 space-y-2 rounded-2xl border border-white/10 p-3"
+            className="mt-4 space-y-2 rounded-2xl border border-line p-3"
             onSubmit={(e) => {
               e.preventDefault();
-              void saveSpaceItem({ data: { spaceId: space.id, kind, title, price } }).then((r) => {
-                setMsg(r.ok ? "Added. Reopen the space to see it." : r.reason);
-                if (r.ok) setTitle("");
+              void saveSpaceItem({ data: { spaceId: space.id, kind, title, price, image: shot } }).then((r) => {
+                setMsg(r.ok ? "Added." : r.reason);
+                if (r.ok) {
+                  setItems((rows) => [...rows, { id: r.id, kind, title, badge: "", price, duration: "", image: shot, description: "" }]);
+                  setTitle("");
+                  setShot("");
+                }
               });
             }}
           >
             <div className="text-[12px] font-bold">Add to this space</div>
             <div className="flex gap-2">
-              {(["service", "product", "offer"] as const).map((k) => (
-                <button key={k} type="button" className={`rounded-full px-2 py-1 text-[11px] ${kind === k ? "bg-[#e6c56a] text-black" : "border border-white/15"}`} onClick={() => setKind(k)}>{k}</button>
+              {(["product", "service", "offer"] as const).map((k) => (
+                <button key={k} type="button" className={`rounded-full px-2 py-1 text-[11px] ${kind === k ? "bg-[#e6c56a] text-black" : "border border-line"}`} onClick={() => setKind(k)}>{k}</button>
               ))}
             </div>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5" />
-            <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price in Naira" className="w-full rounded-lg border border-white/10 bg-black/30 px-2 py-1.5" />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-lg border border-line bg-panel px-2 py-1.5" />
+            <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price in Naira" className="w-full rounded-lg border border-line bg-panel px-2 py-1.5" />
+            <label className="block text-[11px] text-muted">Photo
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full text-[11px]" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                void uploadListingPhoto(file).then(setShot).catch((err) => setMsg(err instanceof Error ? err.message : "Photo failed"));
+              }} />
+            </label>
+            {shot ? <img src={shot} alt="" className="h-16 w-full rounded-lg object-cover" /> : null}
             <button type="submit" className="btn-yellow rounded-full px-3 py-1.5 text-[12px] font-extrabold text-black">Add</button>
             {msg ? <p className="text-[11px] text-muted">{msg}</p> : null}
           </form>
         ) : null}
+        {msg && !mine ? <p className="mt-2 text-[11px] text-muted">{msg}</p> : null}
       </div>
     </div>
   );

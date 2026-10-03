@@ -150,21 +150,20 @@ export async function uploadTakeMedia(file: File, limits?: { maxSeconds?: number
       if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) throw new Error("This phone sent a photo format Kilode cannot read. Choose a JPG.");
     }
   }
-  const ticket = await prepareTakeUpload({ data: { ext, type } });
+  const safeType = (type || (video ? "video/mp4" : "image/jpeg")).replace(/[^\w.+/-]/g, "") || (video ? "video/mp4" : "image/jpeg");
+  const ticket = await prepareTakeUpload({ data: { ext, type: safeType } });
   if (ticket.ok) {
-    const form = new FormData();
-    form.append("cacheControl", "3600");
-    form.append("", body, `upload.${ext}`);
-    const headers: Record<string, string> = { "x-upsert": "false" };
-    if (ticket.apikey) {
-      headers.apikey = ticket.apikey;
-      headers.Authorization = `Bearer ${ticket.apikey}`;
+    try {
+      const sent = await putSignedUpload(ticket, body, safeType, ext);
+      if (sent.ok && ticket.publicUrl) return { kind: video ? "video" : "image", url: ticket.publicUrl };
+      const detail = await sent.text().catch(() => "");
+      if (video) throw new Error(detail.slice(0, 180) || "Supabase refused the video. Check the market-images bucket is public.");
+    } catch (e) {
+      const raw = e instanceof Error ? e.message : "";
+      if (video) {
+        throw new Error(/bytestring|8288/i.test(raw) ? "This phone blocked the video upload. Try a shorter clip." : raw || "Video did not reach Supabase.");
+      }
     }
-    const target = `${ticket.endpoint}/object/upload/sign/${ticket.path}?token=${encodeURIComponent(ticket.token)}`;
-    const sent = await fetch(target, { method: "PUT", body: form, headers });
-    if (sent.ok && ticket.publicUrl) return { kind: video ? "video" : "image", url: ticket.publicUrl };
-    const detail = await sent.text().catch(() => "");
-    if (video) throw new Error(detail.slice(0, 180) || "Supabase refused the video. Check the market-images bucket is public.");
   } else if (video) {
     throw new Error(ticket.reason);
   }
@@ -172,6 +171,42 @@ export async function uploadTakeMedia(file: File, limits?: { maxSeconds?: number
   const data = body.type === "image/jpeg" ? await blobToData(body) : await compressPhoto(file);
   if (data.length > 140_000) throw new Error(ticket.ok ? "That photo is still too large after compression." : ticket.reason);
   return { kind: "image", url: data };
+}
+
+function latinHeader(value: string) {
+  let out = "";
+  for (let i = 0; i < value.length; i++) {
+    if (value.charCodeAt(i) <= 255) out += value[i];
+  }
+  return out;
+}
+
+/** Signed upload without FormData. iOS puts a word-joiner (U+2060) on photo names, and WebKit then throws ByteString 8288. */
+async function putSignedUpload(
+  ticket: { path: string; token: string; apikey?: string; endpoint: string },
+  file: Blob,
+  mime: string,
+  ext: string,
+) {
+  const boundary = `Kilode${Date.now().toString(16)}`;
+  const type = latinHeader(mime || "application/octet-stream") || "application/octet-stream";
+  const name = `upload.${latinHeader(ext).replace(/[^\w]/g, "") || "bin"}`;
+  const bytes = file instanceof File ? new Blob([await file.arrayBuffer()], { type }) : file;
+  const head =
+    `--${boundary}\r\nContent-Disposition: form-data; name="cacheControl"\r\n\r\n3600\r\n` +
+    `--${boundary}\r\nContent-Disposition: form-data; name=""; filename="${name}"\r\nContent-Type: ${type}\r\n\r\n`;
+  const body = new Blob([head, bytes, `\r\n--${boundary}--\r\n`]);
+  const headers = new Headers();
+  headers.set("content-type", `multipart/form-data; boundary=${boundary}`);
+  headers.set("x-upsert", "false");
+  const key = latinHeader(ticket.apikey || "");
+  if (key) {
+    headers.set("apikey", key);
+    headers.set("authorization", `Bearer ${key}`);
+  }
+  const path = ticket.path.split("/").map((part) => encodeURIComponent(part)).join("/");
+  const token = encodeURIComponent(latinHeader(ticket.token));
+  return fetch(`${ticket.endpoint}/object/upload/sign/${path}?token=${token}`, { method: "PUT", body, headers });
 }
 
 function blobToData(blob: Blob): Promise<string> {

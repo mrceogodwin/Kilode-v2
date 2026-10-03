@@ -428,59 +428,68 @@ function QonvoAppInner() {
     let lockUntil = 0;
     const root = document.documentElement;
     const onScroll = (e: Event) => {
-      if (document.documentElement.dataset.stage !== "1") {
-        if (away) {
-          away = false;
-          root.classList.remove("chrome-away");
-        }
-        return;
-      }
-      if (document.querySelector(".kilode-shell")?.getAttribute("data-chrome") !== "auto") return;
       const node = e.target;
       if (!(node instanceof Element)) return;
-      if (node.closest(".kilode-chrome")) return;
+      if (node.closest(".kilode-chrome, .menu-drawer, .app-drawer, .friends-drawer, .rooms-drawer")) return;
       if (node.scrollHeight <= node.clientHeight + 24) return;
       const y = node.scrollTop;
       const now = Date.now();
-      if (now < lockUntil) {
-        lastY = y;
-        return;
+      const stage = root.dataset.stage === "1" && document.querySelector(".kilode-shell")?.getAttribute("data-chrome") === "auto";
+      if (!stage && away) {
+        away = false;
+        root.classList.remove("chrome-away");
       }
       if (y < 8) {
         if (away) {
           away = false;
           root.classList.remove("chrome-away");
-          lockUntil = now + 520;
+          lockUntil = now + 480;
         }
+        if (root.classList.contains("dock-away")) root.classList.remove("dock-away");
         lastY = 0;
         window.clearTimeout(timer);
         return;
       }
+      if (now < lockUntil) {
+        lastY = y;
+        return;
+      }
       const dy = y - lastY;
       lastY = y;
-      if (dy > 12 && !away) {
-        away = true;
-        root.classList.add("chrome-away");
-        lockUntil = now + 520;
-      } else if (dy < -8 && away) {
-        away = false;
-        root.classList.remove("chrome-away");
-        lockUntil = now + 520;
+      if (dy > 10) {
+        if (stage && !away) {
+          away = true;
+          root.classList.add("chrome-away");
+          lockUntil = now + 480;
+        }
+        root.classList.add("dock-away");
+      } else if (dy < -8) {
+        if (away) {
+          away = false;
+          root.classList.remove("chrome-away");
+          lockUntil = now + 480;
+        }
+        root.classList.remove("dock-away");
       }
       window.clearTimeout(timer);
-      if (!away) return;
       timer = window.setTimeout(() => {
-        away = false;
-        root.classList.remove("chrome-away");
-      }, 780);
+        root.classList.remove("dock-away");
+      }, 640);
     };
     document.addEventListener("scroll", onScroll, { capture: true, passive: true });
     return () => {
       document.removeEventListener("scroll", onScroll, true);
       window.clearTimeout(timer);
       document.documentElement.classList.remove("chrome-away");
+      document.documentElement.classList.remove("dock-away");
     };
   }, []);
+
+  useEffect(() => {
+    if (!(screen === "home" && homeTab === "feeds" && !marketDesk)) {
+      document.documentElement.classList.remove("chrome-away");
+    }
+  }, [screen, homeTab, marketDesk]);
 
   useEffect(() => {
     const el = document.querySelector(".kilode-chrome");
@@ -570,10 +579,19 @@ function QonvoAppInner() {
       setMarketDesk(null);
     };
     window.addEventListener("kilode:socials", openSocials);
+    const openSpace = (e: Event) => {
+      const name = String((e as CustomEvent<string>).detail || "");
+      if (name) {
+        try { sessionStorage.setItem("kilode-space", name); } catch { /* ignore */ }
+      }
+      setScreen("spaces");
+    };
+    window.addEventListener("kilode:space", openSpace);
     return () => {
       window.removeEventListener("kilode:create", go);
       window.removeEventListener("kilode:goto", goto);
       window.removeEventListener("kilode:socials", openSocials);
+      window.removeEventListener("kilode:space", openSpace);
     };
   }, [store.authed, session.user, site.videosMenuVisible]);
 
@@ -661,7 +679,7 @@ function QonvoAppInner() {
   }
 
   return (
-    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg" data-chrome={screen === "home" && (homeTab === "feeds" || homeTab === "socials") && !marketDesk ? "auto" : "lock"}>
+    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg" data-paper={(screen === "home" && homeTab === "feeds" && !marketDesk) || screen === "dashboard" || screen === "search" ? "1" : "0"} data-chrome={screen === "home" && homeTab === "feeds" && !marketDesk ? "auto" : "lock"}>
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule">
           <div className="flex min-h-12 flex-nowrap items-center gap-1.5 px-1.5">
@@ -766,6 +784,8 @@ function QonvoAppInner() {
           </div>
         </div>
         {/* Rooms/Live/Videos folded into Chat & Me — keep tab bar clear on mobile */}
+        {homeTab === "socials" ? null : (
+        <div className="kilode-sub">
         <div className="kilode-chrome-ticker flex items-center gap-1.5 pr-1.5">
           <div className="ticker-track min-w-0 flex-1 px-3 text-[10px] leading-5 text-muted">
             {[...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10), ...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 10)].map((r, i) => (
@@ -822,7 +842,7 @@ function QonvoAppInner() {
             <button
               type="button"
               aria-label="Search feeds"
-              className="ticker-tool grid size-8 place-items-center rounded-md"
+              className="chrome-tool"
               onClick={() => {
                 setFeedSearchOn((v) => !v);
                 if (feedSearchOn) setFeedQ("");
@@ -834,7 +854,7 @@ function QonvoAppInner() {
               type="button"
               aria-label="Post news"
               title="Post news"
-              className="ticker-tool news-plus"
+              className="chrome-tool"
               onClick={() => {
                 if (session.isPending) return;
                 if (!signedIn) {
@@ -849,6 +869,8 @@ function QonvoAppInner() {
             </button>
           </div>
         ) : null}
+        </div>
+        )}
       </header>
 
       <div className={screen === "home" ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "hidden"} aria-hidden={screen !== "home"}>

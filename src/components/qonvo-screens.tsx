@@ -50,6 +50,7 @@ import { SitePulsePanel } from "@/components/pulse-panel";
 import { HowKilodePage } from "@/components/how-kilode";
 import { TrendingPane } from "@/components/trending-pane";
 import { SpacesPane } from "@/components/spaces-pane";
+import { listPublicSpaces, listSpaceDesk, parkSpace, type SpaceCard } from "@/lib/spaces-server";
 import { PostRichEditor } from "@/components/post-rich-editor";
 import { postBodyPlain, sanitizePostHtml } from "@/lib/post-body";
 
@@ -1220,6 +1221,8 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
   const [people, setPeople] = useState<{ id: string; handle: string; role: string }[]>([]);
   const [foundPeople, setFoundPeople] = useState<{ handle: string; role: string; line: string }[]>([]);
   const [foundTakes, setFoundTakes] = useState<{ id: string; handle: string; body: string }[]>([]);
+  const [foundSpaces, setFoundSpaces] = useState<SpaceCard[]>([]);
+  const [recent, setRecent] = useState<string[]>([]);
   const s = q.trim().toLowerCase();
   const rooms = useMemo(
     () =>
@@ -1265,6 +1268,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
     if (s.length < 2) {
       setFoundPeople([]);
       setFoundTakes([]);
+      setFoundSpaces([]);
       return;
     }
     void searchPeople({ data: { q: s } })
@@ -1273,6 +1277,15 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
     void searchTakes({ data: { q: s } })
       .then((rows) => setFoundTakes(rows.map((t) => ({ id: t.id, handle: t.handle, body: t.body }))))
       .catch(() => setFoundTakes([]));
+    void listPublicSpaces({ data: { q: s } })
+      .then((rows) => setFoundSpaces(Array.isArray(rows) ? rows : []))
+      .catch(() => setFoundSpaces([]));
+    try {
+      const prev = JSON.parse(localStorage.getItem("kilode-recent-search") || "[]") as string[];
+      const next = [s, ...prev.filter((x) => x !== s)].slice(0, 6);
+      localStorage.setItem("kilode-recent-search", JSON.stringify(next));
+      setRecent(next);
+    } catch { /* ignore */ }
   }, [s]);
   useEffect(() => {
     if (lane !== "explore") return;
@@ -1285,15 +1298,28 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
     void suggestFollows()
       .then((rows) => setPeople(rows.map((p) => ({ id: p.id, handle: p.handle, role: p.role }))))
       .catch(() => setPeople([]));
+    void listPublicSpaces({ data: {} })
+      .then((rows) => setFoundSpaces(Array.isArray(rows) ? rows : []))
+      .catch(() => setFoundSpaces([]));
   }, [s, lane]);
+  useEffect(() => {
+    try { setRecent(JSON.parse(localStorage.getItem("kilode-recent-search") || "[]") as string[]); } catch { setRecent([]); }
+  }, []);
   return (
     <Screen kicker="KILODE" title="Activity" sub="Explore photos and videos first. Search the rest of Kilode." className="paper-page">
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Search people, posts, jobs, music"
+        placeholder="Search people, spaces, posts, jobs"
         className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base"
       />
+      {!s && recent.length > 0 ? (
+        <div className="flex gap-1.5 overflow-x-auto">
+          {recent.map((word) => (
+            <button key={word} type="button" className="soc-chip shrink-0 px-2.5 py-1 text-[12px]" onClick={() => setQ(word)}>{word}</button>
+          ))}
+        </div>
+      ) : null}
       <div className="flex gap-1.5 overflow-x-auto">
         {(["explore", "all", "discover", "trending"] as const).map((id) => (
           <button key={id} type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${lane === id ? "on" : ""}`} onClick={() => setLane(id)}>
@@ -1310,6 +1336,18 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
               <div className="font-semibold">@{p.handle}</div>
               <div className="text-xs text-muted">{p.role}{p.line ? ` · ${p.line}` : ""}</div>
             </a>
+          ))}
+          <div className="text-[11px] font-medium text-muted">Spaces</div>
+          {foundSpaces.length === 0 ? <p className="text-sm text-muted">No spaces match.</p> : null}
+          {foundSpaces.map((sp) => (
+            <button key={sp.id} type="button" className="block w-full rounded-xl border border-line bg-panel p-3 text-left text-sm" onClick={() => {
+              try { sessionStorage.setItem("kilode-space", sp.username); } catch { /* ignore */ }
+              window.dispatchEvent(new CustomEvent("kilode:space", { detail: sp.username }));
+              window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "spaces" } }));
+            }}>
+              <div className="font-semibold">{sp.name}</div>
+              <div className="text-xs text-muted">@{sp.username} · {sp.category}{sp.location ? ` · ${sp.location}` : ""}</div>
+            </button>
           ))}
           <div className="text-[11px] font-medium text-muted">Takes</div>
           {foundTakes.length === 0 ? <p className="text-sm text-muted">No takes match.</p> : null}
@@ -1373,6 +1411,17 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
               <div className="font-semibold">@{p.handle}</div>
               <div className="text-xs text-muted">{p.role}</div>
             </a>
+          ))}
+          <div className="pt-2 text-[11px] font-medium text-muted">Spaces</div>
+          {foundSpaces.length === 0 ? <p className="text-sm text-muted">No public spaces yet.</p> : null}
+          {foundSpaces.map((sp) => (
+            <button key={sp.id} type="button" className="block w-full rounded-xl border border-line bg-panel p-3 text-left text-sm" onClick={() => {
+              try { sessionStorage.setItem("kilode-space", sp.username); } catch { /* ignore */ }
+              window.dispatchEvent(new CustomEvent("kilode:space", { detail: sp.username }));
+            }}>
+              <div className="font-semibold">{sp.name}</div>
+              <div className="text-xs text-muted">{sp.category}{sp.location ? ` · ${sp.location}` : ""}</div>
+            </button>
           ))}
         </div>
       ) : (
@@ -2438,6 +2487,37 @@ function SocialLimits() {
   );
 }
 
+function SpaceMod() {
+  const [rows, setRows] = useState<{ id: string; name: string; username: string; status: string; handle: string }[]>([]);
+  useEffect(() => {
+    void listSpaceDesk().then(setRows).catch(() => setRows([]));
+  }, []);
+  if (rows.length === 0) return null;
+  return (
+    <div className="space-y-2">
+      <div className="text-[11px] font-medium text-muted">Business spaces</div>
+      {rows.map((s) => (
+        <div key={s.id} className="flex items-center justify-between gap-2 rounded-xl border border-line bg-panel p-3">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold">{s.name}</div>
+            <div className="text-[10px] text-muted">@{s.username} · {s.handle} · {s.status}</div>
+          </div>
+          <button
+            type="button"
+            className="shrink-0 text-xs font-semibold text-lime-2"
+            onClick={() => {
+              const next = s.status === "Published" ? "Draft" : "Published";
+              void parkSpace({ data: { id: s.id, status: next } }).then(() => setRows((list) => list.map((r) => r.id === s.id ? { ...r, status: next } : r)));
+            }}
+          >
+            {s.status === "Published" ? "Unpublish" : "Publish"}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SocialDesk() {
   const [takes, setTakes] = useState<{ id: string; handle: string; body: string; ts: number; kind: string }[]>([]);
   const [flags, setFlags] = useState<{ id: string; post_id: string; author: string; reason: string; ts: number }[]>([]);
@@ -2458,6 +2538,7 @@ function SocialDesk() {
         {msg ? <p className="text-[12px] text-danger">{msg}</p> : null}
       </div>
       <SocialLimits />
+      <SpaceMod />
       <div className="space-y-2">
         <div className="text-[11px] font-medium text-muted">Social reports</div>
         {flags.length === 0 ? <p className="text-sm text-muted">No take or account flags.</p> : null}
