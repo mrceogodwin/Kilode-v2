@@ -1423,11 +1423,6 @@ html, body {
 }
 html.chrome-away .kilode-chrome {
   transform: translateY(-110%);
-  margin-bottom: calc(-1 * var(--chrome-h, 132px));
-  pointer-events: none;
-}
-html.chrome-away .dock {
-  transform: translateY(120%);
   pointer-events: none;
 }
 .dock::after {
@@ -4240,6 +4235,91 @@ html:not([data-skin="ivory"]) .take-faces img { border-color: #1a1f1c; }
   font-size: 11px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
+
+.trend-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: transparent !important;
+  color: #fff !important;
+  padding: 3px 8px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.ticker-tool {
+  background: transparent !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .ticker-tool,
+html[data-skin="ivory"] .ticker-tool svg {
+  background: transparent !important;
+  color: #1c1c1a !important;
+  border-color: rgba(28, 28, 26, 0.28) !important;
+  -webkit-text-fill-color: #1c1c1a !important;
+}
+.svc-ico,
+html[data-skin="ivory"] .svc-ico,
+html:not([data-skin="ivory"]) .svc-ico {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html:not([data-skin="ivory"]) .svc-ico {
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  color: #fff !important;
+}
+html:not([data-skin="ivory"]) .svc-ico span,
+html:not([data-skin="ivory"]) .svc-ico svg {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+html[data-skin="ivory"] .svc-ico {
+  border-color: rgba(28, 28, 26, 0.22) !important;
+  color: #1c1c1a !important;
+}
+html[data-skin="ivory"] .svc-ico span,
+html[data-skin="ivory"] .svc-ico svg {
+  color: #1c1c1a !important;
+  -webkit-text-fill-color: #1c1c1a !important;
+}
+html[data-skin="ivory"] .space-page .me-hero {
+  background: linear-gradient(180deg, #46514c 0%, #2e3834 100%) !important;
+  color: #f7f4ee !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] .space-page .me-hero p,
+html[data-skin="ivory"] .space-page .me-hero span,
+html[data-skin="ivory"] .space-page .me-hero a,
+html[data-skin="ivory"] .space-page .me-hero b,
+html[data-skin="ivory"] .space-page .me-hero .hero-copy,
+html[data-skin="ivory"] .space-page .me-hero .text-fg,
+html[data-skin="ivory"] .space-page .me-hero div {
+  color: #f7f4ee !important;
+  -webkit-text-fill-color: #f7f4ee !important;
+}
+html[data-skin="ivory"] .space-page .me-hero .text-muted {
+  color: rgba(247, 244, 238, 0.72) !important;
+  -webkit-text-fill-color: rgba(247, 244, 238, 0.72) !important;
+}
+html[data-skin="ivory"] .space-page .me-hero .btn-3d,
+html[data-skin="ivory"] .space-page .me-hero .btn-3d * {
+  background: #fff !important;
+  color: #1c1c1a !important;
+  -webkit-text-fill-color: #1c1c1a !important;
+}
+html[data-skin="ivory"] .space-page .me-hero .btn-join,
+html[data-skin="ivory"] .space-page .me-hero .btn-join * {
+  background: #e6c56a !important;
+  color: #1a1408 !important;
+  -webkit-text-fill-color: #1a1408 !important;
+}
+
 
 
 

@@ -99,7 +99,7 @@ export function TrendingTicker({ posts, onOpen }: { posts: Post[]; onOpen: (id: 
   if (!loop.length) return null;
   return (
     <div className="trend-ticker flex min-h-9 min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-md px-1.5">
-      <span className="btn-yellow inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[9px] font-extrabold tracking-[0.12em] text-black">
+      <span className="trend-mark">
         <svg viewBox="0 0 16 16" className="size-3" aria-hidden>
           <path d="M2 12 6.1 7.6 8.5 9.8 14 3.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M10.2 3.4H14v3.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />

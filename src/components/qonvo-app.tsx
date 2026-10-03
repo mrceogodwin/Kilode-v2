@@ -785,7 +785,7 @@ function QonvoAppInner() {
               <button
                 type="button"
                 aria-label="Search feeds"
-                className="btn-3d grid size-8 place-items-center rounded-md"
+                className="ticker-tool grid size-8 place-items-center rounded-md"
                 onClick={() => {
                   setFeedSearchOn((v) => !v);
                   if (feedSearchOn) setFeedQ("");
@@ -797,7 +797,7 @@ function QonvoAppInner() {
                 type="button"
                 aria-label="Post news"
                 title="Post news"
-                className="news-plus"
+                className="ticker-tool news-plus"
                 onClick={() => {
                   if (session.isPending) return;
                   if (!signedIn) {

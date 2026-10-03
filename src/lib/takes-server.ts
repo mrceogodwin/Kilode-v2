@@ -466,7 +466,7 @@ function takeShot(raw?: string) {
 
 export const saveTake = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string; quoteHref?: string; image?: string; video?: string }) => d)
+  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string; quoteHref?: string; image?: string; video?: string; place?: string; alt?: string }) => d)
   .handler(async ({ data, context }) => {
     try {
       const userId = context.userId;
@@ -509,6 +509,10 @@ export const saveTake = createServerFn({ method: "POST" })
       const clip = takeLink(data.video);
       if (clip === null) return { ok: false as const, reason: "Video must be a stored link." };
       if (clip) meta.video = clip;
+      const place = (data.place || "").trim().slice(0, 40);
+      if (place) meta.place = place;
+      const alt = (data.alt || "").trim().slice(0, 80);
+      if (alt && shot) meta.alt = alt;
       const id = nid();
       const ts = Date.now();
       const sql = await getSql();
@@ -546,6 +550,15 @@ export const saveTake = createServerFn({ method: "POST" })
         }
       }
       await indexTake(sql, id, clean, ts, userId, who.handle);
+      try {
+        await sql`create table if not exists nf_take_pings (user_id text not null, handle text not null, primary key (user_id, handle))`;
+        const pings = await sql<{ user_id: string }>`select user_id from nf_take_pings where handle = ${who.handle.toLowerCase()} limit 30`;
+        for (const row of pings) {
+          if (row.user_id && row.user_id !== userId) await pushNote(row.user_id, `@${who.handle} just posted.`, `/?tab=socials&take=${encodeURIComponent(id)}`);
+        }
+      } catch {
+        /* pings are optional */
+      }
       if (kind === "quote" && meta.quoteHandle && meta.quoteHandle.toLowerCase() !== who.handle.toLowerCase()) {
         const quoted = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = ${meta.quoteHandle.toLowerCase()} limit 1`;
         const to = quoted[0]?.user_id || "";
@@ -1459,6 +1472,68 @@ export const muteWord = createServerFn({ method: "POST" })
     await sql`create table if not exists nf_word_mutes (user_id text not null, word text not null, primary key (user_id, word))`;
     await sql`insert into nf_word_mutes (user_id, word) values (${context.userId}, ${word}) on conflict do nothing`;
     return { ok: true as const, word };
+  });
+
+export const toggleTagFollow = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { tag: string }) => d)
+  .handler(async ({ context, data }) => {
+    const tag = (data.tag || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24);
+    if (tag.length < 2) return { ok: false as const, reason: "Pick a topic.", on: false };
+    const sql = await getSql();
+    await sql`create table if not exists nf_tag_follows (user_id text not null, tag text not null, primary key (user_id, tag))`;
+    const have = await sql<{ tag: string }>`select tag from nf_tag_follows where user_id = ${context.userId} and tag = ${tag} limit 1`;
+    if (have[0]) {
+      await sql`delete from nf_tag_follows where user_id = ${context.userId} and tag = ${tag}`;
+      return { ok: true as const, on: false, tag };
+    }
+    await sql`insert into nf_tag_follows (user_id, tag) values (${context.userId}, ${tag}) on conflict do nothing`;
+    return { ok: true as const, on: true, tag };
+  });
+
+export const listMyTags = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    await sql`create table if not exists nf_tag_follows (user_id text not null, tag text not null, primary key (user_id, tag))`;
+    const rows = await sql<{ tag: string }>`select tag from nf_tag_follows where user_id = ${context.userId} limit 20`;
+    return rows.map((r) => r.tag);
+  });
+
+export const listTopicTakes = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    await sql`create table if not exists nf_tag_follows (user_id text not null, tag text not null, primary key (user_id, tag))`;
+    const tags = await sql<{ tag: string }>`select tag from nf_tag_follows where user_id = ${context.userId} limit 8`;
+    if (!tags.length) return [] as TakeRow[];
+    const bag = new Map<string, TakeRow>();
+    for (const row of tags) {
+      const needle = `%#${row.tag}%`;
+      const hits = await sql`select * from nf_takes where lower(body) like ${needle} and user_id <> ${"seed"} order by ts desc limit 12`;
+      for (const hit of hits as Record<string, unknown>[]) {
+        const take = mapTake(hit);
+        bag.set(take.id, take);
+      }
+    }
+    return [...bag.values()].sort((a, b) => b.ts - a.ts).slice(0, 30);
+  });
+
+export const togglePing = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { handle: string }) => d)
+  .handler(async ({ context, data }) => {
+    const handle = (data.handle || "").trim().toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 24);
+    if (!handle) return { ok: false as const, reason: "Missing person.", on: false };
+    const sql = await getSql();
+    await sql`create table if not exists nf_take_pings (user_id text not null, handle text not null, primary key (user_id, handle))`;
+    const have = await sql<{ handle: string }>`select handle from nf_take_pings where user_id = ${context.userId} and handle = ${handle} limit 1`;
+    if (have[0]) {
+      await sql`delete from nf_take_pings where user_id = ${context.userId} and handle = ${handle}`;
+      return { ok: true as const, on: false };
+    }
+    await sql`insert into nf_take_pings (user_id, handle) values (${context.userId}, ${handle}) on conflict do nothing`;
+    return { ok: true as const, on: true };
   });
 
 export const searchPeople = createServerFn({ method: "GET" })

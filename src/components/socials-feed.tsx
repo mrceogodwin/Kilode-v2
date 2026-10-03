@@ -3,7 +3,7 @@ import { Briefcase, Headphones, ImagePlus, Lock, Video } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { uploadTakeMedia } from "@/lib/supabase";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, editOwnTake, getTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTrending, listWordMutes, muteWord, pinOwnTake, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, toggleSaveTake, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, editOwnTake, getTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listMyTags, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTopicTakes, listTrending, listWordMutes, muteWord, pinOwnTake, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, togglePing, toggleSaveTake, toggleTagFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -274,6 +274,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [next, setNext] = useState(0);
   const [err, setErr] = useState("");
   const [body, setBody] = useState("");
+  const [place, setPlace] = useState("");
+  const [alt, setAlt] = useState("");
   const [shot, setShot] = useState("");
   const [clip, setClip] = useState("");
   const [mediaBusy, setMediaBusy] = useState(false);
@@ -289,7 +291,11 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [followTakes, setFollowTakes] = useState<TakeRow[]>([]);
   const [followNext, setFollowNext] = useState(0);
   const [followLoaded, setFollowLoaded] = useState(false);
-  const [feedCut, setFeedCut] = useState<"all" | "following" | "trending" | "tag">("all");
+  const [feedCut, setFeedCut] = useState<"all" | "following" | "trending" | "tag" | "topics">("all");
+  const [myTags, setMyTags] = useState<string[]>([]);
+  const [topicTakes, setTopicTakes] = useState<TakeRow[]>([]);
+  const [topicLoaded, setTopicLoaded] = useState(false);
+  const [pings, setPings] = useState<Record<string, true>>({});
   const [tag, setTag] = useState("");
   const [tagTakes, setTagTakes] = useState<TakeRow[]>([]);
   const [tagNext, setTagNext] = useState(0);
@@ -475,6 +481,9 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         setBlocked(next);
       })
       .catch(() => undefined);
+    void listMyTags()
+      .then((rows) => setMyTags(rows))
+      .catch(() => undefined);
     void listWordMutes()
       .then((rows) => setWords(rows))
       .catch(() => undefined);
@@ -594,6 +603,23 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     };
   }, [feedCut, trendLoaded]);
 
+  useEffect(() => {
+    if (feedCut !== "topics" || topicLoaded) return;
+    let dead = false;
+    void listTopicTakes()
+      .then((rows) => {
+        if (dead) return;
+        setTopicTakes(rows);
+        setTopicLoaded(true);
+      })
+      .catch(() => {
+        if (!dead) setTopicLoaded(true);
+      });
+    return () => {
+      dead = true;
+    };
+  }, [feedCut, topicLoaded]);
+
   function theyFollow(handle: string, id?: string) {
     return !!(followsYou[(handle || "").toLowerCase()] || (id && followsYou[id]));
   }
@@ -672,6 +698,24 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   }
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem("kilode-take-draft") || "";
+      if (saved && !body) setBody(saved.slice(0, 280));
+    } catch { /* private mode */ }
+    // restore once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      try {
+        if (body.trim()) localStorage.setItem("kilode-take-draft", body.slice(0, 280));
+        else localStorage.removeItem("kilode-take-draft");
+      } catch { /* ignore */ }
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [body]);
+
+  useEffect(() => {
     const hit = body.match(/(^|\s)@([a-z0-9._-]{1,24})$/i);
     const q = hit?.[2]?.toLowerCase() || "";
     if (q.length < 1) {
@@ -716,7 +760,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     const pending = saveTake({
       data: quoting
         ? { body: text, kind: "quote", quoteName: quoting.name, quoteHandle: quoting.handle, quoteBody: quoting.body, image: shot, video: clip }
-        : { body: text, kind, line, image: shot, video: clip },
+        : { body: text, kind, line, image: shot, video: clip, place, alt },
     });
     const timeout = new Promise<{ ok: false; reason: string }>((resolve) => {
       window.setTimeout(() => resolve({ ok: false, reason: "The server took too long. Try Post again." }), 12000);
@@ -728,10 +772,13 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         setTakes((list) => [r.take, ...list.filter((t) => t.id !== r.take.id)]);
         rememberTake(r.take, false);
         setBody("");
+        setPlace("");
+        setAlt("");
         setLine("");
         setShot("");
         setClip("");
         setQuoting(null);
+        try { localStorage.removeItem("kilode-take-draft"); } catch { /* ignore */ }
       }
     } catch (e) {
       if (needLogin(e)) goLogin();
@@ -787,7 +834,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     ? pool.filter((f) => `${f.name} ${f.handle} ${f.role}`.toLowerCase().includes(needle))
     : pool;
   const shownFellows = matched.slice(0, fellowCap);
-  const takeSource = feedCut === "following" ? followTakes : feedCut === "trending" ? trendTakes : feedCut === "tag" ? tagTakes : takes;
+  const takeSource = feedCut === "following" ? followTakes : feedCut === "trending" ? trendTakes : feedCut === "tag" ? tagTakes : feedCut === "topics" ? topicTakes : takes;
   const shownTakes = takeSource.filter((t) => {
     if (hidden(t.handle) || hiddenIds[t.id]) return false;
     if (words.some((word) => t.body.toLowerCase().includes(word))) return false;
@@ -1035,8 +1082,25 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "all" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("all"); }}>For you</button>
         <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "following" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("following"); }}>Following</button>
         <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "trending" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("trending"); }}>Trending</button>
+        <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "topics" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("topics"); }}>Topics</button>
         {tag ? (
           <button type="button" className="soc-chip on shrink-0 px-2.5 py-1 text-[12px]" onClick={() => setFeedCut("tag")}>#{tag}</button>
+        ) : null}
+        {tag ? (
+          <button
+            type="button"
+            className="soc-chip shrink-0 px-2.5 py-1 text-[12px]"
+            onClick={() => {
+              if (!authed) return goLogin();
+              void toggleTagFollow({ data: { tag } }).then((r) => {
+                if (!r.ok) return;
+                setMyTags((list) => r.on ? (list.includes(r.tag) ? list : [...list, r.tag]) : list.filter((x) => x !== r.tag));
+                setTopicLoaded(false);
+              });
+            }}
+          >
+            {myTags.includes(tag) ? "Following topic" : "Follow topic"}
+          </button>
         ) : null}
       </div>
       {liveTags.length > 0 && feedCut !== "tag" ? (
@@ -1066,6 +1130,10 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             style={{ fontSize: 16 }}
             onChange={(e) => setBody(e.target.value)}
           />
+        </div>
+        <div className="mt-1 flex gap-1.5">
+          <input value={place} onChange={(e) => setPlace(e.target.value)} maxLength={40} placeholder="City, optional" className="min-w-0 flex-1 rounded-md border border-line bg-transparent px-2 py-1 text-[12px] outline-none" style={{ fontSize: 16 }} />
+          {shot ? <input value={alt} onChange={(e) => setAlt(e.target.value)} maxLength={80} placeholder="Photo note" className="min-w-0 flex-1 rounded-md border border-line bg-transparent px-2 py-1 text-[12px] outline-none" style={{ fontSize: 16 }} /> : null}
         </div>
         {mentions.length > 0 ? (
           <div className="mt-1 overflow-hidden rounded-[10px] border border-line">
@@ -1186,7 +1254,11 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
                   ? "Nothing is moving in the last two days."
                   : feedCut === "tag"
                     ? `No takes on #${tag} yet.`
-                    : "No takes yet. Be first."}
+                    : feedCut === "topics" && !topicLoaded
+                      ? "Loading your topics…"
+                      : feedCut === "topics"
+                        ? "Follow a topic. Those takes land here."
+                        : "No takes yet. Be first."}
         </p>
       ) : null}
       <div className="space-y-2">
@@ -1488,6 +1560,27 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
               className="block w-full border-b py-3 text-left text-[16px]"
               style={{ color: "var(--report-fg)", borderColor: "var(--report-line)" }}
               onClick={() => {
+                const handle = menuTake.handle;
+                setMenuTake(null);
+                if (!authed) return goLogin();
+                void togglePing({ data: { handle } }).then((r) => {
+                  if (!r.ok) return;
+                  setPings((m) => {
+                    const next = { ...m };
+                    if (r.on) next[handle.toLowerCase()] = true;
+                    else delete next[handle.toLowerCase()];
+                    return next;
+                  });
+                });
+              }}
+            >
+              {pings[menuTake.handle.toLowerCase()] ? "Stop post alerts" : "Alert me on their posts"}
+            </button>
+            <button
+              type="button"
+              className="block w-full border-b py-3 text-left text-[16px]"
+              style={{ color: "var(--report-fg)", borderColor: "var(--report-line)" }}
+              onClick={() => {
                 setReportId(menuTake.id);
                 setMenuTake(null);
               }}
@@ -1741,10 +1834,11 @@ function TakeCard({
               <p className={`mt-1 whitespace-pre-wrap text-[13px] leading-snug ${ghost ? "text-white/80" : ""}`}>
                 <LinkText text={take.body} />
               </p>
+              {typeof take.meta.place === "string" && take.meta.place ? <p className="mt-1 text-[11px] text-muted">{take.meta.place}</p> : null}
               {typeof take.meta.video === "string" && take.meta.video.startsWith("http") ? (
                 <video src={take.meta.video} poster={typeof take.meta.image === "string" ? take.meta.image : undefined} controls playsInline className="mt-2 max-h-80 w-full rounded-[10px] bg-black" />
               ) : typeof take.meta.image === "string" && (take.meta.image.startsWith("http") || take.meta.image.startsWith("data:image/")) ? (
-                <img src={take.meta.image} alt="" referrerPolicy="no-referrer" className="mt-2 max-h-72 w-full rounded-[10px] object-cover" />
+                <img src={take.meta.image} alt={typeof take.meta.alt === "string" ? take.meta.alt : ""} referrerPolicy="no-referrer" className="mt-2 max-h-72 w-full rounded-[10px] object-cover" />
               ) : null}
             </>
           )}
