@@ -31,6 +31,8 @@ export type PublicSite = {
   cryptoEnabled: boolean;
   /** Free = staff review. Paid = checkout, then the listing goes live. */
   desks: Record<DeskPay, DeskMoney>;
+  /** Take videos longer than this are trimmed. Default 15. */
+  takeVideoSeconds: number;
   visitorsToday: number;
   visitorsAll: number;
   members: number;
@@ -86,6 +88,7 @@ async function ensure() {
     await sql`alter table nf_site add column if not exists events_price integer not null default 10`;
     await sql`alter table nf_site add column if not exists cinema_is_paid integer not null default 0`;
     await sql`alter table nf_site add column if not exists cinema_price integer not null default 4`;
+    await sql`alter table nf_site add column if not exists take_video_seconds integer not null default 15`;
   } catch {
     /* exists */
   }
@@ -116,6 +119,7 @@ async function loadPublic(): Promise<PublicSite> {
     digest: 0,
     subscribers: 0,
     shares: { ...ZERO_SHARES },
+    takeVideoSeconds: 15,
   };
   try {
     const sql = await ensure();
@@ -137,7 +141,8 @@ async function loadPublic(): Promise<PublicSite> {
         events_price: number | string | null;
         cinema_is_paid: number | string | boolean | null;
         cinema_price: number | string | null;
-      }>`select install_toast, videos_menu_visible, photos_on, pay_off, crypto_enabled, jobs_is_paid, jobs_price, market_is_paid, market_price, rent_is_paid, rent_price, events_is_paid, events_price, cinema_is_paid, cinema_price from nf_site where id = 1 limit 1`.catch(() => []),
+        take_video_seconds: number | string | null;
+      }>`select install_toast, videos_menu_visible, photos_on, pay_off, crypto_enabled, jobs_is_paid, jobs_price, market_is_paid, market_price, rent_is_paid, rent_price, events_is_paid, events_price, cinema_is_paid, cinema_price, take_video_seconds from nf_site where id = 1 limit 1`.catch(() => []),
       sql<{ n: string | number }>`select n from nf_visits where day = ${today} limit 1`.catch(() => []),
       sql<{ n: string | number }>`select coalesce(sum(n), 0) as n from nf_visits`.catch(() => []),
       sql<{ n: string | number }>`select count(*) as n from "user"`.catch(() => []),
@@ -172,6 +177,7 @@ async function loadPublic(): Promise<PublicSite> {
       digest: digestN,
       subscribers: membersN + digestN,
       shares,
+      takeVideoSeconds: Math.min(60, Math.max(5, Math.round(Number(flag[0]?.take_video_seconds || 15)) || 15)),
     };
   } catch {
     return empty;
@@ -209,7 +215,7 @@ export async function deskCharge(desk: DeskPay) {
 
 export const saveSiteFlags = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { installToast?: boolean; videosMenuVisible?: boolean; photosOn?: boolean; payOff?: string; cryptoEnabled?: boolean; desks?: Partial<Record<DeskPay, Partial<DeskMoney>>> }) => d)
+  .validator((d: { installToast?: boolean; videosMenuVisible?: boolean; photosOn?: boolean; payOff?: string; cryptoEnabled?: boolean; takeVideoSeconds?: number; desks?: Partial<Record<DeskPay, Partial<DeskMoney>>> }) => d)
   .handler(async ({ context, data }) => {
     await assertStaff(context.userId, "super");
     const sql = await ensure();
@@ -255,6 +261,10 @@ export const saveSiteFlags = createServerFn({ method: "POST" })
       }
     }
     await sql`update nf_site set crypto_enabled = ${crypto}, jobs_is_paid = ${desks.jobs.paid ? 1 : 0}, jobs_price = ${desks.jobs.usd}, market_is_paid = ${desks.market.paid ? 1 : 0}, market_price = ${desks.market.usd}, rent_is_paid = ${desks.rent.paid ? 1 : 0}, rent_price = ${desks.rent.usd}, events_is_paid = ${desks.events.paid ? 1 : 0}, events_price = ${desks.events.usd}, cinema_is_paid = ${desks.cinema.paid ? 1 : 0}, cinema_price = ${desks.cinema.usd} where id = 1`;
+    if (typeof data.takeVideoSeconds === "number" && Number.isFinite(data.takeVideoSeconds)) {
+      const secs = Math.min(60, Math.max(5, Math.round(data.takeVideoSeconds)));
+      await sql`update nf_site set take_video_seconds = ${secs} where id = 1`;
+    }
     return { ok: true as const, installToast: toast === 1, videosMenuVisible: videos === 1, photosOn: photos === 1, payOff, cryptoEnabled: crypto === 1, desks };
   });
 

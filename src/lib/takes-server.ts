@@ -1441,7 +1441,7 @@ export const suggestFollows = createServerFn({ method: "GET" })
           and not exists (
             select 1 from nf_follows f where f.follower_id = ${context.userId} and f.followee_id = p.user_id
           )
-        order by mutuals desc
+        order by mutuals desc, p.ts desc nulls last
         limit 8`;
       return rows
         .filter((r) => r.handle && r.handle !== "member")

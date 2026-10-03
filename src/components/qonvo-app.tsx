@@ -428,6 +428,13 @@ function QonvoAppInner() {
     let lockUntil = 0;
     const root = document.documentElement;
     const onScroll = (e: Event) => {
+      if (document.documentElement.dataset.stage !== "1") {
+        if (away) {
+          away = false;
+          root.classList.remove("chrome-away");
+        }
+        return;
+      }
       if (document.querySelector(".kilode-shell")?.getAttribute("data-chrome") !== "auto") return;
       const node = e.target;
       if (!(node instanceof Element)) return;
@@ -1346,9 +1353,9 @@ function QonvoAppInner() {
 
       {menuOpen ? (
         <div className="app-drawer menu-drawer">
-          <aside className="menu-sheet flex h-full w-[min(320px,92vw)] flex-col">
-            <div className="menu-head flex items-center gap-3">
-              <AvatarImg handle={store.handle || "Guest"} face={store.face} size={48} />
+          <aside className="menu-sheet flex h-full w-[min(268px,76vw)] flex-col">
+            <div className="menu-head flex items-center gap-2">
+              <AvatarImg handle={store.handle || "Guest"} face={store.face} size={34} />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-extrabold tracking-tight">{session.user ? store.handle || "Member" : "Guest"}</div>
                 <div className="mt-0.5 flex flex-wrap items-center gap-1">
@@ -1363,8 +1370,9 @@ function QonvoAppInner() {
               </button>
               <SkinToggle />
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-5">
-              <div className="menu-hero-card mb-4">
+            <div className="min-h-0 flex-1 overflow-y-auto p-2.5 pb-4">
+              <StageSwitch />
+              <div className="menu-hero-card mb-3">
                 <div className="grid grid-cols-3 gap-2">
                 {(signedIn
                   ? [
@@ -1384,8 +1392,8 @@ function QonvoAppInner() {
                       { n: 0, l: "Saved" },
                     ]
                 ).map((s) => (
-                  <div key={s.l} className="menu-press rounded-xl px-2 py-2.5 text-center">
-                    <div className="text-sm font-bold text-fg">{s.n}</div>
+                  <div key={s.l} className="menu-press rounded-lg px-1.5 py-1.5 text-center">
+                    <div className="text-xs font-bold text-fg">{s.n}</div>
                     <div className="text-[9px] text-muted">{s.l}</div>
                   </div>
                 ))}
@@ -1578,7 +1586,7 @@ function QonvoAppInner() {
                 <DrawerRow icon={Coins} label="Pricing" hint="Member, badge, event, ads" onClick={() => { setScreen("pricing"); setMenuOpen(false); }} on={screen === "pricing"} />
               </DrawerGroup>
             </div>
-            <MenuPin />
+            <MenuPin onClose={() => setMenuOpen(false)} />
             <MenuLegal onDonate={() => { setDonateOpen(true); setMenuOpen(false); }} />
           </aside>
           <button type="button" className="flex-1 bg-black/60" aria-label="Close menu" onClick={() => setMenuOpen(false)} />
@@ -1994,6 +2002,41 @@ function MessageIcon() {
         strokeLinejoin="round"
       />
     </svg>
+  );
+}
+
+function StageSwitch() {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    let next = false;
+    try { next = localStorage.getItem("kilode-stage") === "1"; } catch { next = false; }
+    setOn(next);
+    if (next) document.documentElement.dataset.stage = "1";
+    else delete document.documentElement.dataset.stage;
+  }, []);
+  return (
+    <button
+      type="button"
+      className={`stage-switch ${on ? "on" : ""}`}
+      aria-pressed={on}
+      onClick={() => {
+        const next = !on;
+        setOn(next);
+        if (next) document.documentElement.dataset.stage = "1";
+        else {
+          delete document.documentElement.dataset.stage;
+          document.documentElement.classList.remove("chrome-away");
+        }
+        try { localStorage.setItem("kilode-stage", next ? "1" : "0"); } catch { /* ignore */ }
+      }}
+    >
+      <span className="stage-mark" aria-hidden />
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block text-[12px] font-bold leading-tight">Full screen</span>
+        <span className="block text-[10px] leading-snug text-muted">{on ? "Header tucks away as you scroll" : "Header stays. Tap to tuck it"}</span>
+      </span>
+      <span className="stage-state">{on ? "ON" : "OFF"}</span>
+    </button>
   );
 }
 
@@ -3250,11 +3293,11 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => {
             const hot = (p.views ?? 0) >= 350 || (p.comments?.length ?? 0) >= 6;
             return (
-            <div key={p.id} role="button" tabIndex={0} data-feed-card="1" className="glass-3d overflow-hidden text-left" onClick={() => store.setOpenPost(p.id)} onKeyDown={(e) => { if (e.key === "Enter") store.setOpenPost(p.id); }}>
+            <div key={p.id} role="button" tabIndex={0} data-feed-card="1" className="media-tile text-left" onClick={() => store.setOpenPost(p.id)} onKeyDown={(e) => { if (e.key === "Enter") store.setOpenPost(p.id); }}>
               <div className="relative">
-                {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" className="aspect-[4/3] w-full object-cover" /> : <div className="aspect-[4/3] bg-panel-3" />}
+                {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" className="media-shot" /> : <div className="media-shot bg-panel-3" />}
                 {hot ? (
-                  <span className="absolute top-1 left-1 grid size-5 place-items-center rounded-full bg-black/55 text-lime-2" title="Trending">
+                  <span className="media-orb absolute top-1.5 left-1.5" title="Trending">
                     <svg viewBox="0 0 16 16" className="size-3" aria-hidden>
                       <path d="M2 12 6.1 7.6 8.5 9.8 14 3.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M10.2 3.4H14v3.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
@@ -3264,7 +3307,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
                 <button
                   type="button"
                   aria-label="Repost"
-                  className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-black/55 text-fg"
+                  className="media-orb absolute top-1.5 right-1.5"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!store.authed) {
@@ -3278,10 +3321,10 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
                   <Repeat2 className="size-3" />
                 </button>
               </div>
-              <div className="px-1 py-1 sm:px-1.5">
-                <div className="text-[9px] font-medium tracking-normal text-lime-2/80">{p.category || "General"}</div>
-                <div className="mt-0.5 line-clamp-2 text-[10px] font-medium leading-tight text-fg">{p.title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&/g, "&")}</div>
-                <div className="mt-0.5 flex items-center gap-1.5 text-[8px] tabular-nums text-muted">
+              <div className="px-1.5 py-1.5">
+                <div className="text-[9px] font-medium tracking-wide text-lime-2">{p.category || "General"}</div>
+                <div className="media-title mt-0.5 line-clamp-3">{p.title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&/g, "&")}</div>
+                <div className="mt-1 flex items-center gap-1.5 text-[9px] font-normal tabular-nums text-muted">
                   <span className="inline-flex items-center gap-0.5">
                     <Eye className="size-2.5" />
                     {fmtCount(p.views ?? 0)}

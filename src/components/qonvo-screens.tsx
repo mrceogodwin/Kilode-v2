@@ -38,6 +38,7 @@ import { ShopAdminPanel } from "@/components/downloads-pane";
 import { SocialsAdminPanel, TvPane } from "@/components/tv-pane";
 import { JoinCta } from "@/components/get-app";
 import { usePublicSite } from "@/components/site-chrome";
+import { getPublicSite, saveSiteFlags } from "@/lib/site-server";
 import { MeDashboard } from "@/components/me-dashboard";
 import { AdCatalogPanel, AdSlotsPanel, LivePausePanel, OpsKeysPanel, OpsSeoPanel, PaywaysPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { SiteFlagsPanel } from "@/components/site-chrome";
@@ -2407,6 +2408,36 @@ function AdsQueuePanel({ store }: { store: Store }) {
   );
 }
 
+function SocialLimits() {
+  const [secs, setSecs] = useState(15);
+  const [note, setNote] = useState("");
+  useEffect(() => {
+    void getPublicSite().then((s) => setSecs(s.takeVideoSeconds || 15)).catch(() => undefined);
+  }, []);
+  return (
+    <div className="rounded-xl border border-line bg-panel p-3">
+      <div className="text-[11px] font-medium text-muted">Social controls</div>
+      <p className="mt-1 text-[12px] text-muted">Take videos longer than this are trimmed. Members can pick the part, or Kilode keeps the start.</p>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {[5, 10, 15, 30, 45, 60].map((n) => (
+          <button
+            key={n}
+            type="button"
+            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${secs === n ? "border-lime-2 bg-lime-2 text-black" : "border-line text-fg"}`}
+            onClick={() => {
+              setSecs(n);
+              void saveSiteFlags({ data: { takeVideoSeconds: n } }).then((r) => setNote(r.ok ? `Videos trim at ${n}s` : "Could not save"));
+            }}
+          >
+            {n}s
+          </button>
+        ))}
+      </div>
+      {note ? <p className="mt-1 text-[11px] text-lime-2">{note}</p> : null}
+    </div>
+  );
+}
+
 function SocialDesk() {
   const [takes, setTakes] = useState<{ id: string; handle: string; body: string; ts: number; kind: string }[]>([]);
   const [flags, setFlags] = useState<{ id: string; post_id: string; author: string; reason: string; ts: number }[]>([]);
@@ -2426,6 +2457,7 @@ function SocialDesk() {
         <p className="text-[12px] text-muted">Flagged takes and accounts, plus the latest posts. Open one in the feed, or remove it.</p>
         {msg ? <p className="text-[12px] text-danger">{msg}</p> : null}
       </div>
+      <SocialLimits />
       <div className="space-y-2">
         <div className="text-[11px] font-medium text-muted">Social reports</div>
         {flags.length === 0 ? <p className="text-sm text-muted">No take or account flags.</p> : null}

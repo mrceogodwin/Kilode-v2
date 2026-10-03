@@ -27,6 +27,7 @@ export const EMPTY_PUBLIC_SITE: PublicSite = {
   digest: 0,
   subscribers: 0,
   shares: { x: 0, wa: 0, tg: 0, fb: 0, copy: 0 },
+  takeVideoSeconds: 15,
 };
 const EMPTY = EMPTY_PUBLIC_SITE;
 

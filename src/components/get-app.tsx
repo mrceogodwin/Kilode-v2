@@ -99,10 +99,15 @@ export function DigestBox({ quiet = false, defaultOpen = true }: { quiet?: boole
   );
 }
 
-export function MenuPin() {
+export function MenuPin({ onClose }: { onClose?: () => void }) {
   return (
-    <div className="menu-dock shrink-0 border-t border-white/10 px-3 py-2.5">
+    <div className="menu-dock relative shrink-0 border-t border-white/10 px-3 py-2.5 pr-12">
       <DigestBox quiet defaultOpen={false} />
+      {onClose ? (
+        <button type="button" className="menu-x" aria-label="Close menu" onClick={onClose}>
+          ×
+        </button>
+      ) : null}
     </div>
   );
 }

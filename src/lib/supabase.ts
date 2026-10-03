@@ -38,7 +38,7 @@ const IMAGE_CAP = 7 * 1024 * 1024;
 const VIDEO_CAP = 20 * 1024 * 1024;
 const VIDEO_SECONDS = 15;
 
-function mediaSeconds(file: File): Promise<number> {
+function mediaSeconds(file: Blob): Promise<number> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const video = document.createElement("video");
@@ -56,8 +56,79 @@ function mediaSeconds(file: File): Promise<number> {
   });
 }
 
-/** Photo (7MB) or video (20MB, 15 seconds) for a take. The file is stored in Supabase. Neon only keeps the link. */
-export async function uploadTakeMedia(file: File): Promise<{ kind: "image" | "video"; url: string }> {
+export function readVideoSeconds(file: Blob) {
+  return mediaSeconds(file);
+}
+
+/** Keep `seconds` of a longer clip, starting at `start`. Kilode does this when a take video is over the limit. */
+export async function trimTakeVideo(file: File, start: number, seconds: number): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  video.playsInline = true;
+  video.preload = "auto";
+  video.src = url;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      video.onloadeddata = () => resolve();
+      video.onerror = () => reject(new Error("Could not read that video."));
+    });
+    const from = Math.max(0, Math.min(start, Math.max(0, (video.duration || 0) - seconds)));
+    const width = Math.min(720, video.videoWidth || 720);
+    const height = Math.max(2, Math.round(width * ((video.videoHeight || 1280) / (video.videoWidth || 720))));
+    const canvas = document.createElement("canvas");
+    canvas.width = width - (width % 2);
+    canvas.height = height - (height % 2);
+    const ctx = canvas.getContext("2d");
+    if (!ctx || typeof canvas.captureStream !== "function" || typeof MediaRecorder === "undefined") {
+      throw new Error("This phone cannot trim video. Cut it shorter and try again.");
+    }
+    const canvasStream = canvas.captureStream(24);
+    const captured = (video as HTMLVideoElement & { captureStream?: () => MediaStream }).captureStream?.();
+    const audio = captured?.getAudioTracks?.()[0];
+    if (audio) canvasStream.addTrack(audio);
+    const mime = ["video/webm;codecs=vp8,opus", "video/webm;codecs=vp8", "video/webm", "video/mp4"].find((t) => MediaRecorder.isTypeSupported(t)) || "";
+    const rec = new MediaRecorder(canvasStream, mime ? { mimeType: mime } : undefined);
+    const chunks: Blob[] = [];
+    rec.ondataavailable = (e) => {
+      if (e.data.size) chunks.push(e.data);
+    };
+    const stopped = new Promise<Blob>((resolve) => {
+      rec.onstop = () => resolve(new Blob(chunks, { type: rec.mimeType || "video/webm" }));
+    });
+    video.currentTime = from;
+    await new Promise<void>((resolve) => {
+      video.onseeked = () => resolve();
+    });
+    video.muted = true;
+    rec.start(200);
+    await video.play();
+    await new Promise<void>((resolve) => {
+      const stop = () => {
+        video.pause();
+        if (rec.state !== "inactive") rec.stop();
+        resolve();
+      };
+      const tick = () => {
+        if (video.ended || video.currentTime >= from + seconds - 0.04) {
+          stop();
+          return;
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        requestAnimationFrame(tick);
+      };
+      tick();
+      window.setTimeout(stop, (seconds + 0.6) * 1000);
+    });
+    const blob = await stopped;
+    if (blob.size < 800) throw new Error("Trim failed. Tap Keep this part, or cut the clip on your phone.");
+    return blob;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** Photo (7MB) or video (20MB, trimmed to the staff limit) for a take. The file is stored in Supabase. Neon only keeps the link. */
+export async function uploadTakeMedia(file: File, limits?: { maxSeconds?: number }): Promise<{ kind: "image" | "video"; url: string }> {
   const video = file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name);
   const image = !video && (file.type.startsWith("image/") || /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name));
   if (!image && !video) throw new Error("Use a photo or a video.");
@@ -68,7 +139,8 @@ export async function uploadTakeMedia(file: File): Promise<{ kind: "image" | "vi
   let ext = video ? (type.includes("webm") ? "webm" : type.includes("quicktime") ? "mov" : "mp4") : "jpg";
   if (video) {
     const seconds = await mediaSeconds(file);
-    if (seconds > VIDEO_SECONDS + 0.25) throw new Error("Video must be 15 seconds or shorter.");
+    const cap = limits?.maxSeconds && limits.maxSeconds > 0 ? limits.maxSeconds : VIDEO_SECONDS;
+    if (seconds > cap + 0.4) throw new Error(`Video must be ${Math.round(cap)} seconds or shorter.`);
   } else {
     try {
       body = await shrinkJpeg(file);

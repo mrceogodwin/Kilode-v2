@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Briefcase, Headphones, ImagePlus, Lock, Video } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { uploadTakeMedia } from "@/lib/supabase";
+import { uploadTakeMedia, readVideoSeconds, trimTakeVideo } from "@/lib/supabase";
+import { getPublicSite } from "@/lib/site-server";
 import { SocialDesk } from "@/components/social-desk";
 import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, editOwnTake, getTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listMyTags, listSavedTakeIds, listSavedTakes, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTopicTakes, listTrending, listWordMutes, muteWord, pinOwnTake, replyTake, reportTake, repostTake, saveTake, searchPeople, seeTake, suggestFollows, toggleFollow, togglePing, toggleReplyLock, toggleSaveTake, toggleSensitive, toggleTagFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
@@ -282,11 +283,19 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [shot, setShot] = useState("");
   const [clip, setClip] = useState("");
   const [mediaBusy, setMediaBusy] = useState(false);
+  const [videoCap, setVideoCap] = useState(15);
+  const [pendingClip, setPendingClip] = useState<{ file: File; duration: number; start: number } | null>(null);
+  const trimHold = useRef(false);
+  const clipping = useRef(false);
+  const trimTimer = useRef(0);
   const [line, setLine] = useState("");
   const [kind, setKind] = useState<TakeKind>("take");
   useEffect(() => {
     if (!pillsFor(account).some((k) => k.id === kind)) setKind("take");
   }, [account, kind]);
+  useEffect(() => {
+    void getPublicSite().then((s) => setVideoCap(s.takeVideoSeconds || 15)).catch(() => undefined);
+  }, []);
   const [busy, setBusy] = useState(false);
   const [linked, setLinked] = useState<Record<string, "out" | "in" | "ask">>(() => linksFrom(readBag<ConnectRow[]>("connects", [])));
   const [following, setFollowing] = useState<Record<string, true>>({});
@@ -766,6 +775,25 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     return () => window.clearTimeout(t);
   }, [q]);
 
+  async function keepClip(file: File, start: number) {
+    if (clipping.current) return;
+    clipping.current = true;
+    setPendingClip(null);
+    setMediaBusy(true);
+    setErr("");
+    try {
+      const blob = await trimTakeVideo(file, start, videoCap);
+      const cut = new File([blob], "clip.webm", { type: blob.type || "video/webm" });
+      const r = await uploadTakeMedia(cut, { maxSeconds: videoCap + 2 });
+      setClip(r.url);
+    } catch (err) {
+      setErr(err instanceof Error ? err.message : "Could not trim that video.");
+    } finally {
+      clipping.current = false;
+      setMediaBusy(false);
+    }
+  }
+
   async function post() {
     if (!authed) return goLogin();
     const text = body.trim();
@@ -925,11 +953,14 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         </div>
       ) : null}
       {lane === "posts" ? (
-        <button type="button" className="mb-2 text-[12px] font-semibold text-[#e6c56a]" onClick={() => onOpenPeople?.()}>
-          Find people in Socials
-        </button>
+        <div className="soc-tools mb-2">
+          <button type="button" className="soc-tool" onClick={() => onOpenPeople?.()}>Connect</button>
+          <button type="button" className="soc-tool" onClick={() => setTrendOpen(true)}>Trending</button>
+          <button type="button" className="soc-tool" onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))}>Market</button>
+          <button type="button" className="soc-tool" onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "teams" } }))}>Groups</button>
+        </div>
       ) : (
-        <button type="button" className="mb-2 text-[12px] font-semibold text-[#e6c56a]" onClick={() => onOpenFeed?.()}>
+        <button type="button" className="mb-2 text-[12px] font-semibold text-fg" onClick={() => onOpenFeed?.()}>
           Back to the feed
         </button>
       )}
@@ -1143,9 +1174,9 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
           </button>
         ) : null}
       </div>
-      {liveTags.length > 0 && feedCut !== "tag" ? (
+      {liveTags.filter((name) => !myTags.includes(name)).length > 0 && feedCut !== "tag" ? (
         <div className="mb-2 flex gap-1.5 overflow-x-auto">
-          {liveTags.map((name) => (
+          {liveTags.filter((name) => !myTags.includes(name)).map((name) => (
             <button key={name} type="button" className="topic-chip shrink-0" onClick={() => { setTag(name); setFeedCut("tag"); setTagTakes([]); }}>
               #{name}
             </button>
@@ -1219,11 +1250,36 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             style={{ fontSize: 16 }}
           />
         ) : null}
-        <p className="mt-1 text-[10px] text-muted">{HINT[kind]}</p>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <p className="min-w-0 text-[10px] text-muted">{HINT[kind]}</p>
+          <span className="shrink-0 text-[10px] tabular-nums text-muted">{body.length}/280</span>
+        </div>
         {shot ? (
           <div className="relative mt-2">
             <img src={shot} alt="" className="max-h-52 w-full rounded-[10px] object-cover" />
             <button type="button" className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white" onClick={() => setShot("")}>Remove</button>
+          </div>
+        ) : null}
+        {pendingClip ? (
+          <div className="mt-2 rounded-[10px] border border-line px-2 py-2">
+            <p className="text-[11px] text-fg">This clip is {Math.round(pendingClip.duration)}s. Kilode keeps {videoCap}s{pendingClip.start < 0.2 ? " from the start" : ` from ${Math.round(pendingClip.start)}s`}.</p>
+            <input
+              type="range"
+              className="mt-1 w-full"
+              min={0}
+              max={Math.max(0, Math.floor(pendingClip.duration - videoCap))}
+              step={1}
+              value={Math.min(pendingClip.start, Math.max(0, pendingClip.duration - videoCap))}
+              aria-label="Where the clip starts"
+              onChange={(e) => {
+                trimHold.current = true;
+                setPendingClip((cur) => (cur ? { ...cur, start: Number(e.target.value) } : cur));
+              }}
+            />
+            <div className="mt-1 flex gap-1.5">
+              <button type="button" className="soc-chip px-2 py-1 text-[11px]" onClick={() => void keepClip(pendingClip.file, pendingClip.start)}>Keep this part</button>
+              <button type="button" className="px-2 py-1 text-[11px] text-muted" onClick={() => { trimHold.current = true; window.clearTimeout(trimTimer.current); setPendingClip(null); }}>Cancel</button>
+            </div>
           </div>
         ) : null}
         {clip ? (
@@ -1264,8 +1320,22 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
                 e.target.value = "";
                 if (!file) return;
                 setMediaBusy(true);
-                void uploadTakeMedia(file)
-                  .then((r) => setClip(r.url))
+                setErr("");
+                void readVideoSeconds(file)
+                  .then((seconds) => {
+                    if (seconds > videoCap + 0.25) {
+                      trimHold.current = false;
+                      window.clearTimeout(trimTimer.current);
+                      setPendingClip({ file, duration: seconds, start: 0 });
+                      setMediaBusy(false);
+                      trimTimer.current = window.setTimeout(() => {
+                        if (trimHold.current) return;
+                        void keepClip(file, 0);
+                      }, 900);
+                      return;
+                    }
+                    return uploadTakeMedia(file, { maxSeconds: videoCap }).then((r) => setClip(r.url));
+                  })
                   .catch((err) => setErr(err instanceof Error ? err.message : "Video did not upload."))
                   .finally(() => setMediaBusy(false));
               }}
@@ -1283,7 +1353,6 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
               </button>
             ))}
           </div>
-          <span className="shrink-0 text-[9px] tabular-nums text-muted">{body.length}/280</span>
           <button type="button" className={`soc-chip shrink-0 px-1.5 py-0.5 text-[10px] ${circle === "followers" ? "on" : ""}`} onClick={() => setCircle((c) => (c === "followers" ? "" : "followers"))}>
             {circle === "followers" ? "Followers" : "Everyone"}
           </button>
@@ -1293,6 +1362,22 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         </div>
         {err ? <p className="mt-1 text-[12px] font-semibold text-danger" role="alert">{err}</p> : null}
       </div>
+      {lane === "posts" && suggested.filter((p) => !hidden(p.handle)).length > 0 ? (
+        <div className="mb-3">
+          <div className="mb-1.5 text-[12px] font-semibold">People you may know</div>
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {suggested.filter((p) => !hidden(p.handle)).slice(0, 8).map((p) => (
+              <div key={p.id || p.handle} className="know-card">
+                <a href={`/u/${encodeURIComponent(p.handle)}`} className="block truncate text-[12px] font-semibold">@{p.handle}</a>
+                <div className="truncate text-[10px] text-muted">{p.mutuals > 0 ? `${p.mutuals} mutual` : "New on Kilode"}</div>
+                <button type="button" className="soc-tool mt-1.5" onClick={() => flipFollow(p.handle, p.id)}>
+                  {followed(p.handle, p.id) ? "Following" : theyFollow(p.handle, p.id) ? "Follow back" : "Follow"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {shownTakes.length === 0 ? (
         <p className="py-3 text-center text-[11px] text-muted">
