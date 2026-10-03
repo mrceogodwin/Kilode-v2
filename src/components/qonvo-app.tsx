@@ -424,17 +424,50 @@ function QonvoAppInner() {
   useEffect(() => {
     let timer = 0;
     let lastY = 0;
+    let away = false;
+    let lockUntil = 0;
+    const root = document.documentElement;
     const onScroll = (e: Event) => {
       if (document.querySelector(".kilode-shell")?.getAttribute("data-chrome") !== "auto") return;
       const node = e.target;
-      const y = node instanceof Element ? node.scrollTop : window.scrollY;
-      if (Math.abs(y - lastY) < 10) return;
+      if (!(node instanceof Element)) return;
+      if (node.closest(".kilode-chrome")) return;
+      if (node.scrollHeight <= node.clientHeight + 24) return;
+      const y = node.scrollTop;
+      const now = Date.now();
+      if (now < lockUntil) {
+        lastY = y;
+        return;
+      }
+      if (y < 8) {
+        if (away) {
+          away = false;
+          root.classList.remove("chrome-away");
+          lockUntil = now + 520;
+        }
+        lastY = 0;
+        window.clearTimeout(timer);
+        return;
+      }
+      const dy = y - lastY;
       lastY = y;
-      document.documentElement.classList.add("chrome-away");
+      if (dy > 12 && !away) {
+        away = true;
+        root.classList.add("chrome-away");
+        lockUntil = now + 520;
+      } else if (dy < -8 && away) {
+        away = false;
+        root.classList.remove("chrome-away");
+        lockUntil = now + 520;
+      }
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => document.documentElement.classList.remove("chrome-away"), 280);
+      if (!away) return;
+      timer = window.setTimeout(() => {
+        away = false;
+        root.classList.remove("chrome-away");
+      }, 780);
     };
-    document.addEventListener("scroll", onScroll, true);
+    document.addEventListener("scroll", onScroll, { capture: true, passive: true });
     return () => {
       document.removeEventListener("scroll", onScroll, true);
       window.clearTimeout(timer);
@@ -755,63 +788,64 @@ function QonvoAppInner() {
             Ads
           </button>
         </div>
+        {homeTab === "feeds" && !marketDesk ? (
+          <div className="feed-tools flex items-center gap-1.5 px-2 py-1">
+            {feedSearchOn ? (
+              <input
+                value={feedQ}
+                onChange={(e) => setFeedQ(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  const n = feedQ.trim().toLowerCase();
+                  if (n.length < 2) return;
+                  const hit = store.posts.find((p) => {
+                    if (!p?.id || p.status === "draft") return false;
+                    const blob = `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase();
+                    return blob.includes(n);
+                  });
+                  if (hit) store.setOpenPost(hit.id);
+                }}
+                placeholder="Search feeds"
+                className="min-h-11 flex-1 rounded-md border border-line bg-panel px-2 text-base"
+                autoFocus
+              />
+            ) : (
+              <TrendingTicker posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
+            )}
+            <button
+              type="button"
+              aria-label="Search feeds"
+              className="ticker-tool grid size-8 place-items-center rounded-md"
+              onClick={() => {
+                setFeedSearchOn((v) => !v);
+                if (feedSearchOn) setFeedQ("");
+              }}
+            >
+              <Search className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              aria-label="Post news"
+              title="Post news"
+              className="ticker-tool news-plus"
+              onClick={() => {
+                if (session.isPending) return;
+                if (!signedIn) {
+                  window.location.href = "/login?mode=up";
+                  return;
+                }
+                queueNewsPost();
+                setScreen("create");
+              }}
+            >
+              <Plus className="size-4" strokeWidth={2.75} />
+            </button>
+          </div>
+        ) : null}
       </header>
 
       <div className={screen === "home" ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "hidden"} aria-hidden={screen !== "home"}>
-          {homeTab === "feeds" && !marketDesk ? (
-            <div className="flex shrink-0 items-center gap-1.5 border-b border-line px-2 py-1">
-              {feedSearchOn ? (
-                <input
-                  value={feedQ}
-                  onChange={(e) => setFeedQ(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key !== "Enter") return;
-                    const n = feedQ.trim().toLowerCase();
-                    if (n.length < 2) return;
-                    const hit = store.posts.find((p) => {
-                      if (!p?.id || p.status === "draft") return false;
-                      const blob = `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase();
-                      return blob.includes(n);
-                    });
-                    if (hit) store.setOpenPost(hit.id);
-                  }}
-                  placeholder="Search feeds"
-                  className="min-h-11 flex-1 rounded-md border border-line bg-panel px-2 text-base"
-                  autoFocus
-                />
-              ) : (
-                <TrendingTicker posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
-              )}
-              <button
-                type="button"
-                aria-label="Search feeds"
-                className="ticker-tool grid size-8 place-items-center rounded-md"
-                onClick={() => {
-                  setFeedSearchOn((v) => !v);
-                  if (feedSearchOn) setFeedQ("");
-                }}
-              >
-                <Search className="size-3.5" />
-              </button>
-              <button
-                type="button"
-                aria-label="Post news"
-                title="Post news"
-                className="ticker-tool news-plus"
-                onClick={() => {
-                  if (session.isPending) return;
-                  if (!signedIn) {
-                    window.location.href = "/login?mode=up";
-                    return;
-                  }
-                  queueNewsPost();
-                  setScreen("create");
-                }}
-              >
-                <Plus className="size-4" strokeWidth={2.75} />
-              </button>
-            </div>
-          ) : homeTab === "music" && canKind(store.kind, "music.submit") && signedIn ? (
+          {homeTab === "music" && canKind(store.kind, "music.submit") && signedIn ? (
             <div className="flex shrink-0 justify-end gap-1 border-b border-line px-2 py-0.5">
               <button type="button" className="btn-3d rounded-md px-2.5 py-0.5 text-[10px] font-semibold" onClick={() => setScreen("create")}>
                 Add track

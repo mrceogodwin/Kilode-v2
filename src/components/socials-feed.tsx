@@ -3,7 +3,7 @@ import { Briefcase, Headphones, ImagePlus, Lock, Video } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { uploadTakeMedia } from "@/lib/supabase";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, editOwnTake, getTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listMyTags, listSavedTakeIds, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTopicTakes, listTrending, listWordMutes, muteWord, pinOwnTake, replyTake, reportTake, repostTake, saveTake, searchPeople, suggestFollows, toggleFollow, togglePing, toggleSaveTake, toggleTagFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, editOwnTake, getTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listMyTags, listSavedTakeIds, listSavedTakes, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTopicTakes, listTrending, listWordMutes, muteWord, pinOwnTake, replyTake, reportTake, repostTake, saveTake, searchPeople, seeTake, suggestFollows, toggleFollow, togglePing, toggleReplyLock, toggleSaveTake, toggleSensitive, toggleTagFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -256,6 +256,7 @@ function needLogin(e: unknown) {
 }
 
 let wantSocialTrend = false;
+const seenOnce = new Set<string>();
 /** Header fire: open Socials on the trending page. */
 export function openSocialTrending() {
   wantSocialTrend = true;
@@ -276,6 +277,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [body, setBody] = useState("");
   const [place, setPlace] = useState("");
   const [alt, setAlt] = useState("");
+  const [circle, setCircle] = useState<"" | "followers">("");
+  const [linkNote, setLinkNote] = useState("");
   const [shot, setShot] = useState("");
   const [clip, setClip] = useState("");
   const [mediaBusy, setMediaBusy] = useState(false);
@@ -291,10 +294,12 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [followTakes, setFollowTakes] = useState<TakeRow[]>([]);
   const [followNext, setFollowNext] = useState(0);
   const [followLoaded, setFollowLoaded] = useState(false);
-  const [feedCut, setFeedCut] = useState<"all" | "following" | "trending" | "tag" | "topics">("all");
+  const [feedCut, setFeedCut] = useState<"all" | "following" | "trending" | "tag" | "topics" | "saved">("all");
   const [myTags, setMyTags] = useState<string[]>([]);
   const [topicTakes, setTopicTakes] = useState<TakeRow[]>([]);
   const [topicLoaded, setTopicLoaded] = useState(false);
+  const [savedTakes, setSavedTakes] = useState<TakeRow[]>([]);
+  const [savedLoaded, setSavedLoaded] = useState(false);
   const [pings, setPings] = useState<Record<string, true>>({});
   const [tag, setTag] = useState("");
   const [tagTakes, setTagTakes] = useState<TakeRow[]>([]);
@@ -620,6 +625,23 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     };
   }, [feedCut, topicLoaded]);
 
+  useEffect(() => {
+    if (feedCut !== "saved" || savedLoaded) return;
+    let dead = false;
+    void listSavedTakes()
+      .then((rows) => {
+        if (dead) return;
+        setSavedTakes(rows);
+        setSavedLoaded(true);
+      })
+      .catch(() => {
+        if (!dead) setSavedLoaded(true);
+      });
+    return () => {
+      dead = true;
+    };
+  }, [feedCut, savedLoaded]);
+
   function theyFollow(handle: string, id?: string) {
     return !!(followsYou[(handle || "").toLowerCase()] || (id && followsYou[id]));
   }
@@ -759,8 +781,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     setErr("");
     const pending = saveTake({
       data: quoting
-        ? { body: text, kind: "quote", quoteName: quoting.name, quoteHandle: quoting.handle, quoteBody: quoting.body, image: shot, video: clip }
-        : { body: text, kind, line, image: shot, video: clip, place, alt },
+        ? { body: text, kind: "quote", quoteName: quoting.name, quoteHandle: quoting.handle, quoteBody: quoting.body, image: shot, video: clip, circle }
+        : { body: text, kind, line, image: shot, video: clip, place, alt, circle },
     });
     const timeout = new Promise<{ ok: false; reason: string }>((resolve) => {
       window.setTimeout(() => resolve({ ok: false, reason: "The server took too long. Try Post again." }), 12000);
@@ -777,6 +799,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         setLine("");
         setShot("");
         setClip("");
+        setCircle("");
         setQuoting(null);
         try { localStorage.removeItem("kilode-take-draft"); } catch { /* ignore */ }
       }
@@ -834,13 +857,29 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     ? pool.filter((f) => `${f.name} ${f.handle} ${f.role}`.toLowerCase().includes(needle))
     : pool;
   const shownFellows = matched.slice(0, fellowCap);
-  const takeSource = feedCut === "following" ? followTakes : feedCut === "trending" ? trendTakes : feedCut === "tag" ? tagTakes : feedCut === "topics" ? topicTakes : takes;
+  const takeSource = feedCut === "following" ? followTakes : feedCut === "trending" ? trendTakes : feedCut === "tag" ? tagTakes : feedCut === "topics" ? topicTakes : feedCut === "saved" ? savedTakes : takes;
   const shownTakes = takeSource.filter((t) => {
     if (hidden(t.handle) || hiddenIds[t.id]) return false;
     if (words.some((word) => t.body.toLowerCase().includes(word))) return false;
     if (!needle) return true;
     return `${t.name} ${t.handle} ${t.role} ${t.body}`.toLowerCase().includes(needle);
   });
+  const seenKey = shownTakes.slice(0, 8).map((t) => t.id).join(",");
+  useEffect(() => {
+    const ids = seenKey.split(",").filter((id) => id && !seenOnce.has(id));
+    if (!ids.length) return;
+    for (const id of ids) seenOnce.add(id);
+    let seen: string[] = [];
+    try { seen = JSON.parse(sessionStorage.getItem("kilode-seen") || "[]"); } catch { seen = []; }
+    const fresh = ids.filter((id) => !seen.includes(id));
+    try { sessionStorage.setItem("kilode-seen", JSON.stringify([...seen, ...ids].slice(-400))); } catch { /* ignore */ }
+    for (const id of fresh.length ? fresh : ids) {
+      if (seen.includes(id)) continue;
+      void seeTake({ data: { id } }).then((r) => {
+        if (r.ok && r.views) patch(id, (row) => ({ ...row, views: r.views }));
+      });
+    }
+  }, [seenKey]);
   const liveTags = (() => {
     const bag = new Map<string, number>();
     const re = /#([A-Za-z0-9_]{2,24})/g;
@@ -1083,6 +1122,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "following" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("following"); }}>Following</button>
         <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "trending" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("trending"); }}>Trending</button>
         <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "topics" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("topics"); }}>Topics</button>
+        <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "saved" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("saved"); }}>Saved</button>
         {tag ? (
           <button type="button" className="soc-chip on shrink-0 px-2.5 py-1 text-[12px]" onClick={() => setFeedCut("tag")}>#{tag}</button>
         ) : null}
@@ -1106,7 +1146,16 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
       {liveTags.length > 0 && feedCut !== "tag" ? (
         <div className="mb-2 flex gap-1.5 overflow-x-auto">
           {liveTags.map((name) => (
-            <button key={name} type="button" className="shrink-0 rounded-full border border-line px-2.5 py-1 text-[11px] font-semibold text-lime-2" onClick={() => { setTag(name); setFeedCut("tag"); setTagTakes([]); }}>
+            <button key={name} type="button" className="topic-chip shrink-0" onClick={() => { setTag(name); setFeedCut("tag"); setTagTakes([]); }}>
+              #{name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {myTags.length > 0 && feedCut !== "tag" ? (
+        <div className="mb-2 flex gap-1.5 overflow-x-auto">
+          {myTags.map((name) => (
+            <button key={name} type="button" className="topic-chip shrink-0" onClick={() => { setTag(name); setFeedCut("tag"); setTagTakes([]); setTopicLoaded(false); }}>
               #{name}
             </button>
           ))}
@@ -1235,6 +1284,9 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             ))}
           </div>
           <span className="shrink-0 text-[9px] tabular-nums text-muted">{body.length}/280</span>
+          <button type="button" className={`soc-chip shrink-0 px-1.5 py-0.5 text-[10px] ${circle === "followers" ? "on" : ""}`} onClick={() => setCircle((c) => (c === "followers" ? "" : "followers"))}>
+            {circle === "followers" ? "Followers" : "Everyone"}
+          </button>
           <button type="button" disabled={busy || mediaBusy || body.trim().length < 1} className="btn-join min-w-14 shrink-0 rounded-full px-3 py-1 text-[11px] font-bold disabled:opacity-50" onClick={() => void post()}>
             {busy || mediaBusy ? "Sending" : "Post"}
           </button>
@@ -1258,7 +1310,11 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
                       ? "Loading your topics…"
                       : feedCut === "topics"
                         ? "Follow a topic. Those takes land here."
-                        : "No takes yet. Be first."}
+                        : feedCut === "saved" && !savedLoaded
+                          ? "Loading saved takes…"
+                          : feedCut === "saved"
+                            ? "Save a take and it stays here."
+                            : "No takes yet. Be first."}
         </p>
       ) : null}
       <div className="space-y-2">
@@ -1314,16 +1370,15 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             }}
             onRepost={() => {
               if (!authed) return goLogin();
-              if (reposted[t.id] || busyId === t.id) return;
+              if (busyId === t.id) return;
+              const was = !!reposted[t.id];
               setBusyId(t.id);
               void repostTake({ data: { id: t.id } })
                 .then((r) => {
-                  if (r.ok && r.reposted) {
-                    setReposted((m) => ({ ...m, [t.id]: true }));
-                    patch(t.id, (row) => ({ ...row, reposts: row.reposts + 1 }));
-                  } else if (r.ok) {
-                    setReposted((m) => ({ ...m, [t.id]: true }));
-                  }
+                  if (!r.ok) return;
+                  setReposted((m) => ({ ...m, [t.id]: r.reposted }));
+                  if (r.reposted && !was) patch(t.id, (row) => ({ ...row, reposts: row.reposts + 1 }));
+                  if (!r.reposted && was) patch(t.id, (row) => ({ ...row, reposts: Math.max(0, row.reposts - 1) }));
                 })
                 .catch((e) => {
                   if (needLogin(e)) goLogin();
@@ -1576,6 +1631,56 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             >
               {pings[menuTake.handle.toLowerCase()] ? "Stop post alerts" : "Alert me on their posts"}
             </button>
+            {me && menuTake.handle.toLowerCase() === me.toLowerCase() ? (
+              <button
+                type="button"
+                className="block w-full border-b py-3 text-left text-[16px]"
+                style={{ color: "var(--report-fg)", borderColor: "var(--report-line)" }}
+                onClick={() => {
+                  const id = menuTake.id;
+                  setMenuTake(null);
+                  void toggleReplyLock({ data: { id } }).then((r) => {
+                    if (!r.ok) return;
+                    patch(id, (row) => ({ ...row, meta: { ...row.meta, replies: r.off ? "off" : "" } }));
+                  });
+                }}
+              >
+                {menuTake.meta.replies === "off" ? "Turn replies on" : "Turn replies off"}
+              </button>
+            ) : null}
+            {me && menuTake.handle.toLowerCase() === me.toLowerCase() ? (
+              <button
+                type="button"
+                className="block w-full border-b py-3 text-left text-[16px]"
+                style={{ color: "var(--report-fg)", borderColor: "var(--report-line)" }}
+                onClick={() => {
+                  const id = menuTake.id;
+                  setMenuTake(null);
+                  void toggleSensitive({ data: { id } }).then((r) => {
+                    if (!r.ok) return;
+                    patch(id, (row) => ({ ...row, meta: { ...row.meta, sensitive: r.on ? "1" : "" } }));
+                  });
+                }}
+              >
+                {menuTake.meta.sensitive === "1" ? "Clear sensitive" : "Mark sensitive"}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="block w-full border-b py-3 text-left text-[16px]"
+              style={{ color: "var(--report-fg)", borderColor: "var(--report-line)" }}
+              onClick={() => {
+                const id = menuTake.id;
+                setMenuTake(null);
+                const url = `${window.location.origin}/?tab=socials&take=${encodeURIComponent(id)}`;
+                void navigator.clipboard?.writeText(url).then(() => {
+                  setLinkNote("Link copied.");
+                  window.setTimeout(() => setLinkNote(""), 1600);
+                }).catch(() => setLinkNote(url));
+              }}
+            >
+              Copy link
+            </button>
             <button
               type="button"
               className="block w-full border-b py-3 text-left text-[16px]"
@@ -1606,7 +1711,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
               if (!row || next.length < 1) return;
               void editOwnTake({ data: { id: row.id, body: next } }).then((r) => {
                 if (!r.ok) setErr(r.reason);
-                else setTakes((list) => list.map((t) => (t.id === row.id ? { ...t, body: r.body } : t)));
+                else setTakes((list) => list.map((t) => (t.id === row.id ? { ...t, body: r.body, meta: { ...t.meta, edited: "1" } } : t)));
                 setEditTake(null);
               });
             }}
@@ -1658,6 +1763,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         </div>
       ) : null}
       {reportNote ? <p className="mt-2 text-center text-[11px] text-muted">{reportNote}</p> : null}
+      {linkNote ? <p className="mt-2 text-center text-[11px] text-muted">{linkNote}</p> : null}
     </div>
   );
 }
@@ -1766,6 +1872,7 @@ function TakeCard({
 }) {
   const ghost = take.kind === "ghost";
   const locked = take.meta.lock === true && !revealed;
+  const veiled = (take.meta.sensitive === "1" || take.meta.sensitive === true) && !revealed && !mine;
   const fact = pct(take.fact, take.cap);
   const banter = pct(take.voteA, take.voteB);
   const expires = typeof take.meta.expires === "number" ? take.meta.expires : 0;
@@ -1789,7 +1896,7 @@ function TakeCard({
             {!ghost && live ? <span className="live-dot" title="Active" /> : null}
             {!ghost && take.verified ? <VerifiedMark /> : null}
             {!ghost ? <span className="truncate text-[10px] text-muted">@{take.handle}</span> : null}
-            <span className="shrink-0 text-[10px] text-muted">· {timeAgo(take.ts)}</span>
+            <span className="shrink-0 text-[10px] text-muted">· {timeAgo(take.ts)}{take.meta.edited === "1" ? " · Edited" : ""}</span>
             {!ghost && !mine ? (
               <button type="button" className={`take-follow ${following ? "on" : ""}`} onClick={onFollow}>
                 {following ? "Following" : followsYou ? "Follow back" : "Follow"}
@@ -1823,18 +1930,24 @@ function TakeCard({
           ) : null}
           {take.meta.street === true ? <div className="mt-0.5 text-[9px] text-amber-200/80">Street Certified</div> : null}
           {hot ? <div className="trend-chip mt-1">Trending</div> : null}
+          {Date.now() - take.ts < 6 * 3600_000 ? <div className="fresh-chip mt-1">New</div> : null}
+          {take.meta.circle === "followers" ? <div className="fresh-chip mt-1">Followers</div> : null}
           {take.meta.pinned === "1" ? <div className="mt-1 text-[10px] font-semibold text-muted">Pinned</div> : null}
+          {typeof take.views === "number" && take.views > 0 ? <div className="mt-1 text-[10px] text-muted">{take.views.toLocaleString()} seen</div> : null}
 
           {locked ? (
             <button type="button" className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-[10px] border border-line py-3 text-[11px] text-muted" onClick={onReveal}>
               <Lock className="size-3" /> Tap to reveal
             </button>
+          ) : veiled ? (
+            <button type="button" className="sens-veil" onClick={onReveal}>Sensitive · tap to view</button>
           ) : (
             <>
               <p className={`mt-1 whitespace-pre-wrap text-[13px] leading-snug ${ghost ? "text-white/80" : ""}`}>
                 <LinkText text={take.body} />
               </p>
               {typeof take.meta.place === "string" && take.meta.place ? <p className="mt-1 text-[11px] text-muted">{take.meta.place}</p> : null}
+              {take.meta.replies === "off" ? <p className="mt-1 text-[11px] text-muted">Replies are off</p> : null}
               {typeof take.meta.video === "string" && take.meta.video.startsWith("http") ? (
                 <video src={take.meta.video} poster={typeof take.meta.image === "string" ? take.meta.image : undefined} controls playsInline className="mt-2 max-h-80 w-full rounded-[10px] bg-black" />
               ) : typeof take.meta.image === "string" && (take.meta.image.startsWith("http") || take.meta.image.startsWith("data:image/")) ? (

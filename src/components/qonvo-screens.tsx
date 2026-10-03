@@ -4,7 +4,7 @@ import { Eye, Mail, MessageSquare, Share2, Bookmark } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, timeLeftLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 import { approveTeamAsk, getProfile, leaveTeam, postTeamNote, reportPost, requestJoinTeam, teamDesk } from "@/lib/forum-server";
-import { claimOps, clearModUser, deleteGist, deletePost, dismissReport, assignReport, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listStaff, listStaffPosts, listVerifyQueue, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, scoreMembers, staffMe, unhidePost } from "@/lib/staff-server";
+import { claimOps, clearModUser, deleteGist, deletePost, dismissReport, assignReport, getModSettings, hidePost, listAdsQueue, listMail, listMembers, listModHits, listModUsers, listReports, listSocialDesk, listStaff, listStaffPosts, listVerifyQueue, removeStaff, resetUserPassword, saveChatTtl, saveModSettings, saveWallet, deleteWallet, setAccountKind, setModHitStatus, setModUser, setStaffRole, setVerified, scoreMembers, staffMe, unhidePost } from "@/lib/staff-server";
 import {
   approveNewsDraft,
   fetchNewsLatest,
@@ -2407,6 +2407,69 @@ function AdsQueuePanel({ store }: { store: Store }) {
   );
 }
 
+function SocialDesk() {
+  const [takes, setTakes] = useState<{ id: string; handle: string; body: string; ts: number; kind: string }[]>([]);
+  const [flags, setFlags] = useState<{ id: string; post_id: string; author: string; reason: string; ts: number }[]>([]);
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    void listSocialDesk()
+      .then((d) => {
+        setTakes(d.takes);
+        setFlags(d.reports);
+      })
+      .catch(() => setMsg("Could not load Socials."));
+  }, []);
+  return (
+    <div className="md:col-span-2 space-y-3">
+      <div>
+        <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">SOCIALS DESK</div>
+        <p className="text-[12px] text-muted">Flagged takes and accounts, plus the latest posts. Open one in the feed, or remove it.</p>
+        {msg ? <p className="text-[12px] text-danger">{msg}</p> : null}
+      </div>
+      <div className="space-y-2">
+        <div className="text-[11px] font-medium text-muted">Social reports</div>
+        {flags.length === 0 ? <p className="text-sm text-muted">No take or account flags.</p> : null}
+        {flags.map((r) => {
+          const takeId = r.post_id.startsWith("take:") ? r.post_id.slice(5) : "";
+          const handle = r.post_id.startsWith("user:") ? r.post_id.slice(5) : "";
+          return (
+            <div key={r.id} className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-line bg-panel p-3">
+              <div className="min-w-0">
+                <div className="text-xs font-semibold">{r.author}</div>
+                <p className="text-sm">{r.reason}</p>
+                <div className="text-[10px] text-muted">{takeId ? `take ${takeId}` : handle ? `@${handle}` : r.post_id}</div>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <a className="text-xs font-semibold text-lime-2" href={takeId ? `/?tab=socials&take=${encodeURIComponent(takeId)}` : `/u/${encodeURIComponent(handle)}`}>Open</a>
+                <button type="button" className="text-xs text-muted" onClick={() => void dismissReport({ data: { id: r.id } }).then(() => setFlags((rows) => rows.filter((x) => x.id !== r.id)))}>Dismiss</button>
+                {takeId ? (
+                  <button type="button" className="text-xs text-danger" onClick={() => void deleteGist({ data: { id: takeId } }).then(() => { setFlags((rows) => rows.filter((x) => x.post_id !== r.post_id)); setTakes((rows) => rows.filter((t) => t.id !== takeId)); })}>Delete</button>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="space-y-2">
+        <div className="text-[11px] font-medium text-muted">Latest takes</div>
+        {takes.length === 0 ? <p className="text-sm text-muted">No takes yet.</p> : null}
+        {takes.map((t) => (
+          <div key={t.id} className="flex min-w-0 items-start justify-between gap-2 rounded-xl border border-line bg-panel p-3">
+            <div className="min-w-0">
+              <div className="text-xs font-semibold">@{t.handle} · {t.kind}</div>
+              <p className="line-clamp-2 text-sm">{t.body}</p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <a className="text-xs font-semibold text-lime-2" href={`/?tab=socials&take=${encodeURIComponent(t.id)}`}>Open</a>
+              <button type="button" className="text-xs text-danger" onClick={() => void deleteGist({ data: { id: t.id } }).then(() => setTakes((rows) => rows.filter((x) => x.id !== t.id)))}>Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Admin({ store }: { store: Store }) {
   const [role, setRole] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
@@ -2423,7 +2486,7 @@ function Admin({ store }: { store: Store }) {
   const [walletMsg, setWalletMsg] = useState("");
   const [extraCoin, setExtraCoin] = useState("");
   const [extraAddr, setExtraAddr] = useState("");
-  const [desk, setDesk] = useState<"pulse" | "inbox" | "people" | "money" | "content" | "staff">("pulse");
+  const [desk, setDesk] = useState<"pulse" | "inbox" | "people" | "money" | "content" | "staff" | "socials">("pulse");
 
   useEffect(() => {
     void staffMe()
@@ -2518,6 +2581,7 @@ function Admin({ store }: { store: Store }) {
   const deskTabs: { id: typeof desk; label: string }[] = [
     ...(role === "super" || role === "admin" ? [{ id: "pulse" as const, label: "Pulse" }] : []),
     { id: "inbox", label: reports.length ? `Inbox ${reports.length}` : "Inbox" },
+    ...(role === "super" || role === "admin" ? [{ id: "socials" as const, label: "Socials" }] : []),
     { id: "people", label: "People" },
     ...(role === "super" || role === "admin" ? [{ id: "money" as const, label: "Money" }, { id: "content" as const, label: "Content" }] : []),
     ...(role === "super" || role === "admin" ? [{ id: "staff" as const, label: role === "super" ? "Staff" : "Account" }] : []),
@@ -2563,6 +2627,7 @@ function Admin({ store }: { store: Store }) {
       {onDesk === "money" && role === "super" ? <AdCatalogPanel /> : null}
       {onDesk === "money" && role === "super" ? <AdSlotsPanel /> : null}
       {onDesk === "content" && role === "super" ? <RoomsAdminPanel /> : null}
+      {onDesk === "socials" && (role === "super" || role === "admin") ? <SocialDesk /> : null}
       {onDesk === "inbox" ? (
       <>
       <div className="md:col-span-2 space-y-2">

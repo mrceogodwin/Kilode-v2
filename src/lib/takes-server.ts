@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
-import { authMiddleware } from "@/lib/auth/middleware";
+import { authMiddleware, optionalAuthMiddleware } from "@/lib/auth/middleware";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 import { gateText } from "@/lib/mod-cache";
 import { pushNote } from "@/lib/social-server";
@@ -26,6 +26,7 @@ export type TakeRow = {
   ts: number;
   lastReply: string;
   via?: string;
+  views?: number;
 };
 
 export type FellowRow = {
@@ -89,15 +90,40 @@ function mapTake(r: Record<string, unknown>): TakeRow {
     comments: num(r.comments),
     reposts: num(r.reposts),
     likes: num(r.likes),
+    views: num(r.views),
     ts: num(r.sort_ts) || num(r.ts),
     lastReply: String(r.last_reply || ""),
     via: String(r.via || ""),
   };
 }
 
+function metaRaw(r: Record<string, unknown>) {
+  return String(r.meta || "");
+}
+
+async function circleRows(sql: Awaited<ReturnType<typeof getSql>>, rows: Record<string, unknown>[], viewer: string | null) {
+  if (!rows.some((r) => metaRaw(r).includes('"circle":"followers"'))) return rows;
+  const allowed = new Set<string>();
+  if (viewer) {
+    allowed.add(viewer);
+    try {
+      const follows = await sql<{ followee_id: string }>`select followee_id from nf_follows where follower_id = ${viewer} limit 400`;
+      for (const row of follows) if (row.followee_id) allowed.add(row.followee_id);
+    } catch {
+      /* follows table can be missing on a fresh database */
+    }
+  }
+  return rows.filter((r) => {
+    if (!metaRaw(r).includes('"circle":"followers"')) return true;
+    const uid = String(r.user_id || "");
+    return !!uid && allowed.has(uid);
+  });
+}
+
 export const listTakes = createServerFn({ method: "GET" })
+  .middleware([optionalAuthMiddleware])
   .validator((d: { before?: number } | undefined) => d ?? {})
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     await ensureSeed();
     const sql = await getSql();
     const before = Number(data?.before || 0);
@@ -106,7 +132,8 @@ export const listTakes = createServerFn({ method: "GET" })
           from nf_takes t where t.ts < ${before} and t.user_id <> ${"seed"} and t.id not like ${"seed-%"} order by t.ts desc limit 20`
       : await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
           from nf_takes t where t.user_id <> ${"seed"} and t.id not like ${"seed-%"} order by t.ts desc limit 20`;
-    const takes = (rows as Record<string, unknown>[]).map(mapTake);
+    const visible = await circleRows(sql, rows as Record<string, unknown>[], context.userId);
+    const takes = visible.map(mapTake);
     const next = takes.length === 20 ? takes[takes.length - 1].ts : 0;
     let fellows: FellowRow[] = [];
     try {
@@ -192,8 +219,9 @@ export const listLive = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const listTrending = createServerFn({ method: "GET" })
+  .middleware([optionalAuthMiddleware])
   .validator((d: { offset?: number; filter?: string } | undefined) => d ?? {})
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const sql = await getSql();
     const offset = Math.max(0, Math.min(180, Number(data?.offset || 0)));
     const filter = data?.filter === "news" || data?.filter === "debate" ? data.filter : "hot";
@@ -211,7 +239,7 @@ export const listTrending = createServerFn({ method: "GET" })
             : await sql`select t.*, (coalesce(t.likes,0)*2 + coalesce(t.reposts,0)*3 + coalesce(t.comments,0)*2 + coalesce(t.fact,0) + coalesce(t.cap,0) + coalesce(t.vote_a,0) + coalesce(t.vote_b,0)) as score
               from nf_takes t where t.ts > ${since} and t.user_id <> ${"seed"} and t.id not like ${"seed-%"}
               order by score desc, t.ts desc limit 15 offset ${offset}`;
-      const takes = (rows as Record<string, unknown>[]).map((r) => ({ ...mapTake(r), score: num(r.score) }));
+      const takes = (await circleRows(sql, rows as Record<string, unknown>[], context.userId)).map((r) => ({ ...mapTake(r), score: num(r.score) }));
       const words = await sql<{ body: string }>`select body from nf_takes where ts > ${since} and user_id <> ${"seed"} order by ts desc limit 80`;
       return { takes, next: takes.length === 15 ? offset + 15 : 0, topics: topicCounts(words.map((w) => w.body)) };
     } catch {
@@ -288,11 +316,12 @@ async function indexTake(sql: Awaited<ReturnType<typeof getSql>>, id: string, bo
 }
 
 export const listTakesByTag = createServerFn({ method: "GET" })
+  .middleware([optionalAuthMiddleware])
   .validator((d: { tag?: string; before?: number }) => ({
     tag: (d?.tag || "").toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24),
     before: Number(d?.before || 0),
   }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     if (data.tag.length < 2) return { takes: [] as TakeRow[], next: 0 };
     const sql = await getSql();
     await ensureTags(sql);
@@ -318,7 +347,7 @@ export const listTakesByTag = createServerFn({ method: "GET" })
               )
             order by t.ts desc
             limit 20`;
-      const takes = (rows as Record<string, unknown>[]).map(mapTake);
+      const takes = (await circleRows(sql, rows as Record<string, unknown>[], context.userId)).map(mapTake);
       return { takes, next: takes.length === 20 ? takes[takes.length - 1].ts : 0 };
     } catch {
       return { takes: [] as TakeRow[], next: 0 };
@@ -326,22 +355,24 @@ export const listTakesByTag = createServerFn({ method: "GET" })
   });
 
 export const listUserTakes = createServerFn({ method: "GET" })
+  .middleware([optionalAuthMiddleware])
   .validator((handle: string) => handle)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const handle = String(data || "").trim().replace(/^@/, "").slice(0, 24).toLowerCase();
     if (!handle) return [] as TakeRow[];
     try {
       const sql = await getSql();
       const rows = await sql`select t.* from nf_takes t where lower(t.handle) = ${handle} and t.user_id <> ${"seed"} order by t.ts desc limit 20`;
-      return (rows as Record<string, unknown>[]).map(mapTake);
+      return (await circleRows(sql, rows as Record<string, unknown>[], context.userId)).map(mapTake);
     } catch {
       return [] as TakeRow[];
     }
   });
 
 export const searchTakes = createServerFn({ method: "GET" })
+  .middleware([optionalAuthMiddleware])
   .validator((d: { q?: string }) => ({ q: (d?.q || "").trim().slice(0, 40) }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const q = data.q.toLowerCase().replace(/[%_]/g, "");
     if (q.length < 2) return [] as TakeRow[];
     const like = `%${q}%`;
@@ -352,7 +383,7 @@ export const searchTakes = createServerFn({ method: "GET" })
           and (lower(t.body) like ${like} or lower(t.handle) like ${like})
         order by t.ts desc
         limit 12`;
-      return (rows as Record<string, unknown>[]).map(mapTake);
+      return (await circleRows(sql, rows as Record<string, unknown>[], context.userId)).map(mapTake);
     } catch {
       return [] as TakeRow[];
     }
@@ -392,13 +423,14 @@ export const listUserReposts = createServerFn({ method: "GET" })
   });
 
 export const getTake = createServerFn({ method: "GET" })
+  .middleware([optionalAuthMiddleware])
   .validator((id: string) => String(id || "").trim().slice(0, 40))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     if (!data) return null as TakeRow | null;
     try {
       const sql = await getSql();
       const rows = await sql`select t.* from nf_takes t where t.id = ${data} and t.user_id <> ${"seed"} limit 1`;
-      const row = (rows as Record<string, unknown>[])[0];
+      const row = (await circleRows(sql, rows as Record<string, unknown>[], context.userId))[0];
       return row ? mapTake(row) : null;
     } catch {
       return null as TakeRow | null;
@@ -466,7 +498,7 @@ function takeShot(raw?: string) {
 
 export const saveTake = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string; quoteHref?: string; image?: string; video?: string; place?: string; alt?: string }) => d)
+  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string; quoteHref?: string; image?: string; video?: string; place?: string; alt?: string; circle?: string }) => d)
   .handler(async ({ data, context }) => {
     try {
       const userId = context.userId;
@@ -513,6 +545,7 @@ export const saveTake = createServerFn({ method: "POST" })
       if (place) meta.place = place;
       const alt = (data.alt || "").trim().slice(0, 80);
       if (alt && shot) meta.alt = alt;
+      if ((data.circle || "") === "followers") meta.circle = "followers";
       const id = nid();
       const ts = Date.now();
       const sql = await getSql();
@@ -709,9 +742,12 @@ export const replyTake = createServerFn({ method: "POST" })
     if (!checked.ok) return { ok: false as const, reason: checked.reason };
     const clean = checked.text;
     const sql = await getSql();
-    const owner = await sql<{ user_id: string | null }>`select user_id from nf_takes where id = ${data.id} limit 1`;
-    const ownerId = owner[0]?.user_id || "";
+    const row = await sql<{ user_id: string | null; meta: string | null }>`select user_id, meta from nf_takes where id = ${data.id} limit 1`;
+    const ownerId = row[0]?.user_id || "";
     if (!ownerId) return { ok: false as const, reason: "That take is gone." };
+    let meta: Record<string, string> = {};
+    try { meta = JSON.parse(row[0]?.meta || "{}") as Record<string, string>; } catch { meta = {}; }
+    if (meta.replies === "off" && ownerId !== context.userId) return { ok: false as const, reason: "Replies are off on this take." };
     if (await pairBlocked(sql, context.userId, ownerId)) return { ok: false as const, reason: "You can't reply to this person." };
     const id = nid();
     const ts = Date.now();
@@ -771,7 +807,11 @@ export const repostTake = createServerFn({ method: "POST" })
     }
     const now = Date.now();
     const inserted = await sql<{ take_id: string }>`insert into nf_take_reposts (take_id, user_id, ts) values (${data.id}, ${context.userId}, ${now}) on conflict (take_id, user_id) do nothing returning take_id`;
-    if (!inserted[0]) return { ok: true as const, reposted: false };
+    if (!inserted[0]) {
+      await sql`delete from nf_take_reposts where take_id = ${data.id} and user_id = ${context.userId}`;
+      await sql`update nf_takes set reposts = greatest(reposts - 1, 0) where id = ${data.id}`;
+      return { ok: true as const, reposted: false };
+    }
     await sql`update nf_takes set reposts = reposts + 1 where id = ${data.id}`;
     const owner = await sql<{ user_id: string | null }>`select user_id from nf_takes where id = ${data.id} limit 1`;
     const ownerId = owner[0]?.user_id || "";
@@ -867,6 +907,54 @@ export const listSavedTakes = createServerFn({ method: "GET" })
       return (rows as Record<string, unknown>[]).map(mapTake);
     } catch {
       return [] as TakeRow[];
+    }
+  });
+
+export const toggleReplyLock = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    if (!data.id) return { ok: false as const, reason: "Missing take.", off: false };
+    const sql = await getSql();
+    const rows = await sql<{ meta: string | null }>`select meta from nf_takes where id = ${data.id} and user_id = ${context.userId} limit 1`;
+    if (!rows[0]) return { ok: false as const, reason: "Only the owner can do that.", off: false };
+    let meta: Record<string, string> = {};
+    try { meta = JSON.parse(rows[0].meta || "{}") as Record<string, string>; } catch { meta = {}; }
+    const off = meta.replies !== "off";
+    if (off) meta.replies = "off";
+    else delete meta.replies;
+    await sql`update nf_takes set meta = ${JSON.stringify(meta)} where id = ${data.id} and user_id = ${context.userId}`;
+    return { ok: true as const, off };
+  });
+
+export const toggleSensitive = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    if (!data.id) return { ok: false as const, reason: "Missing take.", on: false };
+    const sql = await getSql();
+    const rows = await sql<{ meta: string | null }>`select meta from nf_takes where id = ${data.id} and user_id = ${context.userId} limit 1`;
+    if (!rows[0]) return { ok: false as const, reason: "Only the owner can do that.", on: false };
+    let meta: Record<string, string> = {};
+    try { meta = JSON.parse(rows[0].meta || "{}") as Record<string, string>; } catch { meta = {}; }
+    const on = meta.sensitive !== "1";
+    if (on) meta.sensitive = "1";
+    else delete meta.sensitive;
+    await sql`update nf_takes set meta = ${JSON.stringify(meta)} where id = ${data.id} and user_id = ${context.userId}`;
+    return { ok: true as const, on };
+  });
+
+export const seeTake = createServerFn({ method: "POST" })
+  .validator((d: { id?: string }) => ({ id: (d?.id || "").slice(0, 40) }))
+  .handler(async ({ data }) => {
+    if (!data.id) return { ok: false as const, views: 0 };
+    try {
+      const sql = await getSql();
+      await sql`alter table nf_takes add column if not exists views integer not null default 0`;
+      const rows = await sql<{ views: number | string }>`update nf_takes set views = coalesce(views, 0) + 1 where id = ${data.id} and user_id <> ${"seed"} returning views`;
+      return { ok: true as const, views: Number(rows[0]?.views || 0) };
+    } catch {
+      return { ok: false as const, views: 0 };
     }
   });
 
@@ -1253,7 +1341,8 @@ export const listFollowingTakes = createServerFn({ method: "GET" })
     } catch {
       reposts = [];
     }
-    const merged = [...(posts as Record<string, unknown>[]), ...reposts].sort((a, b) => num(b.sort_ts) - num(a.sort_ts));
+    const openReposts = await circleRows(sql, reposts, context.userId);
+    const merged = [...(posts as Record<string, unknown>[]), ...openReposts].sort((a, b) => num(b.sort_ts) - num(a.sort_ts));
     const seen = new Set<string>();
     const page: Record<string, unknown>[] = [];
     for (const row of merged) {
@@ -1418,13 +1507,16 @@ export const editOwnTake = createServerFn({ method: "POST" })
     const body = (data.body || "").trim().slice(0, 280);
     if (!id || body.length < 1) return { ok: false as const, reason: "Write something first." };
     const sql = await getSql();
-    const rows = await sql<{ user_id: string; ts: string | number }>`select user_id, ts from nf_takes where id = ${id} limit 1`;
+    const rows = await sql<{ user_id: string; ts: string | number; meta: string | null }>`select user_id, ts, meta from nf_takes where id = ${id} limit 1`;
     if (rows[0]?.user_id !== context.userId) return { ok: false as const, reason: "You can only edit your own take." };
     if (Date.now() - Number(rows[0].ts) > 30 * 60 * 1000) return { ok: false as const, reason: "You can edit a take for 30 minutes." };
     const handle = await handleOf(context.userId);
     const checked = await gateText("feeds", body, { userId: context.userId, author: handle });
     if (!checked.ok) return { ok: false as const, reason: checked.reason };
-    await sql`update nf_takes set body = ${checked.text} where id = ${id}`;
+    let meta: Record<string, string> = {};
+    try { meta = JSON.parse(rows[0].meta || "{}") as Record<string, string>; } catch { meta = {}; }
+    meta.edited = "1";
+    await sql`update nf_takes set body = ${checked.text}, meta = ${JSON.stringify(meta)} where id = ${id}`;
     return { ok: true as const, body: checked.text };
   });
 
@@ -1507,16 +1599,14 @@ export const listTopicTakes = createServerFn({ method: "GET" })
     await sql`create table if not exists nf_tag_follows (user_id text not null, tag text not null, primary key (user_id, tag))`;
     const tags = await sql<{ tag: string }>`select tag from nf_tag_follows where user_id = ${context.userId} limit 8`;
     if (!tags.length) return [] as TakeRow[];
-    const bag = new Map<string, TakeRow>();
+    const raw = new Map<string, Record<string, unknown>>();
     for (const row of tags) {
       const needle = `%#${row.tag}%`;
       const hits = await sql`select * from nf_takes where lower(body) like ${needle} and user_id <> ${"seed"} order by ts desc limit 12`;
-      for (const hit of hits as Record<string, unknown>[]) {
-        const take = mapTake(hit);
-        bag.set(take.id, take);
-      }
+      for (const hit of hits as Record<string, unknown>[]) raw.set(String(hit.id), hit);
     }
-    return [...bag.values()].sort((a, b) => b.ts - a.ts).slice(0, 30);
+    const visible = await circleRows(sql, [...raw.values()], context.userId);
+    return visible.map(mapTake).sort((a, b) => b.ts - a.ts).slice(0, 30);
   });
 
 export const togglePing = createServerFn({ method: "POST" })

@@ -548,6 +548,34 @@ export const assignReport = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const listSocialDesk = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const me = await staffOf(context.userId);
+    if (!me || (me.role !== "super" && me.role !== "admin")) return { takes: [] as { id: string; handle: string; body: string; ts: number; kind: string }[], reports: [] as { id: string; post_id: string; author: string; reason: string; ts: number }[] };
+    const sql = await getSql();
+    const takes = await sql<{ id: string; handle: string | null; body: string | null; ts: number | string; kind: string | null }>`
+      select id, handle, body, ts, kind from nf_takes
+      where user_id <> ${"seed"} and id not like ${"seed-%"}
+      order by ts desc
+      limit 18`;
+    let reports: { id: string; post_id: string; author: string; reason: string; ts: number }[] = [];
+    try {
+      const rows = await sql<{ id: string; post_id: string; author: string | null; reason: string | null; ts: number | string }>`
+        select id, post_id, author, reason, ts from nf_reports
+        where post_id like ${"take:%"} or post_id like ${"user:%"}
+        order by ts desc
+        limit 30`;
+      reports = rows.map((r) => ({ id: r.id, post_id: r.post_id, author: r.author || "", reason: r.reason || "", ts: Number(r.ts) }));
+    } catch {
+      reports = [];
+    }
+    return {
+      takes: takes.map((t) => ({ id: t.id, handle: t.handle || "", body: t.body || "", ts: Number(t.ts), kind: t.kind || "take" })),
+      reports,
+    };
+  });
+
 export const dismissReport = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { id: string }) => d)
