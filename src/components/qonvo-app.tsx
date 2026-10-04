@@ -265,6 +265,8 @@ function QonvoAppInner() {
     if (id === "search" || id === "dashboard" || id === "create") setKeptScreens((m) => (m[id] ? m : { ...m, [id]: true }));
   });
   const [homeTab, setHomeTabNow] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials">("feeds");
+  const [feedQ, setFeedQ] = useState("");
+  const [feedSearchOn, setFeedSearchOn] = useState(false);
   const [socialLane, setSocialLane] = useState<"people" | "posts">("posts");
   const [keptTabs, setKeptTabs] = useState<Record<string, true>>({ feeds: true });
   const setHomeTab = (tab: "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials") => startTransition(() => {
@@ -434,7 +436,8 @@ function QonvoAppInner() {
       const y = node.scrollTop;
       const shell = document.querySelector(".kilode-shell");
       const pinned = shell?.getAttribute("data-pin") === "space";
-      if (pinned) {
+      const stageOn = root.dataset.stage === "1";
+      if (!stageOn || pinned) {
         if (away) {
           away = false;
           root.classList.remove("chrome-away");
@@ -444,8 +447,7 @@ function QonvoAppInner() {
         return;
       }
       const now = Date.now();
-      const shellChrome = document.querySelector(".kilode-shell")?.getAttribute("data-chrome");
-      const stage = shellChrome === "auto" || root.dataset.stage === "1";
+      const stage = true;
       if (!stage && away) {
         away = false;
         root.classList.remove("chrome-away");
@@ -497,8 +499,7 @@ function QonvoAppInner() {
   }, []);
 
   useEffect(() => {
-    const tuck = (screen === "home" && (homeTab === "feeds" || homeTab === "socials") && !marketDesk) || screen === "search";
-    if (screen === "dashboard" || !tuck) {
+    if (screen === "dashboard" || document.documentElement.dataset.stage !== "1") {
       document.documentElement.classList.remove("chrome-away");
       document.documentElement.classList.remove("dock-away");
     }
@@ -701,7 +702,7 @@ function QonvoAppInner() {
             </button>
             <button
               type="button"
-              className="brand-hit flex min-w-0 shrink flex-col items-start justify-center"
+              className="flex shrink-0 items-center"
               aria-label="Kilode home"
               onClick={() => goHome()}
             >
@@ -748,7 +749,7 @@ function QonvoAppInner() {
               />
               <button
                 type="button"
-                className="hdr-buzz"
+                className="hdr-ico"
                 aria-label="BUZZ"
                 onClick={() => {
                   setMenuOpen(false);
@@ -757,8 +758,7 @@ function QonvoAppInner() {
                   setScreen("trending");
                 }}
               >
-                <Zap className="size-3.5" />
-                <span>BUZZ</span>
+                <Zap className="size-4 text-[#e6c56a]" />
               </button>
               <button
                 type="button"
@@ -797,6 +797,68 @@ function QonvoAppInner() {
             </div>
           </div>
         </div>
+        {screen === "home" && (homeTab === "feeds" || homeTab === "socials") && !marketDesk ? (
+          <div className="feed-tools flex items-center gap-1.5 px-2 py-1">
+            {feedSearchOn ? (
+              <input
+                value={feedQ}
+                onChange={(e) => setFeedQ(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter") return;
+                  const n = feedQ.trim().toLowerCase();
+                  if (n.length < 2) return;
+                  const hit = store.posts.find((p) => {
+                    if (!p?.id || p.status === "draft") return false;
+                    const blob = `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase();
+                    return blob.includes(n);
+                  });
+                  if (hit) {
+                    store.setOpenPost(hit.id);
+                    setHomeTab("feeds");
+                    setScreen("home");
+                  }
+                }}
+                placeholder="Search feeds"
+                className="min-h-9 min-w-0 flex-1 rounded-md border border-line bg-panel px-2 text-base"
+                autoFocus
+              />
+            ) : (
+              <TrendingTicker posts={store.posts} onOpen={(id) => { store.setOpenPost(id); setHomeTab("feeds"); setScreen("home"); }} />
+            )}
+            <button
+              type="button"
+              aria-label="Search feeds"
+              className="ticker-tool grid size-8 place-items-center rounded-md"
+              onClick={() => {
+                setFeedSearchOn((v) => !v);
+                if (feedSearchOn) setFeedQ("");
+              }}
+            >
+              <Search className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              aria-label={homeTab === "socials" ? "Write a take" : "Post news"}
+              title={homeTab === "socials" ? "Write a take" : "Post news"}
+              className="ticker-tool news-plus"
+              onClick={() => {
+                if (session.isPending) return;
+                if (!signedIn) {
+                  window.location.href = "/login?mode=up";
+                  return;
+                }
+                if (homeTab === "socials") {
+                  document.querySelector<HTMLTextAreaElement>("#kilode-take")?.focus();
+                  return;
+                }
+                queueNewsPost();
+                setScreen("create");
+              }}
+            >
+              <Plus className="size-4" strokeWidth={2.75} />
+            </button>
+          </div>
+        ) : null}
       </header>
 
       <div className={screen === "home" ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "hidden"} aria-hidden={screen !== "home"}>
@@ -836,7 +898,7 @@ function QonvoAppInner() {
               ) : null}
               {keptTabs.socials ? (
                 <div className={homeTab === "socials" ? "min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad" : "hidden"}>
-                  <SocialsFeed lane={socialLane} authed={store.authed || !!session.user} account={store.kind} me={store.handle} onOpenPeople={() => setSocialLane("people")} onOpenFeed={() => setSocialLane("posts")} />
+                  <SocialsFeed lane={socialLane} authed={store.authed || !!session.user} account={store.kind} me={store.handle} face={store.face} onOpenPeople={() => setSocialLane("people")} onOpenFeed={() => setSocialLane("posts")} />
                 </div>
               ) : null}
               {homeTab === "music" ? (
@@ -1975,6 +2037,7 @@ function StageSwitch() {
         else {
           delete document.documentElement.dataset.stage;
           document.documentElement.classList.remove("chrome-away");
+          document.documentElement.classList.remove("dock-away");
         }
         try { localStorage.setItem("kilode-stage", next ? "1" : "0"); } catch { /* ignore */ }
       }}
@@ -1982,7 +2045,7 @@ function StageSwitch() {
       <span className="stage-mark" aria-hidden />
       <span className="min-w-0 flex-1 text-left">
         <span className="block text-[12px] font-bold leading-tight">Full screen</span>
-        <span className="block text-[10px] leading-snug text-muted">{on ? "Header tucks away as you scroll" : "Header stays. Tap to tuck it"}</span>
+        <span className="block text-[10px] leading-snug text-muted">{on ? "Header and dock tuck as you scroll" : "Header and dock stay. Tap to tuck them"}</span>
       </span>
       <span className="stage-state">{on ? "ON" : "OFF"}</span>
     </button>

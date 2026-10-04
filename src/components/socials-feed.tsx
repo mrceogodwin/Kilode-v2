@@ -270,7 +270,7 @@ export function openSocialFellows() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event("kilode:socials-fellows"));
 }
 
-export function SocialsFeed({ authed, account = "member", me = "", lane = "posts", onOpenPeople, onOpenFeed }: { authed: boolean; account?: string; me?: string; lane?: "people" | "posts"; onOpenPeople?: () => void; onOpenFeed?: () => void }) {
+export function SocialsFeed({ authed, account = "member", me = "", face = "", lane = "posts", onOpenPeople, onOpenFeed }: { authed: boolean; account?: string; me?: string; face?: string; lane?: "people" | "posts"; onOpenPeople?: () => void; onOpenFeed?: () => void }) {
   const pills = pillsFor(account);
   const boot = bootCache();
   const [takes, setTakes] = useState<TakeRow[]>(boot.takes);
@@ -1211,8 +1211,9 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
           </div>
         ) : null}
         <div className="flex items-start gap-2">
-          <img src={avatarUrl("me")} alt="" className="mt-0.5 size-7 rounded-full bg-panel-3" />
+          <img src={avatarUrl(me || "me", face)} alt="" className="mt-0.5 size-7 rounded-full bg-panel-3 object-cover" />
           <textarea
+            id="kilode-take"
             value={body}
             maxLength={280}
             rows={2}

@@ -129,11 +129,11 @@ function PublicProfile() {
         <div className="kilode-header-capsule">
           <div className="flex min-h-12 items-center gap-1">
             <a href="/" className="hdr-ico" aria-label="Menu"><Menu className="size-4" /></a>
-            <a href="/" className="brand-hit flex shrink-0 flex-col items-start justify-center" aria-label="Kilode home"><OfficialLockup /></a>
+            <a href="/" className="flex shrink-0 items-center" aria-label="Kilode home"><OfficialLockup /></a>
             <div className="ml-auto flex items-center gap-1">
               <a href="/?tab=socials" className="hdr-ico" aria-label="Friends"><Users className="size-4" /></a>
               <a href="/?open=notifications" className="hdr-ico" aria-label="Alerts"><Bell className="size-4" /></a>
-              <a href="/?open=trending" className="hdr-buzz" aria-label="BUZZ"><Zap className="size-3.5" /><span>BUZZ</span></a>
+              <a href="/?open=trending" className="hdr-ico" aria-label="BUZZ"><Zap className="size-4 text-[#e6c56a]" /></a>
               <a href="/?open=inbox" className="hdr-ico" aria-label="Messages"><MessageSquare className="size-4" /></a>
             </div>
           </div>

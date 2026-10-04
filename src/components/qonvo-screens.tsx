@@ -1390,38 +1390,33 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
         </>
       ) : lane === "home" ? (
         <div className="act-stack">
-          <article className="act-card">
-            <div>
-              <div className="act-kicker">People</div>
-              <h2>Who to follow</h2>
-              <p>Faces and handles, not a photo wall.</p>
-            </div>
-            <button type="button" onClick={() => setLane("discover")}>Open</button>
-          </article>
-          <article className="act-card">
-            <div>
-              <div className="act-kicker">Buzz</div>
-              <h2>What is hot</h2>
-              <p>One lead story, then the line.</p>
-            </div>
-            <button type="button" onClick={() => setLane("trending")}>Open</button>
-          </article>
-          <article className="act-card">
-            <div>
-              <div className="act-kicker">Rooms</div>
-              <h2>Live talk</h2>
-              <p>Jump into a room when you mean to.</p>
-            </div>
-            <button type="button" onClick={() => setLane("all")}>Open</button>
-          </article>
-          <article className="act-card">
-            <div>
-              <div className="act-kicker">Photos</div>
-              <h2>The grid</h2>
-              <p>Pictures stay here until you ask for them.</p>
-            </div>
-            <button type="button" onClick={() => setLane("explore")}>Show grid</button>
-          </article>
+          {(
+            [
+              ["Socials", "Takes and people", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "socials" } }))],
+              ["Media", "News and stories", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "feeds" } }))],
+              ["Buzz", "What is hot", () => setLane("trending")],
+              ["People", "Who to follow", () => setLane("discover")],
+              ["Rooms", "Live talk", () => setLane("all")],
+              ["Photos", "The picture grid", () => setLane("explore")],
+              ["Music", "Artists and links", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "music" } }))],
+              ["Cinema", "Films and votes", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "watch" } }))],
+              ["Jobs", "Roles and applications", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "jobs" } }))],
+              ["Market", "Buy and sell", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))],
+              ["Downloads", "Files from Kilode", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "downloads" } }))],
+              ["Spaces", "Business pages", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "spaces" } }))],
+              ["Messages", "Your inbox", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "inbox" } }))],
+              ["Saved", "Posts you kept", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "bookmarks" } }))],
+            ] as const
+          ).map(([title, body, go]) => (
+            <article key={title} className="act-card">
+              <div>
+                <div className="act-kicker">Kilode</div>
+                <h2>{title}</h2>
+                <p>{body}</p>
+              </div>
+              <button type="button" onClick={go}>Open</button>
+            </article>
+          ))}
         </div>
       ) : lane === "explore" ? (
         tiles.length === 0 && grid.length === 0 ? (

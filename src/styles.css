@@ -4761,40 +4761,20 @@ html[data-skin="ivory"] .media-page {
 .menu-stage .stage-switch { margin-bottom: 0; }
 
 .brand-lockup {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  line-height: 1;
-}
-.brand-tag {
-  display: block;
-  margin-top: 1px;
-  font-family: "Segoe Script", "Snell Roundhand", "Bradley Hand", "Apple Chancery", cursive;
-  font-size: 11px;
-  font-weight: 500;
-  font-style: italic;
-  letter-spacing: 0.01em;
-  line-height: 1;
-  text-transform: lowercase;
-  color: #e6c56a;
-  transform: rotate(-2deg);
-  white-space: nowrap;
-}
-.hdr-buzz {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  height: 28px;
-  padding: 0 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(230, 197, 106, 0.85);
-  background: transparent;
-  color: #e6c56a;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
+  line-height: 1;
 }
-.hdr-buzz span { color: #e6c56a; }
+.kilode-word { display: block; height: 28px; width: auto; }
+html:not([data-stage="1"]).chrome-away .kilode-chrome,
+html:not([data-stage="1"]).dock-away .dock {
+  transform: none !important;
+  max-height: none !important;
+  opacity: 1 !important;
+  margin: 0 !important;
+  pointer-events: auto !important;
+  overflow: visible !important;
+}
 html[data-pin-lock="1"] .kilode-chrome,
 .kilode-shell[data-pin="space"] .kilode-chrome {
   transform: none !important;

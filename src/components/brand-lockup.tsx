@@ -3,7 +3,6 @@ export function KilodeMark({ large = false }: { large?: boolean }) {
   return (
     <span className={`brand-lockup ${large ? "lg" : ""}`} role="img" aria-label="Kilode">
       <img src="/kilode-word.png" alt="" className="kilode-word" draggable={false} />
-      <span className="brand-tag">Wetin dy sup!</span>
     </span>
   );
 }
