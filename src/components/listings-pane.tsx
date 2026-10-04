@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Briefcase, Building2, Bookmark, Laptop, MapPin, Pencil, Plus, Search, Store } from "lucide-react";
+import { Briefcase, Building2, Bookmark, ChevronRight, Home, Laptop, MapPin, MoreHorizontal, Pencil, Plus, Search, SlidersHorizontal, Store, TrendingUp } from "lucide-react";
 import { applyListing, listListingQueue, listListings, saveListing, setListingStatus, type Listing, type ListingKind } from "@/lib/listings-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getProfile } from "@/lib/forum-server";
@@ -241,6 +241,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [salaryBand, setSalaryBand] = useState("Any");
   const [roleTab, setRoleTab] = useState<"foryou" | "recommended">("foryou");
   const [kept, setKept] = useState<string[]>([]);
+  const skipSave = useRef(true);
 
   function load() {
     void listListings({ data: { kind } })
@@ -250,7 +251,6 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   useEffect(() => {
     load();
     setShown(12);
-    setFilter("All");
     setOpen(null);
     setFormOn(false);
     setImage("");
@@ -266,6 +266,42 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
       .then((p) => setMeKind(p.kind))
       .catch(() => undefined);
   }, [session.user?.id]);
+
+  useEffect(() => {
+    if (kind !== "job") return;
+    skipSave.current = true;
+    try {
+      const raw = localStorage.getItem("kilode-job-seek");
+      if (raw) {
+        const p = JSON.parse(raw) as { type?: string; pill?: string; city?: string; band?: string };
+        if (p.type) setJobTypeFilter(p.type);
+        if (p.pill) setJobPill(p.pill);
+        if (p.city) setFilter(p.city);
+        if (p.band) setSalaryBand(p.band);
+      }
+      const saved = JSON.parse(localStorage.getItem("kilode-job-kept") || "[]") as unknown;
+      if (Array.isArray(saved)) setKept(saved.filter((x) => typeof x === "string"));
+    } catch { /* ignore */ }
+  }, [kind]);
+
+  useEffect(() => {
+    if (kind !== "job") return;
+    if (skipSave.current) {
+      skipSave.current = false;
+      return;
+    }
+    try {
+      localStorage.setItem("kilode-job-seek", JSON.stringify({ type: jobTypeFilter, pill: jobPill, city: filter, band: salaryBand }));
+    } catch { /* ignore */ }
+  }, [kind, jobTypeFilter, jobPill, filter, salaryBand]);
+
+  function keepJob(id: string) {
+    setKept((list) => {
+      const next = list.includes(id) ? list.filter((x) => x !== id) : [id, ...list];
+      try { localStorage.setItem("kilode-job-kept", JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }
 
   const cities = useMemo(() => {
     const set = new Set<string>();
@@ -293,7 +329,9 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
     return rows.filter((r) => {
       const meta = readMeta(r.meta);
       if (filter !== "All" && r.city !== filter) return false;
-      if (jobTypeFilter !== "All" && (meta.jobType || "") !== jobTypeFilter) return false;
+      if (jobTypeFilter === "Remote") {
+        if (!/remote/i.test(`${meta.jobType || ""} ${r.city} ${r.title} ${r.body}`)) return false;
+      } else if (jobTypeFilter !== "All" && (meta.jobType || "") !== jobTypeFilter) return false;
       if (!salaryMatch(meta.salary, salaryBand)) return false;
       if (!jobPillMatch(r, jobPill)) return false;
       if (!query) return true;
@@ -306,7 +344,8 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-3 pb-20">
+    <div className={`mx-auto max-w-3xl pb-20 ${kind === "job" ? "px-3 pt-2" : "p-3"}`}>
+      {kind === "job" ? null : (
       <div className="mb-3 flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-panel-2 text-lime-2">
           <Icon className="size-5" />
@@ -317,6 +356,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
           <p className="mt-1 text-base leading-snug text-muted">{kind === "market" ? "Buy and sell with people around you." : copy.who}</p>
         </div>
       </div>
+      )}
 
       {kind === "market" ? (
         <>
@@ -573,7 +613,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                       });
                     }}
                   >
-                    Apply for job
+                    Apply
                   </button>
                   </div>
                 </div>
@@ -612,6 +652,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
       ) : kind === "job" ? (
         <JobBoard
           rows={jobRows}
+          pool={rows}
           cities={cities}
           filter={filter}
           setFilter={setFilter}
@@ -626,7 +667,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
           roleTab={roleTab}
           setRoleTab={setRoleTab}
           kept={kept}
-          onKeep={(id) => setKept((list) => (list.includes(id) ? list.filter((x) => x !== id) : [id, ...list]))}
+          onKeep={keepJob}
           onOpen={setOpen}
           onPost={() => {
             if (session.isPending) return;
@@ -687,8 +728,50 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   );
 }
 
+function payLabel(raw?: string) {
+  const t = String(raw || "").trim();
+  if (!t || /^salary|^ask/i.test(t)) return t || "Salary on request";
+  if (t.startsWith("₦")) return t;
+  if (/^N\s?\d/.test(t)) return `₦${t.replace(/^N\s?/, "")}`;
+  if (/^\d/.test(t)) return /[–—-]/.test(t) ? `₦${t}` : naira(t);
+  return t;
+}
+
+function roleTags(r: Card) {
+  const meta = readMeta(r.meta);
+  const tags = [meta.category, meta.jobType].filter((x): x is string => !!x && x !== "Remote");
+  return [...new Set(tags)].slice(0, 3);
+}
+
+function trendBits(rows: Card[]) {
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    if (r.city) counts.set(r.city, (counts.get(r.city) || 0) + 2);
+    const meta = readMeta(r.meta);
+    if (meta.category) counts.set(meta.category, (counts.get(meta.category) || 0) + 1);
+    const head = r.title.split(/[—–-]/)[0]?.trim() || "";
+    if (head.length > 2 && head.length < 26) counts.set(head, (counts.get(head) || 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([name]) => name);
+}
+
+function stamp(ts: number) {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
+
+const JOB_LANES = [
+  { id: "Tech", icon: Laptop },
+  { id: "Creative", icon: Pencil },
+  { id: "Sales", icon: TrendingUp },
+  { id: "Remote", icon: Home },
+  { id: "All", icon: Briefcase },
+] as const;
+
 function JobBoard({
   rows,
+  pool,
   cities,
   filter,
   setFilter,
@@ -708,6 +791,7 @@ function JobBoard({
   onPost,
 }: {
   rows: Card[];
+  pool: Card[];
   cities: string[];
   filter: string;
   setFilter: (v: string) => void;
@@ -726,59 +810,112 @@ function JobBoard({
   onOpen: (r: Card) => void;
   onPost: () => void;
 }) {
-  const featured = rows.slice(0, 3);
-  const openRoles = roleTab === "recommended" ? [...rows].reverse() : rows;
-  const more = rows.slice(0, 8);
+  const [filtersOn, setFiltersOn] = useState(false);
+  const [menu, setMenu] = useState("");
+  const [hidden, setHidden] = useState<string[]>([]);
+  const live = rows.filter((r) => !hidden.includes(r.id));
+  const featured = live.slice(0, 2);
+  const savedFirst = [...live].sort((a, b) => Number(kept.includes(b.id)) - Number(kept.includes(a.id)));
+  const openRoles = roleTab === "recommended" ? [...live].reverse() : savedFirst;
+  const trends = trendBits(pool);
+  const laneCount = (id: string) => (id === "All" ? pool.length : pool.filter((r) => jobPillMatch(r, id)).length);
+
+  function pickType(next: string) {
+    setJobTypeFilter(next);
+    setRoleTab("foryou");
+  }
+
+  function seeAll() {
+    setJobPill("All");
+    setJobTypeFilter("All");
+    setSalaryBand("Any");
+    document.getElementById("kilode-roles")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
-    <>
-      <label className="mb-3 flex items-center gap-2 rounded-2xl border border-line bg-panel px-3 py-2.5">
-        <Search className="size-4 shrink-0 text-muted" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search jobs, companies, skills" className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted" />
-      </label>
-      <div className="mb-3 flex items-center gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <label className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line bg-panel px-3 py-1.5 text-[12px] font-semibold">
-          <MapPin className="size-3.5" />
-          <select value={filter} onChange={(e) => setFilter(e.target.value)} className="bg-transparent text-[12px] font-semibold outline-none" aria-label="Location">
-            {cities.map((c) => <option key={c} value={c}>{c === "All" ? "Location" : c}</option>)}
-          </select>
+    <div className="job-board">
+      <button type="button" className="job-hero" onClick={() => document.getElementById("kilode-roles")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+        <span className="job-hero-copy">
+          <span className="job-hero-kicker"><Briefcase className="size-3.5" /> Careers</span>
+          <strong>Build your next <em>opportunity</em></strong>
+          <span>Real jobs. Real companies. Real people.</span>
+        </span>
+        <span className="job-hero-go" aria-hidden><ChevronRight className="size-5" /></span>
+      </button>
+
+      <div className="job-trend">
+        <span className="job-trend-pill"><TrendingUp className="size-3.5" /> Trending</span>
+        <div>
+          {trends.length === 0 ? <em>Roles show here once they are approved.</em> : trends.map((name) => (
+            <button key={name} type="button" onClick={() => setQ(name)}>{name}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="job-search">
+        <label>
+          <Search className="size-4" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search jobs, companies, skills..." />
         </label>
-        <label className="inline-flex shrink-0 items-center rounded-full border border-line bg-panel px-3 py-1.5 text-[12px] font-semibold">
-          <select value={jobTypeFilter} onChange={(e) => setJobTypeFilter(e.target.value)} className="bg-transparent outline-none" aria-label="Job type">
-            <option>All</option>
-            {JOB_TYPES.map((t) => <option key={t}>{t}</option>)}
-          </select>
-        </label>
-        <label className="inline-flex shrink-0 items-center rounded-full border border-line bg-panel px-3 py-1.5 text-[12px] font-semibold">
-          <select value={salaryBand} onChange={(e) => setSalaryBand(e.target.value)} className="bg-transparent outline-none" aria-label="Salary range">
-            {SALARY_BANDS.map((t) => <option key={t}>{t}</option>)}
-          </select>
-        </label>
-        <button type="button" onClick={onPost} className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-[#e6c56a] px-3 py-1.5 text-[12px] font-extrabold text-black">
-          <Plus className="size-3.5" /> Post a job
+        <button type="button" className={filtersOn ? "on" : ""} aria-label="Filters" onClick={() => setFiltersOn((v) => !v)}>
+          <SlidersHorizontal className="size-4" />
         </button>
       </div>
 
-      <section className="mb-4">
-        <div className="mb-2 text-[15px] font-extrabold">Featured jobs</div>
+      {filtersOn ? (
+        <div className="job-sheet">
+          <div className="job-sheet-label">Salary</div>
+          <div className="job-sheet-row">
+            {SALARY_BANDS.map((band) => (
+              <button key={band} type="button" className={salaryBand === band ? "on" : ""} onClick={() => setSalaryBand(band)}>{band}</button>
+            ))}
+          </div>
+          <div className="job-sheet-label">Also</div>
+          <div className="job-sheet-row">
+            {["Contract", "Freelance"].map((t) => (
+              <button key={t} type="button" className={jobTypeFilter === t ? "on" : ""} onClick={() => pickType(jobTypeFilter === t ? "All" : t)}>{t}</button>
+            ))}
+            <button type="button" onClick={() => { setSalaryBand("Any"); setJobTypeFilter("All"); setJobPill("All"); setFilter("All"); setQ(""); }}>Clear</button>
+          </div>
+          <button type="button" className="job-post" onClick={onPost}><Plus className="size-3.5" /> Post a role</button>
+        </div>
+      ) : null}
+
+      <div className="job-types">
+        <label>
+          <MapPin className="size-3.5" />
+          <select value={cities.includes(filter) ? filter : "All"} onChange={(e) => setFilter(e.target.value)} aria-label="Location">
+            {cities.map((c) => <option key={c} value={c}>{c === "All" ? "Location" : c}</option>)}
+          </select>
+        </label>
+        {["All", "Full-time", "Part-time", "Remote"].map((t) => (
+          <button key={t} type="button" className={jobTypeFilter === t ? "on" : ""} onClick={() => pickType(t)}>{t}</button>
+        ))}
+      </div>
+
+      <section className="job-block">
+        <div className="job-head">
+          <h3>Featured jobs</h3>
+          <button type="button" onClick={seeAll}>See all <ChevronRight className="size-3.5" /></button>
+        </div>
         {featured.length === 0 ? (
-          <p className="rounded-2xl border border-line bg-panel px-3 py-6 text-center text-[12px] text-muted">No approved jobs in this filter yet.</p>
+          <p className="job-empty">No roles in this cut yet. Change location or type, or post one.</p>
         ) : (
-          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="job-featured">
             {featured.map((r) => {
               const meta = readMeta(r.meta);
               return (
-                <button key={r.id} type="button" onClick={() => onOpen(r)} className="w-[210px] shrink-0 rounded-2xl border border-line bg-panel p-3 text-left">
-                  <span className="flex items-center gap-2">
+                <button key={r.id} type="button" className="job-card" onClick={() => onOpen(r)}>
+                  <span className="job-card-top">
                     <CompanyMark name={r.company || r.title} />
-                    <span className="min-w-0 flex-1 truncate text-[12px] font-semibold">{r.company || "Company"}</span>
-                    <Bookmark className={`size-3.5 ${kept.includes(r.id) ? "fill-current" : ""}`} onClick={(e) => { e.stopPropagation(); onKeep(r.id); }} />
+                    <span>{r.company || "Company"}</span>
+                    <Bookmark className={kept.includes(r.id) ? "on" : ""} onClick={(e) => { e.stopPropagation(); onKeep(r.id); }} />
                   </span>
-                  <span className="mt-2 block text-[15px] font-extrabold leading-tight">{r.title}</span>
-                  <span className="mt-1 flex items-center gap-1 text-[11px] text-muted"><MapPin className="size-3" /> {r.city || "Nigeria"}</span>
-                  <span className="mt-0.5 block text-[11px] text-muted">{[meta.jobType, /remote/i.test(`${meta.jobType} ${r.city} ${r.title}`) ? "Remote" : ""].filter(Boolean).join(" · ") || "Open role"}</span>
-                  <span className="mt-2 flex items-center justify-between text-[12px]">
-                    <span className="font-bold text-lime-2">{meta.salary || "Salary on request"}</span>
-                    <span className="text-[10px] text-muted">{timeAgo(r.ts)}</span>
+                  <strong>{r.title}</strong>
+                  <em><MapPin className="size-3" /> {r.city || "Nigeria"} · {meta.jobType || "Open role"}</em>
+                  <span className="job-card-foot">
+                    <b>{payLabel(meta.salary)}</b>
+                    <i>{stamp(r.ts)}</i>
                   </span>
                 </button>
               );
@@ -787,67 +924,71 @@ function JobBoard({
         )}
       </section>
 
-      <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {JOB_PILLS.map((pill) => (
-          <button key={pill} type="button" onClick={() => setJobPill(pill)} className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-bold ${jobPill === pill ? "bg-[#e6c56a] text-black" : "border border-line bg-panel"}`}>
-            {pill === "All" ? <Briefcase className="size-3.5" /> : pill === "Tech" ? <Laptop className="size-3.5" /> : pill === "Creative" ? <Pencil className="size-3.5" /> : null}
-            {pill}
-          </button>
-        ))}
+      <div className="job-lanes">
+        {JOB_LANES.map((lane) => {
+          const Icon = lane.icon;
+          const on = lane.id === "All" ? jobPill === "All" : jobPill === lane.id;
+          return (
+            <button key={lane.id} type="button" className={on ? "on" : ""} onClick={() => { setJobPill(lane.id); setRoleTab("foryou"); document.getElementById("kilode-roles")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
+              <Icon className="size-4" />
+              <strong>{lane.id === "All" ? "All jobs" : lane.id}</strong>
+              <em>{fmtCount(laneCount(lane.id))}</em>
+            </button>
+          );
+        })}
       </div>
 
-      <section className="mb-4">
-        <div className="mb-2 flex items-end justify-between">
-          <h3 className="text-[15px] font-extrabold">Open roles</h3>
-          <div className="flex gap-3 text-[12px] font-bold">
-            <button type="button" className={roleTab === "foryou" ? "border-b-2 border-[#e6c56a]" : "text-muted"} onClick={() => setRoleTab("foryou")}>For you</button>
-            <button type="button" className={roleTab === "recommended" ? "border-b-2 border-[#e6c56a]" : "text-muted"} onClick={() => setRoleTab("recommended")}>Recommended</button>
+      <section className="job-block" id="kilode-roles">
+        <div className="job-head">
+          <h3>Open roles</h3>
+          <div className="job-tabs">
+            <button type="button" className={roleTab === "foryou" ? "on" : ""} onClick={() => setRoleTab("foryou")}>For you</button>
+            <button type="button" className={roleTab === "recommended" ? "on" : ""} onClick={() => setRoleTab("recommended")}>Recommended</button>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {openRoles.slice(0, 8).map((r) => {
+        {openRoles.length === 0 ? <p className="job-empty">Nothing in this lane. Saved roles and the filters you pick come back next time.</p> : null}
+        <div className="job-roles">
+          {openRoles.slice(0, 12).map((r) => {
             const meta = readMeta(r.meta);
+            const tags = roleTags(r);
             return (
-              <button key={r.id} type="button" onClick={() => onOpen(r)} className="rounded-2xl border border-line bg-panel p-2.5 text-left">
-                <span className="flex items-center gap-2">
+              <article key={r.id} className="job-role">
+                <button type="button" className="job-role-main" onClick={() => onOpen(r)}>
                   <CompanyMark name={r.company || r.title} />
-                  <span className="min-w-0 flex-1 truncate text-[11px] font-semibold">{r.company || "Company"}</span>
-                  <Bookmark className={`size-3.5 ${kept.includes(r.id) ? "fill-current" : ""}`} onClick={(e) => { e.stopPropagation(); onKeep(r.id); }} />
+                  <span>
+                    <i>{r.company || "Company"}</i>
+                    <strong>{r.title}</strong>
+                    <em><MapPin className="size-3" /> {r.city || "Nigeria"} · {meta.jobType || "Open role"}</em>
+                    {tags.length > 0 ? <span className="job-tags">{tags.map((t) => <b key={t}>{t}</b>)}</span> : null}
+                  </span>
+                </button>
+                <span className="job-role-side">
+                  <span>
+                    <Bookmark className={kept.includes(r.id) ? "on" : ""} onClick={() => onKeep(r.id)} />
+                    <button type="button" aria-label="More" onClick={() => setMenu((id) => (id === r.id ? "" : r.id))}><MoreHorizontal className="size-4" /></button>
+                  </span>
+                  <b>{payLabel(meta.salary)}</b>
+                  <i>{timeAgo(r.ts)}</i>
+                  {menu === r.id ? (
+                    <span className="job-menu">
+                      <button type="button" onClick={() => { setMenu(""); onOpen(r); }}>Open</button>
+                      <button type="button" onClick={() => { onKeep(r.id); setMenu(""); }}>{kept.includes(r.id) ? "Unsave" : "Save"}</button>
+                      <button type="button" onClick={() => {
+                        setMenu("");
+                        const url = r.link || window.location.href;
+                        if (navigator.share) void navigator.share({ title: r.title, url });
+                        else void navigator.clipboard?.writeText(url);
+                      }}>Share</button>
+                      <button type="button" onClick={() => { setHidden((list) => [...list, r.id]); setMenu(""); }}>Hide</button>
+                    </span>
+                  ) : null}
                 </span>
-                <span className="mt-2 block text-[13px] font-extrabold leading-tight">{r.title}</span>
-                <span className="mt-1 flex items-center gap-1 text-[10px] text-muted"><MapPin className="size-3" /> {r.city || "Nigeria"}</span>
-                <span className="block text-[10px] text-muted">{meta.jobType || "Role"}{meta.jobType?.toLowerCase().includes("remote") ? "" : ""}</span>
-                <span className="mt-1 flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-lime-2">{meta.salary || "Ask"}</span>
-                  <span className="text-[10px] text-muted">{timeAgo(r.ts)}</span>
-                </span>
-              </button>
+              </article>
             );
           })}
         </div>
       </section>
-
-      <AdReserve id="list_job_mid" className="mb-4" />
-
-      <section className="mb-2">
-        <div className="mb-2 text-[15px] font-extrabold">More opportunities</div>
-        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {more.map((r) => {
-            const meta = readMeta(r.meta);
-            return (
-              <button key={`more-${r.id}`} type="button" onClick={() => onOpen(r)} className="w-40 shrink-0 rounded-2xl border border-line bg-panel p-2.5 text-left">
-                <span className="flex items-center gap-2">
-                  <CompanyMark name={r.company || r.title} />
-                  <span className="truncate text-[11px] font-semibold">{r.company || "Company"}</span>
-                </span>
-                <span className="mt-2 block truncate text-[12px] font-extrabold">{r.title}</span>
-                <span className="mt-1 block text-[10px] text-muted">{r.city || "Nigeria"} · {meta.jobType || "Open"}</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-    </>
+    </div>
   );
 }
 
