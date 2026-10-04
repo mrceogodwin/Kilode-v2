@@ -11,6 +11,8 @@ import {
   type ProductKind,
   type ShopProduct,
 } from "@/lib/shop-server";
+import { uploadDropFile } from "@/lib/supabase";
+import { kilodeSound } from "@/lib/sfx";
 
 const KIND_META: Record<ProductKind, { label: string; Icon: typeof Smartphone }> = {
   app: { label: "Apps", Icon: Smartphone },
@@ -102,12 +104,25 @@ export function DownloadsPane() {
                 <p className="text-[13px] text-muted">Saved. Use the link below — we also keep this email for the drop.</p>
                 {out.details ? <p className="whitespace-pre-wrap text-[13px] leading-relaxed">{out.details}</p> : null}
                 {out.downloadUrl ? (
-                  <a href={out.downloadUrl} target="_blank" rel="noreferrer" className="btn-join mt-2 inline-flex rounded-lg px-4 py-2 text-[12px] font-bold">
-                    Open download
-                  </a>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <a href={out.downloadUrl} target="_blank" rel="noreferrer" className="btn-join inline-flex rounded-lg px-4 py-2 text-[12px] font-bold">
+                      Open download
+                    </a>
+                    <button
+                      type="button"
+                      className="rounded-lg border border-line px-3 py-2 text-[12px] font-semibold"
+                      onClick={() => {
+                        void navigator.clipboard?.writeText(out.downloadUrl);
+                        setMsg("Link copied");
+                      }}
+                    >
+                      Copy link
+                    </button>
+                  </div>
                 ) : (
-                  <p className="text-[12px] text-muted">Download link coming soon from Kilode.</p>
+                  <p className="text-[12px] text-muted">Kilode has {email}. The file is not attached yet — ask again once it is live.</p>
                 )}
+                {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
                 <button type="button" className="mt-3 block text-[12px] text-muted" onClick={() => setBuy(null)}>
                   Close
                 </button>
@@ -119,7 +134,10 @@ export function DownloadsPane() {
                   e.preventDefault();
                   void claimProduct({ data: { id: buy.id, email } }).then((r) => {
                     if (!r.ok) setMsg(r.reason);
-                    else setOut({ title: r.title, details: r.details, downloadUrl: r.downloadUrl });
+                    else {
+                      setOut({ title: r.title, details: r.details, downloadUrl: r.downloadUrl });
+                      if (r.downloadUrl) kilodeSound("sent");
+                    }
                   });
                 }}
               >
@@ -153,6 +171,7 @@ export function DownloadsPane() {
 export function ShopAdminPanel() {
   const [items, setItems] = useState<ShopProduct[]>([]);
   const [leads, setLeads] = useState(0);
+  const [recent, setRecent] = useState<{ email: string; title: string; ts: number }[]>([]);
   const [msg, setMsg] = useState("");
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState<ProductKind>("app");
@@ -161,37 +180,60 @@ export function ShopAdminPanel() {
   const [cover, setCover] = useState("");
   const [price, setPrice] = useState("Free");
   const [downloadUrl, setDownloadUrl] = useState("");
+  const [editId, setEditId] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [fileName, setFileName] = useState("");
   const load = () => {
     void listStaffShop()
       .then((r) => {
         setItems(r.items);
         setLeads(r.leads);
+        setRecent(r.recent || []);
       })
       .catch(() => undefined);
   };
   useEffect(load, []);
+  function reset() {
+    setEditId("");
+    setTitle("");
+    setBlurb("");
+    setDetails("");
+    setCover("");
+    setPrice("Free");
+    setDownloadUrl("");
+    setFileName("");
+    setKind("app");
+  }
+  function fill(p: ShopProduct) {
+    setEditId(p.id);
+    setTitle(p.title);
+    setKind(p.kind);
+    setBlurb(p.blurb);
+    setDetails(p.details);
+    setCover(p.cover);
+    setPrice(p.price);
+    setDownloadUrl(p.downloadUrl);
+    setFileName("");
+    setMsg("");
+  }
   return (
     <div className="md:col-span-2 raised space-y-3 rounded-xl p-3">
       <div>
         <div className="text-[11px] font-medium text-muted">Downloads desk</div>
         <h3 className="text-base font-bold">Kilode products</h3>
         <p className="mt-1 text-xs text-muted">
-          Apps, zips, videos, music, links. BUY NOW collects email, then shows the file. {leads} emails saved.
+          Apps, zips, videos, music, links. Attach the file or paste https. BUY NOW collects the email, then opens the file. {leads} emails saved.
         </p>
       </div>
       <form
         className="grid gap-2 sm:grid-cols-2"
         onSubmit={(e) => {
           e.preventDefault();
-          void saveProduct({ data: { title, kind, blurb, details, cover, price, downloadUrl } }).then((r) => {
+          void saveProduct({ data: { id: editId || undefined, title, kind, blurb, details, cover, price, downloadUrl } }).then((r) => {
             if (!r.ok) setMsg(r.reason);
             else {
-              setMsg("Published");
-              setTitle("");
-              setBlurb("");
-              setDetails("");
-              setCover("");
-              setDownloadUrl("");
+              setMsg(editId ? "Updated" : "Published");
+              reset();
               load();
             }
           });
@@ -208,23 +250,52 @@ export function ShopAdminPanel() {
         <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price · Free / ₦5,000" className="rounded-lg border border-line bg-bg px-2 py-2 text-base" />
         <input value={cover} onChange={(e) => setCover(e.target.value)} placeholder="Cover image URL" className="rounded-lg border border-line bg-bg px-2 py-2 text-base sm:col-span-2" />
         <input value={downloadUrl} onChange={(e) => setDownloadUrl(e.target.value)} placeholder="Download / file URL" className="rounded-lg border border-line bg-bg px-2 py-2 text-base sm:col-span-2" />
+        <label className="flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-line px-2 py-2 text-center text-[12px] font-semibold sm:col-span-2">
+          {uploading ? "Uploading…" : fileName ? `Attached · ${fileName}` : "Attach the file · APK, ZIP, PDF, MP3, MP4 · 18MB"}
+          <input
+            type="file"
+            accept=".apk,.zip,.pdf,.mp3,.m4a,.wav,.mp4,.webm,.jpg,.jpeg,.png,.webp"
+            className="sr-only"
+            disabled={uploading}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              setUploading(true);
+              setMsg("");
+              void uploadDropFile(file)
+                .then((url) => {
+                  setDownloadUrl(url);
+                  setFileName(file.name);
+                  setMsg("File attached. Save the product.");
+                })
+                .catch((err) => setMsg(err instanceof Error ? err.message : "Upload failed"))
+                .finally(() => setUploading(false));
+            }}
+          />
+        </label>
         <input value={blurb} onChange={(e) => setBlurb(e.target.value)} placeholder="Short blurb" className="rounded-lg border border-line bg-bg px-2 py-2 text-base sm:col-span-2" />
         <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Details shown after they leave an email" className="min-h-20 rounded-lg border border-line bg-bg px-2 py-2 text-base sm:col-span-2" />
-        <button type="submit" className="btn-join rounded-lg py-2 text-[12px] font-bold sm:col-span-2">
-          + Add product
+        <button type="submit" className="btn-join rounded-lg py-2 text-[12px] font-bold sm:col-span-2" disabled={uploading}>
+          {editId ? "Update product" : "+ Add product"}
         </button>
+        {editId ? (
+          <button type="button" className="text-[12px] text-muted sm:col-span-2" onClick={reset}>
+            Cancel edit
+          </button>
+        ) : null}
       </form>
       {msg ? <p className="text-[11px] text-lime-2">{msg}</p> : null}
       <div className="max-h-[360px] space-y-2 overflow-y-auto">
         {items.map((p) => (
           <div key={p.id} className="flex items-center gap-2 rounded-xl border border-line bg-panel p-2">
             {p.cover ? <img src={p.cover} alt="" className="size-12 rounded-md object-cover" /> : <div className="grid size-12 place-items-center rounded-md bg-panel-3"><Download className="size-4 text-lime-2" /></div>}
-            <div className="min-w-0 flex-1">
+            <button type="button" className="min-w-0 flex-1 text-left" onClick={() => fill(p)}>
               <div className="truncate text-[13px] font-semibold">{p.title}</div>
               <div className="text-[10px] text-muted">
-                {p.status} · {p.kind} · {p.price}
+                {p.status} · {p.kind} · {p.price} · {p.downloadUrl ? "file ready" : "no file yet"}
               </div>
-            </div>
+            </button>
             <button
               type="button"
               className="text-[11px] text-muted"
@@ -247,6 +318,19 @@ export function ShopAdminPanel() {
           </div>
         ))}
       </div>
+      {recent.length > 0 ? (
+        <div>
+          <div className="text-[11px] font-medium text-muted">Emails waiting on a file</div>
+          <ul className="mt-1 max-h-40 space-y-1 overflow-y-auto text-[12px]">
+            {recent.map((r, i) => (
+              <li key={`${r.email}-${r.ts}-${i}`} className="flex items-center justify-between gap-2">
+                <span className="min-w-0 truncate">{r.email}</span>
+                <span className="shrink-0 text-[10px] text-muted">{r.title}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }

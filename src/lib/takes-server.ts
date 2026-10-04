@@ -308,7 +308,7 @@ async function indexTake(sql: Awaited<ReturnType<typeof getSql>>, id: string, bo
       if (mentioned === handle.toLowerCase()) continue;
       const who = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = ${mentioned} limit 1`;
       const to = who[0]?.user_id || "";
-      if (to && to !== userId) await pushNote(to, `@${handle} mentioned you.`, `/u/${encodeURIComponent(handle)}`);
+      if (to && to !== userId) await pushNote(to, `@${handle} mentioned you.`, `/?tab=socials&take=${encodeURIComponent(id)}`);
     }
   } catch {
     /* a missed tag must not fail the post */
@@ -776,7 +776,7 @@ export const replyTake = createServerFn({ method: "POST" })
       if (mentioned === handle.toLowerCase()) continue;
       const who = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = ${mentioned} limit 1`;
       const to = who[0]?.user_id || "";
-      if (to && to !== context.userId && to !== ownerId) await pushNote(to, `@${handle} mentioned you.`, `/u/${encodeURIComponent(handle)}`);
+      if (to && to !== context.userId && to !== ownerId) await pushNote(to, `@${handle} mentioned you in a reply.`, `/?tab=socials&take=${encodeURIComponent(data.id)}`);
     }
     return { ok: true as const, reply: { id, handle, body: clean, ts, image, likes: 0, liked: false } satisfies TakeReply };
   });

@@ -106,7 +106,12 @@ export const listStaffShop = createServerFn({ method: "GET" })
       ts: number | string;
     }>`select id, title, kind, blurb, details, cover, price, download_url, status, ts from nf_products order by ts desc limit 400`;
     const leads = await sql<{ n: string | number }>`select count(*) as n from nf_product_leads`;
-    return { items: rows.map(row), leads: Number(leads[0]?.n ?? 0) };
+    const recent = await sql<{ email: string; title: string | null; ts: number | string }>`select l.email, l.ts, coalesce(p.title, '') as title from nf_product_leads l left join nf_products p on p.id = l.product_id order by l.ts desc limit 40`;
+    return {
+      items: rows.map(row),
+      leads: Number(leads[0]?.n ?? 0),
+      recent: recent.map((r) => ({ email: r.email, title: r.title || "Product", ts: Number(r.ts) })),
+    };
   });
 
 export const saveProduct = createServerFn({ method: "POST" })
@@ -124,7 +129,9 @@ export const saveProduct = createServerFn({ method: "POST" })
     const details = (data.details || "").trim().slice(0, 4000);
     const cover = safeHttpUrl(data.cover || "") || "";
     const price = (data.price || "Free").trim().slice(0, 40);
-    const downloadUrl = (data.downloadUrl || "").trim().slice(0, 600);
+    const rawUrl = (data.downloadUrl || "").trim().slice(0, 600);
+    const downloadUrl = rawUrl ? safeHttpUrl(rawUrl) || "" : "";
+    if (rawUrl && !downloadUrl) return { ok: false as const, reason: "Download link must be https" };
     const ts = Date.now();
     if (data.id) {
       await sql`update nf_products set title = ${title}, kind = ${kind}, blurb = ${blurb}, details = ${details}, cover = ${cover}, price = ${price}, download_url = ${downloadUrl} where id = ${id}`;
@@ -178,6 +185,6 @@ export const claimProduct = createServerFn({ method: "POST" })
       ok: true as const,
       title: p.title,
       details: p.details || "",
-      downloadUrl: p.download_url || "",
+      downloadUrl: safeHttpUrl(p.download_url || "") || "",
     };
   });

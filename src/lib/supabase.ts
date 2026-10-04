@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { prepareTakeUpload } from "@/lib/media-server";
+import { prepareDropUpload, prepareTakeUpload } from "@/lib/media-server";
 
 function readEnv(name: string): string {
   const vite = import.meta.env as Record<string, string | undefined>;
@@ -174,6 +174,25 @@ export async function uploadTakeMedia(file: File, limits?: { maxSeconds?: number
   const data = body.type === "image/jpeg" ? await blobToData(body) : await compressPhoto(file);
   if (data.length > 140_000) throw new Error(ticket.ok ? "That photo is still too large after compression." : ticket.reason);
   return { kind: "image", url: data };
+}
+
+const DROP_NAME = /\.(apk|zip|pdf|mp3|m4a|wav|mp4|webm|jpe?g|png|webp)$/i;
+
+/** Product file for Downloads. Neon stores the https link only. */
+export async function uploadDropFile(file: File): Promise<string> {
+  if (file.size > 18 * 1024 * 1024) throw new Error("File must be 18MB or smaller.");
+  const ext = (file.name.split(".").pop() || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
+  if (!DROP_NAME.test(`.${ext}`)) throw new Error("Use APK, ZIP, PDF, MP3, or MP4. Or paste an https link.");
+  const type = latinHeader(file.type || "application/octet-stream").slice(0, 80) || "application/octet-stream";
+  const ticket = await prepareDropUpload({ data: { ext, type } });
+  if (!ticket.ok) throw new Error(ticket.reason);
+  const body = new Blob([await file.arrayBuffer()], { type });
+  const sent = await putSignedUpload(ticket, body, type);
+  if (!sent.ok || !ticket.publicUrl) {
+    const detail = (await sent.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 160);
+    throw new Error(detail || "The file did not land. Paste an https link instead.");
+  }
+  return ticket.publicUrl;
 }
 
 function latinHeader(value: string) {
