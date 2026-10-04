@@ -1,5 +1,5 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { ChevronRight, Flame, Music2, Radio } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronRight, Music2, Zap } from "lucide-react";
 import { ROOMS, fmtCount, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 
@@ -32,22 +32,26 @@ export function TrendingPane({ store, onHome }: { store: Store; onHome: (id?: st
     () => posts.filter((p) => matches(pill, p)).sort((a, b) => heat(b) - heat(a) || b.ts - a.ts),
     [posts, pill],
   );
-  const tracks = store.tracks.filter((t) => t?.title).slice(0, 6);
+  const lead = ranked[0];
+  const rest = ranked.slice(1, 12);
+  const tracks = store.tracks.filter((t) => t?.title).slice(0, 4);
   const rooms = ROOMS.filter((r) => {
     if (pill === "Places") return r.region === "Places";
     if (pill === "All") return r.region === "Featured";
     return r.name.toLowerCase().includes(pill.toLowerCase());
-  }).slice(0, 8);
+  }).slice(0, 6);
 
   return (
-    <div className="trend-page mx-auto max-w-3xl px-3 pt-2 pb-24">
-      <button type="button" className="text-[12px] text-muted" onClick={() => onHome()}>
-        ← Back
-      </button>
-      <h1 className="mt-1 flex items-center gap-2 text-[28px] font-extrabold tracking-tight">
-        Trending <Flame className="size-5 text-[#c4a35a]" />
-      </h1>
-      <p className="text-[13px] text-muted">Highest views and the most opened stories, music, and rooms. Tap one to open it.</p>
+    <div className="buzz-page mx-auto max-w-3xl px-3 pt-3 pb-24">
+      <div className="buzz-mast">
+        <div className="buzz-bolt" aria-hidden>
+          <Zap className="size-5" />
+        </div>
+        <div>
+          <h1>BUZZ</h1>
+          <p>What Kilode is on right now. One lead story, then the line.</p>
+        </div>
+      </div>
 
       <div className="lane-rail mt-3" role="tablist">
         {PILLS.map((p) => (
@@ -57,58 +61,58 @@ export function TrendingPane({ store, onHome }: { store: Store; onHome: (id?: st
         ))}
       </div>
 
-      <Section title="Most seen" icon={<Flame className="size-3.5 text-[#c4a35a]" />}>
-        {ranked.length === 0 ? <p className="text-[12px] text-muted">Nothing in this lane yet.</p> : null}
-        {ranked.slice(0, 12).map((p, i) => (
-          <button key={p.id} type="button" className="trend-row" onClick={() => store.setOpenPost(p.id)}>
-            <span className="w-6 text-[11px] font-bold text-muted">{String(i + 1).padStart(2, "0")}</span>
-            {p.image ? <img src={p.image} alt="" className="size-12 rounded-xl object-cover" /> : <span className="grid size-12 place-items-center rounded-xl bg-white/5 text-[10px]">{(p.category || "K").slice(0, 2)}</span>}
-            <span className="min-w-0 flex-1 text-left">
-              <span className="block truncate text-[13px] font-bold">{p.title}</span>
-              <span className="text-[11px] text-muted">{p.category || "Kilode"} · {fmtCount(p.views ?? 0)} views</span>
-            </span>
-          </button>
-        ))}
-      </Section>
+      {lead ? (
+        <button type="button" className="buzz-hero" onClick={() => store.setOpenPost(lead.id)}>
+          {lead.image ? <img src={lead.image} alt="" /> : <span className="buzz-hero-fallback">{(lead.category || "K").slice(0, 1)}</span>}
+          <span className="buzz-hero-copy">
+            <span className="buzz-kicker">01 · {lead.category || "Kilode"} · {fmtCount(lead.views ?? 0)} views</span>
+            <strong>{lead.title}</strong>
+            <span className="buzz-open">Open</span>
+          </span>
+        </button>
+      ) : (
+        <p className="mt-4 text-[13px] text-muted">Nothing in this lane yet.</p>
+      )}
 
-      {pill === "All" || pill === "Music" ? (
-        <Section title="Music" icon={<Music2 className="size-3.5" />}>
-          {tracks.length === 0 ? <p className="text-[12px] text-muted">No tracks yet.</p> : null}
-          {tracks.map((t, i) => (
-            <a key={t.id || t.title} href={t.url || "#"} target="_blank" rel="noreferrer" className="trend-row">
-              <span className="w-6 text-[11px] font-bold text-muted">{String(i + 1).padStart(2, "0")}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-bold">{t.title}</span>
-                <span className="text-[11px] text-muted">{t.artist}</span>
-              </span>
-              <ChevronRight className="size-4 text-muted" />
-            </a>
+      {rest.length > 0 ? (
+        <ol className="buzz-list">
+          {rest.map((p, i) => (
+            <li key={p.id}>
+              <button type="button" onClick={() => store.setOpenPost(p.id)}>
+                <span>{String(i + 2).padStart(2, "0")}</span>
+                <span>
+                  <strong>{p.title}</strong>
+                  <em>{p.category || "Kilode"} · {fmtCount(p.views ?? 0)}</em>
+                </span>
+                <ChevronRight className="size-4" />
+              </button>
+            </li>
           ))}
-        </Section>
+        </ol>
       ) : null}
 
-      <Section title="Rooms" icon={<Radio className="size-3.5" />}>
-        <div className="grid grid-cols-2 gap-2">
+      {pill === "All" || pill === "Music" ? (
+        <div className="buzz-side">
+          <div className="buzz-side-kicker"><Music2 className="size-3.5" /> Tracks</div>
+          {tracks.length === 0 ? <p className="text-[12px] text-muted">No tracks yet.</p> : null}
+          {tracks.map((t) => (
+            <a key={t.id || t.title} href={t.url || "#"} target="_blank" rel="noreferrer">
+              {t.title}
+              <em>{t.artist}</em>
+            </a>
+          ))}
+        </div>
+      ) : null}
+
+      {rooms.length > 0 ? (
+        <div className="buzz-rooms">
           {rooms.map((r) => (
-            <button key={r.id} type="button" className="trend-card text-left" onClick={() => onHome(r.id)}>
-              <div className="truncate font-bold">{r.name}</div>
-              <div className="text-[11px] text-muted">{r.region}</div>
+            <button key={r.id} type="button" onClick={() => onHome(r.id)}>
+              {r.name}
             </button>
           ))}
         </div>
-      </Section>
+      ) : null}
     </div>
-  );
-}
-
-function Section({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
-  return (
-    <section className="mt-4">
-      <div className="mb-2 flex items-center gap-1.5 text-[11px] font-extrabold tracking-[0.12em] uppercase">
-        {icon}
-        {title}
-      </div>
-      {children}
-    </section>
   );
 }

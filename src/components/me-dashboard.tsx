@@ -861,7 +861,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             />
           </label>
           <div className="min-w-0 flex-1 pb-1">
-            <div className="flex flex-wrap items-center gap-1 text-[18px] font-extrabold leading-tight tracking-tight">
+            <div className="flex min-w-0 flex-wrap items-center gap-1 break-all text-[18px] font-extrabold leading-tight tracking-tight">
               @{store.handle}
               {store.verified ? <VerifiedMark /> : null}
             </div>

@@ -245,20 +245,20 @@ export function SiteFooter() {
       <div className="mt-3 border-t border-white/10 pt-2.5">
         <div className="mb-1.5 text-center text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">Share Kilode</div>
         <div className="grid grid-cols-5 gap-0.5">
-          <ShareChip label="X" count={n.x} className="bg-black text-white ring-1 ring-white/25" onClick={() => share("x")}>
+          <ShareChip label="X" count={n.x} onClick={() => share("x")}>
             <IconX />
           </ShareChip>
-          <ShareChip label="WA" count={n.wa} className="bg-[#25D366] text-white" onClick={() => share("wa")}>
+          <ShareChip label="WA" count={n.wa} onClick={() => share("wa")}>
             <IconWa />
           </ShareChip>
-          <ShareChip label="TG" count={n.tg} className="bg-[#229ED9] text-white" onClick={() => share("tg")}>
+          <ShareChip label="TG" count={n.tg} onClick={() => share("tg")}>
             <IconTg />
           </ShareChip>
-          <ShareChip label="FB" count={n.fb} className="bg-[#1877F2] text-white" onClick={() => share("fb")}>
+          <ShareChip label="FB" count={n.fb} onClick={() => share("fb")}>
             <IconFb />
           </ShareChip>
-          <ShareChip label="Share" count={n.copy} className="bg-lime-2 text-white" onClick={() => share("copy")}>
-            <Share2 className="size-3" />
+          <ShareChip label="Share" count={n.copy} onClick={() => share("copy")}>
+            <Share2 className="size-3.5" />
           </ShareChip>
         </div>
       </div>
@@ -266,7 +266,7 @@ export function SiteFooter() {
       <div className="mt-2.5 border-t border-white/10 pt-2.5">
         <div className="foot-digest rounded-xl px-2.5 pt-2 pb-2">
           <div className="mb-1.5 text-center text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">Email updates</div>
-          <DigestBox quiet defaultOpen />
+          <DigestBox quiet defaultOpen={false} />
         </div>
         <img src="/kilode-word.png" alt="Kilode" className="foot-mark mx-auto mt-3 h-7 w-auto" />
       </div>
@@ -306,13 +306,11 @@ export function SiteFooter() {
 function ShareChip({
   label,
   count,
-  className,
   onClick,
   children,
 }: {
   label: string;
   count: number;
-  className: string;
   onClick: () => void;
   children: ReactNode;
 }) {
@@ -321,9 +319,9 @@ function ShareChip({
       type="button"
       aria-label={`${label}${count ? `, ${fmtCount(count)} shares` : ""}`}
       onClick={onClick}
-      className="foot-share flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition hover:bg-white/5"
+      className="foot-share flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1"
     >
-      <span className={`foot-3d grid size-9 place-items-center rounded-[10px] ${className}`}>{children}</span>
+      <span className="foot-3d kilode-share grid size-9 place-items-center rounded-[10px]">{children}</span>
       <span className="text-[8px] font-semibold leading-none tracking-wide text-fg/90">{label}</span>
       <span className="text-[8px] tabular-nums text-muted">{fmtCount(count)}</span>
     </button>

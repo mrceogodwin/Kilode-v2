@@ -39,6 +39,7 @@ import {
   ChevronDown,
   Settings,
   Trophy,
+  Zap,
   LineChart,
   Coins,
   Banknote,
@@ -431,6 +432,17 @@ function QonvoAppInner() {
       if (node.closest(".kilode-chrome, .menu-drawer, .app-drawer, .friends-drawer, .rooms-drawer")) return;
       if (node.scrollHeight <= node.clientHeight + 24) return;
       const y = node.scrollTop;
+      const shell = document.querySelector(".kilode-shell");
+      const pinned = shell?.getAttribute("data-pin") === "space";
+      if (pinned) {
+        if (away) {
+          away = false;
+          root.classList.remove("chrome-away");
+        }
+        root.classList.remove("dock-away");
+        lastY = y;
+        return;
+      }
       const now = Date.now();
       const shellChrome = document.querySelector(".kilode-shell")?.getAttribute("data-chrome");
       const stage = shellChrome === "auto" || root.dataset.stage === "1";
@@ -486,8 +498,9 @@ function QonvoAppInner() {
 
   useEffect(() => {
     const tuck = (screen === "home" && (homeTab === "feeds" || homeTab === "socials") && !marketDesk) || screen === "search";
-    if (!tuck && document.documentElement.dataset.stage !== "1") {
+    if (screen === "dashboard" || !tuck) {
       document.documentElement.classList.remove("chrome-away");
+      document.documentElement.classList.remove("dock-away");
     }
   }, [screen, homeTab, marketDesk]);
 
@@ -679,7 +692,7 @@ function QonvoAppInner() {
   }
 
   return (
-    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg" data-paper={(screen === "home" && homeTab === "feeds" && !marketDesk) || screen === "dashboard" || screen === "search" ? "1" : "0"} data-chrome={(screen === "home" && (homeTab === "feeds" || homeTab === "socials") && !marketDesk) || screen === "search" ? "auto" : "lock"}>
+    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg" data-paper={(screen === "home" && homeTab === "feeds" && !marketDesk) || screen === "dashboard" || screen === "search" ? "1" : "0"} data-pin={screen === "dashboard" ? "space" : "free"} data-chrome={(screen === "home" && (homeTab === "feeds" || homeTab === "socials") && !marketDesk) || screen === "search" ? "auto" : "lock"}>
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule">
           <div className="flex min-h-12 flex-nowrap items-center gap-1.5 px-1.5">
@@ -688,7 +701,7 @@ function QonvoAppInner() {
             </button>
             <button
               type="button"
-              className="flex min-w-0 shrink items-center"
+              className="brand-hit flex min-w-0 shrink flex-col items-start justify-center"
               aria-label="Kilode home"
               onClick={() => goHome()}
             >
@@ -735,8 +748,8 @@ function QonvoAppInner() {
               />
               <button
                 type="button"
-                className="hdr-ico"
-                aria-label="Trending"
+                className="hdr-buzz"
+                aria-label="BUZZ"
                 onClick={() => {
                   setMenuOpen(false);
                   setMarketDesk(null);
@@ -744,7 +757,8 @@ function QonvoAppInner() {
                   setScreen("trending");
                 }}
               >
-                <FlameIcon />
+                <Zap className="size-3.5" />
+                <span>BUZZ</span>
               </button>
               <button
                 type="button"

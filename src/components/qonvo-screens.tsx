@@ -1215,7 +1215,7 @@ function Communities({ onHome }: { onHome: (roomId?: string) => void }) {
 
 function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => void }) {
   const [q, setQ] = useState("");
-  const [lane, setLane] = useState<"explore" | "all" | "discover" | "trending">("explore");
+  const [lane, setLane] = useState<"home" | "explore" | "all" | "discover" | "trending">("home");
   const [tiles, setTiles] = useState<ExploreTile[]>([]);
   const [jobs, setJobs] = useState<Listing[]>([]);
   const [people, setPeople] = useState<{ id: string; handle: string; role: string }[]>([]);
@@ -1306,7 +1306,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
     try { setRecent(JSON.parse(localStorage.getItem("kilode-recent-search") || "[]") as string[]); } catch { setRecent([]); }
   }, []);
   return (
-    <Screen kicker="KILODE" title="Activity" sub="Explore photos and videos first. Search the rest of Kilode." className="paper-page">
+    <Screen kicker="KILODE" title="Activity" sub="Pick a lane. The picture grid stays behind a button." className="paper-page">
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -1321,9 +1321,9 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
         </div>
       ) : null}
       <div className="flex gap-1.5 overflow-x-auto">
-        {(["explore", "all", "discover", "trending"] as const).map((id) => (
+        {(["home", "discover", "trending", "all", "explore"] as const).map((id) => (
           <button key={id} type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${lane === id ? "on" : ""}`} onClick={() => setLane(id)}>
-            {id === "explore" ? "Explore" : id === "all" ? "All" : id === "discover" ? "Discover" : "Trending"}
+            {id === "home" ? "Now" : id === "explore" ? "Photos" : id === "all" ? "Rooms" : id === "discover" ? "People" : "Buzz"}
           </button>
         ))}
       </div>
@@ -1388,6 +1388,41 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
             </button>
           ))}
         </>
+      ) : lane === "home" ? (
+        <div className="act-stack">
+          <article className="act-card">
+            <div>
+              <div className="act-kicker">People</div>
+              <h2>Who to follow</h2>
+              <p>Faces and handles, not a photo wall.</p>
+            </div>
+            <button type="button" onClick={() => setLane("discover")}>Open</button>
+          </article>
+          <article className="act-card">
+            <div>
+              <div className="act-kicker">Buzz</div>
+              <h2>What is hot</h2>
+              <p>One lead story, then the line.</p>
+            </div>
+            <button type="button" onClick={() => setLane("trending")}>Open</button>
+          </article>
+          <article className="act-card">
+            <div>
+              <div className="act-kicker">Rooms</div>
+              <h2>Live talk</h2>
+              <p>Jump into a room when you mean to.</p>
+            </div>
+            <button type="button" onClick={() => setLane("all")}>Open</button>
+          </article>
+          <article className="act-card">
+            <div>
+              <div className="act-kicker">Photos</div>
+              <h2>The grid</h2>
+              <p>Pictures stay here until you ask for them.</p>
+            </div>
+            <button type="button" onClick={() => setLane("explore")}>Show grid</button>
+          </article>
+        </div>
       ) : lane === "explore" ? (
         tiles.length === 0 && grid.length === 0 ? (
           <p className="text-sm text-muted">No photos yet. Pictures, videos, products, and places show up in this grid as soon as they are posted.</p>

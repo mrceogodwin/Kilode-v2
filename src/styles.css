@@ -4591,13 +4591,13 @@ html[data-skin="ivory"] .space-page .me-hero {
 
 /* Light paper from the rooms screen: Media, My Space, Activity. */
 html[data-skin="ivory"] .kilode-shell[data-paper="1"] {
-  background: #e4e6e3 !important;
+  background: #ebe7df !important;
 }
 html[data-skin="ivory"] .kilode-shell[data-paper="1"] .bg-bg,
 html[data-skin="ivory"] .kilode-shell[data-paper="1"] .paper-page,
 html[data-skin="ivory"] .kilode-shell[data-paper="1"] .space-page {
-  background: #e4e6e3 !important;
-  background-color: #e4e6e3 !important;
+  background: #ebe7df !important;
+  background-color: #ebe7df !important;
 }
 html[data-skin="ivory"] .kilode-shell[data-paper="1"] .bg-panel:not(.me-hero),
 html[data-skin="ivory"] .kilode-shell[data-paper="1"] .raised:not(.me-hero) {
@@ -4755,7 +4755,187 @@ html:not([data-skin="ivory"]) .menu-sheet {
   border-color: #292929 !important;
 }
 html[data-skin="ivory"] .media-page {
-  background: #e4e6e3;
+  background: #ebe7df;
   color: #1c1c1a;
 }
 .menu-stage .stage-switch { margin-bottom: 0; }
+
+.brand-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+}
+.brand-tag {
+  display: block;
+  margin-top: 1px;
+  font-family: "Segoe Script", "Snell Roundhand", "Bradley Hand", "Apple Chancery", cursive;
+  font-size: 11px;
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  text-transform: lowercase;
+  color: #e6c56a;
+  transform: rotate(-2deg);
+  white-space: nowrap;
+}
+.hdr-buzz {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 197, 106, 0.85);
+  background: transparent;
+  color: #e6c56a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+.hdr-buzz span { color: #e6c56a; }
+html[data-pin-lock="1"] .kilode-chrome,
+.kilode-shell[data-pin="space"] .kilode-chrome {
+  transform: none !important;
+}
+html.chrome-away:has(.kilode-shell[data-pin="space"]) .kilode-chrome,
+html.dock-away:has(.kilode-shell[data-pin="space"]) .dock {
+  transform: none !important;
+  max-height: none !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  margin: 0 !important;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.kilode-share {
+  background: #111 !important;
+  color: #e6c56a !important;
+  border: 1px solid rgba(230, 197, 106, 0.8);
+  box-shadow: none !important;
+}
+.kilode-share svg {
+  color: #e6c56a !important;
+  stroke: #e6c56a;
+  fill: #e6c56a;
+}
+html[data-skin="ivory"] .kilode-share {
+  background: #141414 !important;
+  color: #e6c56a !important;
+}
+.buzz-mast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.buzz-bolt {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 14px;
+  background: #111;
+  color: #e6c56a;
+  border: 1px solid rgba(230, 197, 106, 0.7);
+}
+.buzz-mast h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  line-height: 1;
+}
+.buzz-mast p { margin-top: 4px; font-size: 12px; color: var(--color-muted, #8d8d8d); }
+.buzz-hero {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 12px;
+  width: 100%;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(230, 197, 106, 0.35);
+  background: #111;
+  text-align: left;
+  color: #f4f1ea;
+}
+.buzz-hero img, .buzz-hero-fallback {
+  width: 108px;
+  height: 108px;
+  object-fit: cover;
+}
+.buzz-hero-fallback { display: grid; place-items: center; background: #1c1c1c; font-size: 28px; font-weight: 800; }
+.buzz-hero-copy { display: flex; min-width: 0; flex-direction: column; justify-content: center; padding-right: 12px; }
+.buzz-kicker { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #e6c56a; }
+.buzz-hero strong { margin-top: 4px; font-size: 16px; line-height: 1.25; }
+.buzz-open {
+  margin-top: 8px;
+  align-self: flex-start;
+  border-radius: 999px;
+  background: #e6c56a;
+  color: #1a1408;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.buzz-list { margin: 14px 0 0; padding: 0; list-style: none; }
+.buzz-list button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 10px 0;
+  text-align: left;
+}
+.buzz-list button > span:first-child {
+  width: 28px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #e6c56a;
+}
+.buzz-list strong, .buzz-list em { display: block; }
+.buzz-list strong { font-size: 14px; }
+.buzz-list em { font-style: normal; font-size: 11px; color: var(--color-muted, #8d8d8d); }
+.buzz-list button > span:nth-child(2) { min-width: 0; flex: 1; }
+.buzz-side { margin-top: 16px; }
+.buzz-side-kicker { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.buzz-side a { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; font-size: 13px; font-weight: 700; }
+.buzz-side em { font-style: normal; font-weight: 500; color: var(--color-muted, #8d8d8d); }
+.buzz-rooms { display: flex; gap: 8px; margin-top: 14px; overflow-x: auto; }
+.buzz-rooms button {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid rgba(230, 197, 106, 0.55);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.act-stack { display: flex; flex-direction: column; gap: 10px; }
+.act-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  background: #fff;
+  padding: 14px;
+}
+html:not([data-skin="ivory"]) .act-card {
+  background: #151515;
+  border-color: #292929;
+}
+.act-kicker { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: #8a6420; }
+.act-card h2 { margin-top: 2px; font-size: 18px; font-weight: 800; line-height: 1.1; }
+.act-card p { margin-top: 2px; font-size: 12px; color: #5c564c; }
+html:not([data-skin="ivory"]) .act-card p { color: #8d8d8d; }
+.act-card button {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #e6c56a;
+  color: #1a1408;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
