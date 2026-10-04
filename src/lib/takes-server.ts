@@ -706,24 +706,38 @@ export const listLikeFaces = createServerFn({ method: "GET" })
     }
   });
 
-export type TakeReply = { id: string; handle: string; body: string; ts: number };
+export type TakeReply = { id: string; handle: string; body: string; ts: number; image?: string; likes?: number; liked?: boolean };
+
+async function ensureReplyExtras(sql: Awaited<ReturnType<typeof getSql>>) {
+  await sql.query(`alter table nf_take_replies add column if not exists image text not null default ''`);
+  await sql.query(`alter table nf_take_replies add column if not exists likes int not null default 0`);
+  await sql.query(`create table if not exists nf_reply_likes (reply_id text not null, user_id text not null, primary key (reply_id, user_id))`);
+}
 
 export const listTakeReplies = createServerFn({ method: "GET" })
+  .middleware([optionalAuthMiddleware])
   .validator((d: { id?: string }) => ({ id: (d?.id || "").slice(0, 40) }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     if (!data.id) return [] as TakeReply[];
     const sql = await getSql();
     try {
-      const rows = await sql<{ id: string; handle: string | null; body: string | null; ts: string | number | null }>`
-        select id, handle, body, ts from nf_take_replies
-        where take_id = ${data.id}
-        order by ts asc
+      await ensureReplyExtras(sql);
+      const me = context.userId || "";
+      const rows = await sql<{ id: string; handle: string | null; body: string | null; ts: string | number | null; image: string | null; likes: number | null; liked: number | null }>`
+        select r.id, r.handle, r.body, r.ts, coalesce(r.image, '') as image, coalesce(r.likes, 0) as likes,
+          case when exists (select 1 from nf_reply_likes l where l.reply_id = r.id and l.user_id = ${me}) then 1 else 0 end as liked
+        from nf_take_replies r
+        where r.take_id = ${data.id}
+        order by r.ts asc
         limit 40`;
       return rows.map((r) => ({
         id: String(r.id),
         handle: r.handle || "member",
         body: r.body || "",
         ts: Number(r.ts || 0),
+        image: r.image || "",
+        likes: Number(r.likes || 0),
+        liked: Number(r.liked || 0) === 1,
       }));
     } catch {
       return [] as TakeReply[];
@@ -732,10 +746,11 @@ export const listTakeReplies = createServerFn({ method: "GET" })
 
 export const replyTake = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { id: string; body: string }) => d)
+  .validator((d: { id: string; body: string; image?: string }) => d)
   .handler(async ({ data, context }) => {
     const body = data.body.trim().slice(0, 180);
-    if (!data.id || body.length < 1) return { ok: false as const, reason: "Write a reply." };
+    const image = /^https:\/\//i.test(data.image || "") ? String(data.image).slice(0, 500) : "";
+    if (!data.id || (body.length < 1 && !image)) return { ok: false as const, reason: "Write a reply." };
     if (!(await allowWrite(`reply:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
     const handle = await handleOf(context.userId);
     const checked = await gateText("comments", body, { userId: context.userId, author: handle });
@@ -751,7 +766,8 @@ export const replyTake = createServerFn({ method: "POST" })
     if (await pairBlocked(sql, context.userId, ownerId)) return { ok: false as const, reason: "You can't reply to this person." };
     const id = nid();
     const ts = Date.now();
-    await sql`insert into nf_take_replies (id, take_id, user_id, handle, body, ts) values (${id}, ${data.id}, ${context.userId}, ${handle}, ${clean}, ${ts})`;
+    await ensureReplyExtras(sql);
+    await sql`insert into nf_take_replies (id, take_id, user_id, handle, body, ts, image) values (${id}, ${data.id}, ${context.userId}, ${handle}, ${clean}, ${ts}, ${image})`;
     await sql`update nf_takes set comments = comments + 1 where id = ${data.id}`;
     if (ownerId !== context.userId && handle && handle !== "member") {
       await pushNote(ownerId, `@${handle} replied to your take.`, `/?tab=socials&take=${encodeURIComponent(data.id)}`);
@@ -762,7 +778,26 @@ export const replyTake = createServerFn({ method: "POST" })
       const to = who[0]?.user_id || "";
       if (to && to !== context.userId && to !== ownerId) await pushNote(to, `@${handle} mentioned you.`, `/u/${encodeURIComponent(handle)}`);
     }
-    return { ok: true as const, reply: { id, handle, body: clean, ts } satisfies TakeReply };
+    return { ok: true as const, reply: { id, handle, body: clean, ts, image, likes: 0, liked: false } satisfies TakeReply };
+  });
+
+export const likeReply = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => ({ id: (d?.id || "").slice(0, 40) }))
+  .handler(async ({ context, data }) => {
+    if (!data.id) return { ok: false as const, reason: "Missing reply.", on: false, likes: 0 };
+    const sql = await getSql();
+    await ensureReplyExtras(sql);
+    const hit = await sql<{ reply_id: string }>`select reply_id from nf_reply_likes where reply_id = ${data.id} and user_id = ${context.userId} limit 1`;
+    if (hit[0]) {
+      await sql`delete from nf_reply_likes where reply_id = ${data.id} and user_id = ${context.userId}`;
+      await sql`update nf_take_replies set likes = greatest(likes - 1, 0) where id = ${data.id}`;
+    } else {
+      await sql`insert into nf_reply_likes (reply_id, user_id) values (${data.id}, ${context.userId}) on conflict do nothing`;
+      await sql`update nf_take_replies set likes = likes + 1 where id = ${data.id}`;
+    }
+    const n = await sql<{ likes: number | null }>`select likes from nf_take_replies where id = ${data.id} limit 1`;
+    return { ok: true as const, on: !hit[0], likes: Number(n[0]?.likes || 0) };
   });
 
 export const applyTake = createServerFn({ method: "POST" })
@@ -1427,8 +1462,13 @@ export const suggestFollows = createServerFn({ method: "GET" })
     const sql = await getSql();
     try {
       await ensureFollows(sql);
-      const rows = await sql<{ id: string; handle: string | null; role: string | null; mutuals: string | number | null }>`
+      const rows = await sql<{ id: string; handle: string | null; role: string | null; mutuals: string | number | null; photo: string | null }>`
         select p.user_id as id, p.handle, p.kind as role,
+          case
+            when p.photo like 'https://%' then left(p.photo, 400)
+            when left(coalesce(p.photo, ''), 23) = 'data:image/jpeg;base64,' and length(p.photo) < 70000 then p.photo
+            else ''
+          end as photo,
           (
             select count(*) from nf_follows mine
             join nf_follows theirs on theirs.follower_id = mine.followee_id and theirs.followee_id = p.user_id
@@ -1450,9 +1490,10 @@ export const suggestFollows = createServerFn({ method: "GET" })
           handle: r.handle || "",
           role: r.role || "member",
           mutuals: Number(r.mutuals || 0),
+          photo: r.photo || "",
         }));
     } catch {
-      return [] as { id: string; handle: string; role: string; mutuals: number }[];
+      return [] as { id: string; handle: string; role: string; mutuals: number; photo: string }[];
     }
   });
 

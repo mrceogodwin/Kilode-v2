@@ -33,6 +33,8 @@ export type PublicSite = {
   desks: Record<DeskPay, DeskMoney>;
   /** Take videos longer than this are trimmed. Default 15. */
   takeVideoSeconds: number;
+  /** Kilode click, send, comment, and request sounds. Super admin can turn them off. */
+  soundsOn: boolean;
   visitorsToday: number;
   visitorsAll: number;
   members: number;
@@ -89,6 +91,7 @@ async function ensure() {
     await sql`alter table nf_site add column if not exists cinema_is_paid integer not null default 0`;
     await sql`alter table nf_site add column if not exists cinema_price integer not null default 4`;
     await sql`alter table nf_site add column if not exists take_video_seconds integer not null default 15`;
+    await sql`alter table nf_site add column if not exists sounds_on integer not null default 1`;
   } catch {
     /* exists */
   }
@@ -120,6 +123,7 @@ async function loadPublic(): Promise<PublicSite> {
     subscribers: 0,
     shares: { ...ZERO_SHARES },
     takeVideoSeconds: 15,
+    soundsOn: true,
   };
   try {
     const sql = await ensure();
@@ -142,7 +146,8 @@ async function loadPublic(): Promise<PublicSite> {
         cinema_is_paid: number | string | boolean | null;
         cinema_price: number | string | null;
         take_video_seconds: number | string | null;
-      }>`select install_toast, videos_menu_visible, photos_on, pay_off, crypto_enabled, jobs_is_paid, jobs_price, market_is_paid, market_price, rent_is_paid, rent_price, events_is_paid, events_price, cinema_is_paid, cinema_price, take_video_seconds from nf_site where id = 1 limit 1`.catch(() => []),
+        sounds_on: number | string | boolean | null;
+      }>`select install_toast, videos_menu_visible, photos_on, pay_off, crypto_enabled, jobs_is_paid, jobs_price, market_is_paid, market_price, rent_is_paid, rent_price, events_is_paid, events_price, cinema_is_paid, cinema_price, take_video_seconds, sounds_on from nf_site where id = 1 limit 1`.catch(() => []),
       sql<{ n: string | number }>`select n from nf_visits where day = ${today} limit 1`.catch(() => []),
       sql<{ n: string | number }>`select coalesce(sum(n), 0) as n from nf_visits`.catch(() => []),
       sql<{ n: string | number }>`select count(*) as n from "user"`.catch(() => []),
@@ -178,6 +183,7 @@ async function loadPublic(): Promise<PublicSite> {
       subscribers: membersN + digestN,
       shares,
       takeVideoSeconds: Math.min(60, Math.max(5, Math.round(Number(flag[0]?.take_video_seconds || 15)) || 15)),
+      soundsOn: onFlag(flag[0]?.sounds_on, true),
     };
   } catch {
     return empty;
@@ -215,7 +221,7 @@ export async function deskCharge(desk: DeskPay) {
 
 export const saveSiteFlags = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { installToast?: boolean; videosMenuVisible?: boolean; photosOn?: boolean; payOff?: string; cryptoEnabled?: boolean; takeVideoSeconds?: number; desks?: Partial<Record<DeskPay, Partial<DeskMoney>>> }) => d)
+  .validator((d: { installToast?: boolean; videosMenuVisible?: boolean; photosOn?: boolean; payOff?: string; cryptoEnabled?: boolean; takeVideoSeconds?: number; soundsOn?: boolean; desks?: Partial<Record<DeskPay, Partial<DeskMoney>>> }) => d)
   .handler(async ({ context, data }) => {
     await assertStaff(context.userId, "super");
     const sql = await ensure();
@@ -264,6 +270,9 @@ export const saveSiteFlags = createServerFn({ method: "POST" })
     if (typeof data.takeVideoSeconds === "number" && Number.isFinite(data.takeVideoSeconds)) {
       const secs = Math.min(60, Math.max(5, Math.round(data.takeVideoSeconds)));
       await sql`update nf_site set take_video_seconds = ${secs} where id = 1`;
+    }
+    if (typeof data.soundsOn === "boolean") {
+      await sql`update nf_site set sounds_on = ${data.soundsOn ? 1 : 0} where id = 1`;
     }
     return { ok: true as const, installToast: toast === 1, videosMenuVisible: videos === 1, photosOn: photos === 1, payOff, cryptoEnabled: crypto === 1, desks };
   });

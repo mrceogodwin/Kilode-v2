@@ -1,12 +1,7 @@
 {
+  "installCommand": "npm install --omit=dev --no-audit --no-fund",
   "crons": [
-    {
-      "path": "/api/cron/cinema",
-      "schedule": "15 4 * * *"
-    },
-    {
-      "path": "/api/cron/digest",
-      "schedule": "30 5 * * *"
-    }
+    { "path": "/api/cron/cinema", "schedule": "15 4 * * *" },
+    { "path": "/api/cron/digest", "schedule": "30 5 * * *" }
   ]
 }

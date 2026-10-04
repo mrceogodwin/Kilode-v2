@@ -28,6 +28,7 @@ export const EMPTY_PUBLIC_SITE: PublicSite = {
   subscribers: 0,
   shares: { x: 0, wa: 0, tg: 0, fb: 0, copy: 0 },
   takeVideoSeconds: 15,
+  soundsOn: true,
 };
 const EMPTY = EMPTY_PUBLIC_SITE;
 

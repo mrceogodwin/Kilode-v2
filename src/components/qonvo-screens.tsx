@@ -2459,9 +2459,13 @@ function AdsQueuePanel({ store }: { store: Store }) {
 
 function SocialLimits() {
   const [secs, setSecs] = useState(15);
+  const [sounds, setSoundsOn] = useState(true);
   const [note, setNote] = useState("");
   useEffect(() => {
-    void getPublicSite().then((s) => setSecs(s.takeVideoSeconds || 15)).catch(() => undefined);
+    void getPublicSite().then((s) => {
+      setSecs(s.takeVideoSeconds || 15);
+      setSoundsOn(s.soundsOn !== false);
+    }).catch(() => undefined);
   }, []);
   return (
     <div className="rounded-xl border border-line bg-panel p-3">
@@ -2482,6 +2486,17 @@ function SocialLimits() {
           </button>
         ))}
       </div>
+      <button
+        type="button"
+        className={`mt-3 rounded-full border px-2.5 py-1 text-[11px] font-bold ${sounds ? "border-lime-2 bg-lime-2 text-black" : "border-line text-fg"}`}
+        onClick={() => {
+          const next = !sounds;
+          setSoundsOn(next);
+          void saveSiteFlags({ data: { soundsOn: next } }).then((r) => setNote(r.ok ? (next ? "Sounds on" : "Sounds off") : "Could not save"));
+        }}
+      >
+        {sounds ? "Sounds on" : "Sounds off"}
+      </button>
       {note ? <p className="mt-1 text-[11px] text-lime-2">{note}</p> : null}
     </div>
   );

@@ -5,7 +5,8 @@ import { uploadTakeMedia, readVideoSeconds, trimTakeVideo } from "@/lib/supabase
 import { getPublicSite } from "@/lib/site-server";
 import { listPublicSpaces, type SpaceCard } from "@/lib/spaces-server";
 import { SocialDesk } from "@/components/social-desk";
-import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, editOwnTake, getTake, likeTake, listLikeFaces, listMyBlocks, listMyMutes, listMyTags, listSavedTakeIds, listSavedTakes, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTopicTakes, listTrending, listWordMutes, muteWord, pinOwnTake, replyTake, reportTake, repostTake, saveTake, searchPeople, seeTake, suggestFollows, toggleFollow, togglePing, toggleReplyLock, toggleSaveTake, toggleSensitive, toggleTagFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
+import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, editOwnTake, getTake, likeTake, likeReply, listLikeFaces, listMyBlocks, listMyMutes, listMyTags, listSavedTakeIds, listSavedTakes, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTopicTakes, listTrending, listWordMutes, muteWord, pinOwnTake, replyTake, reportTake, repostTake, saveTake, searchPeople, seeTake, suggestFollows, toggleFollow, togglePing, toggleReplyLock, toggleSaveTake, toggleSensitive, toggleTagFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
+import { kilodeSound, setSounds } from "@/lib/sfx";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -296,7 +297,10 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
     if (!pillsFor(account).some((k) => k.id === kind)) setKind("take");
   }, [account, kind]);
   useEffect(() => {
-    void getPublicSite().then((s) => setVideoCap(s.takeVideoSeconds || 15)).catch(() => undefined);
+    void getPublicSite().then((s) => {
+      setVideoCap(s.takeVideoSeconds || 15);
+      setSounds(s.soundsOn !== false);
+    }).catch(() => undefined);
     void listPublicSpaces({ data: {} }).then((rows) => setSpaces(Array.isArray(rows) ? rows.slice(0, 8) : [])).catch(() => setSpaces([]));
   }, []);
   const [busy, setBusy] = useState(false);
@@ -323,7 +327,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [blocked, setBlocked] = useState<Record<string, true>>({});
   const [muted, setMuted] = useState<Record<string, true>>({});
   const [quoting, setQuoting] = useState<TakeRow | null>(null);
-  const [suggested, setSuggested] = useState<{ id: string; handle: string; role: string; mutuals: number }[]>([]);
+  const [suggested, setSuggested] = useState<{ id: string; handle: string; role: string; mutuals: number; photo?: string }[]>([]);
   const likeLock = useRef(new Set<string>());
   const [dmFor, setDmFor] = useState<FellowRow | null>(null);
   const [dmBody, setDmBody] = useState("");
@@ -331,6 +335,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
   const [dmBusy, setDmBusy] = useState(false);
   const [openReply, setOpenReply] = useState("");
   const [reply, setReply] = useState("");
+  const [replyShot, setReplyShot] = useState("");
+  const [replySort, setReplySort] = useState<"new" | "top">("new");
   const [threads, setThreads] = useState<Record<string, TakeReply[]>>({});
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [applied, setApplied] = useState<Record<string, boolean>>({});
@@ -832,6 +838,8 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
         setClip("");
         setCircle("");
         setQuoting(null);
+        setMentions([]);
+        kilodeSound("sent");
         try { localStorage.removeItem("kilode-take-draft"); } catch { /* ignore */ }
       }
     } catch (e) {
@@ -1211,7 +1219,18 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             placeholder="What's happening?"
             className="min-h-[80px] flex-1 resize-none bg-transparent text-[13px] leading-snug outline-none"
             style={{ fontSize: 16 }}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setBody(v);
+              const hit = v.match(/(^|\s)@([a-z0-9._-]{0,24})$/i);
+              if (!hit || hit[2].length < 2) {
+                setMentions([]);
+                return;
+              }
+              void searchPeople({ data: { q: hit[2] } })
+                .then((rows) => setMentions(rows.slice(0, 5).map((p) => ({ handle: p.handle, role: p.role }))))
+                .catch(() => setMentions([]));
+            }}
           />
         </div>
         <div className="mt-1 flex gap-1.5">
@@ -1371,6 +1390,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
             {suggested.filter((p) => !hidden(p.handle)).slice(0, 8).map((p) => (
               <div key={p.id || p.handle} className="know-card">
+                <img src={avatarUrl(p.handle, p.photo)} alt="" className="mb-1 size-8 rounded-full bg-panel-3 object-cover" />
                 <a href={`/u/${encodeURIComponent(p.handle)}`} className="block truncate text-[12px] font-semibold">@{p.handle}</a>
                 <div className="truncate text-[10px] text-muted">{p.mutuals > 0 ? `${p.mutuals} mutual` : "New on Kilode"}</div>
                 <button type="button" className="follow-slim mt-1.5" onClick={() => flipFollow(p.handle, p.id)}>
@@ -1469,6 +1489,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
               likeLock.current.add(t.id);
               const was = !!liked[t.id];
               setLiked((m) => ({ ...m, [t.id]: !was }));
+              if (!was) kilodeSound("tick");
               patch(t.id, (row) => ({ ...row, likes: Math.max(0, row.likes + (was ? -1 : 1)) }));
               void likeTake({ data: { id: t.id } })
                 .then((r) => {
@@ -1557,13 +1578,47 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
               }
               setOpenReply(t.id);
               setReply("");
+              setReplyShot("");
               if (threads[t.id]) return;
               void listTakeReplies({ data: { id: t.id } }).then((rows) => {
                 setThreads((m) => ({ ...m, [t.id]: rows }));
               });
             }}
             onReplyChange={setReply}
-            replies={threads[t.id] || []}
+            replyShot={openReply === t.id ? replyShot : ""}
+            onReplyFile={(file) => {
+              if (!authed) return goLogin();
+              setBusyId(t.id);
+              void uploadTakeMedia(file)
+                .then((m) => {
+                  if (m.kind !== "image") return;
+                  setReplyShot(m.url);
+                })
+                .catch((e) => setErr(e instanceof Error ? e.message : "Photo did not upload."))
+                .finally(() => setBusyId(""));
+            }}
+            onClearReplyShot={() => setReplyShot("")}
+            replySort={replySort}
+            onReplySort={setReplySort}
+            onReplyLike={(id) => {
+              if (!authed) return goLogin();
+              void likeReply({ data: { id } })
+                .then((r) => {
+                  if (!r.ok) {
+                    if (r.reason) setErr(r.reason);
+                    return;
+                  }
+                  kilodeSound("tick");
+                  setThreads((m) => ({
+                    ...m,
+                    [t.id]: (m[t.id] || []).map((row) => (row.id === id ? { ...row, liked: r.on, likes: r.likes } : row)),
+                  }));
+                })
+                .catch((e) => {
+                  if (needLogin(e)) goLogin();
+                });
+            }}
+            replies={[...(threads[t.id] || [])].sort((a, b) => (replySort === "top" ? (b.likes || 0) - (a.likes || 0) || b.ts - a.ts : a.ts - b.ts))}
             meHandle={me}
             onDeleteReply={(id) => {
               void deleteOwnReply({ data: { id } }).then((r) => {
@@ -1575,17 +1630,19 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
             onReplySend={() => {
               if (!authed) return goLogin();
               const text = reply.trim();
-              if (!text || busyId === t.id) return;
+              if ((!text && !replyShot) || busyId === t.id) return;
               setBusyId(t.id);
-              void replyTake({ data: { id: t.id, body: text } })
+              void replyTake({ data: { id: t.id, body: text, image: replyShot } })
                 .then((r) => {
                   if (!r.ok) {
                     setErr(r.reason);
                     return;
                   }
-                  patch(t.id, (row) => ({ ...row, comments: row.comments + 1, lastReply: r.reply.body }));
+                  kilodeSound("sent");
+                  patch(t.id, (row) => ({ ...row, comments: row.comments + 1, lastReply: r.reply.body || "Photo" }));
                   setThreads((m) => ({ ...m, [t.id]: [...(m[t.id] || []), r.reply] }));
                   setReply("");
+                  setReplyShot("");
                 })
                 .catch((e) => {
                   if (needLogin(e)) goLogin();
@@ -1928,6 +1985,12 @@ function TakeCard({
   applied,
   replyOpen,
   reply,
+  replyShot = "",
+  onReplyFile,
+  onClearReplyShot,
+  replySort = "new",
+  onReplySort,
+  onReplyLike,
   onReveal,
   onApply,
   onVote,
@@ -1960,6 +2023,12 @@ function TakeCard({
   applied: boolean;
   replyOpen: boolean;
   reply: string;
+  replyShot?: string;
+  onReplyFile?: (file: File) => void;
+  onClearReplyShot?: () => void;
+  replySort?: "new" | "top";
+  onReplySort?: (v: "new" | "top") => void;
+  onReplyLike?: (id: string) => void;
   onReveal: () => void;
   onApply: () => void;
   onVote: (side: "fact" | "cap" | "a" | "b") => void;
@@ -2137,6 +2206,12 @@ function TakeCard({
             </div>
           ) : null}
 
+          {replyOpen && replies.length > 1 ? (
+            <div className="mt-2 flex gap-3 text-[10px] font-bold">
+              <button type="button" className={replySort === "new" ? "text-lime-2" : "text-muted"} onClick={() => onReplySort?.("new")}>Newest</button>
+              <button type="button" className={replySort === "top" ? "text-lime-2" : "text-muted"} onClick={() => onReplySort?.("top")}>Top</button>
+            </div>
+          ) : null}
           {replyOpen && replies.length > 0 ? (
             <div className="mt-2 space-y-1.5 border-t border-line pt-2">
               {replies.map((r) => (
@@ -2146,7 +2221,11 @@ function TakeCard({
                   {onDeleteReply && meHandle && r.handle.toLowerCase() === meHandle.toLowerCase() ? (
                     <button type="button" className="ml-2 text-[10px] font-bold text-muted" onClick={() => onDeleteReply(r.id)}>Delete</button>
                   ) : null}
-                  <p className="whitespace-pre-wrap"><LinkText text={r.body} /></p>
+                  {r.body ? <p className="whitespace-pre-wrap"><LinkText text={r.body} /></p> : null}
+                  {r.image ? <img src={r.image} alt="" className="mt-1 max-h-40 w-full rounded-[10px] object-cover" /> : null}
+                  <button type="button" className={`mt-0.5 text-[10px] font-bold ${r.liked ? "text-lime-2" : "text-muted"}`} onClick={() => onReplyLike?.(r.id)}>
+                    {r.liked ? "Liked" : "Like"}{r.likes ? ` ${r.likes}` : ""}
+                  </button>
                 </div>
               ))}
             </div>
@@ -2157,14 +2236,35 @@ function TakeCard({
           ) : null}
           {replyOpen ? (
             <form
-              className="mt-1.5 flex gap-1"
+              className="mt-1.5 flex flex-col gap-1"
               onSubmit={(e) => {
                 e.preventDefault();
                 onReplySend();
               }}
             >
-              <input value={reply} onChange={(e) => onReplyChange(e.target.value)} placeholder="Reply" className="min-w-0 flex-1 rounded-[10px] border border-line bg-bg px-2 py-1 outline-none" style={{ fontSize: 16 }} />
-              <button type="submit" className="text-[11px] font-semibold text-lime-2">Send</button>
+              {replyShot ? (
+                <div className="relative">
+                  <img src={replyShot} alt="" className="max-h-32 w-full rounded-[10px] object-cover" />
+                  <button type="button" className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white" onClick={() => onClearReplyShot?.()}>Remove</button>
+                </div>
+              ) : null}
+              <div className="flex gap-1">
+                <label className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-[10px] border border-line text-muted">
+                  <ImagePlus className="size-3.5" />
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,.jpg,.jpeg,.png,.webp"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (file) onReplyFile?.(file);
+                    }}
+                  />
+                </label>
+                <input value={reply} onChange={(e) => onReplyChange(e.target.value)} placeholder="Reply" className="min-w-0 flex-1 rounded-[10px] border border-line bg-bg px-2 py-1 outline-none" style={{ fontSize: 16 }} />
+                <button type="submit" className="text-[11px] font-semibold text-lime-2">Send</button>
+              </div>
             </form>
           ) : null}
 
