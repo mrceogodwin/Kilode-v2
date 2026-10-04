@@ -133,7 +133,7 @@ function PublicProfile() {
             <div className="ml-auto flex items-center gap-1">
               <a href="/?tab=socials" className="hdr-ico" aria-label="Friends"><Users className="size-4" /></a>
               <a href="/?open=notifications" className="hdr-ico" aria-label="Alerts"><Bell className="size-4" /></a>
-              <a href="/?open=trending" className="hdr-ico" aria-label="BUZZ"><Zap className="size-4 text-[#e6c56a]" /></a>
+              <a href="/?open=trending" className="hdr-ico" aria-label="BUZZ"><Zap className="buzz-zap size-4" /></a>
               <a href="/?open=inbox" className="hdr-ico" aria-label="Messages"><MessageSquare className="size-4" /></a>
             </div>
           </div>

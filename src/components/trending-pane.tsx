@@ -44,13 +44,8 @@ export function TrendingPane({ store, onHome }: { store: Store; onHome: (id?: st
   return (
     <div className="buzz-page mx-auto max-w-3xl px-3 pt-3 pb-24">
       <div className="buzz-mast">
-        <div className="buzz-bolt" aria-hidden>
-          <Zap className="size-5" />
-        </div>
-        <div>
-          <h1>BUZZ</h1>
-          <p>What Kilode is on right now. One lead story, then the line.</p>
-        </div>
+        <Zap className="buzz-bolt" aria-hidden />
+        <p>What Kilode is on right now.</p>
       </div>
 
       <div className="lane-rail mt-3" role="tablist">
@@ -63,11 +58,14 @@ export function TrendingPane({ store, onHome }: { store: Store; onHome: (id?: st
 
       {lead ? (
         <button type="button" className="buzz-hero" onClick={() => store.setOpenPost(lead.id)}>
-          {lead.image ? <img src={lead.image} alt="" /> : <span className="buzz-hero-fallback">{(lead.category || "K").slice(0, 1)}</span>}
+          <span className="buzz-hero-media">
+            {lead.image ? <img src={lead.image} alt="" /> : <span className="buzz-hero-fallback">{(lead.category || "K").slice(0, 1)}</span>}
+            <em>01</em>
+          </span>
           <span className="buzz-hero-copy">
-            <span className="buzz-kicker">01 · {lead.category || "Kilode"} · {fmtCount(lead.views ?? 0)} views</span>
+            <span className="buzz-kicker">{lead.category || "Kilode"} · {fmtCount(lead.views ?? 0)} views</span>
             <strong>{lead.title}</strong>
-            <span className="buzz-open">Open</span>
+            <span className="buzz-read">Read</span>
           </span>
         </button>
       ) : (

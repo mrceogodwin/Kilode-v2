@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Briefcase, Headphones, ImagePlus, Lock, Video } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { uploadTakeMedia, readVideoSeconds, trimTakeVideo } from "@/lib/supabase";
@@ -270,6 +270,40 @@ export function openSocialFellows() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event("kilode:socials-fellows"));
 }
 
+const SOCIAL_CUTS = [
+  ["all", "For you"],
+  ["following", "Following"],
+  ["trending", "Trending"],
+  ["topics", "Topics"],
+  ["saved", "Saved"],
+] as const;
+
+function LiquidCuts({ value, onPick }: { value: string; onPick: (id: (typeof SOCIAL_CUTS)[number][0]) => void }) {
+  const rail = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const root = rail.current;
+    const pill = root?.querySelector<HTMLElement>(".liquid-pill");
+    const el = root?.querySelector<HTMLButtonElement>(`[data-cut="${value}"]`);
+    if (!root || !pill) return;
+    if (!el) {
+      pill.style.width = "0px";
+      return;
+    }
+    pill.style.width = `${el.offsetWidth}px`;
+    pill.style.transform = `translate3d(${el.offsetLeft}px,0,0)`;
+  }, [value]);
+  return (
+    <div className="liquid-rail" ref={rail} role="tablist" aria-label="Socials">
+      <span className="liquid-pill" />
+      {SOCIAL_CUTS.map(([id, label]) => (
+        <button key={id} type="button" data-cut={id} role="tab" aria-selected={value === id} className={value === id ? "on" : ""} onClick={() => onPick(id)}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function SocialsFeed({ authed, account = "member", me = "", face = "", lane = "posts", onOpenPeople, onOpenFeed }: { authed: boolean; account?: string; me?: string; face?: string; lane?: "people" | "posts"; onOpenPeople?: () => void; onOpenFeed?: () => void }) {
   const pills = pillsFor(account);
   const boot = bootCache();
@@ -293,6 +327,18 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
   const trimTimer = useRef(0);
   const [line, setLine] = useState("");
   const [kind, setKind] = useState<TakeKind>("take");
+  const draftReady = useRef(false);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("kilode-take-draft") || "";
+      if (saved) setBody((cur) => cur || saved);
+    } catch { /* ignore */ }
+    draftReady.current = true;
+  }, []);
+  useEffect(() => {
+    if (!draftReady.current || !body) return;
+    try { localStorage.setItem("kilode-take-draft", body); } catch { /* ignore */ }
+  }, [body]);
   useEffect(() => {
     if (!pillsFor(account).some((k) => k.id === kind)) setKind("take");
   }, [account, kind]);
@@ -1159,16 +1205,10 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
 
       {lane !== "people" ? (
       <>
-      <div className="mb-2 flex gap-1.5 overflow-x-auto">
-        <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "all" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("all"); }}>For you</button>
-        <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "following" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("following"); }}>Following</button>
-        <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "trending" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("trending"); }}>Trending</button>
-        <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "topics" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("topics"); }}>Topics</button>
-        <button type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${feedCut === "saved" ? "on" : ""}`} onClick={() => { setTag(""); setFeedCut("saved"); }}>Saved</button>
-        {tag ? (
+      <LiquidCuts value={feedCut} onPick={(id) => { setTag(""); setFeedCut(id); }} />
+      {tag ? (
+        <div className="mb-2 flex gap-1.5">
           <button type="button" className="soc-chip on shrink-0 px-2.5 py-1 text-[12px]" onClick={() => setFeedCut("tag")}>#{tag}</button>
-        ) : null}
-        {tag ? (
           <button
             type="button"
             className="soc-chip shrink-0 px-2.5 py-1 text-[12px]"
@@ -1183,8 +1223,8 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
           >
             {myTags.includes(tag) ? "Following topic" : "Follow topic"}
           </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
       {liveTags.filter((name) => !myTags.includes(name)).length > 0 && feedCut !== "tag" ? (
         <div className="mb-2 flex gap-1.5 overflow-x-auto">
           {liveTags.filter((name) => !myTags.includes(name)).map((name) => (
@@ -1203,7 +1243,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
           ))}
         </div>
       ) : null}
-      <div className="mb-3 glass-3d px-2.5 py-2">
+      <div className="take-compose mb-3 glass-3d px-2.5 py-2">
         {quoting ? (
           <div className="mb-2 flex items-start justify-between gap-2 rounded-[10px] border border-line px-2 py-1.5">
             <p className="line-clamp-2 text-[11px] text-muted">Quoting @{quoting.handle}: {quoting.body}</p>
@@ -1326,7 +1366,10 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
                 setMediaBusy(true);
                 void uploadTakeMedia(file)
                   .then((r) => setShot(r.url))
-                  .catch((err) => setErr(err instanceof Error ? err.message : "Photo did not upload."))
+                .catch((err) => {
+                  const raw = err instanceof Error ? err.message : "";
+                  setErr(/bytestring|8288/i.test(raw) ? "That photo did not leave the phone. Try a JPG." : raw || "Photo did not upload.");
+                })
                   .finally(() => setMediaBusy(false));
               }}
             />
@@ -1595,7 +1638,10 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
                   if (m.kind !== "image") return;
                   setReplyShot(m.url);
                 })
-                .catch((e) => setErr(e instanceof Error ? e.message : "Photo did not upload."))
+                .catch((e) => {
+                  const raw = e instanceof Error ? e.message : "";
+                  setErr(/bytestring|8288/i.test(raw) ? "That photo did not leave the phone. Try a JPG." : raw || "Photo did not upload.");
+                })
                 .finally(() => setBusyId(""));
             }}
             onClearReplyShot={() => setReplyShot("")}

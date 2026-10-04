@@ -758,7 +758,7 @@ function QonvoAppInner() {
                   setScreen("trending");
                 }}
               >
-                <Zap className="size-4 text-[#e6c56a]" />
+                <Zap className="buzz-zap size-4" />
               </button>
               <button
                 type="button"
@@ -2150,14 +2150,14 @@ function RepostFab({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       aria-label="Repost to chat"
-      className="absolute top-2 right-2 z-20 grid size-9 place-items-center rounded-full border border-white/25 bg-black/55 text-white shadow-[0_6px_16px_rgba(0,0,0,0.45)] backdrop-blur-sm"
+      className="hero-repost absolute top-3 right-3 z-20"
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
         onClick();
       }}
     >
-      <Repeat2 className="size-4" strokeWidth={2.5} />
+      <Repeat2 className="size-[18px]" strokeWidth={2.25} />
     </button>
   );
 }
@@ -3319,7 +3319,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
                 <button
                   type="button"
                   aria-label="Repost"
-                  className="media-orb absolute top-1.5 right-1.5"
+                  className="media-repost"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!store.authed) {
@@ -3330,7 +3330,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
                     setCap("");
                   }}
                 >
-                  <Repeat2 className="size-3" />
+                  <Repeat2 className="size-[11px]" strokeWidth={2.25} />
                 </button>
               </div>
               <div className="px-1.5 py-1.5">

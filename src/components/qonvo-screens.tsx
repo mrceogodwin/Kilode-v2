@@ -1,6 +1,6 @@
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { STAFF_PATH } from "@/lib/staff-path";
-import { Eye, Mail, MessageSquare, Share2, Bookmark } from "lucide-react";
+import { Eye, Mail, MessageSquare, Share2, Bookmark, Search as SearchIcon, Newspaper, Users, Zap, Image as ImageIcon, Music, Clapperboard, Briefcase, Store, Download, Building2, Inbox as InboxIcon } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, timeLeftLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 import { approveTeamAsk, getProfile, leaveTeam, postTeamNote, reportPost, requestJoinTeam, teamDesk } from "@/lib/forum-server";
@@ -1306,13 +1306,15 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
     try { setRecent(JSON.parse(localStorage.getItem("kilode-recent-search") || "[]") as string[]); } catch { setRecent([]); }
   }, []);
   return (
-    <Screen kicker="KILODE" title="Activity" sub="Pick a lane. The picture grid stays behind a button." className="paper-page">
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search people, spaces, posts, jobs"
-        className="w-full rounded-lg border border-line bg-panel px-3 py-2 text-base"
-      />
+    <Screen kicker="KILODE" title="Activity" sub="Jump in, or search if you already know the name." className="paper-page">
+      <label className="act-search">
+        <SearchIcon className="size-4" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search people, spaces, posts, jobs"
+        />
+      </label>
       {!s && recent.length > 0 ? (
         <div className="flex gap-1.5 overflow-x-auto">
           {recent.map((word) => (
@@ -1320,9 +1322,9 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           ))}
         </div>
       ) : null}
-      <div className="flex gap-1.5 overflow-x-auto">
+      <div className="act-lanes" role="tablist">
         {(["home", "discover", "trending", "all", "explore"] as const).map((id) => (
-          <button key={id} type="button" className={`soc-chip shrink-0 px-2.5 py-1 text-[12px] ${lane === id ? "on" : ""}`} onClick={() => setLane(id)}>
+          <button key={id} type="button" role="tab" aria-selected={lane === id} className={`act-lane ${lane === id ? "on" : ""}`} onClick={() => setLane(id)}>
             {id === "home" ? "Now" : id === "explore" ? "Photos" : id === "all" ? "Rooms" : id === "discover" ? "People" : "Buzz"}
           </button>
         ))}
@@ -1389,33 +1391,30 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           ))}
         </>
       ) : lane === "home" ? (
-        <div className="act-stack">
+        <div className="act-board">
           {(
             [
-              ["Socials", "Takes and people", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "socials" } }))],
-              ["Media", "News and stories", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "feeds" } }))],
-              ["Buzz", "What is hot", () => setLane("trending")],
-              ["People", "Who to follow", () => setLane("discover")],
-              ["Rooms", "Live talk", () => setLane("all")],
-              ["Photos", "The picture grid", () => setLane("explore")],
-              ["Music", "Artists and links", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "music" } }))],
-              ["Cinema", "Films and votes", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "watch" } }))],
-              ["Jobs", "Roles and applications", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "jobs" } }))],
-              ["Market", "Buy and sell", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))],
-              ["Downloads", "Files from Kilode", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "downloads" } }))],
-              ["Spaces", "Business pages", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "spaces" } }))],
-              ["Messages", "Your inbox", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "inbox" } }))],
-              ["Saved", "Posts you kept", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "bookmarks" } }))],
+              ["Socials", "Takes and people", Users, true, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "socials" } }))],
+              ["Media", "News and stories", Newspaper, true, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "feeds" } }))],
+              ["Buzz", "What is hot", Zap, false, () => setLane("trending")],
+              ["People", "Who to follow", Users, false, () => setLane("discover")],
+              ["Rooms", "Live talk", MessageSquare, false, () => setLane("all")],
+              ["Photos", "The picture grid", ImageIcon, false, () => setLane("explore")],
+              ["Music", "Artists and links", Music, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "music" } }))],
+              ["Cinema", "Films and votes", Clapperboard, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "watch" } }))],
+              ["Jobs", "Roles and applications", Briefcase, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "jobs" } }))],
+              ["Market", "Buy and sell", Store, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))],
+              ["Downloads", "Files from Kilode", Download, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "downloads" } }))],
+              ["Spaces", "Business pages", Building2, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "spaces" } }))],
+              ["Messages", "Your inbox", InboxIcon, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "inbox" } }))],
+              ["Saved", "Posts you kept", Bookmark, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "bookmarks" } }))],
             ] as const
-          ).map(([title, body, go]) => (
-            <article key={title} className="act-card">
-              <div>
-                <div className="act-kicker">Kilode</div>
-                <h2>{title}</h2>
-                <p>{body}</p>
-              </div>
-              <button type="button" onClick={go}>Open</button>
-            </article>
+          ).map(([title, body, Icon, wide, go]) => (
+            <button key={title} type="button" className={`act-tile ${wide ? "wide" : ""}`} onClick={go}>
+              <Icon className="size-4" />
+              <strong>{title}</strong>
+              <span>{body}</span>
+            </button>
           ))}
         </div>
       ) : lane === "explore" ? (

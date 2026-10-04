@@ -135,7 +135,7 @@ export async function uploadTakeMedia(file: File, limits?: { maxSeconds?: number
   if (image && file.size > IMAGE_CAP) throw new Error("Image must be 7MB or smaller.");
   if (video && file.size > VIDEO_CAP) throw new Error("Video must be 20MB or smaller.");
   let body: Blob = file;
-  let type = file.type || (video ? "video/mp4" : "image/jpeg");
+  let type = ascii(file.type || (video ? "video/mp4" : "image/jpeg")) || (video ? "video/mp4" : "image/jpeg");
   let ext = video ? (type.includes("webm") ? "webm" : type.includes("quicktime") ? "mov" : "mp4") : "jpg";
   if (video) {
     const seconds = await mediaSeconds(file);
@@ -143,37 +143,38 @@ export async function uploadTakeMedia(file: File, limits?: { maxSeconds?: number
     if (seconds > cap + 0.4) throw new Error(`Video must be ${Math.round(cap)} seconds or shorter.`);
   } else {
     try {
-      body = await shrinkJpeg(file);
+      body = await shrinkJpeg(file, 1280, 0.72);
       type = "image/jpeg";
       ext = "jpg";
     } catch {
-      if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) throw new Error("This phone sent a photo format Kilode cannot read. Choose a JPG.");
+      if (!/^image\/(jpeg|png|webp)$/i.test(ascii(file.type))) throw new Error("This phone sent a photo format Kilode cannot read. Choose a JPG.");
     }
   }
-  const safeType = (type || (video ? "video/mp4" : "image/jpeg")).replace(/[^\w.+/-]/g, "") || (video ? "video/mp4" : "image/jpeg");
-  const ticket = await prepareTakeUpload({ data: { ext, type: safeType } });
+  const safeType = ascii(type).replace(/[^\w.+/-]/g, "") || (video ? "video/mp4" : "image/jpeg");
+  let ticket: Awaited<ReturnType<typeof prepareTakeUpload>> | { ok: false; reason: string } = { ok: false, reason: "host" };
+  try {
+    ticket = await prepareTakeUpload({ data: { ext, type: safeType } });
+  } catch {
+    ticket = { ok: false, reason: "host" };
+  }
   if (ticket.ok) {
     try {
       const sent = await putSignedUpload(ticket, body, safeType);
       if (sent.ok && ticket.publicUrl) return { kind: video ? "video" : "image", url: ticket.publicUrl };
-      const detail = (await sent.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 180);
-      const blocked = /bytestring|8288/i.test(detail);
-      throw new Error(
-        blocked
-          ? "This phone blocked the upload. Try a JPG or a shorter clip."
-          : detail || (video ? "Supabase refused the video. Check the market-images bucket is public." : "Supabase refused the photo. Try again."),
-      );
-    } catch (e) {
-      const raw = e instanceof Error ? e.message : "";
-      throw new Error(raw || (video ? "Video did not reach Supabase." : "Photo did not reach Supabase."));
+    } catch {
+      /* photos fall through to a smaller copy */
     }
-  } else if (video) {
-    throw new Error(ticket.reason);
   }
-  if (video) throw new Error(ticket.ok ? "Video did not reach Supabase." : ticket.reason);
-  const data = body.type === "image/jpeg" ? await blobToData(body) : await compressPhoto(file);
-  if (data.length > 140_000) throw new Error(ticket.ok ? "That photo is still too large after compression." : ticket.reason);
-  return { kind: "image", url: data };
+  if (!video) {
+    try {
+      const data = await jpegDataUnder(body, 130000);
+      if (data.startsWith("data:image/jpeg;base64,") && data.length < 140000) return { kind: "image", url: data };
+    } catch {
+      /* below */
+    }
+    throw new Error("Could not read that photo. Choose a JPG from your camera roll.");
+  }
+  throw new Error("Video did not reach Kilode. Try a shorter MP4.");
 }
 
 const DROP_NAME = /\.(apk|zip|pdf|mp3|m4a|wav|mp4|webm|jpe?g|png|webp)$/i;
@@ -183,7 +184,7 @@ export async function uploadDropFile(file: File): Promise<string> {
   if (file.size > 18 * 1024 * 1024) throw new Error("File must be 18MB or smaller.");
   const ext = (file.name.split(".").pop() || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
   if (!DROP_NAME.test(`.${ext}`)) throw new Error("Use APK, ZIP, PDF, MP3, or MP4. Or paste an https link.");
-  const type = latinHeader(file.type || "application/octet-stream").slice(0, 80) || "application/octet-stream";
+  const type = ascii(file.type || "application/octet-stream").slice(0, 80) || "application/octet-stream";
   const ticket = await prepareDropUpload({ data: { ext, type } });
   if (!ticket.ok) throw new Error(ticket.reason);
   const body = new Blob([await file.arrayBuffer()], { type });
@@ -195,38 +196,43 @@ export async function uploadDropFile(file: File): Promise<string> {
   return ticket.publicUrl;
 }
 
-function latinHeader(value: string) {
+function ascii(value: string) {
   let out = "";
   for (let i = 0; i < value.length; i++) {
-    if (value.charCodeAt(i) <= 255) out += value[i];
+    const c = value.charCodeAt(i);
+    if (c >= 32 && c <= 126) out += value[i];
   }
   return out;
 }
 
 /**
- * Signed upload. The ticket URL includes the bucket. A hand-built path of
- * /object/upload/sign/takes/... misses market-images and Supabase 404s.
- * The body is a Blob, not the original File, so an iPhone word-joiner in the
- * photo name cannot throw ByteString 8288.
+ * Signed upload. The body is raw bytes with an ASCII name, never the phone's
+ * photo name. A word-joiner in that name is what throws ByteString 8288.
  */
 async function putSignedUpload(
   ticket: { path: string; token: string; apikey?: string; endpoint: string; signedUrl?: string },
   file: Blob,
   mime: string,
 ) {
-  const type = latinHeader(mime || "application/octet-stream") || "application/octet-stream";
-  const bytes = new Blob([await file.arrayBuffer()], { type });
-  const form = new FormData();
-  form.append("cacheControl", "3600");
-  form.append("", bytes);
+  const type = ascii(mime || "application/octet-stream") || "application/octet-stream";
+  const bytes = await file.arrayBuffer();
+  const url = ascii(signedUploadUrl(ticket));
   const headers = new Headers();
-  headers.set("x-upsert", "false");
-  const key = latinHeader(ticket.apikey || "");
+  headers.set("x-upsert", "true");
+  const key = ascii(ticket.apikey || "");
   if (key) {
     headers.set("apikey", key);
     headers.set("authorization", `Bearer ${key}`);
   }
-  return fetch(signedUploadUrl(ticket), { method: "PUT", body: form, headers });
+  const rawHeaders = new Headers(headers);
+  rawHeaders.set("content-type", type);
+  rawHeaders.set("cache-control", "3600");
+  const raw = await fetch(url, { method: "PUT", body: bytes, headers: rawHeaders });
+  if (raw.ok) return raw;
+  const form = new FormData();
+  form.append("cacheControl", "3600");
+  form.append("file", new Blob([bytes], { type }), "photo.jpg");
+  return fetch(url, { method: "PUT", body: form, headers });
 }
 
 function signedUploadUrl(ticket: { path: string; token: string; endpoint: string; signedUrl?: string }) {
@@ -236,7 +242,7 @@ function signedUploadUrl(ticket: { path: string; token: string; endpoint: string
   const rel = (ticket.path || "").replace(/^\/+/, "");
   const full = rel.startsWith(`${bucket}/`) ? rel : `${bucket}/${rel}`;
   const path = full.split("/").filter(Boolean).map((part) => encodeURIComponent(part)).join("/");
-  const token = encodeURIComponent(latinHeader(ticket.token));
+  const token = encodeURIComponent(ascii(ticket.token));
   return `${ticket.endpoint.replace(/\/$/, "")}/object/upload/sign/${path}?token=${token}`;
 }
 
@@ -249,12 +255,11 @@ function blobToData(blob: Blob): Promise<string> {
   });
 }
 
-function shrinkJpeg(file: File): Promise<Blob> {
+function shrinkJpeg(file: Blob, max = 1280, quality = 0.72): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
-      const max = 1280;
       const scale = Math.min(1, max / Math.max(img.width, img.height, 1));
       const canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.round(img.width * scale));
@@ -270,7 +275,7 @@ function shrinkJpeg(file: File): Promise<Blob> {
       canvas.toBlob(
         (blob) => (blob ? resolve(blob) : reject(new Error("blob"))),
         "image/jpeg",
-        0.72,
+        quality,
       );
     };
     img.onerror = () => {
@@ -279,6 +284,20 @@ function shrinkJpeg(file: File): Promise<Blob> {
     };
     img.src = url;
   });
+}
+
+async function jpegDataUnder(file: Blob, maxChars: number) {
+  let max = 960;
+  let quality = 0.62;
+  let last = "";
+  for (let i = 0; i < 4; i++) {
+    const blob = await shrinkJpeg(file, max, quality);
+    last = await blobToData(blob);
+    if (last.length <= maxChars) return last;
+    max = Math.round(max * 0.75);
+    quality = Math.max(0.4, quality - 0.08);
+  }
+  return last;
 }
 
 async function putInBucket(file: File, folder: string): Promise<string> {

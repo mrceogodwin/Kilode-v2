@@ -293,14 +293,14 @@ function HeroSlide({
           <button
             type="button"
             aria-label="Repost to chat"
-            className="hero-repost absolute top-2 right-2 z-20 grid size-9 place-items-center rounded-full"
+            className="hero-repost absolute top-2.5 right-2.5 z-20"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               onRepost(p);
             }}
           >
-            <Repeat2 className="size-4" strokeWidth={2.5} />
+            <Repeat2 className="size-[18px]" strokeWidth={2.25} />
           </button>
         ) : null}
         <div className="hero-caption absolute inset-x-0 bottom-0 px-3 pt-8 pb-3">

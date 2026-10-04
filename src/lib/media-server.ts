@@ -4,7 +4,8 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { assertStaff } from "@/lib/staff-server";
 
 function env(name: string) {
-  return typeof process !== "undefined" ? process.env[name]?.trim() || "" : "";
+  const raw = typeof process !== "undefined" ? process.env[name] || "" : "";
+  return raw.replace(/[^\x20-\x7E]/g, "").trim();
 }
 
 function storageEnv() {
@@ -22,9 +23,10 @@ function storageEnv() {
 export const prepareTakeUpload = createServerFn({ method: "POST" })
   .validator((d: { ext?: string; type?: string }) => ({
     ext: String(d?.ext || "jpg").replace(/[^a-z0-9]/gi, "").slice(0, 4) || "jpg",
-    type: String(d?.type || "application/octet-stream").slice(0, 80),
+    type: String(d?.type || "application/octet-stream").replace(/[^\w.+/-]/g, "").slice(0, 80) || "application/octet-stream",
   }))
   .handler(async ({ data }) => {
+    try {
     const { url, anon, key } = storageEnv();
     if (!url || !key) {
       return {
@@ -38,7 +40,7 @@ export const prepareTakeUpload = createServerFn({ method: "POST" })
     const path = `takes/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${data.ext}`;
     const signed = await admin.storage.from(bucket).createSignedUploadUrl(path);
     if (signed.error || !signed.data?.token) {
-      return { ok: false as const, reason: signed.error?.message || "Supabase did not open an upload. Make the market-images bucket public." };
+      return { ok: false as const, reason: "Supabase did not open an upload. Make the market-images bucket public." };
     }
     const pub = admin.storage.from(bucket).getPublicUrl(signed.data.path || path);
     const signedUrl = signed.data.signedUrl || "";
@@ -51,6 +53,9 @@ export const prepareTakeUpload = createServerFn({ method: "POST" })
       apikey: anon,
       endpoint: `${url.replace(/\/$/, "")}/storage/v1`,
     };
+    } catch {
+      return { ok: false as const, reason: "Photo hosting did not open. Kilode will keep a smaller copy." };
+    }
   });
 
 const DROP_EXT = new Set(["apk", "zip", "pdf", "mp3", "m4a", "wav", "mp4", "webm", "jpg", "jpeg", "png", "webp"]);
@@ -60,7 +65,7 @@ export const prepareDropUpload = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { ext?: string; type?: string }) => ({
     ext: String(d?.ext || "").replace(/[^a-z0-9]/gi, "").slice(0, 8).toLowerCase(),
-    type: String(d?.type || "application/octet-stream").slice(0, 80),
+    type: String(d?.type || "application/octet-stream").replace(/[^\w.+/-]/g, "").slice(0, 80) || "application/octet-stream",
   }))
   .handler(async ({ context, data }) => {
     await assertStaff(context.userId, "super");
