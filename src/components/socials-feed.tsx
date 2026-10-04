@@ -1608,7 +1608,7 @@ export function SocialsFeed({ authed, account = "member", me = "", lane = "posts
                     if (r.reason) setErr(r.reason);
                     return;
                   }
-                  kilodeSound("tick");
+                  if (r.on) kilodeSound("tick");
                   setThreads((m) => ({
                     ...m,
                     [t.id]: (m[t.id] || []).map((row) => (row.id === id ? { ...row, liked: r.on, likes: r.likes } : row)),
