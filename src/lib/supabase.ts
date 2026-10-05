@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { prepareDropUpload, prepareTakeUpload, prepareCvUpload } from "@/lib/media-server";
+import { cvFileProblem } from "@/lib/board-rules";
+import { prepareCvUpload, prepareDropUpload, prepareTakeUpload } from "@/lib/media-server";
 
 function readEnv(name: string): string {
   const vite = import.meta.env as Record<string, string | undefined>;
@@ -198,9 +199,8 @@ export async function uploadDropFile(file: File): Promise<string> {
 
 /** PDF CV for a job application. Neon stores the https link, not the file. */
 export async function uploadCvFile(file: File): Promise<string> {
-  if (file.size > 4 * 1024 * 1024) throw new Error("CV must be 4MB or smaller.");
-  const pdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
-  if (!pdf) throw new Error("Use a PDF. Or paste an https link.");
+  const problem = cvFileProblem(file);
+  if (problem) throw new Error(problem);
   const ticket = await prepareCvUpload({ data: { ext: "pdf", type: "application/pdf" } });
   if (!ticket.ok) throw new Error(ticket.reason);
   const body = new Blob([await file.arrayBuffer()], { type: "application/pdf" });

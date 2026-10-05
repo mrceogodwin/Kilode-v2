@@ -10,6 +10,7 @@ import { JoinCta } from "@/components/get-app";
 import { DeskPayBox } from "@/components/pay-checkout";
 import { PortraitAd } from "@/components/premium-ad";
 import { uploadCvFile, uploadListingPhoto } from "@/lib/supabase";
+import { applyProblems, cvFileProblem, deadlinePast, experienceMatch, laneMatch, payLine, salaryBand as payBandMatch, searchRank, shareText } from "@/lib/board-rules";
 
 const COPY: Record<
   ListingKind,
@@ -99,29 +100,11 @@ function catMatch(r: Card, pill: string) {
 const JOB_PILLS = ["All", "Tech", "Creative", "Sales", "Remote"] as const;
 const SALARY_BANDS = ["Any", "Under ₦500k", "₦500k – ₦1M", "₦1M+"] as const;
 
-function salaryNum(raw?: string) {
-  const n = Number(String(raw || "").replace(/[^\d.]/g, ""));
-  return Number.isFinite(n) ? n : 0;
-}
-
 function jobPillMatch(r: Card, pill: string) {
   if (pill === "All") return true;
   const meta = readMeta(r.meta);
-  const blob = `${r.title} ${r.body} ${r.city} ${meta.category || ""} ${meta.jobType || ""}`.toLowerCase();
-  if (pill === "Tech") return /\b(tech|engineer|developer|software)\b/.test(blob);
-  if (pill === "Creative") return /\b(design|creative|writer|media|artist|art)\b/.test(blob);
-  if (pill === "Sales") return /\b(sale|sales|marketing)\b/.test(blob);
-  if (pill === "Remote") return /\bremote\b/.test(blob);
-  return true;
-}
-
-function salaryMatch(raw: string | undefined, band: string, includeOpen = true) {
-  if (band === "Any") return true;
-  const n = salaryNum(raw);
-  if (!n) return includeOpen;
-  if (band === "Under ₦500k") return n < 500000;
-  if (band === "₦500k – ₦1M") return n >= 500000 && n <= 1000000;
-  return n > 1000000;
+  const blob = `${r.title} ${r.body} ${r.city} ${meta.category || ""} ${meta.jobType || ""}`;
+  return laneMatch(blob, pill);
 }
 
 function CompanyMark({ name }: { name: string }) {
@@ -245,6 +228,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [catPick, setCatPick] = useState("All");
   const [jobPill, setJobPill] = useState("All");
   const [jobTypeFilter, setJobTypeFilter] = useState("All");
+  const [expPick, setExpPick] = useState("All");
   const [salaryBand, setSalaryBand] = useState("Any");
   const [roleTab, setRoleTab] = useState<"foryou" | "recommended">("foryou");
   const [kept, setKept] = useState<string[]>([]);
@@ -284,11 +268,12 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
     try {
       const raw = localStorage.getItem("kilode-job-seek");
       if (raw) {
-        const p = JSON.parse(raw) as { type?: string; pill?: string; city?: string; band?: string };
+        const p = JSON.parse(raw) as { type?: string; pill?: string; city?: string; band?: string; exp?: string };
         if (p.type) setJobTypeFilter(p.type);
         if (p.pill) setJobPill(p.pill);
         if (p.city) setFilter(p.city);
         if (p.band) setSalaryBand(p.band);
+        if (p.exp) setExpPick(p.exp);
       }
       const saved = JSON.parse(localStorage.getItem("kilode-job-kept") || "[]") as unknown;
       if (Array.isArray(saved)) setKept(saved.filter((x) => typeof x === "string"));
@@ -306,9 +291,9 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
       return;
     }
     try {
-      localStorage.setItem("kilode-job-seek", JSON.stringify({ type: jobTypeFilter, pill: jobPill, city: filter, band: salaryBand }));
+      localStorage.setItem("kilode-job-seek", JSON.stringify({ type: jobTypeFilter, pill: jobPill, city: filter, band: salaryBand, exp: expPick }));
     } catch { /* ignore */ }
-  }, [kind, jobTypeFilter, jobPill, filter, salaryBand]);
+  }, [kind, jobTypeFilter, jobPill, filter, salaryBand, expPick]);
 
   function refreshJobDesk() {
     if (!session.user) return;
@@ -353,18 +338,28 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const canApply = !!session.user && canKind(meKind, "jobs.apply");
   const jobRows = useMemo(() => {
     const query = q.trim().toLowerCase();
+    const rank = (r: Card) => {
+      const meta = readMeta(r.meta);
+      return searchRank({
+        title: r.title,
+        company: `${r.company} ${r.submitter} ${meta.category || ""} ${meta.jobType || ""} ${meta.experience || ""}`,
+        city: r.city,
+        body: r.body,
+      }, query);
+    };
     return rows.filter((r) => {
       const meta = readMeta(r.meta);
       if (filter !== "All" && r.city !== filter) return false;
       if (jobTypeFilter === "Remote") {
         if (!/remote/i.test(`${meta.jobType || ""} ${r.city} ${r.title} ${r.body}`)) return false;
       } else if (jobTypeFilter !== "All" && (meta.jobType || "") !== jobTypeFilter) return false;
-      if (!salaryMatch(meta.salary, salaryBand, includeOpen)) return false;
+      if (!payBandMatch(meta.salary, salaryBand, includeOpen)) return false;
+      if (!experienceMatch(meta.experience, expPick)) return false;
       if (!jobPillMatch(r, jobPill)) return false;
-      if (!query) return true;
-      return `${r.title} ${r.company} ${r.city} ${r.submitter} ${r.body} ${meta.category || ""} ${meta.jobType || ""} ${meta.experience || ""}`.toLowerCase().includes(query);
-    });
-  }, [rows, q, filter, jobTypeFilter, salaryBand, jobPill, includeOpen]);
+      if (query && rank(r) === 0) return false;
+      return true;
+    }).sort((a, b) => (query ? rank(b) - rank(a) : 0));
+  }, [rows, q, filter, jobTypeFilter, salaryBand, jobPill, includeOpen, expPick]);
 
   function rememberSeeker(next: { phone?: string; cv?: string; skills?: string }) {
     const card = { phone: next.phone ?? phone, cv: next.cv ?? cv, skills: next.skills ?? skills };
@@ -374,6 +369,11 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   async function onCvFile(file: File | undefined) {
     if (!file) return;
     setErr("");
+    const problem = cvFileProblem(file);
+    if (problem) {
+      setErr(problem);
+      return;
+    }
     setCvBusy(true);
     try {
       const url = await uploadCvFile(file);
@@ -594,6 +594,10 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                     setErr("Add a title.");
                     return;
                   }
+                  if (kind === "job" && deadlinePast(deadline)) {
+                    setErr("That apply-by date is already past.");
+                    return;
+                  }
                   setBusy(true);
                   void saveListing({ data: { kind, title, body, city, contact, link, company, days, image, jobType, category, salary, condition, price, experience, deadline } }).then((r) => {
                     if (!r?.ok) setErr(r && "reason" in r ? r.reason : "Could not post.");
@@ -663,27 +667,16 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                     {cvBusy ? "Uploading PDF…" : "Or upload a PDF, 4MB max"}
                     <input type="file" accept="application/pdf,.pdf" disabled={cvBusy} onChange={(e) => void onCvFile(e.target.files?.[0])} className="mt-1 block w-full text-[12px]" />
                   </label>
-                  <input value={skills} onChange={(e) => { setSkills(e.target.value); rememberSeeker({ skills: e.target.value }); }} placeholder="Skills, short" className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-base" />
+                  <input value={skills} maxLength={160} onChange={(e) => { setSkills(e.target.value); rememberSeeker({ skills: e.target.value }); }} placeholder="Skills, short" className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-base" />
                   <div className="flex gap-2">
-                  <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Short apply note" className="min-w-0 flex-1 rounded-xl border border-line bg-panel px-3 py-2 text-base" />
+                  <input value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} placeholder="Short apply note" className="min-w-0 flex-1 rounded-xl border border-line bg-panel px-3 py-2 text-base" />
                   <button
                     type="button"
                     className="rounded-full bg-[#ffd45a] px-4 text-[13px] font-extrabold text-[#161616]"
                     onClick={() => {
-                      if (!legal) {
-                        setErr("Tick the notice before you apply.");
-                        return;
-                      }
-                      if (!note.trim()) {
-                        setErr("Write a short note. That is the application.");
-                        return;
-                      }
-                      if (phone.replace(/\D/g, "").length < 7) {
-                        setErr("Add a phone number.");
-                        return;
-                      }
-                      if (cv.trim() && !/^https:\/\//i.test(cv.trim())) {
-                        setErr("CV link must start with https://");
+                      const problem = applyProblems({ note, phone, cv, skills, legal });
+                      if (problem) {
+                        setErr(problem);
                         return;
                       }
                       void applyListing({ data: { id: open.id, note, phone, cv, skills } }).then((a) => {
@@ -699,6 +692,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                     Apply
                   </button>
                   </div>
+                  <p className="text-[11px] text-muted">{note.length}/500 · {skills.length}/160</p>
                   {msg && open.contact ? <p className="text-[12px] text-fg">Contact: {open.contact}</p> : null}
                 </div>
               ) : (
@@ -819,6 +813,8 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
           setJobPill={setJobPill}
           jobTypeFilter={jobTypeFilter}
           setJobTypeFilter={setJobTypeFilter}
+          expPick={expPick}
+          setExpPick={setExpPick}
           salaryBand={salaryBand}
           setSalaryBand={setSalaryBand}
           includeOpen={includeOpen}
@@ -891,12 +887,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
 }
 
 function payLabel(raw?: string) {
-  const t = String(raw || "").trim();
-  if (!t || /^salary|^ask/i.test(t)) return t || "Salary on request";
-  if (t.startsWith("₦")) return t;
-  if (/^N\s?\d/.test(t)) return `₦${t.replace(/^N\s?/, "")}`;
-  if (/^\d/.test(t)) return /[–—-]/.test(t) ? `₦${t}` : naira(t);
-  return t;
+  return payLine(raw);
 }
 
 function roleTags(r: Card) {
@@ -943,6 +934,8 @@ function JobBoard({
   setJobPill,
   jobTypeFilter,
   setJobTypeFilter,
+  expPick,
+  setExpPick,
   salaryBand,
   setSalaryBand,
   includeOpen,
@@ -966,6 +959,8 @@ function JobBoard({
   setJobPill: (v: string) => void;
   jobTypeFilter: string;
   setJobTypeFilter: (v: string) => void;
+  expPick: string;
+  setExpPick: (v: string) => void;
   salaryBand: string;
   setSalaryBand: (v: string) => void;
   includeOpen: boolean;
@@ -990,9 +985,9 @@ function JobBoard({
   let live = rows.filter((r) => !hidden.includes(r.id));
   if (onlyKept) live = live.filter((r) => kept.includes(r.id));
   if (onlyApplied) live = live.filter((r) => applied.includes(r.id));
-  live = [...live].sort((a, b) => (sort === "old" ? a.ts - b.ts : b.ts - a.ts));
+  if (!q.trim()) live = [...live].sort((a, b) => (sort === "old" ? a.ts - b.ts : b.ts - a.ts));
   const featured = live.slice(0, 2);
-  const openRoles = roleTab === "recommended" ? [...live].reverse() : sort === "new" ? [...live].sort((a, b) => Number(kept.includes(b.id)) - Number(kept.includes(a.id))) : live;
+  const openRoles = q.trim() ? live : roleTab === "recommended" ? [...live].reverse() : sort === "new" ? [...live].sort((a, b) => Number(kept.includes(b.id)) - Number(kept.includes(a.id))) : live;
   const trends = trendBits(pool);
   const laneCount = (id: string) => (id === "All" ? pool.length : pool.filter((r) => jobPillMatch(r, id)).length);
 
@@ -1060,13 +1055,16 @@ function JobBoard({
             <button type="button" className={onlyApplied ? "on" : ""} onClick={() => setOnlyApplied((v) => !v)}>Applied</button>
             <button type="button" className={sort === "new" ? "on" : ""} onClick={() => setSort("new")}>Newest</button>
             <button type="button" className={sort === "old" ? "on" : ""} onClick={() => setSort("old")}>Oldest</button>
+            {["Junior", "Mid", "Senior"].map((level) => (
+              <button key={level} type="button" className={expPick === level ? "on" : ""} onClick={() => setExpPick(expPick === level ? "All" : level)}>{level}</button>
+            ))}
           </div>
           <div className="job-sheet-label">Also</div>
           <div className="job-sheet-row">
             {["Contract", "Freelance", "Internship"].map((t) => (
               <button key={t} type="button" className={jobTypeFilter === t ? "on" : ""} onClick={() => pickType(jobTypeFilter === t ? "All" : t)}>{t}</button>
             ))}
-            <button type="button" onClick={() => { setSalaryBand("Any"); setJobTypeFilter("All"); setJobPill("All"); setFilter("All"); setQ(""); setIncludeOpen(true); setOnlyKept(false); setOnlyApplied(false); setSort("new"); }}>Clear</button>
+            <button type="button" onClick={() => { setSalaryBand("Any"); setJobTypeFilter("All"); setJobPill("All"); setFilter("All"); setQ(""); setIncludeOpen(true); setOnlyKept(false); setOnlyApplied(false); setSort("new"); setExpPick("All"); }}>Clear</button>
           </div>
           <button type="button" className="job-post" onClick={onPost}><Plus className="size-3.5" /> Post a role</button>
         </div>
@@ -1137,7 +1135,7 @@ function JobBoard({
             <button type="button" className={roleTab === "recommended" ? "on" : ""} onClick={() => setRoleTab("recommended")}>Recommended</button>
           </div>
         </div>
-        {openRoles.length === 0 ? <p className="job-empty">Nothing in this lane. Saved roles and the filters you pick come back next time.</p> : null}
+        {openRoles.length === 0 ? <p className="job-empty">{onlyKept ? "No saved roles in this cut." : onlyApplied ? "You have not applied to anything in this cut." : q.trim() ? "No role matches that search." : "Nothing in this lane. Saved roles and the filters you pick come back next time."}</p> : null}
         <div className="job-roles">
           {openRoles.slice(0, 12).map((r) => {
             const meta = readMeta(r.meta);
@@ -1149,7 +1147,7 @@ function JobBoard({
                   <span>
                     <i>{r.company || "Company"}</i>
                     <strong>{r.title}</strong>
-                    <em><MapPin className="size-3" /> {r.city || "Nigeria"} · {meta.jobType || "Open role"}{applied.includes(r.id) ? " · Applied" : ""}</em>
+                    <em><MapPin className="size-3" /> {r.city || "Nigeria"} · {meta.jobType || "Open role"}{applied.includes(r.id) ? " · Applied" : ""}{r.expiresAt ? ` · ${daysLeft(r.expiresAt, r.days)}d left` : ""}</em>
                     {tags.length > 0 ? <span className="job-tags">{tags.map((t) => <b key={t}>{t}</b>)}</span> : null}
                   </span>
                 </button>
@@ -1166,10 +1164,8 @@ function JobBoard({
                       <button type="button" onClick={() => { onKeep(r.id); setMenu(""); }}>{kept.includes(r.id) ? "Unsave" : "Save"}</button>
                       <button type="button" onClick={() => {
                         setMenu("");
-                        const line = `${r.title}${r.company ? ` · ${r.company}` : ""}${r.city ? ` · ${r.city}` : ""}`;
-                        const url = window.location.href;
-                        const text = `${line}\n${url}`;
-                        if (navigator.share) void navigator.share({ title: r.title, text, url }).catch(() => undefined);
+                        const text = shareText({ title: r.title, company: r.company, city: r.city }, window.location.href);
+                        if (navigator.share) void navigator.share({ title: r.title, text, url: window.location.href }).catch(() => undefined);
                         else void navigator.clipboard?.writeText(text);
                         setCopied(r.id);
                         window.setTimeout(() => setCopied(""), 1600);

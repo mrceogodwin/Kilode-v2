@@ -11,6 +11,7 @@ import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
 import { VerifiedMark } from "@/components/handle-link";
+import { mentionQuery } from "@/lib/board-rules";
 
 
 function heatOf(t: TakeRow) {
@@ -1271,12 +1272,12 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
             onChange={(e) => {
               const v = e.target.value;
               setBody(v);
-              const hit = v.match(/(^|\s)@([a-z0-9._-]{0,24})$/i);
-              if (!hit || hit[2].length < 2) {
+              const who = mentionQuery(v);
+              if (!who) {
                 setMentions([]);
                 return;
               }
-              void searchPeople({ data: { q: hit[2] } })
+              void searchPeople({ data: { q: who } })
                 .then((rows) => setMentions(rows.slice(0, 5).map((p) => ({ handle: p.handle, role: p.role }))))
                 .catch(() => setMentions([]));
             }}
@@ -1302,7 +1303,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
               </button>
             ))}
           </div>
-        ) : body.match(/(^|\s)@[a-z0-9._-]{2,}$/i) ? (
+        ) : mentionQuery(body) && mentions.length === 0 ? (
           <p className="px-1 text-[11px] text-muted">No account matches that name.</p>
         ) : null}
         {kind === "job" ? (

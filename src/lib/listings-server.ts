@@ -5,6 +5,7 @@ import { asAccountKind, type AccountKind, safeHttpUrl } from "@/lib/qonvo-data";
 import { canKind, kindActionHint, type KindAction } from "@/lib/permissions";
 import { gateText } from "@/lib/mod-cache";
 import { DEMO_LISTINGS } from "@/lib/qonvo-seed";
+import { applyProblems } from "@/lib/board-rules";
 import { deskCharge } from "@/lib/site-server";
 
 export type ListingKind = "job" | "market" | "rent";
@@ -315,12 +316,11 @@ export const applyListing = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const ak = await kindOf(context.userId);
     if (!canKind(ak, "jobs.apply")) return { ok: false as const, reason: kindActionHint("jobs.apply") };
+    const problem = applyProblems({ note: data.note, phone: data.phone, cv: data.cv, skills: data.skills });
+    if (problem) return { ok: false as const, reason: problem };
     const note = (data.note ?? "").trim().slice(0, 500);
-    if (note.length < 2) return { ok: false as const, reason: "Write a short note." };
     const phone = (data.phone ?? "").replace(/[^\d+\s-]/g, "").trim().slice(0, 24);
-    if (phone.replace(/\D/g, "").length < 7) return { ok: false as const, reason: "Add a phone number the employer can use." };
     const cv = (data.cv ?? "").trim().slice(0, 300);
-    if (cv && !/^https:\/\//i.test(cv)) return { ok: false as const, reason: "CV link must start with https://" };
     const skills = (data.skills ?? "").trim().slice(0, 160);
     const sql = await getSql();
     const handle = await handleOf(context.userId);

@@ -28,6 +28,7 @@ import type { PayProvider } from "@/lib/pay-money";
 import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { uploadCvFile } from "@/lib/supabase";
+import { creativeFits, runEnd, slotCharge } from "@/lib/board-rules";
 import { searchPeople, searchTakes, suggestFollows } from "@/lib/takes-server";
 import { authClient, signOut } from "@/lib/auth/client";
 import { AvatarImg, AvatarPicker } from "@/components/account-kind";
@@ -2117,7 +2118,7 @@ function Ads({ store }: { store: Store }) {
   const mine = store.campaigns.filter((c) => !!c?.id && (c.status !== "approved" || c.expiresAt));
   const size = AD_SIZES[place] ?? AD_SIZES.board;
   const slot = AD_PLACEMENTS.find((p) => p.id === place);
-  const usd = prices[place] ?? slot?.usd ?? 40;
+  const usd = slotCharge(prices[place] ?? slot?.usd ?? 40, days);
   const slotPaid = paidSlots[place] !== false;
   const mustPay = adsPay && slotPaid;
   const ngn = Math.round(usd * (gate.ngnPerUsd || 0));
@@ -2133,14 +2134,7 @@ function Ads({ store }: { store: Store }) {
     const pic = new Image();
     pic.onload = () => {
       setShotPx(`${pic.naturalWidth} × ${pic.naturalHeight}`);
-      const want = size.label.match(/(\d+)\s*×\s*(\d+)/);
-      if (!want || !pic.naturalWidth || !pic.naturalHeight) {
-        setShotFit(true);
-        return;
-      }
-      const dw = Math.abs(pic.naturalWidth - Number(want[1])) / Number(want[1]);
-      const dh = Math.abs(pic.naturalHeight - Number(want[2])) / Number(want[2]);
-      setShotFit(dw <= 0.25 && dh <= 0.25);
+      setShotFit(creativeFits(pic.naturalWidth, pic.naturalHeight, size.label));
     };
     pic.onerror = () => {
       setShotPx("");
@@ -2339,7 +2333,7 @@ function Ads({ store }: { store: Store }) {
               </div>
               <div className="ad-card">
                 <strong>${usd}</strong>
-                <em>This is the slot price from Kilode. Changing the days does not change what you pay. It only changes how long the ad stays up. If you pay today it runs until {new Date(Date.now() + days * 86_400_000).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}. About ₦{ngn.toLocaleString("en-NG")} before the provider's own fee.</em>
+                <em>This is the slot price from Kilode. Changing the days does not change what you pay. It only changes how long the ad stays up. If you pay today it runs until {new Date(runEnd(Date.now(), days)).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}. About ₦{ngn.toLocaleString("en-NG")} before the provider's own fee.</em>
               </div>
             </div>
           ) : null}
