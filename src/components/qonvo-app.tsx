@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, startTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, startTransition } from "react";
 import {
   Activity,
   Award,
@@ -875,7 +875,7 @@ function QonvoAppInner() {
               <RoomList query={query} setQuery={setQuery} listed={listed} roomId={store.roomId} onOpen={goHome} />
             </aside>
 
-            <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-bg">
+            <section key={homeTab} className="pane-in flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-bg">
               {homeTab === "feeds" && marketDesk ? (
                 <MarketsDesk desk={marketDesk} onDesk={setMarketDesk} onBack={() => setMarketDesk(null)} />
               ) : null}
@@ -1286,7 +1286,15 @@ function QonvoAppInner() {
           }}
         />
       ) : null}
-      <nav className="dock pointer-events-auto z-40">
+      <DockBar
+        slot={
+          screen === "search" ? "activity"
+          : screen === "dashboard" ? "space"
+          : screen === "home" && homeTab === "socials" ? "socials"
+          : screen === "home" && homeTab === "feeds" && !marketDesk ? "media"
+          : ""
+        }
+      >
         <Tab icon={<Newspaper className="size-5" />} label="Media" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
         <Tab icon={<UsersRound className="size-5" />} label="Socials" on={screen === "home" && homeTab === "socials"} onClick={() => { setMenuOpen(false); if (session.isPending) return; if (!signedIn) { window.location.href = "/login?mode=up"; return; } setSocialLane("posts"); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); store.setOpenPost(null); }} />
         <button
@@ -1309,7 +1317,7 @@ function QonvoAppInner() {
         </button>
         <Tab icon={<Activity className="size-5" />} label="Activity" on={screen === "search"} onClick={() => { setMenuOpen(false); if (session.isPending) return; if (!signedIn) { window.location.href = "/login?mode=up"; return; } setScreen("search"); }} />
         <Tab icon={<Layers className="size-5" />} label="My Space" on={screen === "dashboard"} onClick={() => { setMenuOpen(false); if (session.isPending) return; if (!signedIn) { window.location.href = "/login?mode=up"; return; } setScreen("dashboard"); }} />
-      </nav>
+      </DockBar>
 
       {roomsOpen ? (
         <div className="app-drawer rooms-drawer">
@@ -2123,6 +2131,38 @@ function IconTg() {
     <svg viewBox="0 0 24 24" className="size-4 fill-current" aria-hidden>
       <path d="M21.5 3.5 2.8 10.7c-1.3.5-1.3 1.2-.2 1.5l4.8 1.5 1.9 5.8c.2.7.4 1 1.1.6l2.7-2.5 5.3 3.9c1 .6 1.7.3 2-1l3.4-16c.4-1.5-.5-2.2-1.6-1.7Z" />
     </svg>
+  );
+}
+
+function DockBar({ slot, children }: { slot: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLElement>(null);
+  const pill = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const nav = ref.current;
+    const mark = pill.current;
+    if (!nav || !mark) return;
+    const place = () => {
+      const on = nav.querySelector<HTMLElement>(".app-tab.on");
+      if (!on) {
+        mark.style.opacity = "0";
+        return;
+      }
+      const a = nav.getBoundingClientRect();
+      const b = on.getBoundingClientRect();
+      const width = Math.min(76, Math.max(48, b.width - 12));
+      mark.style.opacity = "1";
+      mark.style.width = `${width}px`;
+      mark.style.transform = `translate3d(${b.left - a.left + (b.width - width) / 2}px, 0, 0)`;
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [slot]);
+  return (
+    <nav ref={ref} className="dock pointer-events-auto z-40">
+      <span ref={pill} className="dock-liquid" aria-hidden />
+      {children}
+    </nav>
   );
 }
 

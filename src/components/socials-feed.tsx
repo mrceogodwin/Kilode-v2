@@ -308,6 +308,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
   const pills = pillsFor(account);
   const boot = bootCache();
   const [takes, setTakes] = useState<TakeRow[]>(boot.takes);
+  const [booted, setBooted] = useState(boot.takes.length > 0);
   const [fellows, setFellows] = useState<FellowRow[]>(boot.fellows);
   const [next, setNext] = useState(0);
   const [err, setErr] = useState("");
@@ -487,9 +488,11 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
         setLive(Array.isArray(r.live) ? r.live : []);
         setFaces(r.faces && typeof r.faces === "object" ? r.faces : {});
         writeCache(r.takes, r.fellows);
+        setBooted(true);
       })
       .catch(() => {
         if (!dead && takes.length === 0) setErr("Socials will retry. You can still write.");
+        if (!dead) setBooted(true);
       });
     return () => {
       dead = true;
@@ -992,20 +995,25 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Find @username"
-          className="w-full glass-3d px-3 py-2 outline-none"
+          className="soc-find w-full px-3 py-2 outline-none"
           style={{ fontSize: 16 }}
         />
       </label>
       {people.length > 0 ? (
-        <div className="mb-3 overflow-hidden rounded-[12px] border border-line">
+        <div className="soc-people">
           {people.map((p) => (
-            <a key={p.handle} href={`/u/${encodeURIComponent(p.handle)}`} className="flex items-center gap-2 border-b border-line px-3 py-2 last:border-0">
-              <img src={avatarUrl(p.handle)} alt="" className="size-7 rounded-full bg-panel-3" />
-              <span className="min-w-0">
-                <span className="block truncate text-[12px] font-semibold">@{p.handle}</span>
-                <span className="block truncate text-[10px] text-muted">{p.role}{p.line ? ` · ${p.line}` : ""}</span>
-              </span>
-            </a>
+            <div key={p.handle} className="soc-person">
+              <a href={`/u/${encodeURIComponent(p.handle)}`}>
+                <img src={avatarUrl(p.handle)} alt="" />
+                <span>
+                  <strong>@{p.handle}</strong>
+                  <em>{p.role}{p.line ? ` · ${p.line}` : ""}</em>
+                </span>
+              </a>
+              <button type="button" className={followed(p.handle) ? "on" : ""} onClick={() => flipFollow(p.handle)}>
+                {followLabel(p.handle)}
+              </button>
+            </div>
           ))}
         </div>
       ) : null}
@@ -1472,8 +1480,16 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
         </div>
       ) : null}
 
-      {shownTakes.length === 0 ? (
-        <p className="py-3 text-center text-[11px] text-muted">
+      {!booted && shownTakes.length === 0 ? (
+        <div className="soc-skel" aria-hidden>
+          <span /><span /><span />
+        </div>
+      ) : shownTakes.length === 0 ? (
+        <div className="soc-empty">
+          <strong>
+            {feedCut === "following" ? "Your people" : feedCut === "saved" ? "Saved" : feedCut === "trending" ? "Quiet" : "The feed"}
+          </strong>
+          <span>
           {feedCut === "following" && !followLoaded
             ? "Loading who you follow…"
             : feedCut === "following"
@@ -1493,7 +1509,8 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
                           : feedCut === "saved"
                             ? "Save a take and it stays here."
                             : "No takes yet. Be first."}
-        </p>
+          </span>
+        </div>
       ) : null}
       <div className="space-y-2">
         {shownTakes.map((t) => (
@@ -1703,7 +1720,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
       {(feedCut === "following" ? followNext : feedCut === "trending" ? trendNext : feedCut === "tag" ? tagNext : next) ? (
         <button
           type="button"
-          className="mt-3 w-full rounded-[10px] border border-line py-2 text-[11px] font-semibold text-muted"
+          className="soc-more"
           onClick={() => {
             if (feedCut === "following") {
               void listFollowingTakes({ data: { before: followNext } }).then((r) => {
@@ -2107,8 +2124,30 @@ function TakeCard({
   const banter = pct(take.voteA, take.voteB);
   const expires = typeof take.meta.expires === "number" ? take.meta.expires : 0;
   const hours = expires ? Math.max(0, Math.round((expires - Date.now()) / 3600000)) : 0;
+  const seenLike = useRef(false);
+  const [burst, setBurst] = useState("");
+  useEffect(() => {
+    if (!seenLike.current) {
+      seenLike.current = true;
+      return;
+    }
+    if (!liked) return;
+    setBurst("like");
+    const t = window.setTimeout(() => setBurst(""), 420);
+    return () => window.clearTimeout(t);
+  }, [liked]);
+  const tap = useRef(0);
+  function onPhoto() {
+    tap.current += 1;
+    window.setTimeout(() => {
+      tap.current = 0;
+    }, 280);
+    if (tap.current < 2) return;
+    tap.current = 0;
+    if (!liked) onLike();
+  }
   return (
-    <article className="glass-3d px-2.5 py-2" data-take={take.id}>
+    <article className="take-card glass-3d px-2.5 py-2" data-take={take.id}>
       {take.via ? <div className="mb-1 text-[10px] font-semibold text-muted">Reposted by @{take.via}</div> : null}
       <div className="flex items-start gap-2">
         <Face handle={ghost ? "ghost" : take.handle} photo={ghost ? "" : photo} size={28} />
@@ -2181,7 +2220,7 @@ function TakeCard({
               {typeof take.meta.video === "string" && take.meta.video.startsWith("http") ? (
                 <video src={take.meta.video} poster={typeof take.meta.image === "string" ? take.meta.image : undefined} controls playsInline className="mt-2 max-h-80 w-full rounded-[10px] bg-black" />
               ) : typeof take.meta.image === "string" && (take.meta.image.startsWith("http") || take.meta.image.startsWith("data:image/")) ? (
-                <img src={take.meta.image} alt={typeof take.meta.alt === "string" ? take.meta.alt : ""} referrerPolicy="no-referrer" className="mt-2 max-h-72 w-full rounded-[10px] object-cover" />
+                <img src={take.meta.image} alt={typeof take.meta.alt === "string" ? take.meta.alt : ""} referrerPolicy="no-referrer" className="take-photo" onClick={onPhoto} />
               ) : null}
             </>
           )}
@@ -2190,7 +2229,7 @@ function TakeCard({
             typeof take.meta.quoteHref === "string" && take.meta.quoteHref.startsWith("/p/") ? (
               <button
                 type="button"
-                className="mt-1.5 block w-full rounded-[10px] border border-line px-2 py-1.5 text-left"
+                className="take-quote"
                 onClick={() => window.dispatchEvent(new CustomEvent("kilode:read", { detail: take.meta.quoteHref }))}
               >
                 <div className="text-[10px] text-muted">{String(take.meta.quoteName || "")} @{String(take.meta.quoteHandle || "")}</div>
@@ -2198,7 +2237,7 @@ function TakeCard({
                 <div className="mt-1 text-[10px] font-semibold text-lime-2">Open story</div>
               </button>
             ) : (
-              <div className="mt-1.5 rounded-[10px] border border-line px-2 py-1.5">
+              <div className="take-quote">
                 <div className="text-[10px] text-muted">{String(take.meta.quoteName || "")} @{String(take.meta.quoteHandle || "")}</div>
                 <div className="text-[12px] leading-snug text-fg/80">{plainBits(String(take.meta.quoteBody || ""))}</div>
               </div>
@@ -2235,7 +2274,7 @@ function TakeCard({
                 <button type="button" className="text-lime-2" onClick={() => onVote("fact")}>FACT {fact}%</button>
                 <button type="button" className="text-muted" onClick={() => onVote("cap")}>CAP {100 - fact}%</button>
               </div>
-              <div className="flex h-1 overflow-hidden rounded-sm bg-white/10">
+              <div className="take-meter">
                 <div className="h-full bg-lime-2" style={{ width: `${fact}%` }} />
               </div>
             </div>
@@ -2247,7 +2286,7 @@ function TakeCard({
                 <button type="button" className="text-lime-2" onClick={() => onVote("a")}>{String(take.meta.a || "For")} {banter}%</button>
                 <button type="button" className="text-muted" onClick={() => onVote("b")}>{String(take.meta.b || "Against")} {100 - banter}%</button>
               </div>
-              <div className="flex h-1 overflow-hidden rounded-sm bg-white/10">
+              <div className="take-meter">
                 <div className="h-full bg-lime-2" style={{ width: `${banter}%` }} />
               </div>
             </div>
@@ -2262,7 +2301,7 @@ function TakeCard({
           {replyOpen && replies.length > 0 ? (
             <div className="mt-2 space-y-1.5 border-t border-line pt-2">
               {replies.map((r) => (
-                <div key={r.id} className="text-[12px] leading-snug">
+                <div key={r.id} className="take-reply">
                   <a href={`/u/${encodeURIComponent(r.handle)}`} className="font-semibold">@{r.handle}</a>
                   <span className="text-muted"> · {timeAgo(r.ts)}</span>
                   {onDeleteReply && meHandle && r.handle.toLowerCase() === meHandle.toLowerCase() ? (
@@ -2310,7 +2349,7 @@ function TakeCard({
                   />
                 </label>
                 <input value={reply} onChange={(e) => onReplyChange(e.target.value)} placeholder="Reply" className="min-w-0 flex-1 rounded-[10px] border border-line bg-bg px-2 py-1 outline-none" style={{ fontSize: 16 }} />
-                <button type="submit" className="text-[11px] font-semibold text-lime-2">Send</button>
+                <button type="submit" className="reply-send">Send</button>
               </div>
             </form>
           ) : null}
@@ -2318,14 +2357,14 @@ function TakeCard({
         </div>
       </div>
       <div className="take-react">
-        <button type="button" className={liked ? "on" : ""} onClick={onLike}>
-          <KSpark /> {take.likes.toLocaleString()}
+        <button type="button" className={`${liked ? "on" : ""} ${burst === "like" ? "pop" : ""}`} onClick={onLike}>
+          <KSpark /> {take.likes ? take.likes.toLocaleString() : ""}
         </button>
         <button type="button" onClick={onReplyOpen}>
-          <KTalk /> {take.comments.toLocaleString()}
+          <KTalk /> {take.comments ? take.comments.toLocaleString() : ""}
         </button>
-        <button type="button" onClick={onRepost}>
-          <KLoop /> {take.reposts.toLocaleString()}
+        <button type="button" className="repost" onClick={(e) => { e.currentTarget.classList.remove("spin"); void e.currentTarget.offsetWidth; e.currentTarget.classList.add("spin"); onRepost(); }}>
+          <KLoop /> {take.reposts ? take.reposts.toLocaleString() : ""}
         </button>
         <button type="button" className={saved ? "on" : ""} onClick={onSave} aria-label={saved ? "Unsave" : "Save"}>
           <KMark />
