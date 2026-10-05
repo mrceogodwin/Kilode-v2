@@ -2262,6 +2262,37 @@ html[data-skin="ivory"] .menu-sheet .menu-ico { color: #e6c56a; }
 .mh-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .mh-campaign { min-width: 220px; }
 .mh-campaign b { color: #ffd45a; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.mh-banner {
+  display: grid;
+  grid-template-columns: 1fr 108px;
+  gap: 8px;
+  min-height: 132px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid #343434;
+  border-radius: 16px;
+  background: #191919 center/cover no-repeat;
+  padding: 12px;
+}
+.mh-banner strong { display: block; font-size: 22px; line-height: 1.05; }
+.mh-banner em { display: block; margin: 2px 0 8px; font-style: normal; font-size: 12px; color: #f5f3ee; }
+.mh-album { position: relative; display: grid; width: 108px; gap: 2px; border: 0; background: transparent; color: #f5f3ee; text-align: left; }
+.mh-album-photo { width: 108px; height: 78px; border-radius: 10px; object-fit: cover; }
+.mh-album b, .mh-album i { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; font-style: normal; }
+.mh-album svg { position: absolute; right: 0; bottom: 0; }
+.mh-quick { display: grid; grid-template-columns: repeat(5, minmax(72px, 1fr)); gap: 6px; overflow-x: auto; }
+.mh-quick button { display: flex; min-height: 72px; flex-direction: column; align-items: flex-start; gap: 2px; border: 1px solid #343434; border-radius: 12px; background: #191919; padding: 8px; color: #f5f3ee; text-align: left; }
+.mh-quick svg { color: #ffd45a; }
+.mh-quick strong { font-size: 11px; }
+.mh-quick em { font-style: normal; font-size: 10px; color: #a7a7a4; }
+.mh-face { position: relative; }
+.mh-plus { position: absolute; top: 40px; right: 2px; display: grid; width: 18px; height: 18px; place-items: center; border: 0; border-radius: 999px; background: #ffd45a; color: #161616; }
+.mh-shot { position: relative; display: block; }
+.mh-shot i { position: absolute; right: 6px; bottom: 6px; display: grid; width: 22px; height: 22px; place-items: center; border-radius: 999px; background: #ffd45a; color: #161616; }
+.mh-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.mh-form { display: flex; flex-direction: column; gap: 6px; }
+.mh-form input { height: 36px; border: 1px solid #343434; border-radius: 10px; background: #111; padding: 0 10px; color: #f5f3ee; font-size: 13px; }
+.mh-tools { display: flex; flex-direction: column; gap: 8px; }
 .artist-orb strong {
   display: block;
   overflow: hidden;

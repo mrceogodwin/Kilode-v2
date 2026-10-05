@@ -87,6 +87,8 @@ export function PushDesk({ artist }: { artist: boolean }) {
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
+  const [city, setCity] = useState("");
+  const [age, setAge] = useState("");
   const [days, setDays] = useState<1 | 3 | 7>(3);
   const [payWith, setPayWith] = useState<PayProvider>("paystack");
   const [gate, setGate] = useState({ paystack: false, flutterwave: false, nowpayments: false, ngnPerUsd: 1600 });
@@ -107,6 +109,8 @@ export function PushDesk({ artist }: { artist: boolean }) {
       <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="ad-field" />
       <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https:// link" className="ad-field" />
       <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder="One line, optional" className="ad-field" />
+      <input value={city} onChange={(e) => setCity(e.target.value)} maxLength={40} placeholder="City you want, optional" className="ad-field" />
+      <input value={age} onChange={(e) => setAge(e.target.value)} maxLength={24} placeholder="Age you want, optional" className="ad-field" />
       <div className="ad-pills">
         {([1, 3, 7] as const).map((n) => (
           <button key={n} type="button" className={days === n ? "on" : ""} onClick={() => setDays(n)}>{n} day{n > 1 ? "s" : ""} · ${pushUsd(n)}</button>
@@ -132,7 +136,7 @@ export function PushDesk({ artist }: { artist: boolean }) {
         rate={gate.ngnPerUsd}
         ready={payWith === "paystack" ? gate.paystack : payWith === "flutterwave" ? gate.flutterwave : gate.nowpayments}
         onPaid={(paid) => {
-          void savePush({ data: { title, note, url, days, txHash: paid.reference } }).then((r) => {
+          void savePush({ data: { title, note, url, days, city, age, txHash: paid.reference } }).then((r) => {
             if (!r.ok) setErr("reason" in r ? r.reason : "Could not place the link.");
             else {
               setDone(title);
