@@ -5216,7 +5216,7 @@ html:not([data-skin="ivory"]) .feed-tools input:focus {
   border: 2px solid #fff !important;
 }
 
-.job-board { display: flex; flex-direction: column; gap: 8px; }
+.job-board { display: flex; min-width: 0; flex-direction: column; gap: 8px; overflow-x: hidden; }
 .job-hero {
   display: flex;
   align-items: center;

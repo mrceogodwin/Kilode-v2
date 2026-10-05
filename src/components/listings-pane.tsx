@@ -224,6 +224,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [image, setImage] = useState("");
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState<Card | null>(null);
+  const [applying, setApplying] = useState(false);
   const [q, setQ] = useState("");
   const [catPick, setCatPick] = useState("All");
   const [jobPill, setJobPill] = useState("All");
@@ -233,6 +234,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [roleTab, setRoleTab] = useState<"foryou" | "recommended">("foryou");
   const [kept, setKept] = useState<string[]>([]);
   const [desk, setDesk] = useState<"board" | "apps" | "posted">("board");
+  useEffect(() => { setApplying(false); }, [open?.id]);
   const [myApps, setMyApps] = useState<MyApp[]>([]);
   const [myRoles, setMyRoles] = useState<Listing[]>([]);
   const [myPeople, setMyPeople] = useState<MyApplicant[]>([]);
@@ -247,6 +249,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
     load();
     setShown(12);
     setOpen(null);
+    setApplying(false);
     setFormOn(false);
     setImage("");
     setCategory(kind === "market" ? "Electronics" : "Tech");
@@ -656,7 +659,9 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
               myApps.some((a) => a.listingId === open.id) ? (
                 <p className="mt-3 text-[13px] font-bold text-[#ffd45a]">You already applied. The employer sees your note. Kilode does not hire for you.</p>
               ) : session.user && canApply ? (
+                applying ? (
                 <div className="mt-3 space-y-2">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#ffd45a]">Your details</div>
                   <label className="flex items-start gap-2 text-[12px] leading-snug text-muted">
                     <input type="checkbox" className="mt-0.5" checked={legal} onChange={(e) => setLegal(e.target.checked)} />
                     <span>Kilode only introduces you. It does not hire, pay, or check the employer. Verify them before you send a CV or personal details.</span>
@@ -695,6 +700,9 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                   <p className="text-[11px] text-muted">{note.length}/500 · {skills.length}/160</p>
                   {msg && open.contact ? <p className="text-[12px] text-fg">Contact: {open.contact}</p> : null}
                 </div>
+                ) : (
+                  <button type="button" className="mt-3 rounded-full bg-[#ffd45a] px-4 py-2 text-[13px] font-extrabold text-[#161616]" onClick={() => setApplying(true)}>Apply</button>
+                )
               ) : (
                 <div className="mt-3 text-center">
                   <p className="mb-1 text-[12px] text-muted">{session.user ? kindActionHint("jobs.apply") : "Join as Job Seeker or Member to apply."}</p>
@@ -734,18 +742,6 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
               <button type="button" className={desk === "board" ? "on" : ""} onClick={() => setDesk("board")}>Roles</button>
               <button type="button" className={desk === "apps" ? "on" : ""} onClick={() => { setDesk("apps"); refreshJobDesk(); }}>Applications{myApps.length ? ` ${myApps.length}` : ""}</button>
               <button type="button" className={desk === "posted" ? "on" : ""} onClick={() => { setDesk("posted"); refreshJobDesk(); }}>Posted{myRoles.length ? ` ${myRoles.length}` : ""}</button>
-            </div>
-          ) : null}
-          {session.user && desk === "board" ? (
-            <div className="job-sheet">
-              <div className="job-sheet-label">Your details</div>
-              <input value={phone} onChange={(e) => { setPhone(e.target.value); rememberSeeker({ phone: e.target.value }); }} placeholder="Phone" className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-base" inputMode="tel" />
-              <input value={skills} onChange={(e) => { setSkills(e.target.value); rememberSeeker({ skills: e.target.value }); }} placeholder="Skills" className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-base" />
-              <input value={cv} onChange={(e) => { setCv(e.target.value); rememberSeeker({ cv: e.target.value }); }} placeholder="CV link or upload below" className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-base" />
-              <label className="block text-[12px] text-muted">
-                {cvBusy ? "Uploading PDF…" : "PDF, 4MB max. A pasted https link also works."}
-                <input type="file" accept="application/pdf,.pdf" disabled={cvBusy} onChange={(e) => void onCvFile(e.target.files?.[0])} className="mt-1 block w-full text-[12px]" />
-              </label>
             </div>
           ) : null}
           {desk === "apps" && session.user ? (
@@ -996,6 +992,7 @@ function JobBoard({
 
   function pickType(next: string) {
     setJobTypeFilter(next);
+    setJobPill("All");
     setRoleTab("foryou");
   }
 
@@ -1060,7 +1057,7 @@ function JobBoard({
             <ChevronRight className="size-3.5" />
           </button>
         </section>
-      ) : <p className="job-empty">No approved roles in this cut.</p>}
+      ) : <p className="job-empty">{pool.length ? "Nothing matches this cut." : "No approved roles yet."}</p>}
 
       <div className="jb-pills">
         <button type="button" className="on" onClick={seeAll}><TrendingUp className="size-3.5" /> Trending</button>
@@ -1114,10 +1111,10 @@ function JobBoard({
             <button key={t} type="button" className={jobTypeFilter === t ? "on" : ""} onClick={() => pickType(t)}>{t}</button>
           ))}
           {JOB_PILLS.filter((p) => p !== "All" && p !== "Remote").map((p) => (
-            <button key={p} type="button" className={jobPill === p ? "on" : ""} onClick={() => setJobPill(jobPill === p ? "All" : p)}>{p}</button>
+            <button key={p} type="button" className={jobPill === p ? "on" : ""} onClick={() => { setJobPill(jobPill === p ? "All" : p); setJobTypeFilter("All"); }}>{p}</button>
           ))}
         </div>
-        {openRoles.length === 0 ? <p className="job-empty">{onlyKept ? "No saved roles in this cut." : onlyApplied ? "You have not applied to anything in this cut." : q.trim() ? "No role matches that search." : "Nothing in this cut."}</p> : null}
+        {openRoles.length === 0 ? <p className="job-empty">{onlyKept ? "No saved roles in this cut." : onlyApplied ? "You have not applied yet. Open a role first." : pool.length ? "Nothing matches this cut. Tap All jobs." : "No approved roles yet."}</p> : null}
         <div className="jb-grid">
           {openRoles.slice(0, 8).map((r) => {
             const meta = readMeta(r.meta);
