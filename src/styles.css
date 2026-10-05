@@ -5756,6 +5756,32 @@ html:not([data-skin="ivory"]) [class*="border-[#e6c56a]"] {
   border-color: rgba(143, 185, 165, 0.7) !important;
 }
 
+html:not([data-skin="ivory"]) .kilode-header-capsule .hdr-ico {
+  width: 28px !important;
+  height: 28px !important;
+  border: 1.5px solid #fff !important;
+  background: transparent !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+html:not([data-skin="ivory"]) .dock {
+  background: #101010 !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 0 !important;
+  box-shadow: 0 -8px 22px rgba(0, 0, 0, 0.5) !important;
+}
+html:not([data-skin="ivory"]) .dock::after { background: #101010 !important; }
+.dock-liquid {
+  height: 36px !important;
+  border-radius: 16px !important;
+  background: linear-gradient(165deg, rgba(78, 175, 120, 0.95) 0%, rgba(27, 107, 69, 0.95) 58%, rgba(12, 46, 30, 0.95) 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+}
+html:not([data-skin="ivory"]) .dock .app-tab.on { color: #f4fff8 !important; }
+.menu-install { border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.menu-install a { color: #f5f3ee; }
+
 html:not([data-skin="ivory"]) .dock {
   background: #101010 !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;

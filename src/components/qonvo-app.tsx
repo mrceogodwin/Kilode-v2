@@ -83,7 +83,7 @@ import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
 import { ReportMenu } from "@/components/report-menu";
 import { NotifyBell } from "@/components/notify-bell";
-import { MenuLegal } from "@/components/get-app";
+import { GetAppRow } from "@/components/get-app";
 import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
 import { LinkText } from "@/components/link-text";
@@ -1592,7 +1592,9 @@ function QonvoAppInner() {
                 <DrawerRow icon={Coins} label="Pricing" hint="Member, badge, event, ads" onClick={() => { setScreen("pricing"); setMenuOpen(false); }} on={screen === "pricing"} />
               </DrawerGroup>
             </div>
-            <MenuLegal onDonate={() => { setDonateOpen(true); setMenuOpen(false); }} />
+            <div className="menu-install shrink-0">
+              <GetAppRow />
+            </div>
             <div className="menu-stage shrink-0 border-t border-white/10 px-2.5 py-2">
               <StageSwitch />
             </div>
