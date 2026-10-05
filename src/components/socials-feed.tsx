@@ -12,6 +12,7 @@ import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
 import { VerifiedMark } from "@/components/handle-link";
 import { mentionQuery } from "@/lib/board-rules";
+import { PushStrip } from "@/components/artist-push";
 
 
 function heatOf(t: TakeRow) {
@@ -1252,6 +1253,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
           ))}
         </div>
       ) : null}
+      <PushStrip />
       <div className="take-compose mb-3 glass-3d px-2.5 py-2">
         {quoting ? (
           <div className="mb-2 flex items-start justify-between gap-2 rounded-[10px] border border-line px-2 py-1.5">

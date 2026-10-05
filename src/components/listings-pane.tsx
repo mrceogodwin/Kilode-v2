@@ -172,7 +172,7 @@ function SlimRail({ rows, onOpen }: { rows: Card[]; onOpen: (r: Card) => void })
 function Tile({ r, kind, onOpen }: { r: Card; kind: ListingKind; onOpen: (r: Card) => void }) {
   return (
     <button type="button" className="raised overflow-hidden rounded-lg text-left" onClick={() => onOpen(r)}>
-      {cover(r) ? <img src={cover(r)} alt="" className="aspect-[16/9] w-full object-cover" /> : <div className="grid aspect-[16/9] w-full place-items-center bg-panel-3 text-[10px] font-bold tracking-[0.16em] text-lime-2">{kind.toUpperCase()}</div>}
+      {cover(r) ? <img src={cover(r)} alt="" className="aspect-square w-full object-cover" /> : <div className="grid aspect-square w-full place-items-center bg-panel-3 text-[10px] font-bold tracking-[0.16em] text-lime-2">{kind.toUpperCase()}</div>}
       <div className="px-1.5 py-1">
         <div className="flex items-center gap-1 text-[9px] uppercase text-lime-2">
           <MapPin className="size-2.5" />
@@ -1198,7 +1198,7 @@ function MarketBoard({ rows, onOpen, onSell }: { rows: Card[]; onOpen: (r: Card)
               const meta = readMeta(r.meta);
               return (
                 <button key={r.id} type="button" onClick={() => onOpen(r)} className="overflow-hidden rounded-2xl border border-line bg-panel text-left">
-                  <Shot src={cover(r)} className="aspect-[4/3] w-full object-cover" />
+                  <Shot src={cover(r)} className="aspect-square w-full object-cover" />
                   <div className="p-1.5">
                     <div className="line-clamp-2 text-[11px] font-bold leading-tight">{r.title}</div>
                     <div className="mt-0.5 flex items-center gap-0.5 text-[9px] text-muted"><MapPin className="size-2.5" /> {r.city || "Nigeria"}</div>
@@ -1223,7 +1223,7 @@ function MarketBoard({ rows, onOpen, onSell }: { rows: Card[]; onOpen: (r: Card)
             const meta = readMeta(r.meta);
             return (
               <button key={r.id} type="button" onClick={() => onOpen(r)} className="flex gap-2 rounded-2xl border border-line bg-panel p-2 text-left">
-                <Shot src={cover(r)} className="size-16 shrink-0 rounded-xl object-cover" />
+                <Shot src={cover(r)} className="size-12 shrink-0 rounded-lg object-cover" />
                 <span className="min-w-0">
                   <span className="line-clamp-2 block text-[12px] font-bold leading-tight">{r.title}</span>
                   <span className="mt-0.5 block text-[13px] font-extrabold text-[#e6c56a]">{naira(meta.price) || "Ask"}</span>

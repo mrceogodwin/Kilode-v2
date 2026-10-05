@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { confirmCheckout, listPayMethods, startCheckout } from "@/lib/pay-gateways";
 import type { PayProvider } from "@/lib/pay-money";
 
-type PayKind = "ad" | "event" | "verify" | "job" | "market" | "rent" | "cinema";
+type PayKind = "ad" | "event" | "verify" | "job" | "market" | "rent" | "cinema" | "push";
 
 export function GatewayPay({
   provider,

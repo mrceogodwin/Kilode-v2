@@ -9,6 +9,7 @@ import { pushNote, userIdByHandle } from "@/lib/social-server";
 import { allowWrite, RATE_BLOCKED } from "@/lib/rate-limit";
 import { isPayProvider } from "@/lib/pay-money";
 import { releaseCheckout, takePaidCheckout } from "@/lib/pay-gateways";
+import { appleTrackId, artworkFromLookup } from "@/lib/artist-rules";
 import { DB_TIMEOUT_MS, withTimeout } from "@/lib/with-timeout";
 
 async function kindOf(userId: string): Promise<AccountKind> {
@@ -51,6 +52,24 @@ async function musicCover(url: string, platform: string) {
       const r = await fetch(`https://soundcloud.com/oembed?format=json&url=${encodeURIComponent(url)}`, { signal: ctrl });
       const j = (await r.json()) as { thumbnail_url?: string };
       return j.thumbnail_url ?? "";
+    }
+    if (platform === "Audiomack") {
+      const r = await fetch(`https://audiomack.com/oembed?url=${encodeURIComponent(url)}&format=json`, { signal: ctrl });
+      const j = (await r.json()) as { thumbnail_url?: string };
+      return j.thumbnail_url ?? "";
+    }
+    if (platform === "Apple Music") {
+      const id = appleTrackId(url);
+      if (!id) return "";
+      const r = await fetch(`https://itunes.apple.com/lookup?id=${id}`, { signal: ctrl });
+      return artworkFromLookup(await r.json());
+    }
+    if (platform === "Deezer") {
+      const id = url.match(/track\/(\d+)/)?.[1];
+      if (!id) return "";
+      const r = await fetch(`https://api.deezer.com/track/${id}`, { signal: ctrl });
+      const j = (await r.json()) as { album?: { cover_medium?: string } };
+      return j.album?.cover_medium ?? "";
     }
   } catch {
     return "";

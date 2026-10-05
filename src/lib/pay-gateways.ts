@@ -11,11 +11,12 @@ import { accountEmail } from "@/lib/account-email";
 import { SITE } from "@/lib/seo";
 import { cleanReceiptEmail, isPayProvider, koboFromNgn, ngnFromUsd, nowpaymentsSignature, paystackSignature, safeEqual, type PayProvider } from "@/lib/pay-money";
 import { deskCharge, type DeskPay } from "@/lib/site-server";
+import { pushDays, pushUsd } from "@/lib/artist-rules";
 
-type CheckoutKind = "ad" | "event" | "verify" | "job" | "market" | "rent" | "cinema";
+type CheckoutKind = "ad" | "event" | "verify" | "job" | "market" | "rent" | "cinema" | "push";
 
 function asCheckoutKind(v: string): CheckoutKind | "" {
-  if (v === "ad" || v === "event" || v === "verify" || v === "job" || v === "market" || v === "rent" || v === "cinema") return v;
+  if (v === "ad" || v === "event" || v === "verify" || v === "job" || v === "market" || v === "rent" || v === "cinema" || v === "push") return v;
   return "";
 }
 
@@ -108,6 +109,13 @@ async function quote(kind: CheckoutKind, purpose: string) {
     const ngn = ngnFromUsd(usd, rate);
     if (!ngn) return null;
     return { usd, ngn, purpose: "badge" };
+  }
+  if (kind === "push") {
+    const days = pushDays(purpose);
+    const usd = pushUsd(days);
+    const ngn = ngnFromUsd(usd, rate);
+    if (!days || !ngn) return null;
+    return { usd, ngn, purpose: `push-${days}` };
   }
   if (!isAdPlacement(purpose)) return null;
   const catalog = await loadAdCatalog();
@@ -419,7 +427,7 @@ export const submitVerification = createServerFn({ method: "POST" })
     return { ok: true as const, status: "verified" as const };
   });
 
-export async function takePaidCheckout(opts: { reference: string; userId: string; kind: "ad" | "event" | "verify"; purpose: string; refId: string }) {
+export async function takePaidCheckout(opts: { reference: string; userId: string; kind: "ad" | "event" | "verify" | "push"; purpose: string; refId: string }) {
   const reference = opts.reference.trim().slice(0, 80);
   if (!reference.startsWith("kld_")) return { ok: false as const, reason: "Pay with Paystack, Flutterwave, or crypto first." };
   const sql = await ensure();

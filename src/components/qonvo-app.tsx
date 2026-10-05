@@ -69,6 +69,7 @@ import { CinemaPane } from "@/components/cinema-pane";
 import { ChatTermsBar, ForumClock, ForumWhy } from "@/components/forum-why";
 import { PremiumSquareAd, PremiumStoryAd, MenuPremiumAd, PortraitAd } from "@/components/premium-ad";
 import { AdvertPane } from "@/components/advert-pane";
+import { ArtFace, PushDesk } from "@/components/artist-push";
 import { RoomList } from "@/components/rooms-list";
 import { listRoomOverlay } from "@/lib/rooms-server";
 import { Link } from "@tanstack/react-router";
@@ -2359,7 +2360,7 @@ function ArtistStage({ artist, onClose }: { artist: ArtistCard; onClose: () => v
         Back
       </button>
       <div className="artist-hero">
-        <span className="artist-hero-face">{artist.cover ? <img src={artist.cover} alt="" /> : artist.name.slice(0, 1)}</span>
+        <ArtFace name={artist.name} cover={artist.cover} url={artist.tracks[0]?.url} big />
         <div className="min-w-0">
           <div className="text-[10px] font-bold tracking-[0.16em] text-[#e6c56a]">{artist.role.toUpperCase()}</div>
           <h2 className="truncate text-2xl font-extrabold tracking-tight">{artist.name}</h2>
@@ -2383,7 +2384,7 @@ function ArtistStage({ artist, onClose }: { artist: ArtistCard; onClose: () => v
         {artist.tracks.map((t) => (
           <li key={t.title}>
             <a href={t.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-2">
-              {t.cover ? <img src={t.cover} alt="" className="size-12 rounded-full object-cover" /> : <span className="grid size-12 place-items-center rounded-full bg-black text-xs">!</span>}
+              <ArtFace name={t.title} cover={t.cover} url={t.url} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold">{t.title}</span>
                 <span className="text-[11px] text-muted">Listen on their platform</span>
@@ -2508,13 +2509,14 @@ function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd
           <div className="artist-grid">
             {shown.map((a) => (
               <button key={a.name} type="button" className="artist-orb" onClick={() => setArtist(a)}>
-                <span className="artist-orb-face">{a.cover ? <img src={a.cover} alt="" /> : a.name.slice(0, 1)}</span>
+                <ArtFace name={a.name} cover={a.cover} url={a.tracks[0]?.url} />
                 <strong>{a.name}</strong>
                 <em>{a.role}</em>
               </button>
             ))}
           </div>
         </section>
+        <PushDesk artist={store.kind === "artist"} />
         </>
         )}
       </div>
