@@ -640,6 +640,15 @@ function ArtistPanel({
   const tabs = ["overview", "music", "push", "audience", "analytics"] as const;
   return (
     <div className="space-page adesk mx-auto max-w-2xl p-3 pb-36">
+      <section className="adesk-flag" style={face ? { backgroundImage: `linear-gradient(100deg, rgba(7,8,7,.94) 0%, rgba(7,8,7,.62) 58%, rgba(7,8,7,.28) 100%), url(${face})` } : undefined}>
+        <div>
+          <div className="adesk-kicker">Artist</div>
+          <strong>@{handle}</strong>
+          <em>{top?.title ? top.title : city || "Your music desk"}</em>
+          <button type="button" onClick={top ? () => onOpen(top.id, top.url) : onAdd}>{top ? "Open" : "Add music"}</button>
+        </div>
+        <ArtFace name={top?.title || handle || "Artist"} cover={top?.cover || face} url={top?.url} />
+      </section>
       <div className="adesk-top">
         <button type="button" onClick={onBack}>Back</button>
         <strong>Artist Desk</strong>

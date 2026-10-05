@@ -5756,6 +5756,44 @@ html:not([data-skin="ivory"]) [class*="border-[#e6c56a]"] {
   border-color: rgba(143, 185, 165, 0.7) !important;
 }
 
+.adesk-flag {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  gap: 10px;
+  align-items: center;
+  min-height: 112px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(201, 234, 216, 0.22);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #1f7a4e 0%, #123828 42%, #070807 100%) center/cover no-repeat;
+  padding: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+.adesk-flag strong, .adesk-flag em { display: block; }
+.adesk-flag strong { font-size: 20px; line-height: 1.05; }
+.adesk-flag em { margin: 2px 0 8px; color: #d7f5e4; font-size: 12px; font-style: normal; }
+.adesk-kicker { color: #c9ead8; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.adesk-flag button {
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(165deg, #4eaf78 0%, #1b6b45 55%, #0c2e1e 100%);
+  padding: 0 12px;
+  color: #f4fff8;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 3px 0 #062015;
+}
+.adesk-flag .artist-hero-face,
+.adesk-flag .artist-orb-face { width: 72px; height: 72px; margin: 0; }
+.adesk-top button {
+  background: transparent !important;
+  color: #c9ead8 !important;
+  border: 1px solid rgba(201, 234, 216, 0.35) !important;
+  box-shadow: none !important;
+}
+
 
 
 
