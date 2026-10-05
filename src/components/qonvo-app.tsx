@@ -864,14 +864,6 @@ function QonvoAppInner() {
       </header>
 
       <div className={screen === "home" ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "hidden"} aria-hidden={screen !== "home"}>
-          {homeTab === "music" && canKind(store.kind, "music.submit") && signedIn ? (
-            <div className="flex shrink-0 justify-end gap-1 border-b border-line px-2 py-0.5">
-              <button type="button" className="btn-3d rounded-md px-2.5 py-0.5 text-[10px] font-semibold" onClick={() => setScreen("create")}>
-                Add track
-              </button>
-            </div>
-          ) : null}
-
           <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[210px_minmax(0,1fr)_180px]">
             <aside className="hidden min-h-0 overflow-hidden border-r border-white/5 bg-panel md:flex md:flex-col">
               <RoomList query={query} setQuery={setQuery} listed={listed} roomId={store.roomId} onOpen={goHome} />

@@ -2230,7 +2230,10 @@ html[data-skin="ivory"] .menu-sheet .menu-ico { color: #e6c56a; }
 .push-card strong { display: block; font-size: 13px; }
 .push-card b { display: block; font-size: 10px; letter-spacing: 0.08em; color: #ffd45a; }
 .mh-scroll { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 10px; overflow-y: auto; padding: 10px; padding-bottom: calc(13rem + env(safe-area-inset-bottom)); }
-.mh-search { position: sticky; top: 0; z-index: 3; height: 36px; border-radius: 999px; border: 1px solid #343434; background: #0d0d0d; padding: 0 12px; color: #f5f3ee; font-size: 13px; }
+.mh-search-row { display: flex; align-items: center; gap: 8px; }
+.mh-search { height: 40px; min-width: 0; flex: 1; border-radius: 999px; border: 1px solid #4a4a4a; background: #191919; padding: 0 14px; color: #f5f3ee; font-size: 16px; }
+.mh-search-row > button { height: 40px; flex: 0 0 auto; border: 0; border-radius: 999px; background: #ffd45a; padding: 0 12px; color: #161616; font-size: 12px; font-weight: 800; }
+.mh-orb { width: 56px; height: 56px; border-radius: 999px; border: 1px solid #ffd45a; object-fit: cover; }
 .mh-chips { display: flex; gap: 6px; overflow-x: auto; }
 .mh-chips button { height: 28px; flex: 0 0 auto; border-radius: 999px; border: 1px solid #343434; background: #191919; padding: 0 10px; color: #f5f3ee; font-size: 11px; font-weight: 700; }
 .mh-chips button.on { border-color: #ffd45a; background: #ffd45a; color: #161616; }

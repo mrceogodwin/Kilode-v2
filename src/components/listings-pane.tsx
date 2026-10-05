@@ -983,8 +983,8 @@ function JobBoard({
   if (onlyKept) live = live.filter((r) => kept.includes(r.id));
   if (onlyApplied) live = live.filter((r) => applied.includes(r.id));
   if (!q.trim()) live = [...live].sort((a, b) => (sort === "old" ? a.ts - b.ts : b.ts - a.ts));
-  const featured = live.slice(0, 5);
-  const hero = featured[Math.min(spot, Math.max(featured.length - 1, 0))];
+  const spotlight = pool.filter((r) => !hidden.includes(r.id)).slice(0, 5);
+  const hero = spotlight[Math.min(spot, Math.max(spotlight.length - 1, 0))];
   const companies = [...new Map(pool.filter((r) => r.company).map((r) => [r.company, r])).values()].slice(0, 8);
   const openRoles = q.trim() ? live : roleTab === "recommended" ? [...live].reverse() : sort === "new" ? [...live].sort((a, b) => Number(kept.includes(b.id)) - Number(kept.includes(a.id))) : live;
   const trends = trendBits(pool);
@@ -1005,6 +1005,22 @@ function JobBoard({
 
   return (
     <div className="job-board">
+      {hero ? (
+        <section className="jb-banner">
+          <div>
+            <div className="jb-kicker">Featured role</div>
+            <strong>{hero.title}</strong>
+            <em>{hero.company || "Company"} · {hero.city || "Nigeria"}</em>
+            <button type="button" className="jb-go" onClick={() => onOpen(hero)}>Open role</button>
+          </div>
+          <button type="button" className="jb-side" aria-label="Next role" onClick={() => setSpot((n) => (n + 1) % Math.max(spotlight.length, 1))}>
+            <CompanyMark name={hero.company || hero.title} />
+            <b>{payLabel(readMeta(hero.meta).salary)}</b>
+            <i>{spot + 1}/{spotlight.length}</i>
+            <ChevronRight className="size-3.5" />
+          </button>
+        </section>
+      ) : <p className="job-empty">No approved roles yet.</p>}
       <div className="job-search">
         <label>
           <Search className="size-4" />
@@ -1041,23 +1057,6 @@ function JobBoard({
           </div>
         </div>
       ) : null}
-
-      {hero ? (
-        <section className="jb-banner">
-          <div>
-            <div className="jb-kicker">Featured role</div>
-            <strong>{hero.title}</strong>
-            <em>{hero.company || "Company"} · {hero.city || "Nigeria"}</em>
-            <button type="button" className="jb-go" onClick={() => onOpen(hero)}>Open role</button>
-          </div>
-          <button type="button" className="jb-side" aria-label="Next role" onClick={() => setSpot((n) => (n + 1) % featured.length)}>
-            <CompanyMark name={hero.company || hero.title} />
-            <b>{payLabel(readMeta(hero.meta).salary)}</b>
-            <i>{spot + 1}/{featured.length}</i>
-            <ChevronRight className="size-3.5" />
-          </button>
-        </section>
-      ) : <p className="job-empty">{pool.length ? "Nothing matches this cut." : "No approved roles yet."}</p>}
 
       <div className="jb-pills">
         <button type="button" className="on" onClick={seeAll}><TrendingUp className="size-3.5" /> Trending</button>

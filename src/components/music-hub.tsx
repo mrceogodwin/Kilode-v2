@@ -155,7 +155,10 @@ export function MusicHub({ store, onAdd }: { store: HubStore; onAdd: () => void 
 
   return (
     <div className="mh-scroll dock-pad">
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search artists, songs, genres..." className="mh-search" aria-label="Search artists, songs, genres" />
+      <div className="mh-search-row">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search artists, songs, genres..." className="mh-search" aria-label="Search artists, songs, genres" />
+        <button type="button" onClick={onAdd}>Add track</button>
+      </div>
 
       {showHome && hero ? (
         <section className="mh-banner" style={hero.cover ? { backgroundImage: `linear-gradient(90deg, rgba(13,13,13,.92) 0%, rgba(13,13,13,.55) 58%, rgba(13,13,13,.2) 100%), url(${hero.cover})` } : undefined}>
@@ -255,7 +258,7 @@ export function MusicHub({ store, onAdd }: { store: HubStore; onAdd: () => void 
             {artists.slice(0, lane === "artists" ? 24 : 8).map((a) => (
               <div key={a.slug} className="mh-face">
                 <button type="button" onClick={() => setArtist(a)}>
-                  <ArtFace name={a.name} cover={a.cover} url={a.url} />
+                  <Cover src={a.cover} name={a.name} find={a.name} className="mh-orb" />
                   <strong>{a.name}</strong>
                   <em>{a.genre || "Music"}</em>
                   <em>{a.plays ? fmtCount(a.plays) : "New"}</em>
