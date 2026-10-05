@@ -57,7 +57,7 @@ const COPY: Record<
 };
 
 const ACTION = { job: "jobs.post", market: "market.list", rent: "rent.list" } as const;
-const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Freelance"];
+const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Freelance", "Internship"];
 const JOB_CATS = ["Tech", "Design", "Marketing", "Other"];
 const MARKET_CATS = ["Fashion", "Phones", "Electronics", "Beauty", "Home", "Cars", "Services", "Other"];
 const MARKET_PILLS = ["All", ...MARKET_CATS.filter((c) => c !== "Other")];
@@ -108,10 +108,10 @@ function jobPillMatch(r: Card, pill: string) {
   if (pill === "All") return true;
   const meta = readMeta(r.meta);
   const blob = `${r.title} ${r.body} ${r.city} ${meta.category || ""} ${meta.jobType || ""}`.toLowerCase();
-  if (pill === "Tech") return /tech|engineer|developer|software/.test(blob);
-  if (pill === "Creative") return /design|creative|writer|media|art/.test(blob);
-  if (pill === "Sales") return /sale|market/.test(blob);
-  if (pill === "Remote") return /remote/.test(blob);
+  if (pill === "Tech") return /\b(tech|engineer|developer|software)\b/.test(blob);
+  if (pill === "Creative") return /\b(design|creative|writer|media|artist|art)\b/.test(blob);
+  if (pill === "Sales") return /\b(sale|sales|marketing)\b/.test(blob);
+  if (pill === "Remote") return /\bremote\b/.test(blob);
   return true;
 }
 
@@ -624,6 +624,10 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                         setErr("Tick the notice before you apply.");
                         return;
                       }
+                      if (!note.trim()) {
+                        setErr("Write a short note. That is the application.");
+                        return;
+                      }
                       void applyListing({ data: { id: open.id, note } }).then((a) => {
                         if (!a.ok) setErr("reason" in a ? a.reason : "Could not apply.");
                         else {
@@ -944,7 +948,7 @@ function JobBoard({
           </div>
           <div className="job-sheet-label">Also</div>
           <div className="job-sheet-row">
-            {["Contract", "Freelance"].map((t) => (
+            {["Contract", "Freelance", "Internship"].map((t) => (
               <button key={t} type="button" className={jobTypeFilter === t ? "on" : ""} onClick={() => pickType(jobTypeFilter === t ? "All" : t)}>{t}</button>
             ))}
             <button type="button" onClick={() => { setSalaryBand("Any"); setJobTypeFilter("All"); setJobPill("All"); setFilter("All"); setQ(""); }}>Clear</button>

@@ -2014,7 +2014,12 @@ function Board({ store }: { store: Store }) {
   );
 }
 
+const AD_STEPS = ["Choose", "Details", "Creative", "Duration", "Review", "Pay"] as const;
+
 function Ads({ store }: { store: Store }) {
+  const [step, setStep] = useState(0);
+  const [picked, setPicked] = useState(false);
+  const [showMine, setShowMine] = useState(false);
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
   const [link, setLink] = useState("");
@@ -2035,6 +2040,36 @@ function Ads({ store }: { store: Store }) {
   const [reviewDone, setReviewDone] = useState(false);
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [paidSlots, setPaidSlots] = useState<Record<string, boolean>>({});
+  const draftReady = useRef(false);
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("kilode-ad-wizard");
+      if (raw) {
+        const d = JSON.parse(raw) as Partial<{ step: number; name: string; note: string; link: string; image: string; video: string; kind: AdKind; place: AdPlacement; days: number; payWith: PayProvider; agree: boolean; picked: boolean }>;
+        if (typeof d.step === "number") setStep(Math.min(5, Math.max(0, d.step)));
+        if (d.name) setName(d.name);
+        if (d.note) setNote(d.note);
+        if (d.link) setLink(d.link);
+        if (d.image && d.image.startsWith("http")) setImage(d.image);
+        if (d.video) setVideo(d.video);
+        if (d.kind) setKind(d.kind);
+        if (d.place) setPlace(d.place);
+        if (d.days) setDays(d.days);
+        if (d.payWith) setPayWith(d.payWith);
+        if (d.agree) setAgree(true);
+        if (d.picked) setPicked(true);
+      }
+    } catch { /* ignore */ }
+    draftReady.current = true;
+  }, []);
+  useEffect(() => {
+    if (!draftReady.current) return;
+    try {
+      sessionStorage.setItem("kilode-ad-wizard", JSON.stringify({
+        step, name, note, link, image: image.startsWith("http") ? image : "", video, kind, place, days, payWith, agree, picked,
+      }));
+    } catch { /* ignore */ }
+  }, [step, name, note, link, image, video, kind, place, days, payWith, agree, picked]);
   useEffect(() => {
     void listAdCatalog()
       .then((c) => {
@@ -2052,23 +2087,103 @@ function Ads({ store }: { store: Store }) {
   const usd = prices[place] ?? slot?.usd ?? 40;
   const slotPaid = paidSlots[place] !== false;
   const mustPay = adsPay && slotPaid;
+  const ngn = Math.round(usd * (gate.ngnPerUsd || 0));
+  const needsImage = kind === "image" || kind === "image-text";
+  const needsVideo = kind === "video" || kind === "video-text";
+  const needsCopy = kind === "text" || kind === "image-text" || kind === "video-text";
+
   async function onFile(file: File | undefined) {
     setErr("");
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setErr("Images only.");
+      setErr("That file is not an image. Use JPG or PNG.");
+      setImage("");
       return;
     }
     if (file.size > 2_000_000) {
       setErr("Keep the image under 2MB.");
+      setImage("");
       return;
     }
     const data = await compressImage(file);
     setImage(data);
   }
+
+  function detailsProblem() {
+    if (name.trim().length < 2) return "Add a campaign name.";
+    if (link.trim() && !safeHttpUrl(link)) return "Destination must start with https://";
+    return "";
+  }
+  function creativeProblem() {
+    if (needsImage && !image) return `Add an image. This slot wants ${size.label}.`;
+    if (needsVideo && !video.trim()) return "Add a YouTube link. Kilode does not host the video file.";
+    if (needsVideo && video.trim() && !youtubeId(video) && !safeHttpUrl(video)) return "Use a YouTube link or an https URL.";
+    if (needsCopy && note.trim().length < 2) return "Add the line of copy.";
+    return "";
+  }
+  function goNext() {
+    if (step === 0 && !picked) {
+      setErr("Choose one placement.");
+      return;
+    }
+    if (step === 1) {
+      const problem = detailsProblem();
+      if (problem) { setErr(problem); return; }
+    }
+    if (step === 2) {
+      const problem = creativeProblem();
+      if (problem) { setErr(problem); return; }
+    }
+    if (step === 4 && !agree) {
+      setErr("Tick the ads terms before payment.");
+      return;
+    }
+    setErr("");
+    setStep((n) => Math.min(5, n + 1));
+  }
+  function clearDraft() {
+    try { sessionStorage.removeItem("kilode-ad-wizard"); } catch { /* ignore */ }
+  }
+  function publish(paid?: { reference: string; provider: string; amountNgn: number }) {
+    const img = needsImage ? (image.startsWith("data:") ? image : safeHttpUrl(image)) : undefined;
+    void Promise.resolve(store.saveAd(name, note, {
+      placement: place,
+      txHash: paid?.reference || "",
+      amount: paid ? String(paid.amountNgn || usd) : "0",
+      coin: paid?.provider || "",
+      link: safeHttpUrl(link),
+      image: img,
+      video: needsVideo ? youtubeId(video) || safeHttpUrl(video) : undefined,
+      kind,
+      days,
+    })).then((ok) => {
+      if (!ok) {
+        setErr("Kilode did not accept this campaign. If you paid, do not start a second payment. Check Your ads, or try Go live with the same reference.");
+        if (paid) {
+          setTxHash(paid.reference);
+          setCoin(paid.provider);
+          setAmount(String(paid.amountNgn || usd));
+        }
+        return;
+      }
+      setReviewDone(!paid);
+      setDone(name.trim());
+      setName("");
+      setNote("");
+      setLink("");
+      setImage("");
+      setVideo("");
+      setTxHash("");
+      setErr("");
+      setPicked(false);
+      setStep(0);
+      clearDraft();
+    });
+  }
+
   if (!store.handle) {
     return (
-      <Screen kicker="ADS" title="Place an ad" sub="Pay for a slot. It goes live on its own when the payment confirms.">
+      <Screen kicker="ADS" title="Place an ad" sub="Join as an Ads Poster, then walk the steps. Payment is checked by Kilode, not by the success page.">
         <JoinCta />
       </Screen>
     );
@@ -2082,255 +2197,174 @@ function Ads({ store }: { store: Store }) {
   }
   if (done) {
     return (
-      <Screen kicker="ADS" title={reviewDone ? "With staff" : "Live"} sub={reviewDone ? "This slot is free. Staff approve it before it shows." : "Payment confirmed. This creative is on the slot you bought."}>
-        <div className="raised rounded-2xl p-4">
-          <h3 className="text-lg font-extrabold">{done}</h3>
-          <ol className="mt-3 list-decimal space-y-2 pl-4 text-[13px] leading-6 text-muted">
-            <li>It is on the slot you paid for. No staff click.</li>
-            <li>The clock below counts down the days you bought.</li>
-            <li>When it hits zero, the slot stops showing it.</li>
-            <li>Staff can still take down a scam creative. Chain and card fees are not refunded.</li>
-          </ol>
+      <Screen kicker="ADS" title={reviewDone ? "With staff" : "Submitted"} sub={reviewDone ? "This slot is free. Staff approve it before it shows." : "Kilode accepted the payment reference. The creative is on the slot you bought."}>
+        <div className="ad-card">
+          <h3>{done}</h3>
+          <p>{reviewDone ? "Status: pending review. It is not live yet." : "Status: live for the days you bought, unless staff take it down."}</p>
+          <p>Slot: {slot?.label}. {days} days. {mustPay ? `$${usd}` : "Free slot"}.</p>
         </div>
-        <button type="button" className="btn-3d mt-3 rounded-xl px-3 py-2 text-sm" onClick={() => setDone(null)}>
-          Place another
-        </button>
-        <div className="mt-4 mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">YOUR CAMPAIGNS</div>
-        {mine.map((c) => (
-          <div key={c.id} className="raised mb-2 flex gap-2 overflow-hidden rounded-2xl">
-            {c.image ? <img src={c.image} alt="" className="h-16 w-20 object-cover" /> : <div className="grid h-16 w-20 place-items-center bg-panel-3 text-[10px] text-lime-2">AD</div>}
-            <div className="min-w-0 py-2 pr-2">
-              <div className="truncate text-sm font-bold">{c.name}</div>
-              <div className="text-[10px] text-lime-2">{c.status} · {c.placement} · {c.expiresAt ? timeLeftLabel(c.expiresAt) : `${c.days ?? 7} days`}</div>
-            </div>
-          </div>
-        ))}
+        <button type="button" className="ad-next" onClick={() => setDone(null)}>Place another</button>
+        <CampaignList rows={mine} />
       </Screen>
     );
   }
+
   return (
-    <Screen kicker="ADS" title="Place an ad" sub="Pick a slot, the days, and a creative. Pay. It goes live on that slot.">
-      <div className="mb-3 rounded-xl border border-lime-2/30 bg-lime-2/5 px-3 py-2 text-[11px] leading-snug text-muted">
-        <span className="font-bold text-lime-2">1 · Slot</span> → <span className="font-bold text-lime-2">2 · Creative</span> → <span className="font-bold text-lime-2">3 · Pay</span>. Paystack, Flutterwave, or crypto. No staff approval. The countdown starts when the payment confirms.
+    <Screen kicker="ADS" title={showMine ? "Your ads" : "Place an ad"} sub={showMine ? "Only campaigns Kilode has stored on this account." : `${AD_STEPS[step]} · step ${step + 1} of ${AD_STEPS.length}`}>
+      <div className="ad-top">
+        <button type="button" className={showMine ? "" : "on"} onClick={() => setShowMine(false)}>Place</button>
+        <button type="button" className={showMine ? "on" : ""} onClick={() => setShowMine(true)}>Your ads</button>
       </div>
-      <div className="mb-3 grid gap-1.5" role="group" aria-label="Ad slot">
-        {AD_PLACEMENTS.map((p) => {
-          const on = place === p.id;
-          return (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => { setPlace(p.id); setTxHash(""); }}
-              aria-pressed={on}
-              className={`raised rounded-2xl px-3 py-3 text-left transition ${
-                on
-                  ? "border-lime-2 bg-lime-2/[0.12] shadow-[0_0_0_2px_var(--color-lime-2),0_6px_16px_rgba(31,122,64,0.18)] -translate-y-px"
-                  : ""
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className={`text-sm font-bold ${on ? "text-lime-2" : ""}`}>{p.label}</span>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className="text-[12px] font-extrabold text-lime-2">${prices[p.id] ?? p.usd}</span>
-                  <span
-                    aria-hidden
-                    className={`grid size-5 place-items-center rounded-full text-[11px] font-bold leading-none ${
-                      on ? "bg-lime-2 text-[#f4f7f5]" : "border border-line bg-transparent text-transparent"
-                    }`}
-                  >
-                    ✓
-                  </span>
-                </div>
-              </div>
-              <div className="mt-0.5 text-[11px] text-muted">{p.hint}</div>
-            </button>
-          );
-        })}
-      </div>
-      <div className="mb-1 text-[11px] font-medium text-muted">Duration</div>
-      <div className="mb-3 flex flex-wrap gap-1">
-        {AD_DAYS.map((d) => (
-          <button key={d} type="button" onClick={() => setDays(d)} className={`rounded-full px-2.5 py-1 text-[11px] ${days === d ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
-            {d} days
-          </button>
-        ))}
-      </div>
-      <div className="mb-1 text-[11px] font-medium text-muted">Creative type</div>
-      <div className="mb-3 flex flex-wrap gap-1">
-        {AD_KINDS.map((k) => (
-          <button key={k.id} type="button" onClick={() => setKind(k.id)} className={`rounded-full px-2.5 py-1 text-[11px] ${kind === k.id ? "btn-3d font-semibold" : "border border-line text-muted"}`}>
-            {k.label}
-          </button>
-        ))}
-      </div>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Brand / campaign name" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-      <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Destination URL (https://…)" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-      {kind === "image" || kind === "image-text" ? (
-        <div className="inset-well mb-2 rounded-xl p-3">
-          <div className="text-[11px] font-medium text-muted">Image · {size.label}</div>
-          <p className="mb-2 text-[11px] text-muted">{size.hint}</p>
-          <input type="file" accept="image/*" onChange={(e) => void onFile(e.target.files?.[0])} className="text-xs" />
-          <input value={image.startsWith("data:") ? "" : image} onChange={(e) => setImage(e.target.value)} placeholder="Or paste image URL https://…" className="mt-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-          {image ? <img src={image} alt="" className="mt-2 max-h-36 rounded-lg object-cover" /> : null}
-        </div>
-      ) : null}
-      {kind === "video" || kind === "video-text" ? (
-        <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="YouTube URL (not hosted here)" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-      ) : null}
-      {kind !== "image" && kind !== "video" ? (
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Short copy" className="mb-2 w-full rounded-lg border border-line bg-panel px-3 py-2 text-base" />
-      ) : null}
-      <div className="mb-1 text-[11px] font-medium text-muted">Pay with</div>
-      <div className="mb-2 flex flex-wrap gap-1">
-        {(["paystack", "flutterwave", "nowpayments"] as const).filter((id) => id !== "nowpayments" || gate.cryptoEnabled).map((id) => (
-          <button key={id} type="button" onClick={() => { setPayWith(id); setTxHash(""); }} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${payWith === id ? "btn-3d" : "border border-line text-muted"}`}>
-            {id === "nowpayments" ? "Crypto" : id === "paystack" ? "Paystack" : "Flutterwave"}
-          </button>
-        ))}
-      </div>
-      {mine.some((c) => c.placement === place && c.status === "approved" && (c.expiresAt ?? 0) > Date.now()) ? (
-        <p className="mb-2 text-[12px] font-semibold text-lime-2">
-          Your ad is in this slot · {timeLeftLabel(mine.find((c) => c.placement === place && c.status === "approved")?.expiresAt)}
-        </p>
-      ) : (
-        <p className="mb-2 text-[11px] text-muted">{slotPaid ? `$${usd} · ${days} days on ${slot?.label || place}. Price is the one set in Super admin.` : `Free slot · ${slot?.label || place}. Staff review it before it shows.`}</p>
-      )}
-      {mustPay ? (
-        <div className="mb-3">
-          {!name.trim() || !agree ? <p className="mb-2 text-[12px] text-muted">Add the campaign name and tick the terms. Then pay. The ad goes live on this slot when the payment confirms.</p> : null}
-          <GatewayPay
-            provider={payWith}
-            kind="ad"
-            purpose={place}
-            usd={usd}
-            rate={gate.ngnPerUsd}
-            ready={payWith === "paystack" ? gate.paystack : payWith === "flutterwave" ? gate.flutterwave : gate.nowpayments}
-            onPaid={(paid) => {
-              if (!agree || !name.trim()) {
-                setTxHash(paid.reference);
-                setCoin(paid.provider);
-                setAmount(String(paid.amountNgn || paid.reference));
-                setErr("Add the name and tick the terms, then tap Go live.");
-                return;
-              }
-              const img = kind.includes("image") ? (image.startsWith("data:") ? image : safeHttpUrl(image)) : undefined;
-              void Promise.resolve(store.saveAd(name, note, {
-                placement: place,
-                txHash: paid.reference,
-                amount: String(paid.amountNgn || usd),
-                coin: paid.provider,
-                link: safeHttpUrl(link),
-                image: img,
-                video: kind.includes("video") ? youtubeId(video) || safeHttpUrl(video) : undefined,
-                kind,
-                days,
-              })).then((ok) => {
-                if (ok) {
-                  setDone(name.trim());
-                  setName("");
-                  setNote("");
-                  setLink("");
-                  setImage("");
-                  setVideo("");
-                  setTxHash("");
-                  setErr("");
-                }
-              });
-            }}
-          />
-        </div>
-      ) : !slotPaid ? (
-        <button
-          type="button"
-          className="btn-join mb-3 w-full rounded-xl py-3 text-sm font-bold"
-          onClick={() => {
-            if (!agree || !name.trim()) {
-              setErr("Add the name and tick the terms.");
-              return;
-            }
-            const img = kind.includes("image") ? (image.startsWith("data:") ? image : safeHttpUrl(image)) : undefined;
-            void Promise.resolve(store.saveAd(name, note, {
-              placement: place,
-              txHash: "",
-              amount: "0",
-              coin: "",
-              link: safeHttpUrl(link),
-              image: img,
-              video: kind.includes("video") ? youtubeId(video) || safeHttpUrl(video) : undefined,
-              kind,
-              days,
-            })).then((ok) => {
-              if (!ok) {
-                setErr("Could not submit.");
-                return;
-              }
-              setReviewDone(true);
-              setDone(name.trim());
-              setName("");
-              setNote("");
-              setErr("");
-            });
-          }}
-        >
-          Submit for staff review
-        </button>
-      ) : <p className="mb-3 text-[12px] text-lime-2">Payment is off for ads right now.</p>}
-      {err ? <p className="mb-2 text-sm text-danger">{err}</p> : null}
-      <label className="mb-3 flex items-start gap-2 text-[11px] text-muted">
-        <input type="checkbox" className="mt-0.5" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-        <span>
-          I agree to the{" "}
-          <a href="/ads-policy" className="font-semibold text-lime-2 underline" target="_blank" rel="noreferrer">
-            Ads terms
-          </a>
-          . I am paying for this slot and these days. It goes live when the payment confirms.
-        </span>
-      </label>
-      {txHash.startsWith("kld_") && name.trim() ? (
-        <button
-          type="button"
-          className="btn-join mb-4 w-full rounded-xl py-3 text-sm font-bold"
-          onClick={() => {
-            const img = kind.includes("image") ? (image.startsWith("data:") ? image : safeHttpUrl(image)) : undefined;
-            void Promise.resolve(store.saveAd(name, note, {
-              placement: place,
-              txHash,
-              amount,
-              coin,
-              link: safeHttpUrl(link),
-              image: img,
-              video: kind.includes("video") ? youtubeId(video) || safeHttpUrl(video) : undefined,
-              kind,
-              days,
-            })).then((ok) => {
-              if (!ok) return;
-              setDone(name.trim());
-              setName("");
-              setTxHash("");
-              setErr("");
-            });
-          }}
-        >
-          Go live
-        </button>
-      ) : null}
-      <div className="mb-2 text-[10px] font-bold tracking-[0.16em] text-muted">YOUR CAMPAIGNS</div>
-      {mine.length === 0 ? <p className="text-sm text-muted">None yet. A paid ad shows here with the time left on that slot.</p> : null}
-      {mine.map((c) => (
-        <div key={c.id} className="raised mb-2 flex gap-2 overflow-hidden rounded-2xl">
-          {c.image ? <img src={c.image} alt="" className="h-16 w-20 object-cover" /> : <div className="grid h-16 w-20 place-items-center bg-panel-3 text-[10px] text-lime-2">AD</div>}
-          <div className="min-w-0 py-2 pr-2">
-            <div className="truncate text-sm font-bold">{c.name}</div>
-            <div className="text-[10px] text-lime-2">{c.status === "approved" ? "Live" : c.status} · {c.placement}</div>
-            <div className="truncate text-[10px] text-muted">
-              {c.expiresAt ? timeLeftLabel(c.expiresAt) : `${c.days ?? 7} days`}
-              {" · "}
-              {fmtCount(c.views ?? 0)} views
-            </div>
+      {showMine ? <CampaignList rows={mine} /> : (
+        <>
+          <div className="ad-rail" aria-label="Ad steps">
+            {AD_STEPS.map((label, i) => (
+              <button key={label} type="button" className={i === step ? "on" : i < step ? "done" : ""} disabled={i > step} onClick={() => { if (i <= step) { setErr(""); setStep(i); } }}>{i + 1}</button>
+            ))}
           </div>
+          {step === 0 ? (
+            <div className="ad-list">
+              {AD_PLACEMENTS.map((p) => {
+                const on = picked && place === p.id;
+                const spec = AD_SIZES[p.id];
+                return (
+                  <button key={p.id} type="button" className={`ad-card ${on ? "on" : ""}`} onClick={() => { setPlace(p.id); setPicked(true); setErr(""); }}>
+                    <strong>{p.label}</strong>
+                    <span>${prices[p.id] ?? p.usd} · {spec.label}</span>
+                    <em>{p.hint}</em>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+          {step === 1 ? (
+            <div className="ad-list">
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Campaign name" className="ad-field" />
+              <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Destination URL, https:// (optional)" className="ad-field" />
+              <p className="ad-note">Name is required. A link must be https. Copy comes on the next step if this creative type needs it.</p>
+            </div>
+          ) : null}
+          {step === 2 ? (
+            <div className="ad-list">
+              <div className="ad-pills">
+                {AD_KINDS.map((k) => (
+                  <button key={k.id} type="button" className={kind === k.id ? "on" : ""} onClick={() => setKind(k.id)}>{k.label}</button>
+                ))}
+              </div>
+              <p className="ad-note">{slot?.label} · {size.label}. {size.hint}</p>
+              {needsImage ? (
+                <div className="ad-card">
+                  <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => void onFile(e.target.files?.[0])} />
+                  <input value={image.startsWith("data:") ? "" : image} onChange={(e) => setImage(e.target.value)} placeholder="Or paste an https image" className="ad-field" />
+                  {image ? <img src={image} alt="" className="ad-preview" /> : null}
+                  {image ? <button type="button" className="ad-text" onClick={() => setImage("")}>Remove image</button> : null}
+                </div>
+              ) : null}
+              {needsVideo ? <input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="YouTube URL" className="ad-field" /> : null}
+              {needsCopy ? <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Headline / short copy" className="ad-field" /> : null}
+            </div>
+          ) : null}
+          {step === 3 ? (
+            <div className="ad-list">
+              <div className="ad-pills">
+                {AD_DAYS.map((d) => (
+                  <button key={d} type="button" className={days === d ? "on" : ""} onClick={() => setDays(d)}>{d} days</button>
+                ))}
+              </div>
+              <div className="ad-card">
+                <strong>${usd}</strong>
+                <em>This is the slot price from Kilode. Changing the days does not change what you pay. It only changes how long the ad stays up. About ₦{ngn.toLocaleString("en-NG")} before the provider's own fee.</em>
+              </div>
+            </div>
+          ) : null}
+          {step === 4 ? (
+            <div className="ad-card">
+              <p><b>Campaign</b> {name.trim()}</p>
+              <p><b>Slot</b> {slot?.label}</p>
+              <p><b>Creative</b> {AD_KINDS.find((k) => k.id === kind)?.label} · {size.label}</p>
+              {note.trim() ? <p><b>Copy</b> {note.trim()}</p> : null}
+              {link.trim() ? <p><b>Link</b> {link.trim()}</p> : null}
+              {image ? <img src={image} alt="" className="ad-preview" /> : null}
+              <p><b>Run</b> {days} days</p>
+              <p><b>Total</b> {mustPay ? `$${usd}` : "Free, then staff review"}</p>
+              <div className="ad-pills">
+                <button type="button" onClick={() => setStep(0)}>Edit slot</button>
+                <button type="button" onClick={() => setStep(1)}>Edit details</button>
+                <button type="button" onClick={() => setStep(2)}>Edit creative</button>
+                <button type="button" onClick={() => setStep(3)}>Edit days</button>
+              </div>
+              <label className="ad-note">
+                <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} /> I agree to the <a href="/ads-policy" target="_blank" rel="noreferrer">Ads terms</a>. It goes live only after Kilode confirms payment.
+              </label>
+            </div>
+          ) : null}
+          {step === 5 ? (
+            <div className="ad-list">
+              <div className="ad-pills">
+                {(["paystack", "flutterwave", "nowpayments"] as const).filter((id) => id !== "nowpayments" || gate.cryptoEnabled).map((id) => (
+                  <button key={id} type="button" className={payWith === id ? "on" : ""} onClick={() => { setPayWith(id); setTxHash(""); }}>
+                    {id === "nowpayments" ? "Crypto" : id === "paystack" ? "Paystack" : "Flutterwave"}
+                  </button>
+                ))}
+              </div>
+              {mustPay ? (
+                <GatewayPay
+                  provider={payWith}
+                  kind="ad"
+                  purpose={place}
+                  usd={usd}
+                  rate={gate.ngnPerUsd}
+                  ready={payWith === "paystack" ? gate.paystack : payWith === "flutterwave" ? gate.flutterwave : gate.nowpayments}
+                  onPaid={(paid) => {
+                    if (!agree || name.trim().length < 2) {
+                      setTxHash(paid.reference);
+                      setCoin(paid.provider);
+                      setAmount(String(paid.amountNgn || usd));
+                      setErr("Payment came back, but the name or terms are missing. Fix them, then tap Go live. Do not pay again.");
+                      return;
+                    }
+                    publish(paid);
+                  }}
+                />
+              ) : !slotPaid ? (
+                <button type="button" className="ad-next" onClick={() => publish()}>Submit for staff review</button>
+              ) : <p className="ad-note">Payment is turned off for ads right now. This campaign cannot go live.</p>}
+              {txHash.startsWith("kld_") ? (
+                <button type="button" className="ad-next" onClick={() => publish({ reference: txHash, provider: coin, amountNgn: Number(amount) || 0 })}>Go live with this payment</button>
+              ) : null}
+              <p className="ad-note">Closing the payment window does not mark this ad as paid. Kilode only continues after the provider confirms the reference.</p>
+            </div>
+          ) : null}
+          {err ? <p className="ad-err" role="alert">{err}</p> : null}
+          {step < 5 ? (
+            <div className="ad-nav">
+              {step > 0 ? <button type="button" onClick={() => { setErr(""); setStep((n) => n - 1); }}>Back</button> : <span />}
+              <button type="button" className="ad-next" onClick={goNext}>Continue</button>
+            </div>
+          ) : (
+            <button type="button" className="ad-text" onClick={() => setStep(4)}>Back to review</button>
+          )}
+        </>
+      )}
+    </Screen>
+  );
+}
+
+function CampaignList({ rows }: { rows: { id: string; name: string; status: string; placement: string; expiresAt?: number; days?: number; views?: number; image?: string }[] }) {
+  if (!rows.length) return <p className="ad-note">No campaigns on this account yet. An unpaid draft is only in this browser until you pay or submit.</p>;
+  return (
+    <div className="ad-list">
+      {rows.map((c) => (
+        <div key={c.id} className="ad-card ad-row">
+          {c.image ? <img src={c.image} alt="" /> : <b>AD</b>}
+          <span>
+            <strong>{c.name}</strong>
+            <em>{c.status === "approved" ? "Live" : c.status} · {c.placement}</em>
+            <em>{c.expiresAt ? timeLeftLabel(c.expiresAt) : `${c.days ?? 7} days`} · {fmtCount(c.views ?? 0)} views</em>
+          </span>
         </div>
       ))}
-    </Screen>
+    </div>
   );
 }
 
