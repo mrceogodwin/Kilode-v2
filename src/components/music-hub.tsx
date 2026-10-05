@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, LayoutGrid, Link2, Music, Play, Plus, TrendingUp, User } from "lucide-react";
 import { ArtFace, PushDesk } from "@/components/artist-push";
 import { artistFollowCount, followArtist, listLivePushes, listMyPayouts, listPresaves, releasePresave, requestPayout, savePresave, wantPresave, type PreSaveCard, type PushCard } from "@/lib/artist-server";
 import { clickRate, groupArtists, rankArtists, rankSongs, risingSongs, type RankArtist } from "@/lib/artist-rank";
+import { artworkFromLookup, artworkSearchUrl } from "@/lib/artist-rules";
 import { seeTrack } from "@/lib/forum-server";
 import { fmtCount, type MusicTrack } from "@/lib/qonvo-data";
 
@@ -13,11 +14,29 @@ type HubStore = {
   handle: string;
 };
 
-function Cover({ src, name, className }: { src?: string; name: string; className: string }) {
-  const [on, setOn] = useState(Boolean(src));
-  useEffect(() => setOn(Boolean(src)), [src]);
-  if (!src || !on) return <span className={`${className} mh-fallback`}>{name.slice(0, 1).toUpperCase()}</span>;
-  return <img src={src} alt="" referrerPolicy="no-referrer" className={className} onError={() => setOn(false)} />;
+function Cover({ src, name, find, className }: { src?: string; name: string; find?: string; className: string }) {
+  const [live, setLive] = useState(src || "");
+  const tried = useRef("");
+  useEffect(() => setLive(src || ""), [src]);
+  useEffect(() => {
+    if (live) return;
+    const term = (find || name).trim();
+    if (term.length < 2 || tried.current === term) return;
+    const url = artworkSearchUrl(term);
+    if (!url) return;
+    tried.current = term;
+    const stop = new AbortController();
+    fetch(url, { signal: stop.signal })
+      .then((r) => r.json())
+      .then((j) => {
+        const art = artworkFromLookup(j);
+        if (art) setLive(art);
+      })
+      .catch(() => undefined);
+    return () => stop.abort();
+  }, [live, find, name]);
+  if (!live) return <span className={`${className} mh-fallback`}>{name.slice(0, 1).toUpperCase()}</span>;
+  return <img src={live} alt="" referrerPolicy="no-referrer" className={className} onError={() => setLive("")} />;
 }
 
 function openSong(track: { id: string; url: string }) {
@@ -115,7 +134,7 @@ export function MusicHub({ store, onAdd }: { store: HubStore; onAdd: () => void 
         <div className="mh-list">
           {artist.tracks.map((t) => (
             <button key={t.id} type="button" className="mh-song" onClick={() => listen(t)}>
-              <Cover src={t.cover} name={t.title} className="mh-thumb" />
+              <Cover src={t.cover} name={t.title} find={`${artist.name} ${t.title}`} className="mh-thumb" />
               <span><strong>{t.title}</strong><em>{t.platform || "Link"} · {t.views ? `${fmtCount(t.views)} opens` : "No opens yet"}</em></span>
               <Play className="size-3.5" />
             </button>
@@ -147,7 +166,7 @@ export function MusicHub({ store, onAdd }: { store: HubStore; onAdd: () => void 
             <button type="button" className="mh-play" onClick={() => hero.tracks[0] && listen(hero.tracks[0])}><Play className="size-3.5" /> Listen now</button>
           </div>
           <button type="button" className="mh-album" aria-label="Next featured artist" onClick={() => setSpot((n) => (n + 1) % featured.length)}>
-            <Cover src={hero.tracks[0]?.cover || hero.cover} name={hero.tracks[0]?.title || hero.name} className="mh-album-photo" />
+            <Cover src={hero.tracks[0]?.cover || hero.cover} name={hero.name} find={`${hero.name} ${hero.tracks[0]?.title || ""}`} className="mh-album-photo" />
             <b>{hero.tracks[0]?.title || hero.name}</b>
             <i>{spot + 1}/{featured.length}</i>
             <ChevronRight className="size-3.5" />
@@ -259,7 +278,7 @@ export function MusicHub({ store, onAdd }: { store: HubStore; onAdd: () => void 
             {fresh.map((t) => (
               <button key={t.id} type="button" className="mh-release" onClick={() => listen(t)}>
                 <span className="mh-shot">
-                  <Cover src={t.cover} name={t.title} className="mh-release-photo" />
+                  <Cover src={t.cover} name={t.title} find={`${t.artist} ${t.title}`} className="mh-release-photo" />
                   <i><Play className="size-3" /></i>
                 </span>
                 <strong>{t.title}</strong>
@@ -278,7 +297,7 @@ export function MusicHub({ store, onAdd }: { store: HubStore; onAdd: () => void 
             {songs.slice(0, lane === "charts" ? 20 : 6).map((t, i) => (
               <button key={t.id} type="button" className="mh-song" onClick={() => listen(t)}>
                 <b>{i + 1}</b>
-                <Cover src={t.cover} name={t.title} className="mh-thumb" />
+                <Cover src={t.cover} name={t.title} find={`${t.artist} ${t.title}`} className="mh-thumb" />
                 <span><strong>{t.title}</strong><em>{t.artist}</em><em>{t.views ? `${fmtCount(t.views)} opens` : "No opens yet"}</em></span>
                 <Play className="size-3.5" />
               </button>
@@ -291,7 +310,7 @@ export function MusicHub({ store, onAdd }: { store: HubStore; onAdd: () => void 
               <div className="mh-list">
                 {rising.map((t) => (
                   <button key={t.id} type="button" className="mh-song" onClick={() => listen(t)}>
-                    <Cover src={t.cover} name={t.title} className="mh-thumb" />
+                    <Cover src={t.cover} name={t.title} find={`${t.artist} ${t.title}`} className="mh-thumb" />
                     <span><strong>{t.title}</strong><em>{t.artist}</em></span>
                   </button>
                 ))}

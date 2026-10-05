@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { appleTrackId, artworkFromLookup, pushNetwork, pushUsd } from "@/lib/artist-rules";
+import { useEffect, useRef, useState } from "react";
+import { appleTrackId, artworkFromLookup, artworkSearchUrl, pushNetwork, pushUsd } from "@/lib/artist-rules";
 import { listLivePushes, listMyPushes, savePush, seePush, type PushCard } from "@/lib/artist-server";
 import { listPayMethods } from "@/lib/pay-gateways";
 import { GatewayPay } from "@/components/pay-checkout";
@@ -8,15 +8,19 @@ import { timeLeftLabel } from "@/lib/qonvo-data";
 
 export function ArtFace({ name, cover, url, big = false }: { name: string; cover?: string; url?: string; big?: boolean }) {
   const [src, setSrc] = useState(cover || "");
+  const tried = useRef("");
   useEffect(() => {
     setSrc(cover || "");
+    tried.current = "";
   }, [cover, url]);
   useEffect(() => {
     if (src) return;
     const id = appleTrackId(url || "");
-    if (!id) return;
+    const lookup = id ? `https://itunes.apple.com/lookup?id=${id}` : artworkSearchUrl(name);
+    if (!lookup || tried.current === lookup) return;
+    tried.current = lookup;
     const stop = new AbortController();
-    fetch(`https://itunes.apple.com/lookup?id=${id}`, { signal: stop.signal })
+    fetch(lookup, { signal: stop.signal })
       .then((r) => r.json())
       .then((j) => {
         const art = artworkFromLookup(j);
@@ -24,7 +28,7 @@ export function ArtFace({ name, cover, url, big = false }: { name: string; cover
       })
       .catch(() => undefined);
     return () => stop.abort();
-  }, [src, url]);
+  }, [src, url, name]);
   return (
     <span className={big ? "artist-hero-face" : "artist-orb-face"}>
       {src ? (

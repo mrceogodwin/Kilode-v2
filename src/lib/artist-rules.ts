@@ -44,6 +44,12 @@ export function pushUsd(days: number): number {
   return 0;
 }
 
+export function artworkSearchUrl(term: string): string {
+  const q = term.trim().slice(0, 80);
+  if (q.length < 2) return "";
+  return `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=1`;
+}
+
 export function appleTrackId(raw: string): string {
   try {
     const url = new URL(raw);
