@@ -83,7 +83,6 @@ import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
 import { HandleLink } from "@/components/handle-link";
 import { ReportMenu } from "@/components/report-menu";
 import { NotifyBell } from "@/components/notify-bell";
-import { GetAppRow } from "@/components/get-app";
 import { AdSlotOrEmpty, AdReserve } from "@/components/ad-slot";
 import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagArchive, DontMissGrid, isDupExcerpt } from "@/components/engage-rail";
 import { LinkText } from "@/components/link-text";
@@ -1591,9 +1590,6 @@ function QonvoAppInner() {
                 {signedIn ? <DrawerRow icon={Settings} label="Settings" onClick={() => { setScreen("settings"); setMenuOpen(false); }} on={screen === "settings"} /> : null}
                 <DrawerRow icon={Coins} label="Pricing" hint="Member, badge, event, ads" onClick={() => { setScreen("pricing"); setMenuOpen(false); }} on={screen === "pricing"} />
               </DrawerGroup>
-            </div>
-            <div className="menu-install shrink-0">
-              <GetAppRow />
             </div>
             <div className="menu-stage shrink-0 border-t border-white/10 px-2.5 py-2">
               <StageSwitch />
@@ -3203,12 +3199,12 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
             ))}
           </ul>
         ) : null}
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {lane === "following" && follows && live.length === 0 ? (
-            <p className="col-span-4 py-6 text-center text-[12px] text-muted">Connect with people on Socials. Their posts show here. Nothing is invented.</p>
+            <p className="col-span-2 py-6 text-center text-[12px] text-muted">Connect with people on Socials. Their posts show here. Nothing is invented.</p>
           ) : null}
           {lane === "topics" && topics && live.length === 0 ? (
-            <p className="col-span-4 py-6 text-center text-[12px] text-muted">Follow a topic on a story. Those stories show here. Nothing is invented.</p>
+            <p className="col-span-2 py-6 text-center text-[12px] text-muted">Follow a topic on a story. Those stories show here. Nothing is invented.</p>
           ) : null}
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => {
             const hot = (p.views ?? 0) >= 350 || (p.comments?.length ?? 0) >= 6;

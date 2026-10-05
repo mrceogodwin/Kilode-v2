@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Briefcase, Bookmark, Building2, Check, ChevronRight, Home, Laptop, MapPin, MoreHorizontal, Pencil, Plus, Search, SlidersHorizontal, Store, TrendingUp } from "lucide-react";
 import { applyListing, listListingQueue, listListings, listMyApplicants, listMyApps, listMyListings, saveListing, setListingStatus, withdrawApplication, type Listing, type ListingKind, type MyApp, type MyApplicant } from "@/lib/listings-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
@@ -737,9 +737,9 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
         }} />
       ) : kind === "job" ? (
         <>
-          {session.user ? (
+          {session.user && desk !== "board" ? (
             <div className="job-desk">
-              <button type="button" className={desk === "board" ? "on" : ""} onClick={() => setDesk("board")}>Roles</button>
+              <button type="button" onClick={() => setDesk("board")}>Roles</button>
               <button type="button" className={desk === "apps" ? "on" : ""} onClick={() => { setDesk("apps"); refreshJobDesk(); }}>Applications{myApps.length ? ` ${myApps.length}` : ""}</button>
               <button type="button" className={desk === "posted" ? "on" : ""} onClick={() => { setDesk("posted"); refreshJobDesk(); }}>Posted{myRoles.length ? ` ${myRoles.length}` : ""}</button>
             </div>
@@ -798,6 +798,13 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             </div>
           ) : (
         <JobBoard
+          rail={session.user ? (
+            <div className="job-desk">
+              <button type="button" className="on" onClick={() => setDesk("board")}>Roles</button>
+              <button type="button" onClick={() => { setDesk("apps"); refreshJobDesk(); }}>Applications{myApps.length ? ` ${myApps.length}` : ""}</button>
+              <button type="button" onClick={() => { setDesk("posted"); refreshJobDesk(); }}>Posted{myRoles.length ? ` ${myRoles.length}` : ""}</button>
+            </div>
+          ) : null}
           rows={jobRows}
           pool={rows}
           cities={cities}
@@ -943,6 +950,7 @@ function JobBoard({
   onOpen,
   onPost,
   applied = [],
+  rail = null,
 }: {
   rows: Card[];
   pool: Card[];
@@ -968,6 +976,7 @@ function JobBoard({
   onOpen: (r: Card) => void;
   onPost: () => void;
   applied?: string[];
+  rail?: ReactNode;
 }) {
   const [filtersOn, setFiltersOn] = useState(false);
   const [menu, setMenu] = useState("");
@@ -1021,6 +1030,7 @@ function JobBoard({
           </button>
         </section>
       ) : <p className="job-empty">No approved roles yet.</p>}
+      {rail}
       <div className="job-search">
         <label>
           <Search className="size-4" />

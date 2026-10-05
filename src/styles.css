@@ -5782,6 +5782,105 @@ html:not([data-skin="ivory"]) .dock .app-tab.on { color: #f4fff8 !important; }
 .menu-install { border-top: 1px solid rgba(255, 255, 255, 0.08); }
 .menu-install a { color: #f5f3ee; }
 
+html:not([data-skin="ivory"]) .kilode-header-capsule .hdr-ico {
+  width: 26px !important;
+  height: 26px !important;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+}
+.menu-drawer .menu-stage { margin-top: auto; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+.desk-line { gap: 6px; }
+html:not([data-skin="ivory"]) .svc-ico {
+  width: 64px !important;
+  flex-basis: 64px !important;
+  gap: 4px !important;
+  border-radius: 12px !important;
+  border-width: 1px !important;
+  padding: 8px 2px 6px !important;
+  background: #141716 !important;
+  box-shadow: none !important;
+  font-size: 9px !important;
+}
+.in-feed-row { gap: 8px; }
+.in-feed-row button { width: 72px; flex-basis: 72px; }
+.in-feed-row img { width: 48px; height: 48px; border-width: 1px; }
+.pulse-card { border-radius: 12px; padding: 8px 10px; }
+.media-page .media-tile { border-radius: 10px; }
+.media-page .media-shot { aspect-ratio: 4 / 3; }
+.media-page .media-title { font-size: 12px; font-weight: 650; -webkit-line-clamp: 2; }
+html:not([data-skin="ivory"]) .take-compose .soc-chip.on,
+html:not([data-skin="ivory"]) .take-compose .btn-join {
+  background: #f7f7f5 !important;
+  color: #111 !important;
+  border-color: #f7f7f5 !important;
+  box-shadow: none !important;
+}
+html:not([data-skin="ivory"]) .take-follow,
+html:not([data-skin="ivory"]) .take-follow.on {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  color: #f5f3ee !important;
+  font-weight: 700 !important;
+}
+.take-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: #0d0f0e;
+  color: #f5f3ee;
+}
+.take-stage-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 12px;
+  border-bottom: 1px solid #2a2a2a;
+}
+.take-stage-bar button { border: 0; background: transparent; color: #f5f3ee; font-size: 13px; font-weight: 700; }
+.take-stage-scroll { min-height: 0; flex: 1; overflow-y: auto; padding: 12px 12px calc(88px + env(safe-area-inset-bottom)); }
+.take-stage-who { display: flex; gap: 6px; align-items: baseline; font-size: 13px; }
+.take-stage-who span, .take-stage-replies p { color: #a7a7a4; font-size: 12px; }
+.take-stage-scroll > p { margin: 8px 0; font-size: 15px; line-height: 1.35; white-space: pre-wrap; }
+.take-stage-photo { display: block; width: 100%; max-height: 68vh; object-fit: contain; background: #000; border-radius: 8px; }
+.take-stage-replies { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.take-stage-replies div { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.take-stage-replies img { max-height: 180px; width: 100%; object-fit: cover; border-radius: 8px; }
+.take-stage-form {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 8px;
+  background: #0d0f0e;
+}
+.take-stage-form input {
+  min-width: 0;
+  flex: 1;
+  height: 36px;
+  border: 1px solid #343434;
+  border-radius: 999px;
+  background: #161616;
+  padding: 0 12px;
+  color: #f5f3ee;
+  font-size: 16px;
+}
+.take-stage-form button {
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: #f7f7f5;
+  padding: 0 14px;
+  color: #111;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 html:not([data-skin="ivory"]) .dock {
   background: #101010 !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;

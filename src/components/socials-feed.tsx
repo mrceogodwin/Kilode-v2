@@ -383,6 +383,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
   const [dmNote, setDmNote] = useState("");
   const [dmBusy, setDmBusy] = useState(false);
   const [openReply, setOpenReply] = useState("");
+  const [stage, setStage] = useState<null | { id: string; mode: "thread" | "photo" }>(null);
   const [reply, setReply] = useState("");
   const [replyShot, setReplyShot] = useState("");
   const [replySort, setReplySort] = useState<"new" | "top">("new");
@@ -1527,7 +1528,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
             live={live.includes((t.handle || "").toLowerCase())}
             revealed={!!revealed[t.id]}
             applied={!!applied[t.id]}
-            replyOpen={openReply === t.id}
+            replyOpen={stage?.id === t.id ? false : openReply === t.id}
             reply={openReply === t.id ? reply : ""}
             onReveal={() => setRevealed((m) => ({ ...m, [t.id]: true }))}
             onApply={() => {
@@ -1639,13 +1640,18 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
               setErr("");
             }}
             onReplyOpen={() => {
-              if (openReply === t.id) {
-                setOpenReply("");
-                return;
-              }
+              setStage({ id: t.id, mode: "thread" });
               setOpenReply(t.id);
               setReply("");
               setReplyShot("");
+              if (threads[t.id]) return;
+              void listTakeReplies({ data: { id: t.id } }).then((rows) => {
+                setThreads((m) => ({ ...m, [t.id]: rows }));
+              });
+            }}
+            onPhotoOpen={() => {
+              setStage({ id: t.id, mode: "photo" });
+              setOpenReply(t.id);
               if (threads[t.id]) return;
               void listTakeReplies({ data: { id: t.id } }).then((rows) => {
                 setThreads((m) => ({ ...m, [t.id]: rows }));
@@ -1723,6 +1729,61 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
           />
         ))}
       </div>
+      {stage ? (() => {
+        const t = shownTakes.find((row) => row.id === stage.id);
+        if (!t) return null;
+        const image = typeof t.meta.image === "string" ? t.meta.image : "";
+        const rows = [...(threads[t.id] || [])].sort((a, b) => a.ts - b.ts);
+        return (
+          <div className="take-stage" role="dialog" aria-modal="true" aria-label={stage.mode === "photo" ? "Photo" : "Comments"}>
+            <div className="take-stage-bar">
+              <button type="button" onClick={() => { setStage(null); setOpenReply(""); }}>Close</button>
+              <b>{stage.mode === "photo" ? "Photo" : "Comments"}</b>
+            </div>
+            <div className="take-stage-scroll">
+              <div className="take-stage-who"><b>{t.name || t.handle}</b><span>@{t.handle}</span></div>
+              {t.body ? <p>{t.body}</p> : null}
+              {image ? <img src={image} alt="" className="take-stage-photo" referrerPolicy="no-referrer" /> : null}
+              <div className="take-stage-replies">
+                {rows.length === 0 ? <p>No comments yet.</p> : rows.map((r) => (
+                  <div key={r.id}>
+                    <b>@{r.handle}</b>
+                    {r.body ? <span>{r.body}</span> : null}
+                    {r.image ? <img src={r.image} alt="" /> : null}
+                  </div>
+                ))}
+              </div>
+              <form
+                className="take-stage-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!authed) return goLogin();
+                  const text = reply.trim();
+                  if ((!text && !replyShot) || busyId === t.id) return;
+                  setBusyId(t.id);
+                  void replyTake({ data: { id: t.id, body: text, image: replyShot } })
+                    .then((r) => {
+                      if (!r.ok) {
+                        setErr(r.reason);
+                        return;
+                      }
+                      kilodeSound("sent");
+                      patch(t.id, (row) => ({ ...row, comments: row.comments + 1, lastReply: r.reply.body || "Photo" }));
+                      setThreads((m) => ({ ...m, [t.id]: [...(m[t.id] || []), r.reply] }));
+                      setReply("");
+                      setReplyShot("");
+                    })
+                    .catch(() => setErr("Could not reply."))
+                    .finally(() => setBusyId(""));
+                }}
+              >
+                <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Write a comment" />
+                <button type="submit" disabled={busyId === t.id}>{busyId === t.id ? "…" : "Send"}</button>
+              </form>
+            </div>
+          </div>
+        );
+      })() : null}
       {(feedCut === "following" ? followNext : feedCut === "trending" ? trendNext : feedCut === "tag" ? tagNext : next) ? (
         <button
           type="button"
@@ -2070,6 +2131,7 @@ function TakeCard({
   onRepost,
   onShare,
   onReplyOpen,
+  onPhotoOpen,
   onReplyChange,
   onReplySend,
   replies,
@@ -2109,6 +2171,7 @@ function TakeCard({
   onRepost: () => void;
   onShare: () => void;
   onReplyOpen: () => void;
+  onPhotoOpen?: () => void;
   onReplyChange: (v: string) => void;
   onReplySend: () => void;
   replies: TakeReply[];
@@ -2146,13 +2209,18 @@ function TakeCard({
   }, [liked]);
   const tap = useRef(0);
   function onPhoto() {
-    tap.current += 1;
-    window.setTimeout(() => {
+    const now = Date.now();
+    if (now - tap.current < 280) {
       tap.current = 0;
+      if (!liked) onLike();
+      return;
+    }
+    tap.current = now;
+    window.setTimeout(() => {
+      if (tap.current !== now) return;
+      tap.current = 0;
+      onPhotoOpen?.();
     }, 280);
-    if (tap.current < 2) return;
-    tap.current = 0;
-    if (!liked) onLike();
   }
   return (
     <article className="take-card glass-3d px-2.5 py-2" data-take={take.id}>
