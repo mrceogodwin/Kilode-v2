@@ -829,7 +829,7 @@ function QonvoAppInner() {
             <button
               type="button"
               aria-label="Search feeds"
-              className="ticker-tool grid size-8 place-items-center rounded-md"
+              className="ticker-tool hdr-tool grid size-8 place-items-center"
               onClick={() => {
                 setFeedSearchOn((v) => !v);
                 if (feedSearchOn) setFeedQ("");
@@ -841,7 +841,7 @@ function QonvoAppInner() {
               type="button"
               aria-label={homeTab === "socials" ? "Write a take" : "Post news"}
               title={homeTab === "socials" ? "Write a take" : "Post news"}
-              className="ticker-tool news-plus"
+              className="ticker-tool hdr-tool news-plus"
               onClick={() => {
                 if (session.isPending) return;
                 if (!signedIn) {
@@ -2902,13 +2902,30 @@ function DeskLine({
     })),
   ];
   return (
-    <div className="desk-line mb-3">
-      {items.map((item) => (
-        <button key={item.id} type="button" className="svc-ico" onClick={item.go}>
-          <item.Icon className="size-[18px]" strokeWidth={1.75} />
-          <span>{item.label}</span>
-        </button>
-      ))}
+    <div className="mb-3">
+      <div className="desk-line">
+        {items.map((item) => (
+          <button key={item.id} type="button" className="k-ico" onClick={item.go}>
+            <i><item.Icon className="size-4" strokeWidth={1.75} /></i>
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </div>
+      <div className="k-system" aria-label="Kilode system">
+        {([
+          ["Media", Newspaper, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "home", tab: "feeds" } }))],
+          ["Socials", MessageSquare, () => window.dispatchEvent(new CustomEvent("kilode:socials"))],
+          ["Music", Music, () => onLeave("music")],
+          ["Jobs", Briefcase, () => onLeave("jobs")],
+          ["Market", Store, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))],
+          ["Ads", Megaphone, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "ads" } }))],
+        ] as const).map(([label, Icon, go]) => (
+          <button key={label} type="button" onClick={go}>
+            <Icon className="size-3.5" strokeWidth={1.75} />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -2983,7 +3000,7 @@ function InFeed({ posts, onOpen }: { posts: { id: string; title?: string; image?
       <div className="in-feed-kicker">In the feed</div>
       <div className="in-feed-row">
         {rows.map((p) => (
-          <button key={p.id} type="button" onClick={() => onOpen(p.id)}>
+          <button key={p.id} type="button" className="in-feed-card" onClick={() => onOpen(p.id)}>
             <img src={p.image} alt="" />
             <span>{(p.title || "").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&/g, "&")}</span>
           </button>
@@ -3199,12 +3216,12 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
             ))}
           </ul>
         ) : null}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
           {lane === "following" && follows && live.length === 0 ? (
-            <p className="col-span-2 py-6 text-center text-[12px] text-muted">Connect with people on Socials. Their posts show here. Nothing is invented.</p>
+            <p className="col-span-4 py-6 text-center text-[12px] text-muted">Connect with people on Socials. Their posts show here. Nothing is invented.</p>
           ) : null}
           {lane === "topics" && topics && live.length === 0 ? (
-            <p className="col-span-2 py-6 text-center text-[12px] text-muted">Follow a topic on a story. Those stories show here. Nothing is invented.</p>
+            <p className="col-span-4 py-6 text-center text-[12px] text-muted">Follow a topic on a story. Those stories show here. Nothing is invented.</p>
           ) : null}
           {live.filter((p) => !!p?.id).slice(0, shown).map((p) => {
             const hot = (p.views ?? 0) >= 350 || (p.comments?.length ?? 0) >= 6;
