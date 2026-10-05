@@ -1366,21 +1366,16 @@ function QonvoAppInner() {
       {menuOpen ? (
         <div className="app-drawer menu-drawer">
           <aside className="menu-sheet flex h-full w-[min(268px,76vw)] flex-col">
-            <div className="menu-head flex items-center gap-2">
-              <AvatarImg handle={store.handle || "Guest"} face={store.face} size={34} />
+            <div className="menu-head">
+              <AvatarImg handle={store.handle || "Guest"} face={store.face} size={36} />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-extrabold tracking-tight">{session.user ? store.handle || "Member" : "Guest"}</div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                  {staffChip ? <span className="staff-pill">{staffChip}</span> : null}
-                  <span className="text-[10px] tracking-normal text-lime-2">
-                    {session.user ? ACCOUNT_KINDS.find((k) => k.id === store.kind)?.label ?? "Member" : "Browse free · join to post"}
-                  </span>
-                </div>
+                <div className="truncate text-[14px] font-extrabold tracking-tight">{session.user ? store.handle || "Member" : "Guest"}</div>
+                <span className="menu-role">{staffChip || (session.user ? ACCOUNT_KINDS.find((k) => k.id === store.kind)?.label ?? "Member" : "Guest")}</span>
               </div>
-              <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close">
+              <SkinToggle />
+              <button type="button" className="menu-x-btn" onClick={() => setMenuOpen(false)} aria-label="Close">
                 <X className="size-4" />
               </button>
-              <SkinToggle />
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-2.5 pb-4">
               <div className="menu-hero-card mb-3">
