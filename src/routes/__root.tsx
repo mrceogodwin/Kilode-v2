@@ -3,7 +3,6 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { seoHead } from "@/lib/seo";
 import appCss from "../styles.css?url";
-import { OfficialLockup } from "@/components/brand-lockup";
 import { OfflineToast } from "@/components/offline-toast";
 
 const base = seoHead({ path: "/" });
@@ -12,7 +11,6 @@ function Boot({ title, body, action }: { title: string; body: string; action?: R
   return (
     <div className="grid min-h-svh place-items-center bg-[#0a0a0a] p-6 text-[#f4f4f5]">
       <div className="max-w-sm text-center">
-        <OfficialLockup className="mx-auto mb-3 h-8 w-[148px]" />
         <p className="mt-1 text-sm font-semibold">{title}</p>
         <p className="mt-2 text-sm text-white/50">{body}</p>
         {action}

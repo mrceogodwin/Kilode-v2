@@ -58,7 +58,6 @@ import { ACCOUNT_KINDS, MENU, POST_CATS, ROOMS, AD_COINS, KIND_FACE, avatarUrl, 
 import { canKind, canCreateMenu, createLabelFor } from "@/lib/permissions";
 import { disconnectFellow, listConnects, listLive, listTakes, replyConnect, type ConnectRow } from "@/lib/takes-server";
 import { listInbox, sendDm } from "@/lib/social-server";
-import { SplashScreen } from "@/components/splash-screen";
 import { unlockSound, pingMessage } from "@/lib/ping";
 import { useRealtimeInbox } from "@/lib/use-realtime";
 import { MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
@@ -216,12 +215,9 @@ function mixChatAds(rows: ChatRow[], ads: Campaign[]): ChatRow[] {
 
 export function QonvoApp({ initialSite }: { initialSite?: PublicSite } = {}) {
   return (
-    <>
-      <SplashScreen />
-      <PublicSiteProvider initial={initialSite}>
-        <QonvoAppInner />
-      </PublicSiteProvider>
-    </>
+    <PublicSiteProvider initial={initialSite}>
+      <QonvoAppInner />
+    </PublicSiteProvider>
   );
 }
 

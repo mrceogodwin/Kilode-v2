@@ -268,7 +268,7 @@ export function SiteFooter() {
           <div className="mb-1.5 text-center text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">Email updates</div>
           <DigestBox quiet defaultOpen={false} />
         </div>
-        <img src="/kilode-word.png" alt="Kilode" className="foot-mark mx-auto mt-3 h-7 w-auto" />
+        <img src="/kilode-word.png?v=3" alt="Kilode" className="foot-mark mx-auto mt-3 h-7 w-auto" />
       </div>
 
       <p className="mt-2.5 text-center text-[10px] leading-snug text-muted">
