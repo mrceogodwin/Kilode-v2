@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Briefcase, Building2, Bookmark, ChevronRight, Home, Laptop, MapPin, MoreHorizontal, Pencil, Plus, Search, SlidersHorizontal, Store, TrendingUp } from "lucide-react";
-import { applyListing, listListingQueue, listListings, listMyApplicants, listMyApps, listMyListings, saveListing, setListingStatus, type Listing, type ListingKind, type MyApp, type MyApplicant } from "@/lib/listings-server";
+import { applyListing, listListingQueue, listListings, listMyApplicants, listMyApps, listMyListings, saveListing, setListingStatus, withdrawApplication, type Listing, type ListingKind, type MyApp, type MyApplicant } from "@/lib/listings-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getProfile } from "@/lib/forum-server";
 import { daysLeft, fmtCount, timeAgo, timeLabel, type AccountKind } from "@/lib/qonvo-data";
@@ -9,7 +9,7 @@ import { AdReserve } from "@/components/ad-slot";
 import { JoinCta } from "@/components/get-app";
 import { DeskPayBox } from "@/components/pay-checkout";
 import { PortraitAd } from "@/components/premium-ad";
-import { uploadListingPhoto } from "@/lib/supabase";
+import { uploadCvFile, uploadListingPhoto } from "@/lib/supabase";
 
 const COPY: Record<
   ListingKind,
@@ -235,6 +235,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [cv, setCv] = useState("");
   const [skills, setSkills] = useState("");
   const [includeOpen, setIncludeOpen] = useState(true);
+  const [cvBusy, setCvBusy] = useState(false);
   const [condition, setCondition] = useState("New");
   const [price, setPrice] = useState("");
   const [image, setImage] = useState("");
@@ -361,9 +362,30 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
       if (!salaryMatch(meta.salary, salaryBand, includeOpen)) return false;
       if (!jobPillMatch(r, jobPill)) return false;
       if (!query) return true;
-      return `${r.title} ${r.company} ${r.city} ${r.submitter} ${meta.category || ""}`.toLowerCase().includes(query);
+      return `${r.title} ${r.company} ${r.city} ${r.submitter} ${r.body} ${meta.category || ""} ${meta.jobType || ""} ${meta.experience || ""}`.toLowerCase().includes(query);
     });
   }, [rows, q, filter, jobTypeFilter, salaryBand, jobPill, includeOpen]);
+
+  function rememberSeeker(next: { phone?: string; cv?: string; skills?: string }) {
+    const card = { phone: next.phone ?? phone, cv: next.cv ?? cv, skills: next.skills ?? skills };
+    try { localStorage.setItem("kilode-seeker", JSON.stringify(card)); } catch { /* ignore */ }
+  }
+
+  async function onCvFile(file: File | undefined) {
+    if (!file) return;
+    setErr("");
+    setCvBusy(true);
+    try {
+      const url = await uploadCvFile(file);
+      setCv(url);
+      rememberSeeker({ cv: url });
+      setMsg("CV uploaded. It is sent with the next application.");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "CV did not upload.");
+    } finally {
+      setCvBusy(false);
+    }
+  }
 
   function needJoin(href = "/login?mode=up") {
     window.location.href = href;
@@ -635,9 +657,13 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                     <input type="checkbox" className="mt-0.5" checked={legal} onChange={(e) => setLegal(e.target.checked)} />
                     <span>Kilode only introduces you. It does not hire, pay, or check the employer. Verify them before you send a CV or personal details.</span>
                   </label>
-                  <input value={phone} onChange={(e) => { setPhone(e.target.value); try { localStorage.setItem("kilode-seeker", JSON.stringify({ phone: e.target.value, cv, skills })); } catch { /* ignore */ } }} placeholder="Phone" className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-base" inputMode="tel" />
-                  <input value={cv} onChange={(e) => { setCv(e.target.value); try { localStorage.setItem("kilode-seeker", JSON.stringify({ phone, cv: e.target.value, skills })); } catch { /* ignore */ } }} placeholder="CV link, https:// (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-base" />
-                  <input value={skills} onChange={(e) => { setSkills(e.target.value); try { localStorage.setItem("kilode-seeker", JSON.stringify({ phone, cv, skills: e.target.value })); } catch { /* ignore */ } }} placeholder="Skills, short" className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-base" />
+                  <input value={phone} onChange={(e) => { setPhone(e.target.value); rememberSeeker({ phone: e.target.value }); }} placeholder="Phone" className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-base" inputMode="tel" />
+                  <input value={cv} onChange={(e) => { setCv(e.target.value); rememberSeeker({ cv: e.target.value }); }} placeholder="CV link, https:// (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-base" />
+                  <label className="block text-[12px] text-muted">
+                    {cvBusy ? "Uploading PDF…" : "Or upload a PDF, 4MB max"}
+                    <input type="file" accept="application/pdf,.pdf" disabled={cvBusy} onChange={(e) => void onCvFile(e.target.files?.[0])} className="mt-1 block w-full text-[12px]" />
+                  </label>
+                  <input value={skills} onChange={(e) => { setSkills(e.target.value); rememberSeeker({ skills: e.target.value }); }} placeholder="Skills, short" className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-base" />
                   <div className="flex gap-2">
                   <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Short apply note" className="min-w-0 flex-1 rounded-xl border border-line bg-panel px-3 py-2 text-base" />
                   <button
@@ -716,6 +742,18 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
               <button type="button" className={desk === "posted" ? "on" : ""} onClick={() => { setDesk("posted"); refreshJobDesk(); }}>Posted{myRoles.length ? ` ${myRoles.length}` : ""}</button>
             </div>
           ) : null}
+          {session.user && desk === "board" ? (
+            <div className="job-sheet">
+              <div className="job-sheet-label">Your details</div>
+              <input value={phone} onChange={(e) => { setPhone(e.target.value); rememberSeeker({ phone: e.target.value }); }} placeholder="Phone" className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-base" inputMode="tel" />
+              <input value={skills} onChange={(e) => { setSkills(e.target.value); rememberSeeker({ skills: e.target.value }); }} placeholder="Skills" className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-base" />
+              <input value={cv} onChange={(e) => { setCv(e.target.value); rememberSeeker({ cv: e.target.value }); }} placeholder="CV link or upload below" className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-base" />
+              <label className="block text-[12px] text-muted">
+                {cvBusy ? "Uploading PDF…" : "PDF, 4MB max. A pasted https link also works."}
+                <input type="file" accept="application/pdf,.pdf" disabled={cvBusy} onChange={(e) => void onCvFile(e.target.files?.[0])} className="mt-1 block w-full text-[12px]" />
+              </label>
+            </div>
+          ) : null}
           {desk === "apps" && session.user ? (
             <div className="job-roles">
               {myApps.length === 0 ? <p className="job-empty">No applications yet. Open a role and send a note.</p> : myApps.map((a) => (
@@ -726,12 +764,21 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                       <i>{a.company || "Company"}</i>
                       <strong>{a.title}</strong>
                       <em>{a.city || "Nigeria"} · {a.status}</em>
+                      {a.skills ? <span className="job-tags"><b>{a.skills}</b></span> : null}
                       {a.note ? <span className="job-tags"><b>{a.note}</b></span> : null}
                       {a.phone ? <span className="job-tags"><b>{a.phone}</b></span> : null}
                       {a.cv ? <a className="text-[11px] font-bold text-[#ffd45a]" href={a.cv} target="_blank" rel="noreferrer">CV</a> : null}
                     </span>
                   </button>
-                  <span className="job-role-side"><i>{timeAgo(a.ts)}</i></span>
+                  <span className="job-role-side">
+                    <i>{timeAgo(a.ts)}</i>
+                    <button type="button" className="text-[11px] font-bold text-muted" onClick={() => {
+                      void withdrawApplication({ data: { id: a.id } }).then((r) => {
+                        if (!r.ok) setErr(r.reason);
+                        else refreshJobDesk();
+                      });
+                    }}>Withdraw</button>
+                  </span>
                 </article>
               ))}
             </div>
@@ -747,7 +794,12 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                         <i>{r.status}</i>
                         <strong>{r.title}</strong>
                         <em>{r.city || "Nigeria"} · {people.length} applicant{people.length === 1 ? "" : "s"}</em>
-                        {people.slice(0, 3).map((p) => <span key={p.id} className="job-tags"><b>@{p.handle}{p.phone ? ` · ${p.phone}` : ""}</b></span>)}
+                        {people.slice(0, 3).map((p) => (
+                          <span key={p.id} className="job-tags">
+                            <b>@{p.handle}{p.phone ? ` · ${p.phone}` : ""}</b>
+                            {p.cv ? <a className="text-[11px] font-bold text-[#ffd45a]" href={p.cv} target="_blank" rel="noreferrer">CV</a> : null}
+                          </span>
+                        ))}
                       </span>
                     </span>
                   </article>
@@ -849,7 +901,7 @@ function payLabel(raw?: string) {
 
 function roleTags(r: Card) {
   const meta = readMeta(r.meta);
-  const tags = [meta.category, meta.jobType].filter((x): x is string => !!x && x !== "Remote");
+  const tags = [meta.experience, meta.category, meta.jobType, meta.deadline ? `By ${meta.deadline}` : ""].filter((x): x is string => !!x && x !== "Remote");
   return [...new Set(tags)].slice(0, 3);
 }
 
@@ -929,10 +981,18 @@ function JobBoard({
   const [filtersOn, setFiltersOn] = useState(false);
   const [menu, setMenu] = useState("");
   const [hidden, setHidden] = useState<string[]>([]);
-  const live = rows.filter((r) => !hidden.includes(r.id));
+  const [onlyKept, setOnlyKept] = useState(false);
+  const [onlyApplied, setOnlyApplied] = useState(false);
+  const [sort, setSort] = useState<"new" | "old">("new");
+  const [copied, setCopied] = useState("");
+  const query = q.trim().toLowerCase();
+  const ideas = query.length < 2 ? [] : pool.filter((r) => `${r.title} ${r.company}`.toLowerCase().includes(query)).slice(0, 5);
+  let live = rows.filter((r) => !hidden.includes(r.id));
+  if (onlyKept) live = live.filter((r) => kept.includes(r.id));
+  if (onlyApplied) live = live.filter((r) => applied.includes(r.id));
+  live = [...live].sort((a, b) => (sort === "old" ? a.ts - b.ts : b.ts - a.ts));
   const featured = live.slice(0, 2);
-  const savedFirst = [...live].sort((a, b) => Number(kept.includes(b.id)) - Number(kept.includes(a.id)));
-  const openRoles = roleTab === "recommended" ? [...live].reverse() : savedFirst;
+  const openRoles = roleTab === "recommended" ? [...live].reverse() : sort === "new" ? [...live].sort((a, b) => Number(kept.includes(b.id)) - Number(kept.includes(a.id))) : live;
   const trends = trendBits(pool);
   const laneCount = (id: string) => (id === "All" ? pool.length : pool.filter((r) => jobPillMatch(r, id)).length);
 
@@ -977,6 +1037,13 @@ function JobBoard({
           <SlidersHorizontal className="size-4" />
         </button>
       </div>
+      {ideas.length > 0 ? (
+        <div className="job-suggest">
+          {ideas.map((r) => (
+            <button key={r.id} type="button" onClick={() => { setQ(r.title); onOpen(r); }}>{r.title} · {r.company || r.city || "Role"}</button>
+          ))}
+        </div>
+      ) : null}
 
       {filtersOn ? (
         <div className="job-sheet">
@@ -987,12 +1054,19 @@ function JobBoard({
             ))}
             <button type="button" className={includeOpen ? "on" : ""} onClick={() => setIncludeOpen(!includeOpen)}>Include pay on request</button>
           </div>
+          <div className="job-sheet-label">View</div>
+          <div className="job-sheet-row">
+            <button type="button" className={onlyKept ? "on" : ""} onClick={() => setOnlyKept((v) => !v)}>Saved</button>
+            <button type="button" className={onlyApplied ? "on" : ""} onClick={() => setOnlyApplied((v) => !v)}>Applied</button>
+            <button type="button" className={sort === "new" ? "on" : ""} onClick={() => setSort("new")}>Newest</button>
+            <button type="button" className={sort === "old" ? "on" : ""} onClick={() => setSort("old")}>Oldest</button>
+          </div>
           <div className="job-sheet-label">Also</div>
           <div className="job-sheet-row">
             {["Contract", "Freelance", "Internship"].map((t) => (
               <button key={t} type="button" className={jobTypeFilter === t ? "on" : ""} onClick={() => pickType(jobTypeFilter === t ? "All" : t)}>{t}</button>
             ))}
-            <button type="button" onClick={() => { setSalaryBand("Any"); setJobTypeFilter("All"); setJobPill("All"); setFilter("All"); setQ(""); }}>Clear</button>
+            <button type="button" onClick={() => { setSalaryBand("Any"); setJobTypeFilter("All"); setJobPill("All"); setFilter("All"); setQ(""); setIncludeOpen(true); setOnlyKept(false); setOnlyApplied(false); setSort("new"); }}>Clear</button>
           </div>
           <button type="button" className="job-post" onClick={onPost}><Plus className="size-3.5" /> Post a role</button>
         </div>
@@ -1092,11 +1166,15 @@ function JobBoard({
                       <button type="button" onClick={() => { onKeep(r.id); setMenu(""); }}>{kept.includes(r.id) ? "Unsave" : "Save"}</button>
                       <button type="button" onClick={() => {
                         setMenu("");
-                        const url = r.link || window.location.href;
-                        if (navigator.share) void navigator.share({ title: r.title, url });
-                        else void navigator.clipboard?.writeText(url);
-                      }}>Share</button>
-                      <button type="button" onClick={() => { setHidden((list) => [...list, r.id]); setMenu(""); }}>Hide</button>
+                        const line = `${r.title}${r.company ? ` · ${r.company}` : ""}${r.city ? ` · ${r.city}` : ""}`;
+                        const url = window.location.href;
+                        const text = `${line}\n${url}`;
+                        if (navigator.share) void navigator.share({ title: r.title, text, url }).catch(() => undefined);
+                        else void navigator.clipboard?.writeText(text);
+                        setCopied(r.id);
+                        window.setTimeout(() => setCopied(""), 1600);
+                      }}>{copied === r.id ? "Copied" : "Share"}</button>
+                      <button type="button" onClick={() => { if (window.confirm("Hide this role on this phone?")) { setHidden((list) => [...list, r.id]); setMenu(""); } }}>Hide</button>
                     </span>
                   ) : null}
                 </span>

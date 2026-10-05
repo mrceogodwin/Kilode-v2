@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { prepareDropUpload, prepareTakeUpload } from "@/lib/media-server";
+import { prepareDropUpload, prepareTakeUpload, prepareCvUpload } from "@/lib/media-server";
 
 function readEnv(name: string): string {
   const vite = import.meta.env as Record<string, string | undefined>;
@@ -192,6 +192,22 @@ export async function uploadDropFile(file: File): Promise<string> {
   if (!sent.ok || !ticket.publicUrl) {
     const detail = (await sent.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 160);
     throw new Error(detail || "The file did not land. Paste an https link instead.");
+  }
+  return ticket.publicUrl;
+}
+
+/** PDF CV for a job application. Neon stores the https link, not the file. */
+export async function uploadCvFile(file: File): Promise<string> {
+  if (file.size > 4 * 1024 * 1024) throw new Error("CV must be 4MB or smaller.");
+  const pdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+  if (!pdf) throw new Error("Use a PDF. Or paste an https link.");
+  const ticket = await prepareCvUpload({ data: { ext: "pdf", type: "application/pdf" } });
+  if (!ticket.ok) throw new Error(ticket.reason);
+  const body = new Blob([await file.arrayBuffer()], { type: "application/pdf" });
+  const sent = await putSignedUpload(ticket, body, "application/pdf");
+  if (!sent.ok || !ticket.publicUrl) {
+    const detail = (await sent.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 160);
+    throw new Error(detail || "The CV did not land. Paste an https link instead.");
   }
   return ticket.publicUrl;
 }

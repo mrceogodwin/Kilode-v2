@@ -5,10 +5,10 @@ You are working on **github.com/mrceogodwin/Kilode-v2** (live: https://kilode-v2
 Do **not** switch to mrceogodwin/Kilode. That is v1.
 
 Last shipped pass:
-- A job application now stores a phone, an optional https CV link, skills, and a note. The same details are remembered on this phone and shown to the employer.
-- A posted role can include experience and an apply-by date.
-- Salary filters keep roles that do not list pay, unless the seeker turns that off.
+- Seekers can upload a PDF CV (4MB) or paste an https link. They can withdraw an application.
+- Jobs search suggests live titles, and can show only saved or applied roles.
+- An ad image that is far from the slot size is blocked unless the advertiser ticks “use this size.”
 
-Still open: a file upload for a CV, and a live payment test.
+Still open: a live Paystack or Flutterwave payment. That was not run.
 
 Keep `npm run build` green. Do not point the v1 Vercel project at this repo.

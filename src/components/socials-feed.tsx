@@ -1302,6 +1302,8 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
               </button>
             ))}
           </div>
+        ) : body.match(/(^|\s)@[a-z0-9._-]{2,}$/i) ? (
+          <p className="px-1 text-[11px] text-muted">No account matches that name.</p>
         ) : null}
         {kind === "job" ? (
           <input

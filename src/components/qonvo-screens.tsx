@@ -27,6 +27,7 @@ import { GatewayPay, DeskPayBox } from "@/components/pay-checkout";
 import type { PayProvider } from "@/lib/pay-money";
 import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
+import { uploadCvFile } from "@/lib/supabase";
 import { searchPeople, searchTakes, suggestFollows } from "@/lib/takes-server";
 import { authClient, signOut } from "@/lib/auth/client";
 import { AvatarImg, AvatarPicker } from "@/components/account-kind";
@@ -406,6 +407,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   const [applyNote, setApplyNote] = useState("");
   const [applyPhone, setApplyPhone] = useState("");
   const [applyCv, setApplyCv] = useState("");
+  const [applyCvBusy, setApplyCvBusy] = useState(false);
   const [applySkills, setApplySkills] = useState("");
   const [applyId, setApplyId] = useState("");
   const [openJobs, setOpenJobs] = useState<Listing[]>([]);
@@ -803,6 +805,19 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
             <>
               <input value={applyPhone} onChange={(e) => setApplyPhone(e.target.value)} placeholder="Phone" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" inputMode="tel" />
               <input value={applyCv} onChange={(e) => setApplyCv(e.target.value)} placeholder="CV link, https:// (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+              <label className="block text-[12px] text-muted">
+                {applyCvBusy ? "Uploading PDF…" : "Or upload a PDF, 4MB max"}
+                <input type="file" accept="application/pdf,.pdf" disabled={applyCvBusy} className="mt-1 block w-full text-[12px]" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setErr("");
+                  setApplyCvBusy(true);
+                  void uploadCvFile(file).then((url) => {
+                    setApplyCv(url);
+                    try { localStorage.setItem("kilode-seeker", JSON.stringify({ phone: applyPhone, cv: url, skills: applySkills })); } catch { /* ignore */ }
+                  }).catch((err: unknown) => setErr(err instanceof Error ? err.message : "CV did not upload.")).finally(() => setApplyCvBusy(false));
+                }} />
+              </label>
               <input value={applySkills} onChange={(e) => setApplySkills(e.target.value)} placeholder="Skills, short" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
               <textarea value={applyNote} onChange={(e) => setApplyNote(e.target.value)} rows={3} placeholder="Why you fit" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
               {err ? <p className="text-sm text-danger">{err}</p> : null}
@@ -2039,6 +2054,9 @@ function Ads({ store }: { store: Store }) {
   const [note, setNote] = useState("");
   const [link, setLink] = useState("");
   const [image, setImage] = useState("");
+  const [shotPx, setShotPx] = useState("");
+  const [shotFit, setShotFit] = useState(true);
+  const [forceSize, setForceSize] = useState(false);
   const [video, setVideo] = useState("");
   const [kind, setKind] = useState<AdKind>("image-text");
   const [place, setPlace] = useState<AdPlacement>("board");
@@ -2106,6 +2124,30 @@ function Ads({ store }: { store: Store }) {
   const needsImage = kind === "image" || kind === "image-text";
   const needsVideo = kind === "video" || kind === "video-text";
   const needsCopy = kind === "text" || kind === "image-text" || kind === "video-text";
+  useEffect(() => {
+    if (!needsImage || !image) {
+      setShotPx("");
+      setShotFit(true);
+      return;
+    }
+    const pic = new Image();
+    pic.onload = () => {
+      setShotPx(`${pic.naturalWidth} × ${pic.naturalHeight}`);
+      const want = size.label.match(/(\d+)\s*×\s*(\d+)/);
+      if (!want || !pic.naturalWidth || !pic.naturalHeight) {
+        setShotFit(true);
+        return;
+      }
+      const dw = Math.abs(pic.naturalWidth - Number(want[1])) / Number(want[1]);
+      const dh = Math.abs(pic.naturalHeight - Number(want[2])) / Number(want[2]);
+      setShotFit(dw <= 0.25 && dh <= 0.25);
+    };
+    pic.onerror = () => {
+      setShotPx("");
+      setShotFit(true);
+    };
+    pic.src = image;
+  }, [image, needsImage, size.label]);
 
   async function onFile(file: File | undefined) {
     setErr("");
@@ -2121,6 +2163,7 @@ function Ads({ store }: { store: Store }) {
       return;
     }
     const data = await compressImage(file);
+    setForceSize(false);
     setImage(data);
   }
 
@@ -2131,6 +2174,7 @@ function Ads({ store }: { store: Store }) {
   }
   function creativeProblem() {
     if (needsImage && !image) return `Add an image. This slot wants ${size.label}.`;
+    if (needsImage && image && !shotFit && !forceSize) return `This image is ${shotPx || "a different size"}. This slot wants ${size.label}. Replace it, or tick use this size.`;
     if (needsVideo && !video.trim()) return "Add a YouTube link. Kilode does not host the video file.";
     if (needsVideo && video.trim() && !youtubeId(video) && !safeHttpUrl(video)) return "Use a YouTube link or an https URL.";
     if (needsCopy && note.trim().length < 2) return "Add the line of copy.";
@@ -2234,9 +2278,10 @@ function Ads({ store }: { store: Store }) {
         <>
           <div className="ad-rail" aria-label="Ad steps">
             {AD_STEPS.map((label, i) => (
-              <button key={label} type="button" className={i === step ? "on" : i < step ? "done" : ""} disabled={i > step} onClick={() => { if (i <= step) { setErr(""); setStep(i); } }}>{i + 1}</button>
+              <button key={label} type="button" className={i === step ? "on" : i < step ? "done" : ""} disabled={i > step} onClick={() => { if (i <= step) { setErr(""); setStep(i); } }} title={label}>{i + 1}</button>
             ))}
           </div>
+          <p className="ad-note">{AD_STEPS[step]}</p>
           {step === 0 ? (
             <div className="ad-list">
               {AD_PLACEMENTS.map((p) => {
@@ -2272,6 +2317,12 @@ function Ads({ store }: { store: Store }) {
                   <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => void onFile(e.target.files?.[0])} />
                   <input value={image.startsWith("data:") ? "" : image} onChange={(e) => setImage(e.target.value)} placeholder="Or paste an https image" className="ad-field" />
                   {image ? <img src={image} alt="" className="ad-preview" /> : null}
+                  {shotPx ? <p className="ad-note">Measured {shotPx}. Recommended {size.label}.</p> : null}
+                  {image && !shotFit ? (
+                    <label className="ad-note">
+                      <input type="checkbox" checked={forceSize} onChange={(e) => setForceSize(e.target.checked)} /> Use this size anyway
+                    </label>
+                  ) : null}
                   {image ? <button type="button" className="ad-text" onClick={() => setImage("")}>Remove image</button> : null}
                 </div>
               ) : null}
@@ -2288,7 +2339,7 @@ function Ads({ store }: { store: Store }) {
               </div>
               <div className="ad-card">
                 <strong>${usd}</strong>
-                <em>This is the slot price from Kilode. Changing the days does not change what you pay. It only changes how long the ad stays up. About ₦{ngn.toLocaleString("en-NG")} before the provider's own fee.</em>
+                <em>This is the slot price from Kilode. Changing the days does not change what you pay. It only changes how long the ad stays up. If you pay today it runs until {new Date(Date.now() + days * 86_400_000).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}. About ₦{ngn.toLocaleString("en-NG")} before the provider's own fee.</em>
               </div>
             </div>
           ) : null}
@@ -2296,7 +2347,7 @@ function Ads({ store }: { store: Store }) {
             <div className="ad-card">
               <p><b>Campaign</b> {name.trim()}</p>
               <p><b>Slot</b> {slot?.label}</p>
-              <p><b>Creative</b> {AD_KINDS.find((k) => k.id === kind)?.label} · {size.label}</p>
+              <p><b>Creative</b> {AD_KINDS.find((k) => k.id === kind)?.label} · {shotPx || size.label}</p>
               {note.trim() ? <p><b>Copy</b> {note.trim()}</p> : null}
               {link.trim() ? <p><b>Link</b> {link.trim()}</p> : null}
               {image ? <img src={image} alt="" className="ad-preview" /> : null}
@@ -2374,7 +2425,7 @@ function CampaignList({ rows }: { rows: { id: string; name: string; status: stri
           {c.image ? <img src={c.image} alt="" /> : <b>AD</b>}
           <span>
             <strong>{c.name}</strong>
-            <em>{c.status === "approved" ? "Live" : c.status} · {c.placement}</em>
+            <em className={`ad-status ${c.status}`}>{c.status === "approved" ? "Live" : c.status} · {c.placement}</em>
             <em>{c.expiresAt ? timeLeftLabel(c.expiresAt) : `${c.days ?? 7} days`} · {fmtCount(c.views ?? 0)} views</em>
           </span>
         </div>

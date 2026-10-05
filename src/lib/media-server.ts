@@ -93,3 +93,36 @@ export const prepareDropUpload = createServerFn({ method: "POST" })
       endpoint: `${url.replace(/\/$/, "")}/storage/v1`,
     };
   });
+
+/** Signed-in seeker uploads a PDF CV. The application stores the https link only. */
+export const prepareCvUpload = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { ext?: string; type?: string }) => ({
+    ext: String(d?.ext || "").replace(/[^a-z0-9]/gi, "").slice(0, 8).toLowerCase(),
+    type: String(d?.type || "application/pdf").replace(/[^\w.+/-]/g, "").slice(0, 80) || "application/pdf",
+  }))
+  .handler(async ({ data }) => {
+    if (data.ext !== "pdf") return { ok: false as const, reason: "Use a PDF." };
+    const { url, anon, key } = storageEnv();
+    if (!url || !key) {
+      return { ok: false as const, reason: "CV hosting is not on. Paste an https link instead." };
+    }
+    const admin = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+    const bucket = "market-images";
+    await admin.storage.createBucket(bucket, { public: true, fileSizeLimit: "20MB" }).catch(() => undefined);
+    const path = `cvs/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.pdf`;
+    const signed = await admin.storage.from(bucket).createSignedUploadUrl(path);
+    if (signed.error || !signed.data?.token) {
+      return { ok: false as const, reason: signed.error?.message || "Could not open a CV upload. Paste an https link instead." };
+    }
+    const pub = admin.storage.from(bucket).getPublicUrl(signed.data.path || path);
+    return {
+      ok: true as const,
+      path: signed.data.path || path,
+      token: signed.data.token,
+      signedUrl: signed.data.signedUrl || "",
+      publicUrl: pub.data.publicUrl,
+      apikey: anon,
+      endpoint: `${url.replace(/\/$/, "")}/storage/v1`,
+    };
+  });

@@ -5416,7 +5416,11 @@ html:not([data-skin="ivory"]) .dock .app-tab.on::before { display: none; }
 .know-card { border: 1px solid #343434; background: #191919; border-radius: 16px; }
 .know-follow { margin-top: 8px; height: 28px; border-radius: 999px; background: #ffd45a; padding: 0 10px; font-size: 11px; font-weight: 800; color: #161616; }
 .know-follow.on { background: transparent; color: #f5f3ee; box-shadow: inset 0 0 0 1px #343434; }
-.topic-chip { border: 1px solid #343434; background: #191919; color: #f5f3ee; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700; }
+.job-suggest { display: flex; flex-direction: column; gap: 4px; margin: -6px 0 10px; }
+.job-suggest button { text-align: left; border: 1px solid #343434; background: #191919; color: #f5f3ee; border-radius: 12px; padding: 8px 10px; font-size: 12px; font-weight: 700; }
+.ad-status.approved { color: #ffd45a; }
+.ad-status.pending { color: #d7c08a; }
+.ad-status.rejected { color: #ff8d7a; }
 
 .ad-top, .ad-rail, .ad-pills, .ad-nav { display: flex; gap: 8px; }
 .ad-top { margin-bottom: 12px; }

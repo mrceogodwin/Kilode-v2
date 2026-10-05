@@ -342,6 +342,16 @@ export const applyListing = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const withdrawApplication = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string }) => d)
+  .handler(async ({ context, data }) => {
+    const sql = await getSql();
+    const rows = await sql<{ id: string }>`delete from nf_apps where id = ${data.id} and user_id = ${context.userId} returning id`;
+    if (!rows[0]) return { ok: false as const, reason: "That application is not on this account." };
+    return { ok: true as const };
+  });
+
 export const setListingStatus = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { id: string; status: "approved" | "rejected" }) => d)
