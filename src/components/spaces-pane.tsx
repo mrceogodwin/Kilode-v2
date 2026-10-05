@@ -3,6 +3,7 @@ import { MapPin, Plus, Share2 } from "lucide-react";
 import { getSpace, listMySpaces, listPublicSpaces, noteEnquiry, saveSpace, saveSpaceItem, deleteSpaceItem, spacePulse, toggleSpaceFollow, type SpaceCard } from "@/lib/spaces-server";
 import { uploadListingPhoto } from "@/lib/supabase";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { Tip } from "@/components/tip";
 
 const CATS = ["Fashion", "Beauty", "Food", "Photography", "Tech", "Services", "Other"];
 
@@ -60,8 +61,7 @@ export function SpacesPane() {
   const shown = mine.filter((s) => (filter === "All" || s.status === filter) && `${s.name} ${s.username}`.toLowerCase().includes(q.trim().toLowerCase()));
   return (
     <div className="mx-auto max-w-3xl px-3 pt-3 pb-24">
-      <h1 className="text-[28px] font-extrabold tracking-tight">My Spaces</h1>
-      <p className="text-[13px] text-muted">Your business page on Kilode. No separate website.</p>
+      <h1 className="text-lg font-extrabold tracking-tight">My Spaces <Tip text="Your business page on Kilode. No separate website." /></h1>
       <div className="mt-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
         <div>
           <div className="text-[10px] text-muted">Total spaces</div>

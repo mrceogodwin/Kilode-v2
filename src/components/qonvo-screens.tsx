@@ -29,6 +29,7 @@ import { dbStatus } from "@/lib/register-server";
 import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { uploadCvFile } from "@/lib/supabase";
 import { creativeFits, runEnd, slotCharge } from "@/lib/board-rules";
+import { Tip } from "@/components/tip";
 import { searchPeople, searchTakes, suggestFollows } from "@/lib/takes-server";
 import { authClient, signOut } from "@/lib/auth/client";
 import { AvatarImg, AvatarPicker } from "@/components/account-kind";
@@ -752,10 +753,9 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-5 pb-8">
       <div>
-        <h2 className="text-xl font-bold tracking-tight">{sheetTitle}</h2>
-        <p className="mt-1 text-sm text-muted">
-          {kindLabel}: {sheetSub}
-        </p>
+        <h2 className="text-xl font-bold tracking-tight">
+          {sheetTitle} <Tip text={`${kindLabel}. ${sheetSub}`} />
+        </h2>
       </div>
       {payFor ? (
         <DeskPayBox
@@ -781,8 +781,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
 
       {pane === "apply" ? (
         <div className="raised space-y-3 rounded-2xl border border-lime-2/30 p-4">
-          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">JOB SEEKER · APPLY</div>
-          <p className="text-sm text-muted">Pick a live role. Phone and a short note are required. A CV link is optional and must be https.</p>
+          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">JOB SEEKER · APPLY <Tip text="Pick a live role. Phone and a short note are required. A CV link is optional and must be https." /></div>
           {openJobs.length === 0 ? (
             <div className="rounded-xl border border-dashed border-line bg-panel/60 px-3 py-4 text-center text-[12px] text-muted">
               No approved jobs live right now. Polish your profile bio and city, then check again.
@@ -858,8 +857,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
 
       {pane === "music" && canMusic ? (
         <div className="raised space-y-3 rounded-2xl border border-lime-2/30 p-4">
-          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">MUSIC · TRACK URL + COVER</div>
-          <p className="text-sm text-muted">Paste a Spotify, Apple Music, SoundCloud, Audiomack or Deezer link. No audio files. Cover helps the Music tile — upload or paste a URL.</p>
+          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">MUSIC · TRACK URL + COVER <Tip text="Paste a Spotify, Apple Music, SoundCloud, Audiomack or Deezer link. No audio files." /></div>
           <label className="block text-[11px] font-medium text-muted">Track URL <span className="text-danger">*</span></label>
           <input value={link} onChange={(e) => onUrl(e.target.value)} placeholder="https://open.spotify.com/track/…" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           {preview ? <p className="text-xs text-lime-2">{preview}</p> : link.trim() && !parseMusicUrl(link) ? <p className="text-xs text-danger">Not a supported music URL yet.</p> : null}
@@ -901,8 +899,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
 
       {pane === "cinema" && canCinema ? (
         <div className="raised space-y-3 rounded-2xl border border-lime-2/30 p-4">
-          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">CINEMA · TITLE + TRAILER</div>
-          <p className="text-sm text-muted">Trailer or official clip only. Staff approve → vote pool → Watching Now. Kilode never hosts the file.</p>
+          <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">CINEMA · TITLE + TRAILER <Tip text="Trailer or official clip only. Staff approve it, then people vote. Kilode never hosts the file." /></div>
           <label className="block text-[11px] font-medium text-muted">Movie title <span className="text-danger">*</span></label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Movie title" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
           <label className="block text-[11px] font-medium text-muted">YouTube trailer URL <span className="text-danger">*</span></label>
@@ -941,42 +938,8 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
         <div className="raised space-y-3 rounded-2xl border border-lime-2/30 p-4">
           <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">
             {pane === "job" ? "JOB · POST A ROLE" : pane === "market" ? "MARKET · LIST PRODUCT" : "RENT · LIST SPACE"}
+            <Tip text={pane === "job" ? "Staff approve the role before seekers see it. Applicants show on My Space." : pane === "market" ? "A product card with a contact. No checkout in the app." : "A space card with a contact. No booking in the app."} />
           </div>
-          <p className="text-sm text-muted">
-            {pane === "job"
-              ? "Role, company, city, contact, optional apply link. Staff approve before seekers see it. Applicants land on your Me · Hiring desk."
-              : pane === "market"
-                ? "Showcase a product with contact. No in-app checkout. Staff approve first."
-                : "List a space with contact. No in-app booking. Staff approve first."}
-          </p>
-          {pane === "job" ? (
-            <div className="rounded-xl border border-lime-2/20 bg-lime-2/5 px-3 py-2.5 text-[11px] leading-snug text-muted">
-              <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-lime-2">FLAGSHIP HIRING FLOW</div>
-              <ol className="list-decimal space-y-0.5 pl-4">
-                <li>Submit role → pending until staff approve.</li>
-                <li>Seekers apply with @handle + note from Jobs / Create · Apply.</li>
-                <li>Review applicants on Me · Hiring desk — contact them yourself.</li>
-              </ol>
-            </div>
-          ) : pane === "market" ? (
-            <div className="rounded-xl border border-lime-2/20 bg-lime-2/5 px-3 py-2.5 text-[11px] leading-snug text-muted">
-              <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-lime-2">FLAGSHIP MARKET FLOW</div>
-              <ol className="list-decimal space-y-0.5 pl-4">
-                <li>Add a clear photo, price hint and condition — staff approve first.</li>
-                <li>Buyers see it on Marketplace and contact you off-platform.</li>
-                <li>Track live / pending / views on Me · Market desk. No in-app checkout.</li>
-              </ol>
-            </div>
-          ) : pane === "rent" ? (
-            <div className="rounded-xl border border-lime-2/20 bg-lime-2/5 px-3 py-2.5 text-[11px] leading-snug text-muted">
-              <div className="mb-1 text-[10px] font-bold tracking-[0.14em] text-lime-2">FLAGSHIP RENT FLOW</div>
-              <ol className="list-decimal space-y-0.5 pl-4">
-                <li>Photo + property type + rent band — staff approve before it goes live.</li>
-                <li>Seekers contact you via the public phone / email / @handle.</li>
-                <li>Manage spaces on Me · Rent desk. No in-app booking or deposits.</li>
-              </ol>
-            </div>
-          ) : null}
           <label className="block text-[11px] font-medium text-muted">
             {pane === "job" ? "Role title" : pane === "market" ? "Product name" : "Space title"} <span className="text-danger">*</span>
           </label>

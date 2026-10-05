@@ -6,6 +6,7 @@ import { clickRate, groupArtists, rankArtists, rankSongs, risingSongs, type Rank
 import { artworkFromLookup, artworkSearchUrl } from "@/lib/artist-rules";
 import { seeTrack } from "@/lib/forum-server";
 import { fmtCount, type MusicTrack } from "@/lib/qonvo-data";
+import { Tip } from "@/components/tip";
 
 type HubStore = {
   tracks: MusicTrack[];
@@ -128,9 +129,7 @@ export function MusicHub({ store, onAdd }: { store: HubStore; onAdd: () => void 
           <button type="button" className="mh-ghost" onClick={() => void onFollow()}>{following ? "Following" : "Follow"}</button>
           <button type="button" className="mh-ghost" onClick={() => void navigator.clipboard?.writeText(`${window.location.origin}/artist/${artist.slug}`)}>Copy link</button>
         </div>
-        <p className="mh-note">Songs open on the artist’s platform. Kilode does not play the file and does not invent a listener count.</p>
-        {err ? <p className="ad-err">{err}</p> : null}
-        <h3 className="mh-h">Releases</h3>
+        <h3 className="mh-h">Releases <Tip text="Songs open on the artist’s platform. Kilode does not play the file." /></h3>
         <div className="mh-list">
           {artist.tracks.map((t) => (
             <button key={t.id} type="button" className="mh-song" onClick={() => listen(t)}>

@@ -3941,20 +3941,57 @@ html[data-skin="ivory"] .me-stat .text-muted { color: rgba(247, 244, 238, 0.62) 
   padding-bottom: 2px;
   scrollbar-width: none;
 }
-.me-shortcuts::-webkit-scrollbar { display: none; }
+.me-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+  overflow: visible;
+}
 .me-chip {
-  display: inline-flex;
-  flex: 0 0 auto;
+  display: flex;
+  min-height: 64px;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #161816;
+  padding: 8px 4px;
+  font-size: 10px;
+}
+.k-tip { position: relative; display: inline-flex; margin-left: 6px; vertical-align: middle; }
+.k-tip > button {
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 999px;
+  background: transparent;
+  color: #f5f3ee;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+.k-tip-pop {
+  position: absolute;
+  top: 22px;
+  left: 0;
+  z-index: 30;
+  width: min(240px, 70vw);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: #1a1f1c;
-  color: #f7f4ee;
-  padding: 7px 12px;
+  border-radius: 12px;
+  background: #1b1d1c;
+  padding: 8px 10px;
+  color: #f5f3ee;
   font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-transform: none;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
 }
 html[data-skin="ivory"] .me-chip {
   background: #1a1f1c !important;

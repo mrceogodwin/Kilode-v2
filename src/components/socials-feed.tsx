@@ -5,6 +5,7 @@ import { uploadTakeMedia, readVideoSeconds, trimTakeVideo } from "@/lib/supabase
 import { getPublicSite } from "@/lib/site-server";
 import { listPublicSpaces, type SpaceCard } from "@/lib/spaces-server";
 import { SocialDesk } from "@/components/social-desk";
+import { Tip } from "@/components/tip";
 import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, editOwnTake, getTake, likeTake, likeReply, listLikeFaces, listMyBlocks, listMyMutes, listMyTags, listSavedTakeIds, listSavedTakes, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTopicTakes, listTrending, listWordMutes, muteWord, pinOwnTake, replyTake, reportTake, repostTake, saveTake, searchPeople, seeTake, suggestFollows, toggleFollow, togglePing, toggleReplyLock, toggleSaveTake, toggleSensitive, toggleTagFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { kilodeSound, setSounds } from "@/lib/sfx";
 import { sendDm } from "@/lib/social-server";
@@ -84,8 +85,7 @@ function TrendPage({ onClose, faces, live }: { onClose: () => void; faces: Recor
       <button type="button" className="mb-2 text-[14px] font-semibold text-lime-2" onClick={onClose}>
         ← Back
       </button>
-      <h2 className="text-lg font-extrabold">Trending</h2>
-      <p className="mt-0.5 text-[12px] text-muted">Last 48 hours. Likes, reposts, replies, and Fact or Cap. Not a shop.</p>
+      <h2 className="text-lg font-extrabold">Trending <Tip text="Last 48 hours. Ranked by likes, reposts, replies, and Fact or Cap." /></h2>
       <div className="mt-3 flex gap-1.5 overflow-x-auto pb-2">
         {chips.map(([id, label]) => (
           <button

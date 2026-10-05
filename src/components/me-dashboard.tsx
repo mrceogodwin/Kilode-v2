@@ -42,6 +42,7 @@ import { DigestBox } from "@/components/get-app";
 import { SiteFooter } from "@/components/site-chrome";
 import { listMyCinema, type CinemaMovie } from "@/lib/cinema-server";
 import { deleteListing, listListings, listMyApps, listMyApplicants, listMyListings, updateListing, type Listing, type MyApp, type MyApplicant } from "@/lib/listings-server";
+import { Tip } from "@/components/tip";
 import { disconnectFellow, listConnects, listMyFollows, listSavedTakes, replyConnect, toggleFollow, type ConnectRow, type FollowPerson, type TakeRow } from "@/lib/takes-server";
 import { getProfile } from "@/lib/forum-server";
 import { staffMe } from "@/lib/staff-server";
@@ -70,12 +71,14 @@ function Section({
   title,
   action,
   onAction,
+  tip,
   children,
 }: {
   kicker: string;
   title: string;
   action?: string;
   onAction?: () => void;
+  tip?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -83,7 +86,10 @@ function Section({
       <div className="mb-2 flex items-end justify-between gap-2">
         <div>
           <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">{kicker}</div>
-          <h3 className="me-title text-[15px] font-extrabold leading-tight">{title}</h3>
+          <h3 className="me-title text-[15px] font-extrabold leading-tight">
+            {title}
+            {tip ? <Tip text={tip} /> : null}
+          </h3>
         </div>
         {action && onAction ? (
           <button type="button" onClick={onAction} className="shrink-0 text-[11px] font-semibold text-lime-2">
@@ -595,8 +601,13 @@ function MySpacesHome() {
     goto({ screen: "spaces" });
   }
   return (
-    <Section kicker="BUSINESS" title="My Spaces" action={rows.length ? "Manage" : "Create"} onAction={() => open()}>
-      <p className="mb-2 text-[12px] text-muted">A page for your shop, studio, or service. People find it from Socials.</p>
+    <Section
+      kicker="BUSINESS"
+      title="My Spaces"
+      tip="A page for your shop, studio, or service. People find it from Socials."
+      action={rows.length ? "Manage" : "Create"}
+      onAction={() => open()}
+    >
       <div className="grid grid-cols-2 gap-2">
         {rows.slice(0, 4).map((s) => (
           <button key={s.id} type="button" className="rounded-2xl border border-line bg-panel p-2.5 text-left" onClick={() => open(s.username)}>
@@ -1032,8 +1043,11 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
             </div>
           </div>
         </div>
-        <p className="hero-copy px-4 pt-3 text-[10px] font-bold tracking-[0.16em]">{staffLabel ? `${staffLabel} desk` : hubTitleFor(kind)}</p>
-        <p className="hero-copy px-4 pt-1 text-[13px] leading-snug">{store.bio?.trim() || "No bio yet. Edit profile to add one."}</p>
+        <p className="hero-copy px-4 pt-3 text-[10px] font-bold tracking-[0.16em]">
+          {staffLabel ? `${staffLabel} desk` : hubTitleFor(kind)}
+          <Tip text={purpose} />
+        </p>
+        <p className="hero-copy px-4 pt-1 text-[13px] leading-snug">{store.bio?.trim() || "No bio yet."}</p>
         {!store.verified ? <a href={`/u/${encodeURIComponent(store.handle || "me")}`} className="mt-1 block px-4 text-[12px] font-bold text-lime-2">Get verified</a> : null}
         {store.interests ? <p className="px-4 pt-1 text-[11px] text-muted">{store.interests.split(",").join(" · ")}</p> : null}
         {store.website ? (
@@ -1064,11 +1078,12 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           </button>
         </div>
       </div>
-      <p className="mb-3 text-sm text-muted">{purpose}</p>
       {staffRole ? (
         <section className="staff-power mb-3 rounded-2xl border p-3">
           <div className="text-[10px] font-bold tracking-[0.16em] text-muted">YOUR POWER</div>
-          <p className="mt-1 text-[12px] leading-snug text-muted">{staffPowers}</p>
+          <p className="mt-1 text-[12px] leading-snug text-muted">
+            <Tip text={staffPowers} />
+          </p>
           <a href={STAFF_PATH} className="staff-go">Staff desk</a>
         </section>
       ) : null}
