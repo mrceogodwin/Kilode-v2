@@ -8,6 +8,7 @@ import {
   Film,
   HelpCircle,
   LogOut,
+  Link2,
   Megaphone,
   MessageSquare,
   Pencil,
@@ -46,6 +47,8 @@ import { getProfile } from "@/lib/forum-server";
 import { staffMe } from "@/lib/staff-server";
 import { usePublicSite } from "@/components/site-chrome";
 import { listMySpaces, type SpaceCard } from "@/lib/spaces-server";
+import { ArtFace, PushDesk } from "@/components/artist-push";
+import { listMyPushes } from "@/lib/artist-server";
 import { getBearerToken } from "@/lib/auth/client";
 
 type Store = ReturnType<typeof useQonvo>;
@@ -430,19 +433,35 @@ function quickActionsFor(kind: AccountKind): QuickTile[] {
     );
   }
   if (kind === "artist") {
-    return withApply(
+    return [
       {
         icon: Radio,
         label: "Add music",
-        hint: "New track · URL embed · live, no pay",
+        hint: "Link your tracks",
         onClick: () => {
           goto({ tab: "music" });
           window.setTimeout(openCreate, 80);
         },
       },
-      chat,
-      voteCinema,
-    );
+      {
+        icon: Link2,
+        label: "Push link",
+        hint: "Promote your music",
+        onClick: () => window.dispatchEvent(new Event("kilode:artist-desk")),
+      },
+      {
+        icon: MessageSquare,
+        label: "Create room",
+        hint: "Talk and connect",
+        onClick: () => goto({ tab: "chat" }),
+      },
+      {
+        icon: Megaphone,
+        label: "Promote",
+        hint: "A paid push",
+        onClick: () => window.dispatchEvent(new CustomEvent("kilode:artist-desk", { detail: "push" })),
+      },
+    ];
   }
   if (kind === "advertiser") {
     return withApply(
@@ -595,6 +614,99 @@ function MySpacesHome() {
   );
 }
 
+function ArtistPanel({
+  handle, city, bio, face, verified, songs, views, saved, tab, onTab, onBack, onAdd, onOpen,
+}: {
+  handle: string;
+  city?: string;
+  bio?: string;
+  face?: string;
+  verified: boolean;
+  songs: { id: string; title?: string; cover?: string; platform?: string; views?: number; url?: string }[];
+  views: number;
+  saved: number;
+  tab: "overview" | "music" | "push" | "audience" | "analytics";
+  onTab: (tab: "overview" | "music" | "push" | "audience" | "analytics") => void;
+  onBack: () => void;
+  onAdd: () => void;
+  onOpen: (id: string, url?: string) => void;
+}) {
+  const [pushes, setPushes] = useState<{ id: string; title: string; network: string; clicks: number; status: string; expiresAt: number }[]>([]);
+  useEffect(() => {
+    void listMyPushes().then((rows) => setPushes(Array.isArray(rows) ? rows : [])).catch(() => setPushes([]));
+  }, [tab]);
+  const clicks = pushes.reduce((n, row) => n + (row.clicks || 0), 0);
+  const top = [...songs].sort((a, b) => (b.views || 0) - (a.views || 0))[0];
+  const tabs = ["overview", "music", "push", "audience", "analytics"] as const;
+  return (
+    <div className="space-page adesk mx-auto max-w-2xl p-3 pb-36">
+      <div className="adesk-top">
+        <button type="button" onClick={onBack}>Back</button>
+        <strong>Artist Desk</strong>
+        <em className={verified ? "on" : ""}>{verified ? "Verified" : "Unverified"}</em>
+      </div>
+      <div className="adesk-who">
+        <ArtFace name={handle || "Artist"} cover={face} big />
+        <div>
+          <b>@{handle}</b>
+          <span>Artist{city ? ` · ${city}` : ""}</span>
+          <p>{bio?.trim() || "Add a bio from Edit profile."}</p>
+        </div>
+      </div>
+      <div className="adesk-stats">
+        <span><b>{fmtCount(songs.length)}</b>Tracks</span>
+        <span><b>{fmtCount(views)}</b>Views</span>
+        <span><b>{fmtCount(clicks)}</b>Clicks</span>
+        <span><b>{fmtCount(saved)}</b>Saved</span>
+      </div>
+      <div className="adesk-tabs" role="tablist">
+        {tabs.map((id) => (
+          <button key={id} type="button" className={tab === id ? "on" : ""} onClick={() => onTab(id)}>{id}</button>
+        ))}
+      </div>
+      {tab === "overview" ? (
+        <div className="adesk-block">
+          <div className="adesk-head"><span>Latest</span><button type="button" onClick={onAdd}>Add</button></div>
+          {songs[0] ? (
+            <button type="button" className="adesk-song" onClick={() => onOpen(songs[0].id, songs[0].url)}>
+              <ArtFace name={songs[0].title || handle} cover={songs[0].cover} url={songs[0].url} />
+              <span><b>{songs[0].title}</b><em>{songs[0].platform || "Link"} · {fmtCount(songs[0].views || 0)} views</em></span>
+            </button>
+          ) : <p className="adesk-empty">Your releases show here after you add an external music link. Kilode does not host the audio.</p>}
+          <button type="button" className="adesk-row" onClick={() => onTab("push")}><b>Create Push Link</b><em>Paid card on Socials</em></button>
+          <button type="button" className="adesk-row" onClick={() => onTab("push")}><b>Campaigns</b><em>{pushes.length ? `${pushes.length} on your desk` : "None yet"}</em></button>
+        </div>
+      ) : null}
+      {tab === "music" ? (
+        <div className="adesk-block">
+          <div className="adesk-head"><span>Your music</span><button type="button" onClick={onAdd}>Add</button></div>
+          {songs.length === 0 ? <p className="adesk-empty">Spotify, Apple Music, YouTube, Audiomack, SoundCloud or Deezer.</p> : songs.slice(0, 12).map((t) => (
+            <div key={t.id} className="adesk-song">
+              <ArtFace name={t.title || handle} cover={t.cover} url={t.url} />
+              <span><b>{t.title}</b><em>{t.platform || "Link"} · {fmtCount(t.views || 0)} views</em></span>
+              <button type="button" onClick={() => onOpen(t.id, t.url)}>Open</button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {tab === "push" ? <PushDesk artist /> : null}
+      {tab === "audience" || tab === "analytics" ? (
+        <div className="adesk-block">
+          <p className="adesk-empty">These numbers are track views and opens on paid pushes. Kilode does not invent followers or cities.</p>
+          <div className="adesk-stats">
+            <span><b>{fmtCount(views)}</b>Views</span>
+            <span><b>{fmtCount(clicks)}</b>Opens</span>
+            <span><b>{fmtCount(pushes.length)}</b>Pushes</span>
+            <span><b>{fmtCount(songs.length)}</b>Tracks</span>
+          </div>
+          <p className="adesk-note">{top ? `Top track · ${top.title} · ${fmtCount(top.views || 0)} views` : "No track views yet."}</p>
+          {pushes[0] ? <p className="adesk-note">Latest push · {pushes[0].title} · {pushes[0].status} · {pushes[0].clicks} opens</p> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function meCardSnap(): { staff?: string | null; photo?: string; connects?: ConnectRow[] } | null {
   try {
     const raw = sessionStorage.getItem("kilode-me-card");
@@ -619,6 +731,8 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   const [staffRole, setStaffRole] = useState<string | null>(boot?.staff ?? null);
   const [photo, setPhoto] = useState(boot?.photo || "");
   const [mePane, setMePane] = useState<null | "friends" | "follows" | "saved">(null);
+  const [artistOpen, setArtistOpen] = useState(false);
+  const [artistTab, setArtistTab] = useState<"overview" | "music" | "push" | "audience" | "analytics">("overview");
   const { site } = usePublicSite();
 
   function loadConnects() {
@@ -683,6 +797,14 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       .catch(() => setMyApplicants([]));
   }
 
+  useEffect(() => {
+    const open = (e: Event) => {
+      setArtistTab((e as CustomEvent<string>).detail === "push" ? "push" : "overview");
+      setArtistOpen(true);
+    };
+    window.addEventListener("kilode:artist-desk", open);
+    return () => window.removeEventListener("kilode:artist-desk", open);
+  }, []);
   const kind = store.kind as AccountKind;
   const kindLabel = ACCOUNT_KINDS.find((k) => k.id === kind)?.label ?? "Member";
   const purpose = KIND_PURPOSE[kind] ?? KIND_PURPOSE.member;
@@ -834,6 +956,35 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           : "";
   const faceSrc = photo && site.photosOn !== false ? photo : store.face;
 
+  if (kind === "artist" && artistOpen) {
+    return (
+      <ArtistPanel
+        handle={store.handle}
+        city={store.city}
+        bio={store.bio}
+        face={faceSrc}
+        verified={!!store.verified}
+        songs={songs}
+        views={trackViews}
+        saved={store.savedPosts.length}
+        tab={artistTab}
+        onTab={setArtistTab}
+        onBack={() => setArtistOpen(false)}
+        onAdd={() => {
+          goto({ tab: "music" });
+          window.setTimeout(openCreate, 80);
+        }}
+        onOpen={(id, url) => {
+          if (url) window.open(url, "_blank", "noopener,noreferrer");
+          else {
+            store.setOpenTrack?.(id);
+            goto({ tab: "music" });
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-page mx-auto max-w-2xl p-4 pb-36">
       <div className="mb-2 text-[10px] font-bold tracking-[0.18em] text-muted">MY SPACE</div>
@@ -952,48 +1103,13 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
       </Section>
 
       {kind === "artist" ? (
-        <Section
-          kicker="ARTIST"
-          title="Your tracks"
-          action="Add track"
-          onAction={() => {
-            goto({ tab: "music" });
-            window.setTimeout(openCreate, 80);
-          }}
-        >
-          {songs.length === 0 ? (
-            <EmptyBlock
-              body="No tracks yet. Add a Spotify / SoundCloud / Audiomack / Apple / Deezer URL — lists live on Music with no staff approval and no payment. Kilode embeds their player, never hosts audio."
-              cta="Add music"
-              onClick={() => {
-                goto({ tab: "music" });
-                window.setTimeout(openCreate, 80);
-              }}
-            />
-          ) : (
-            <div className="space-y-2">
-              {songs.slice(0, 8).map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded-xl border border-line bg-panel p-2 text-left"
-                  onClick={() => {
-                    store.setOpenTrack?.(t.id);
-                    goto({ tab: "music" });
-                  }}
-                >
-                  {t.cover ? <img src={t.cover} alt="" className="size-11 rounded-lg object-cover" /> : <div className="size-11 rounded-lg bg-panel-3" />}
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold">{t.title}</div>
-                    <div className="text-[10px] text-muted">
-                      {t.platform} · {fmtCount(t.views ?? 0)} views
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </Section>
+        <button type="button" className="adesk-entry" onClick={() => setArtistOpen(true)}>
+          <span>
+            <b>Artist Desk</b>
+            <em>{store.verified ? "Verified" : "Unverified"} · music, links, campaigns</em>
+          </span>
+          <i>{store.verified ? "Verified" : "Open"}</i>
+        </button>
       ) : null}
 
       {kind === "writer" ? (
