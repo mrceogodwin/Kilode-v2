@@ -1216,25 +1216,6 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
       {lane !== "people" ? (
       <>
       <LiquidCuts value={feedCut} onPick={(id) => { setTag(""); setFeedCut(id); }} />
-      {suggested.length > 0 && feedCut === "all" ? (
-        <div className="soc-know">
-          <div className="soc-know-head"><span>People you may know</span></div>
-          <div>
-            {suggested.filter((p) => !hidden(p.handle)).slice(0, 8).map((p) => (
-              <article key={p.id}>
-                <a href={`/u/${encodeURIComponent(p.handle)}`}>
-                  <img src={avatarUrl(p.handle, p.photo)} alt="" />
-                  <strong>@{p.handle}</strong>
-                  <em>{p.mutuals > 0 ? `${p.mutuals} mutual` : p.role || "Member"}</em>
-                </a>
-                <button type="button" className={followed(p.handle, p.id) ? "on" : ""} onClick={() => flipFollow(p.handle, p.id)}>
-                  {followLabel(p.handle, p.id)}
-                </button>
-              </article>
-            ))}
-          </div>
-        </div>
-      ) : null}
       {tag ? (
         <div className="mb-2 flex gap-1.5">
           <button type="button" className="soc-chip on shrink-0 px-2.5 py-1 text-[12px]" onClick={() => setFeedCut("tag")}>#{tag}</button>

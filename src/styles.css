@@ -5756,6 +5756,49 @@ html:not([data-skin="ivory"]) [class*="border-[#e6c56a]"] {
   border-color: rgba(143, 185, 165, 0.7) !important;
 }
 
+html:not([data-skin="ivory"]) .dock {
+  background: #101010 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 0 !important;
+  box-shadow: 0 -8px 22px rgba(0, 0, 0, 0.5) !important;
+}
+html:not([data-skin="ivory"]) .dock::after { background: #101010 !important; }
+.dock-liquid {
+  height: 26px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+html:not([data-skin="ivory"]) .dock .app-tab.on { color: #f5f3ee !important; }
+html:not([data-skin="ivory"]) .dock .app-tab.on::before { display: none !important; }
+html:not([data-skin="ivory"]) .dock-plus {
+  background: linear-gradient(165deg, #4eaf78 0%, #1b6b45 55%, #0c2e1e 100%) !important;
+  color: #f4fff8 !important;
+  border: 0 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 3px 0 #062015 !important;
+}
+.soc-find { height: 34px; border-radius: 999px; padding-top: 0; padding-bottom: 0; font-size: 13px; }
+.soc-tools { gap: 4px !important; }
+.soc-tool { padding: 2px 8px !important; font-size: 10px !important; }
+.liquid-rail { margin-bottom: 6px; }
+.liquid-rail button { padding: 3px 8px !important; font-size: 11px !important; }
+html:not([data-skin="ivory"]) .liquid-pill {
+  background: rgba(27, 107, 69, 0.45) !important;
+  box-shadow: none !important;
+}
+.liquid-rail button.on { color: #f4fff8 !important; }
+.know-card { width: 108px !important; flex-basis: 108px !important; padding: 6px !important; border-radius: 12px !important; }
+html:not([data-skin="ivory"]) .know-follow,
+html:not([data-skin="ivory"]) .know-follow:not(.on) {
+  height: 22px !important;
+  margin-top: 4px !important;
+  padding: 0 8px !important;
+  background: transparent !important;
+  color: #f5f3ee !important;
+  border: 1px solid #3a3a3a !important;
+  box-shadow: none !important;
+  font-size: 10px !important;
+}
+
 .adesk-flag {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 72px;
