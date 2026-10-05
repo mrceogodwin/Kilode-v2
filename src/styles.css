@@ -5512,10 +5512,30 @@ html:not([data-skin="ivory"]) .dock .app-tab.on::before { display: none; }
 .soc-skel { display: flex; flex-direction: column; gap: 8px; }
 .soc-skel span { display: block; height: 92px; background: linear-gradient(90deg, #191919, #242424, #191919); background-size: 200% 100%; animation: skel 1.2s linear infinite; }
 @keyframes skel { to { background-position: -200% 0; } }
-.take-card { border-radius: 18px; }
-.take-photo { margin-top: 8px; max-height: 320px; width: 100%; border-radius: 16px; object-fit: cover; }
-.take-quote { margin-top: 8px; width: 100%; border-radius: 14px; border: 1px solid #343434; background: #141414; padding: 8px 10px; text-align: left; }
-.take-meter { display: flex; height: 3px; overflow: hidden; border-radius: 99px; background: #2a2a2a; }
+.take-card { border-radius: 14px; padding: 8px !important; }
+.take-photo { margin-top: 6px; max-height: 180px; width: 100%; border-radius: 12px; object-fit: cover; }
+.take-card .take-name { font-size: 13px; font-weight: 750; }
+.take-card p { font-size: 13px; line-height: 1.35; }
+.take-meter { display: flex; height: 4px; overflow: hidden; border-radius: 99px; background: #2a2a2a; }
+.take-meter > div { height: 100%; background: #ffd45a; transition: width 220ms ease; }
+.soc-fact { margin-top: 6px; }
+.soc-fact > div { display: flex; justify-content: space-between; }
+.soc-fact button { font-size: 10px; font-weight: 800; color: #a7a7a4; }
+.soc-fact button.on { color: #ffd45a; }
+.soc-fact p { margin-top: 3px; font-size: 10px; color: #a7a7a4; }
+.soc-know { margin: 8px 0; }
+.soc-know-head { margin-bottom: 6px; font-size: 12px; font-weight: 800; }
+.soc-know > div { display: flex; gap: 8px; overflow-x: auto; }
+.soc-know article { width: 108px; flex: 0 0 auto; border: 1px solid #343434; border-radius: 12px; background: #191919; padding: 8px; text-align: center; }
+.soc-know a { display: block; color: inherit; }
+.soc-know img { width: 36px; height: 36px; margin: 0 auto 4px; border-radius: 999px; object-fit: cover; }
+.soc-know strong, .soc-know em { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.soc-know strong { font-size: 11px; }
+.soc-know em { font-style: normal; font-size: 10px; color: #a7a7a4; }
+.soc-know button { margin-top: 6px; height: 24px; width: 100%; border-radius: 999px; background: #ffd45a; font-size: 10px; font-weight: 800; color: #161616; }
+.soc-know button.on { background: transparent; color: #f5f3ee; box-shadow: inset 0 0 0 1px #343434; }
+.take-compose textarea { min-height: 36px !important; }
+.take-quote { margin-top: 6px; width: 100%; border-radius: 12px; border: 1px solid #343434; background: #141414; padding: 6px 8px; text-align: left; }
 .take-reply { border-radius: 12px; background: #141414; padding: 8px; font-size: 12px; line-height: 1.35; }
 .reply-send { border-radius: 999px; background: #ffd45a; padding: 0 12px; font-size: 12px; font-weight: 800; color: #161616; }
 .soc-more { margin-top: 12px; width: 100%; border-radius: 14px; border: 1px solid #343434; background: #191919; padding: 10px; font-size: 13px; font-weight: 750; color: #f5f3ee; }
@@ -5532,8 +5552,8 @@ html:not([data-skin="ivory"]) .dock .app-tab.on::before { display: none; }
 .job-desk button { height: 34px; border-radius: 999px; border: 1px solid #343434; background: #191919; padding: 0 12px; font-size: 12px; font-weight: 800; color: #f5f3ee; }
 .job-desk button.on { background: #ffd45a; color: #161616; border-color: #e9b93f; }
 .job-detail { overflow: hidden; border-radius: 18px; border: 1px solid #343434; background: #191919; }
-.take-card .take-name { font-size: 15px; font-weight: 750; }
-.take-card p { font-size: 15px; line-height: 1.45; }
+.take-card .take-name { font-size: 13px; }
+.take-card p { font-size: 13px; line-height: 1.35; }
 .mention-list { margin-top: 6px; overflow: hidden; border-radius: 12px; border: 1px solid #343434; background: #191919; }
 .mention-list button { display: block; width: 100%; padding: 8px 10px; text-align: left; font-size: 13px; }
 .take-compose label { width: 40px; height: 40px; }

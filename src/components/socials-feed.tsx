@@ -996,7 +996,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Find @username"
+          placeholder="Search @username, people, topics..."
           className="soc-find w-full px-3 py-2 outline-none"
           style={{ fontSize: 16 }}
         />
@@ -1216,6 +1216,25 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
       {lane !== "people" ? (
       <>
       <LiquidCuts value={feedCut} onPick={(id) => { setTag(""); setFeedCut(id); }} />
+      {suggested.length > 0 && feedCut === "all" ? (
+        <div className="soc-know">
+          <div className="soc-know-head"><span>People you may know</span></div>
+          <div>
+            {suggested.filter((p) => !hidden(p.handle)).slice(0, 8).map((p) => (
+              <article key={p.id}>
+                <a href={`/u/${encodeURIComponent(p.handle)}`}>
+                  <img src={avatarUrl(p.handle, p.photo)} alt="" />
+                  <strong>@{p.handle}</strong>
+                  <em>{p.mutuals > 0 ? `${p.mutuals} mutual` : p.role || "Member"}</em>
+                </a>
+                <button type="button" className={followed(p.handle, p.id) ? "on" : ""} onClick={() => flipFollow(p.handle, p.id)}>
+                  {followLabel(p.handle, p.id)}
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {tag ? (
         <div className="mb-2 flex gap-1.5">
           <button type="button" className="soc-chip on shrink-0 px-2.5 py-1 text-[12px]" onClick={() => setFeedCut("tag")}>#{tag}</button>
@@ -1269,7 +1288,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
             maxLength={280}
             rows={2}
             placeholder="What's happening?"
-            className="min-h-[80px] flex-1 resize-none bg-transparent text-[13px] leading-snug outline-none"
+            className="min-h-9 flex-1 resize-none bg-transparent text-[13px] leading-snug outline-none"
             style={{ fontSize: 16 }}
             onChange={(e) => {
               const v = e.target.value;
@@ -1545,6 +1564,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
                 .finally(() => setBusyId(""));
             }}
             onVote={(side) => void vote(t.id, side)}
+            voteSide={voted[t.id] || ""}
             onReport={() => {
               setReportNote("");
               setMenuTake(t);
@@ -2063,6 +2083,7 @@ function TakeCard({
   onReveal,
   onApply,
   onVote,
+  voteSide = "",
   onReport,
   onLike,
   onRepost,
@@ -2101,6 +2122,7 @@ function TakeCard({
   onReveal: () => void;
   onApply: () => void;
   onVote: (side: "fact" | "cap" | "a" | "b") => void;
+  voteSide?: string;
   onReport: () => void;
   onLike: () => void;
   onRepost: () => void;
@@ -2274,14 +2296,13 @@ function TakeCard({
           ) : null}
 
           {(take.kind === "take" || take.kind === "news" || take.kind === "quote") ? (
-            <div className="mt-2">
-              <div className="mb-1 flex justify-between text-[10px] font-semibold">
-                <button type="button" className="text-lime-2" onClick={() => onVote("fact")}>FACT {fact}%</button>
-                <button type="button" className="text-muted" onClick={() => onVote("cap")}>CAP {100 - fact}%</button>
+            <div className="soc-fact">
+              <div>
+                <button type="button" className={voteSide === "fact" ? "on" : ""} onClick={() => onVote("fact")}>FACT {take.fact + take.cap > 0 ? `${fact}%` : ""}</button>
+                <button type="button" className={voteSide === "cap" ? "on" : ""} onClick={() => onVote("cap")}>CAP {take.fact + take.cap > 0 ? `${100 - fact}%` : ""}</button>
               </div>
-              <div className="take-meter">
-                <div className="h-full bg-lime-2" style={{ width: `${fact}%` }} />
-              </div>
+              <div className="take-meter"><div style={{ width: `${take.fact + take.cap > 0 ? fact : 0}%` }} /></div>
+              <p>{take.fact + take.cap > 0 ? `${(take.fact + take.cap).toLocaleString()} votes` : "No votes yet"}{voteSide === "fact" || voteSide === "cap" ? ` · Your vote: ${voteSide.toUpperCase()}` : ""}</p>
             </div>
           ) : null}
 
