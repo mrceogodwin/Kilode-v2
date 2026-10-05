@@ -65,7 +65,7 @@ const CONDITIONS = ["New", "Used - Like New", "Used - Good", "Used - Fair"];
 
 function readMeta(raw?: string) {
   try {
-    return JSON.parse(raw || "{}") as { jobType?: string; category?: string; salary?: string; condition?: string; price?: string };
+    return JSON.parse(raw || "{}") as { jobType?: string; category?: string; salary?: string; condition?: string; price?: string; experience?: string; deadline?: string };
   } catch {
     return {};
   }
@@ -115,10 +115,10 @@ function jobPillMatch(r: Card, pill: string) {
   return true;
 }
 
-function salaryMatch(raw: string | undefined, band: string) {
+function salaryMatch(raw: string | undefined, band: string, includeOpen = true) {
   if (band === "Any") return true;
   const n = salaryNum(raw);
-  if (!n) return false;
+  if (!n) return includeOpen;
   if (band === "Under ₦500k") return n < 500000;
   if (band === "₦500k – ₦1M") return n >= 500000 && n <= 1000000;
   return n > 1000000;
@@ -229,6 +229,12 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [jobType, setJobType] = useState("Full-time");
   const [category, setCategory] = useState("Tech");
   const [salary, setSalary] = useState("");
+  const [experience, setExperience] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [phone, setPhone] = useState("");
+  const [cv, setCv] = useState("");
+  const [skills, setSkills] = useState("");
+  const [includeOpen, setIncludeOpen] = useState(true);
   const [condition, setCondition] = useState("New");
   const [price, setPrice] = useState("");
   const [image, setImage] = useState("");
@@ -285,6 +291,10 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
       }
       const saved = JSON.parse(localStorage.getItem("kilode-job-kept") || "[]") as unknown;
       if (Array.isArray(saved)) setKept(saved.filter((x) => typeof x === "string"));
+      const card = JSON.parse(localStorage.getItem("kilode-seeker") || "{}") as { phone?: string; cv?: string; skills?: string };
+      if (card.phone) setPhone(card.phone);
+      if (card.cv) setCv(card.cv);
+      if (card.skills) setSkills(card.skills);
     } catch { /* ignore */ }
   }, [kind]);
 
@@ -348,12 +358,12 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
       if (jobTypeFilter === "Remote") {
         if (!/remote/i.test(`${meta.jobType || ""} ${r.city} ${r.title} ${r.body}`)) return false;
       } else if (jobTypeFilter !== "All" && (meta.jobType || "") !== jobTypeFilter) return false;
-      if (!salaryMatch(meta.salary, salaryBand)) return false;
+      if (!salaryMatch(meta.salary, salaryBand, includeOpen)) return false;
       if (!jobPillMatch(r, jobPill)) return false;
       if (!query) return true;
       return `${r.title} ${r.company} ${r.city} ${r.submitter} ${meta.category || ""}`.toLowerCase().includes(query);
     });
-  }, [rows, q, filter, jobTypeFilter, salaryBand, jobPill]);
+  }, [rows, q, filter, jobTypeFilter, salaryBand, jobPill, includeOpen]);
 
   function needJoin(href = "/login?mode=up") {
     window.location.href = href;
@@ -475,6 +485,17 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                 </div>
               ) : null}
               {kind === "job" ? <input value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="Salary range (optional)" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" /> : null}
+              {kind === "job" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <select value={experience} onChange={(e) => setExperience(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-base" aria-label="Experience">
+                    <option value="">Experience</option>
+                    <option>Junior</option>
+                    <option>Mid</option>
+                    <option>Senior</option>
+                  </select>
+                  <input value={deadline} onChange={(e) => setDeadline(e.target.value)} placeholder="Apply by (optional)" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" />
+                </div>
+              ) : null}
               {kind === "market" ? <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price in Naira" inputMode="decimal" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" /> : null}
               <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder={kind === "market" ? "WhatsApp or email" : copy.contact} className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" />
               <input value={link} onChange={(e) => setLink(e.target.value)} placeholder={kind === "job" ? "Application link or email" : "https://…"} className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-base" />
@@ -552,7 +573,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                     return;
                   }
                   setBusy(true);
-                  void saveListing({ data: { kind, title, body, city, contact, link, company, days, image, jobType, category, salary, condition, price } }).then((r) => {
+                  void saveListing({ data: { kind, title, body, city, contact, link, company, days, image, jobType, category, salary, condition, price, experience, deadline } }).then((r) => {
                     if (!r?.ok) setErr(r && "reason" in r ? r.reason : "Could not post.");
                     else if (r.needsPay) {
                       setPayFor({ id: r.id, usd: r.priceUsd });
@@ -597,7 +618,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             <h3 className="mt-0.5 text-lg font-bold">{open.title}</h3>
             {(() => {
               const meta = readMeta(open.meta);
-              const bits = [meta.jobType, meta.category, open.city, meta.condition, meta.price ? naira(meta.price) : "", meta.salary ? payLabel(meta.salary) : ""].filter(Boolean);
+              const bits = [meta.jobType, meta.experience, meta.category, open.city, meta.deadline ? `Apply by ${meta.deadline}` : "", meta.condition, meta.price ? naira(meta.price) : "", meta.salary ? payLabel(meta.salary) : ""].filter(Boolean);
               return bits.length ? <p className="mt-1 text-[12px] text-muted">{bits.join(" · ")}</p> : null;
             })()}
             <p className="mt-2 text-[15px] leading-snug">{open.body}</p>
@@ -614,6 +635,9 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                     <input type="checkbox" className="mt-0.5" checked={legal} onChange={(e) => setLegal(e.target.checked)} />
                     <span>Kilode only introduces you. It does not hire, pay, or check the employer. Verify them before you send a CV or personal details.</span>
                   </label>
+                  <input value={phone} onChange={(e) => { setPhone(e.target.value); try { localStorage.setItem("kilode-seeker", JSON.stringify({ phone: e.target.value, cv, skills })); } catch { /* ignore */ } }} placeholder="Phone" className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-base" inputMode="tel" />
+                  <input value={cv} onChange={(e) => { setCv(e.target.value); try { localStorage.setItem("kilode-seeker", JSON.stringify({ phone, cv: e.target.value, skills })); } catch { /* ignore */ } }} placeholder="CV link, https:// (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-base" />
+                  <input value={skills} onChange={(e) => { setSkills(e.target.value); try { localStorage.setItem("kilode-seeker", JSON.stringify({ phone, cv, skills: e.target.value })); } catch { /* ignore */ } }} placeholder="Skills, short" className="w-full rounded-xl border border-line bg-panel px-3 py-2 text-base" />
                   <div className="flex gap-2">
                   <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Short apply note" className="min-w-0 flex-1 rounded-xl border border-line bg-panel px-3 py-2 text-base" />
                   <button
@@ -628,7 +652,15 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                         setErr("Write a short note. That is the application.");
                         return;
                       }
-                      void applyListing({ data: { id: open.id, note } }).then((a) => {
+                      if (phone.replace(/\D/g, "").length < 7) {
+                        setErr("Add a phone number.");
+                        return;
+                      }
+                      if (cv.trim() && !/^https:\/\//i.test(cv.trim())) {
+                        setErr("CV link must start with https://");
+                        return;
+                      }
+                      void applyListing({ data: { id: open.id, note, phone, cv, skills } }).then((a) => {
                         if (!a.ok) setErr("reason" in a ? a.reason : "Could not apply.");
                         else {
                           setMsg("Application sent.");
@@ -695,6 +727,8 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                       <strong>{a.title}</strong>
                       <em>{a.city || "Nigeria"} · {a.status}</em>
                       {a.note ? <span className="job-tags"><b>{a.note}</b></span> : null}
+                      {a.phone ? <span className="job-tags"><b>{a.phone}</b></span> : null}
+                      {a.cv ? <a className="text-[11px] font-bold text-[#ffd45a]" href={a.cv} target="_blank" rel="noreferrer">CV</a> : null}
                     </span>
                   </button>
                   <span className="job-role-side"><i>{timeAgo(a.ts)}</i></span>
@@ -713,7 +747,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                         <i>{r.status}</i>
                         <strong>{r.title}</strong>
                         <em>{r.city || "Nigeria"} · {people.length} applicant{people.length === 1 ? "" : "s"}</em>
-                        {people.slice(0, 3).map((p) => <span key={p.id} className="job-tags"><b>@{p.handle}</b></span>)}
+                        {people.slice(0, 3).map((p) => <span key={p.id} className="job-tags"><b>@{p.handle}{p.phone ? ` · ${p.phone}` : ""}</b></span>)}
                       </span>
                     </span>
                   </article>
@@ -735,6 +769,8 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
           setJobTypeFilter={setJobTypeFilter}
           salaryBand={salaryBand}
           setSalaryBand={setSalaryBand}
+          includeOpen={includeOpen}
+          setIncludeOpen={setIncludeOpen}
           roleTab={roleTab}
           setRoleTab={setRoleTab}
           kept={kept}
@@ -857,6 +893,8 @@ function JobBoard({
   setJobTypeFilter,
   salaryBand,
   setSalaryBand,
+  includeOpen,
+  setIncludeOpen,
   roleTab,
   setRoleTab,
   kept,
@@ -878,6 +916,8 @@ function JobBoard({
   setJobTypeFilter: (v: string) => void;
   salaryBand: string;
   setSalaryBand: (v: string) => void;
+  includeOpen: boolean;
+  setIncludeOpen: (v: boolean) => void;
   roleTab: "foryou" | "recommended";
   setRoleTab: (v: "foryou" | "recommended") => void;
   kept: string[];
@@ -945,6 +985,7 @@ function JobBoard({
             {SALARY_BANDS.map((band) => (
               <button key={band} type="button" className={salaryBand === band ? "on" : ""} onClick={() => setSalaryBand(band)}>{band}</button>
             ))}
+            <button type="button" className={includeOpen ? "on" : ""} onClick={() => setIncludeOpen(!includeOpen)}>Include pay on request</button>
           </div>
           <div className="job-sheet-label">Also</div>
           <div className="job-sheet-row">

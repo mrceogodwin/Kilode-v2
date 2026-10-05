@@ -84,6 +84,9 @@ async function ensure() {
     await sql.query(`ALTER TABLE nf_listings ADD COLUMN IF NOT EXISTS expires_at BIGINT`);
     await sql.query(`ALTER TABLE nf_listings ADD COLUMN IF NOT EXISTS image TEXT`);
     await sql.query(`ALTER TABLE nf_listings ADD COLUMN IF NOT EXISTS meta TEXT`);
+    await sql.query(`ALTER TABLE nf_apps ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT ''`);
+    await sql.query(`ALTER TABLE nf_apps ADD COLUMN IF NOT EXISTS cv TEXT NOT NULL DEFAULT ''`);
+    await sql.query(`ALTER TABLE nf_apps ADD COLUMN IF NOT EXISTS skills TEXT NOT NULL DEFAULT ''`);
   } catch {
     /* exists */
   }
@@ -266,7 +269,7 @@ export const listExploreGrid = createServerFn({ method: "GET" }).handler(async (
 
 export const saveListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { kind: string; title: string; body?: string; city?: string; contact?: string; link?: string; company?: string; days?: number; image?: string; jobType?: string; category?: string; salary?: string; condition?: string; price?: string }) => d)
+  .validator((d: { kind: string; title: string; body?: string; city?: string; contact?: string; link?: string; company?: string; days?: number; image?: string; jobType?: string; category?: string; salary?: string; condition?: string; price?: string; experience?: string; deadline?: string }) => d)
   .handler(async ({ context, data }) => {
     const kind = asKind(data.kind);
     const ak = await kindOf(context.userId);
@@ -295,6 +298,8 @@ export const saveListing = createServerFn({ method: "POST" })
       salary: (data.salary ?? "").slice(0, 40),
       condition: (data.condition ?? "").slice(0, 40),
       price: (data.price ?? "").slice(0, 40),
+      experience: (data.experience ?? "").slice(0, 40),
+      deadline: (data.deadline ?? "").slice(0, 40),
     });
     const desk = kind === "job" ? "jobs" : kind;
     const charge = await deskCharge(desk).catch(() => ({ paid: false, usd: 0, cryptoEnabled: true }));
@@ -306,10 +311,17 @@ export const saveListing = createServerFn({ method: "POST" })
 
 export const applyListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { id: string; note?: string }) => d)
+  .validator((d: { id: string; note?: string; phone?: string; cv?: string; skills?: string }) => d)
   .handler(async ({ context, data }) => {
     const ak = await kindOf(context.userId);
     if (!canKind(ak, "jobs.apply")) return { ok: false as const, reason: kindActionHint("jobs.apply") };
+    const note = (data.note ?? "").trim().slice(0, 500);
+    if (note.length < 2) return { ok: false as const, reason: "Write a short note." };
+    const phone = (data.phone ?? "").replace(/[^\d+\s-]/g, "").trim().slice(0, 24);
+    if (phone.replace(/\D/g, "").length < 7) return { ok: false as const, reason: "Add a phone number the employer can use." };
+    const cv = (data.cv ?? "").trim().slice(0, 300);
+    if (cv && !/^https:\/\//i.test(cv)) return { ok: false as const, reason: "CV link must start with https://" };
+    const skills = (data.skills ?? "").trim().slice(0, 160);
     const sql = await getSql();
     const handle = await handleOf(context.userId);
     const id = nid();
@@ -320,14 +332,13 @@ export const applyListing = createServerFn({ method: "POST" })
     }
     const already = await sql<{ id: string }>`select id from nf_apps where listing_id = ${data.id} and user_id = ${context.userId} limit 1`;
     if (already[0]) return { ok: false as const, reason: "You already applied to this job." };
-    // Confirm job exists and is live (approved + not expired)
     const job = await sql<{ id: string; status: string; expires_at: number | string | null }>`select id, status, expires_at from nf_listings where id = ${data.id} and kind = 'job' limit 1`;
     if (!job[0]) return { ok: false as const, reason: "Job not found." };
     if (job[0].status !== "approved") return { ok: false as const, reason: "This job is not open for applications yet." };
     if (job[0].expires_at && Number(job[0].expires_at) < Date.now()) {
       return { ok: false as const, reason: "This job listing has expired." };
     }
-    await sql`insert into nf_apps (id, listing_id, user_id, handle, note, ts) values (${id}, ${data.id}, ${context.userId}, ${handle}, ${(data.note ?? "").slice(0, 500)}, ${Date.now()})`;
+    await sql`insert into nf_apps (id, listing_id, user_id, handle, note, ts, phone, cv, skills) values (${id}, ${data.id}, ${context.userId}, ${handle}, ${note}, ${Date.now()}, ${phone}, ${cv}, ${skills})`;
     return { ok: true as const };
   });
 
@@ -387,6 +398,9 @@ export type MyApp = {
   company: string;
   city: string;
   note: string;
+  phone: string;
+  cv: string;
+  skills: string;
   ts: number;
   status: string;
 };
@@ -404,12 +418,15 @@ export const listMyApps = createServerFn({ method: "GET" })
       id: string;
       listing_id: string;
       note: string | null;
+      phone: string | null;
+      cv: string | null;
+      skills: string | null;
       ts: number | string;
       title: string | null;
       company: string | null;
       city: string | null;
       status: string | null;
-    }>`select a.id, a.listing_id, a.note, a.ts, l.title, l.company, l.city, l.status
+    }>`select a.id, a.listing_id, a.note, a.phone, a.cv, a.skills, a.ts, l.title, l.company, l.city, l.status
       from nf_apps a
       left join nf_listings l on l.id = a.listing_id
       where a.user_id = ${context.userId}
@@ -422,6 +439,9 @@ export const listMyApps = createServerFn({ method: "GET" })
         company: r.company ?? "",
         city: r.city ?? "",
         note: r.note ?? "",
+        phone: r.phone ?? "",
+        cv: r.cv ?? "",
+        skills: r.skills ?? "",
         ts: Number(r.ts),
         status: r.status ?? "unknown",
       }),
@@ -434,6 +454,9 @@ export type MyApplicant = {
   jobTitle: string;
   handle: string;
   note: string;
+  phone: string;
+  cv: string;
+  skills: string;
   ts: number;
 };
 
@@ -452,9 +475,12 @@ export const listMyApplicants = createServerFn({ method: "GET" })
       listing_id: string;
       handle: string;
       note: string | null;
+      phone: string | null;
+      cv: string | null;
+      skills: string | null;
       ts: number | string;
       title: string | null;
-    }>`select a.id, a.listing_id, a.handle, a.note, a.ts, l.title
+    }>`select a.id, a.listing_id, a.handle, a.note, a.phone, a.cv, a.skills, a.ts, l.title
       from nf_apps a
       inner join nf_listings l on l.id = a.listing_id
       where l.user_id = ${context.userId} and l.kind = 'job'
@@ -467,6 +493,9 @@ export const listMyApplicants = createServerFn({ method: "GET" })
         jobTitle: r.title ?? "Job",
         handle: r.handle,
         note: r.note ?? "",
+        phone: r.phone ?? "",
+        cv: r.cv ?? "",
+        skills: r.skills ?? "",
         ts: Number(r.ts),
       }),
     );

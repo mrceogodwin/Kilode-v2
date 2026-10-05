@@ -404,8 +404,19 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
   const [cinSec, setCinSec] = useState<"nigerian" | "global" | "coming">("nigerian");
   const [coverUrl, setCoverUrl] = useState("");
   const [applyNote, setApplyNote] = useState("");
+  const [applyPhone, setApplyPhone] = useState("");
+  const [applyCv, setApplyCv] = useState("");
+  const [applySkills, setApplySkills] = useState("");
   const [applyId, setApplyId] = useState("");
   const [openJobs, setOpenJobs] = useState<Listing[]>([]);
+  useEffect(() => {
+    try {
+      const card = JSON.parse(localStorage.getItem("kilode-seeker") || "{}") as { phone?: string; cv?: string; skills?: string };
+      if (card.phone) setApplyPhone(card.phone);
+      if (card.cv) setApplyCv(card.cv);
+      if (card.skills) setApplySkills(card.skills);
+    } catch { /* ignore */ }
+  }, []);
   const [busy, setBusy] = useState(false);
   const [empType, setEmpType] = useState("Full-time");
   const [payBand, setPayBand] = useState("");
@@ -768,7 +779,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
       {pane === "apply" ? (
         <div className="raised space-y-3 rounded-2xl border border-lime-2/30 p-4">
           <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">JOB SEEKER · APPLY</div>
-          <p className="text-sm text-muted">Pick a live role, leave a short note. The poster sees your @handle. You cannot post jobs or list music.</p>
+          <p className="text-sm text-muted">Pick a live role. Phone and a short note are required. A CV link is optional and must be https.</p>
           {openJobs.length === 0 ? (
             <div className="rounded-xl border border-dashed border-line bg-panel/60 px-3 py-4 text-center text-[12px] text-muted">
               No approved jobs live right now. Polish your profile bio and city, then check again.
@@ -790,7 +801,10 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
           )}
           {applyId ? (
             <>
-              <textarea value={applyNote} onChange={(e) => setApplyNote(e.target.value)} rows={3} placeholder="Short note / WhatsApp / why you fit (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+              <input value={applyPhone} onChange={(e) => setApplyPhone(e.target.value)} placeholder="Phone" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" inputMode="tel" />
+              <input value={applyCv} onChange={(e) => setApplyCv(e.target.value)} placeholder="CV link, https:// (optional)" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+              <input value={applySkills} onChange={(e) => setApplySkills(e.target.value)} placeholder="Skills, short" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
+              <textarea value={applyNote} onChange={(e) => setApplyNote(e.target.value)} rows={3} placeholder="Why you fit" className="w-full rounded-xl border border-line bg-panel px-3 py-2.5 text-base" />
               {err ? <p className="text-sm text-danger">{err}</p> : null}
               {msg ? <p className="text-sm text-lime-2">{msg}</p> : null}
               <button
@@ -801,11 +815,12 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
                   setErr("");
                   setMsg("");
                   setBusy(true);
-                  void applyListing({ data: { id: applyId, note: applyNote } }).then((r) => {
+                  void applyListing({ data: { id: applyId, note: applyNote, phone: applyPhone, cv: applyCv, skills: applySkills } }).then((r) => {
                     setBusy(false);
                     if (!r.ok) setErr(r.reason);
                     else {
-                      setMsg("Application sent. Track it on Me → Applications.");
+                      try { localStorage.setItem("kilode-seeker", JSON.stringify({ phone: applyPhone, cv: applyCv, skills: applySkills })); } catch { /* ignore */ }
+                      setMsg("Application sent. Track it on Jobs → Applications.");
                       setApplyNote("");
                       setApplyId("");
                     }

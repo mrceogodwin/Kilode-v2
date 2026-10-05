@@ -1235,8 +1235,15 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
                       </span>
                     </div>
                     {a.note ? <p className="mt-1.5 line-clamp-3 text-[11px] leading-snug text-muted">{a.note}</p> : (
-                      <p className="mt-1.5 text-[11px] italic text-muted">No note — reach out via their profile or your posted contact.</p>
+                      <p className="mt-1.5 text-[11px] italic text-muted">No note.</p>
                     )}
+                    {a.phone || a.skills || a.cv ? (
+                      <p className="mt-1 text-[11px] text-ink">
+                        {a.phone ? <span>{a.phone}</span> : null}
+                        {a.skills ? <span>{a.phone ? " · " : ""}{a.skills}</span> : null}
+                        {a.cv ? <a className="ml-2 font-bold text-lime-2" href={a.cv} target="_blank" rel="noreferrer">CV</a> : null}
+                      </p>
+                    ) : null}
                     <div className="mt-2 flex gap-2">
                       <button
                         type="button"

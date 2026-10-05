@@ -5,9 +5,10 @@ You are working on **github.com/mrceogodwin/Kilode-v2** (live: https://kilode-v2
 Do **not** switch to mrceogodwin/Kilode. That is v1.
 
 Last shipped pass:
-- Ads placement is six steps: Choose, Details, Creative, Duration, Review, Pay, then Your ads. Slot price stays the catalog price. Days do not change the charge. Payment still has to be confirmed by Kilode.
-- Jobs: Creative lane no longer treats “Part-time” as art. Internship is a type. Apply requires a note.
+- A job application now stores a phone, an optional https CV link, skills, and a note. The same details are remembered on this phone and shown to the employer.
+- A posted role can include experience and an apply-by date.
+- Salary filters keep roles that do not list pay, unless the seeker turns that off.
 
-Still open: a real CV on applications, and a live Paystack/Flutterwave payment from a signed-in Ads Poster. Those were not run here.
+Still open: a file upload for a CV, and a live payment test.
 
 Keep `npm run build` green. Do not point the v1 Vercel project at this repo.
