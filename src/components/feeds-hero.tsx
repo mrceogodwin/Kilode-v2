@@ -236,7 +236,10 @@ function HeroSlide({
       );
     }
     return (
-      <SampleBanner id={slide.id} tall />
+      <div className="ad-google grid h-full w-full place-items-center">
+        <span>Advertisement</span>
+        <em>Google AdSense</em>
+      </div>
     );
   }
   if (slide.k === "company") {

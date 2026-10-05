@@ -91,10 +91,9 @@ export function PortraitAd({ id }: { id: string }) {
   const slots = useAdSlots();
   const slot = slots.find((s) => s.id === id && s.enabled);
   const frame = (child: ReactNode) => (
-    <aside className="my-6 overflow-hidden rounded-2xl border border-line bg-panel">
+    <aside className="ad-frame my-6 overflow-hidden border border-line bg-panel">
       <div className="flex items-center justify-between gap-2 px-3 py-2">
         <span className="text-[13px] font-semibold text-fg">Ads</span>
-        <RentCta />
       </div>
       <div className="flex w-full justify-center">{child}</div>
     </aside>

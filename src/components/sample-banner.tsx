@@ -1,8 +1,8 @@
-const SAMPLES = [
-  { key: "nike", name: "NIKE", line: "Just do it.", tone: "dark" },
-  { key: "airtel", name: "airtel", line: "The smartphone network.", tone: "red" },
-  { key: "mtn", name: "MTN", line: "Everywhere you go.", tone: "yellow" },
-  { key: "spotify", name: "Spotify", line: "A new drop from the artist.", tone: "green" },
+const CREATIVES = [
+  { src: "/ads/nike.jpg", name: "Nike" },
+  { src: "/ads/mtn.jpg", name: "MTN" },
+  { src: "/ads/spotify.jpg", name: "Spotify" },
+  { src: "/ads/spotify-street.jpg", name: "Spotify" },
 ] as const;
 
 function hash(s: string) {
@@ -12,12 +12,11 @@ function hash(s: string) {
 }
 
 export function SampleBanner({ id = "ad", tall = false }: { id?: string; tall?: boolean }) {
-  const pick = SAMPLES[Math.abs(hash(id)) % SAMPLES.length];
+  const pick = CREATIVES[Math.abs(hash(id)) % CREATIVES.length];
   return (
-    <a href="/advertise" className={`sample-ad tone-${pick.tone} ${tall ? "tall" : ""}`}>
+    <a href="/advertise" className={`sample-ad ${tall ? "tall" : ""}`} aria-label={`${pick.name} sample`}>
+      <img src={pick.src} alt="" />
       <i>Sample</i>
-      <b>{pick.name}</b>
-      <span>{pick.line}</span>
     </a>
   );
 }

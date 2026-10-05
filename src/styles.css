@@ -6266,6 +6266,111 @@ html:not([data-skin="ivory"]) .know-follow:not(.on) {
   box-shadow: none !important;
 }
 
+.sample-ad {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border-radius: 0 !important;
+  background: #111;
+  overflow: hidden;
+}
+.sample-ad img { display: block; width: 100%; height: 132px; object-fit: cover; border-radius: 0; }
+.sample-ad.tall img { height: 168px; }
+.sample-ad i {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  border-radius: 0;
+  background: #111;
+  padding: 2px 6px;
+  color: #fff;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.ad-frame, .ad-google, .sample-ad, .sample-ad img { border-radius: 0 !important; }
+.ad-google {
+  display: flex;
+  min-height: 64px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #121212;
+  color: #a7a7a4;
+  text-align: center;
+}
+.ad-google span { font-size: 9px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+.ad-google em { font-size: 12px; font-style: normal; }
+
+.dock {
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  border-radius: 18px 18px 0 0 !important;
+}
+.menu-drawer {
+  top: calc(var(--chrome-bottom, 72px) - 6px) !important;
+  bottom: 0 !important;
+}
+.menu-drawer .menu-sheet {
+  height: 100% !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.foot-share .foot-3d,
+.foot-3d.kilode-share {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px !important;
+  border: 1px solid #fff !important;
+  background: #101010 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+.foot-3d::after { display: none !important; }
+
+html[data-skin="ivory"] .space-page .me-hero,
+html[data-skin="ivory"] .me-hero {
+  background: #fff !important;
+  background-image: none !important;
+  color: #141414 !important;
+}
+html[data-skin="ivory"] .kind-pill {
+  border-color: #ddd !important;
+  background: #f3f0e8 !important;
+  color: #141414 !important;
+}
+html[data-skin="ivory"] .know-follow {
+  height: 22px !important;
+  border: 1px solid #141414 !important;
+  background: #fff !important;
+  color: #141414 !important;
+  box-shadow: none !important;
+}
+html[data-skin="ivory"] button.btn-join.rounded-full {
+  background: #141414 !important;
+  color: #fff !important;
+  opacity: 1 !important;
+}
+html[data-skin="ivory"] button.btn-join.rounded-full:disabled {
+  background: #e6e1d6 !important;
+  color: #141414 !important;
+}
+html[data-skin="ivory"] .space-page .rounded-2xl,
+html[data-skin="ivory"] .digest-card {
+  overflow: visible;
+}
+html[data-skin="ivory"] .ad-google { background: #fff; color: #3a3a3a; border-color: #ddd; }
+
+
 
 
 
