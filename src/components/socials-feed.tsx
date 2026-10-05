@@ -2100,6 +2100,22 @@ function KSend() {
     </svg>
   );
 }
+function KEye() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className="size-3.5">
+      <path d="M1.6 8S4.2 4.4 8 4.4 14.4 8 14.4 8 11.8 11.6 8 11.6 1.6 8 1.6 8Z" />
+      <circle cx="8" cy="8" r="1.6" />
+    </svg>
+  );
+}
+function KTrend() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className="size-3.5">
+      <path d="M2 11.2 6 7.2 8.4 9.4 13.6 3.8" />
+      <path d="M9.8 3.8h3.8V7.6" />
+    </svg>
+  );
+}
 function KMark() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden className="size-3.5">
@@ -2275,11 +2291,9 @@ function TakeCard({
             <div className="mt-1 text-[10px] font-semibold tracking-[0.08em] text-lime-2">{take.meta.stance}</div>
           ) : null}
           {take.meta.street === true ? <div className="mt-0.5 text-[9px] text-amber-200/80">Street Certified</div> : null}
-          {hot ? <div className="trend-chip mt-1">Trending</div> : null}
           {Date.now() - take.ts < 6 * 3600_000 ? <div className="fresh-chip mt-1">New</div> : null}
           {take.meta.circle === "followers" ? <div className="fresh-chip mt-1">Followers</div> : null}
           {take.meta.pinned === "1" ? <div className="mt-1 text-[10px] font-semibold text-muted">Pinned</div> : null}
-          {typeof take.views === "number" && take.views > 0 ? <div className="mt-1 text-[10px] text-muted">{take.views.toLocaleString()} seen</div> : null}
 
           {locked ? (
             <button type="button" className="mt-1.5 flex w-full items-center justify-center gap-1 rounded-[10px] border border-line py-3 text-[11px] text-muted" onClick={onReveal}>
@@ -2449,6 +2463,17 @@ function TakeCard({
         <button type="button" onClick={onShare} aria-label="Share">
           <KSend />
         </button>
+        {hot ? (
+          <span className="take-meta" title="Trending" aria-label="Trending">
+            <KTrend />
+          </span>
+        ) : null}
+        {typeof take.views === "number" && take.views > 0 ? (
+          <span className="take-meta" title={`${take.views} seen`} aria-label={`${take.views.toLocaleString()} seen`}>
+            <KEye />
+            {take.views.toLocaleString()}
+          </span>
+        ) : null}
         <span className="take-faces" aria-label="Liked by">
           {likers.slice(0, 3).map((p) => (
             <img key={p.handle} src={avatarUrl(p.handle, p.photo)} alt="" title={p.handle} />

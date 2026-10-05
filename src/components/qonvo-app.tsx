@@ -1360,7 +1360,7 @@ function QonvoAppInner() {
 
       {menuOpen ? (
         <div className="app-drawer menu-drawer">
-          <aside className="menu-sheet flex h-full w-[min(268px,76vw)] flex-col">
+          <aside className="menu-sheet flex w-[min(268px,76vw)] flex-col">
             <div className="menu-head">
               <AvatarImg handle={store.handle || "Guest"} face={store.face} size={36} />
               <div className="min-w-0 flex-1">
@@ -1372,7 +1372,7 @@ function QonvoAppInner() {
                 <X className="size-4" />
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-2.5 pb-4">
+            <div className="overflow-y-auto p-2.5">
               <div className="menu-hero-card mb-3">
                 <div className="grid grid-cols-3 gap-2">
                 {(signedIn
