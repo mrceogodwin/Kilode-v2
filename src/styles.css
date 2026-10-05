@@ -2293,6 +2293,47 @@ html[data-skin="ivory"] .menu-sheet .menu-ico { color: #e6c56a; }
 .mh-form { display: flex; flex-direction: column; gap: 6px; }
 .mh-form input { height: 36px; border: 1px solid #343434; border-radius: 10px; background: #111; padding: 0 10px; color: #f5f3ee; font-size: 13px; }
 .mh-tools { display: flex; flex-direction: column; gap: 8px; }
+.jb-banner {
+  display: grid;
+  grid-template-columns: 1fr 92px;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #343434;
+  border-radius: 16px;
+  background:
+    radial-gradient(90% 120% at 100% 0%, rgba(255, 212, 90, 0.16), transparent 50%),
+    #191919;
+  padding: 12px;
+}
+.jb-kicker { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #ffd45a; }
+.jb-banner strong { display: block; font-size: 18px; line-height: 1.15; }
+.jb-banner em, .jb-role em, .jb-faces em, .jb-quick em { font-style: normal; color: #a7a7a4; font-size: 11px; }
+.jb-go { display: inline-flex; height: 28px; align-items: center; margin-top: 8px; border: 0; border-radius: 999px; background: #ffd45a; padding: 0 12px; color: #161616; font-size: 12px; font-weight: 800; }
+.jb-side { display: grid; justify-items: end; gap: 2px; border: 0; background: transparent; color: #f5f3ee; text-align: right; }
+.jb-side b { font-size: 11px; color: #ffd45a; }
+.jb-side i { font-style: normal; font-size: 10px; color: #a7a7a4; }
+.jb-pills, .jb-types { display: flex; gap: 6px; overflow-x: auto; }
+.jb-pills button, .jb-types button, .jb-types label {
+  display: inline-flex; height: 28px; flex: 0 0 auto; align-items: center; gap: 4px;
+  border: 1px solid #343434; border-radius: 999px; background: #191919; padding: 0 10px; color: #f5f3ee; font-size: 11px; font-weight: 700;
+}
+.jb-pills button.on, .jb-types button.on, .jb-quick button.on { border-color: #ffd45a; background: #ffd45a; color: #161616; }
+.jb-types select { border: 0; background: transparent; color: inherit; font-size: 11px; font-weight: 700; outline: none; }
+.jb-quick { display: grid; grid-template-columns: repeat(5, minmax(68px, 1fr)); gap: 6px; }
+.jb-quick button { display: flex; min-height: 68px; flex-direction: column; align-items: flex-start; gap: 2px; border: 1px solid #343434; border-radius: 12px; background: #191919; padding: 8px; color: #f5f3ee; text-align: left; }
+.jb-quick svg { color: #ffd45a; }
+.jb-quick button.on svg { color: #161616; }
+.jb-quick strong { font-size: 11px; }
+.jb-faces { display: flex; gap: 10px; overflow-x: auto; }
+.jb-faces button { width: 72px; flex: 0 0 auto; border: 0; background: transparent; color: #f5f3ee; text-align: center; }
+.jb-faces strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
+.jb-faces .grid { width: 44px; height: 44px; margin: 0 auto 4px; border-radius: 999px; }
+.jb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.jb-role { display: flex; align-items: center; gap: 4px; border: 1px solid #343434; border-radius: 12px; background: #191919; padding: 6px; }
+.jb-role > button:first-child { display: flex; min-width: 0; flex: 1; align-items: center; gap: 6px; border: 0; background: transparent; color: inherit; text-align: left; }
+.jb-role strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.jb-role > button:last-child { border: 0; background: transparent; color: #f5f3ee; }
+.jb-role svg.on { fill: #ffd45a; color: #ffd45a; }
 .artist-orb strong {
   display: block;
   overflow: hidden;

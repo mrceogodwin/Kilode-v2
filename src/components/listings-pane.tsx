@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Briefcase, Building2, Bookmark, ChevronRight, Home, Laptop, MapPin, MoreHorizontal, Pencil, Plus, Search, SlidersHorizontal, Store, TrendingUp } from "lucide-react";
+import { Briefcase, Bookmark, Building2, Check, ChevronRight, Home, Laptop, MapPin, MoreHorizontal, Pencil, Plus, Search, SlidersHorizontal, Store, TrendingUp } from "lucide-react";
 import { applyListing, listListingQueue, listListings, listMyApplicants, listMyApps, listMyListings, saveListing, setListingStatus, withdrawApplication, type Listing, type ListingKind, type MyApp, type MyApplicant } from "@/lib/listings-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getProfile } from "@/lib/forum-server";
@@ -980,13 +980,16 @@ function JobBoard({
   const [onlyApplied, setOnlyApplied] = useState(false);
   const [sort, setSort] = useState<"new" | "old">("new");
   const [copied, setCopied] = useState("");
+  const [spot, setSpot] = useState(0);
   const query = q.trim().toLowerCase();
   const ideas = query.length < 2 ? [] : pool.filter((r) => `${r.title} ${r.company}`.toLowerCase().includes(query)).slice(0, 5);
   let live = rows.filter((r) => !hidden.includes(r.id));
   if (onlyKept) live = live.filter((r) => kept.includes(r.id));
   if (onlyApplied) live = live.filter((r) => applied.includes(r.id));
   if (!q.trim()) live = [...live].sort((a, b) => (sort === "old" ? a.ts - b.ts : b.ts - a.ts));
-  const featured = live.slice(0, 2);
+  const featured = live.slice(0, 5);
+  const hero = featured[Math.min(spot, Math.max(featured.length - 1, 0))];
+  const companies = [...new Map(pool.filter((r) => r.company).map((r) => [r.company, r])).values()].slice(0, 8);
   const openRoles = q.trim() ? live : roleTab === "recommended" ? [...live].reverse() : sort === "new" ? [...live].sort((a, b) => Number(kept.includes(b.id)) - Number(kept.includes(a.id))) : live;
   const trends = trendBits(pool);
   const laneCount = (id: string) => (id === "All" ? pool.length : pool.filter((r) => jobPillMatch(r, id)).length);
@@ -1005,24 +1008,6 @@ function JobBoard({
 
   return (
     <div className="job-board">
-      <button type="button" className="job-hero" onClick={() => document.getElementById("kilode-roles")?.scrollIntoView({ behavior: "smooth", block: "start" })}>
-        <span className="job-hero-copy">
-          <span className="job-hero-kicker"><Briefcase className="size-3.5" /> Careers</span>
-          <strong>Build your next <em>opportunity</em></strong>
-          <span>Real jobs. Real companies. Real people.</span>
-        </span>
-        <span className="job-hero-go" aria-hidden><ChevronRight className="size-5" /></span>
-      </button>
-
-      <div className="job-trend">
-        <span className="job-trend-pill"><TrendingUp className="size-3.5" /> Trending</span>
-        <div>
-          {trends.length === 0 ? <em>Roles show here once they are approved.</em> : trends.map((name) => (
-            <button key={name} type="button" onClick={() => setQ(name)}>{name}</button>
-          ))}
-        </div>
-      </div>
-
       <div className="job-search">
         <label>
           <Search className="size-4" />
@@ -1039,7 +1024,6 @@ function JobBoard({
           ))}
         </div>
       ) : null}
-
       {filtersOn ? (
         <div className="job-sheet">
           <div className="job-sheet-label">Salary</div>
@@ -1049,85 +1033,69 @@ function JobBoard({
             ))}
             <button type="button" className={includeOpen ? "on" : ""} onClick={() => setIncludeOpen(!includeOpen)}>Include pay on request</button>
           </div>
-          <div className="job-sheet-label">View</div>
+          <div className="job-sheet-label">Level</div>
           <div className="job-sheet-row">
-            <button type="button" className={onlyKept ? "on" : ""} onClick={() => setOnlyKept((v) => !v)}>Saved</button>
-            <button type="button" className={onlyApplied ? "on" : ""} onClick={() => setOnlyApplied((v) => !v)}>Applied</button>
-            <button type="button" className={sort === "new" ? "on" : ""} onClick={() => setSort("new")}>Newest</button>
-            <button type="button" className={sort === "old" ? "on" : ""} onClick={() => setSort("old")}>Oldest</button>
             {["Junior", "Mid", "Senior"].map((level) => (
               <button key={level} type="button" className={expPick === level ? "on" : ""} onClick={() => setExpPick(expPick === level ? "All" : level)}>{level}</button>
             ))}
-          </div>
-          <div className="job-sheet-label">Also</div>
-          <div className="job-sheet-row">
-            {["Contract", "Freelance", "Internship"].map((t) => (
-              <button key={t} type="button" className={jobTypeFilter === t ? "on" : ""} onClick={() => pickType(jobTypeFilter === t ? "All" : t)}>{t}</button>
-            ))}
+            <button type="button" className={sort === "new" ? "on" : ""} onClick={() => setSort("new")}>Newest</button>
+            <button type="button" className={sort === "old" ? "on" : ""} onClick={() => setSort("old")}>Oldest</button>
             <button type="button" onClick={() => { setSalaryBand("Any"); setJobTypeFilter("All"); setJobPill("All"); setFilter("All"); setQ(""); setIncludeOpen(true); setOnlyKept(false); setOnlyApplied(false); setSort("new"); setExpPick("All"); }}>Clear</button>
           </div>
-          <button type="button" className="job-post" onClick={onPost}><Plus className="size-3.5" /> Post a role</button>
         </div>
       ) : null}
 
-      <div className="job-types">
-        <label>
-          <MapPin className="size-3.5" />
-          <select value={cities.includes(filter) ? filter : "All"} onChange={(e) => setFilter(e.target.value)} aria-label="Location">
-            {cities.map((c) => <option key={c} value={c}>{c === "All" ? "Location" : c}</option>)}
-          </select>
-        </label>
-        {["All", "Full-time", "Part-time", "Remote"].map((t) => (
-          <button key={t} type="button" className={jobTypeFilter === t ? "on" : ""} onClick={() => pickType(t)}>{t}</button>
+      {hero ? (
+        <section className="jb-banner">
+          <div>
+            <div className="jb-kicker">Featured role</div>
+            <strong>{hero.title}</strong>
+            <em>{hero.company || "Company"} · {hero.city || "Nigeria"}</em>
+            <button type="button" className="jb-go" onClick={() => onOpen(hero)}>Open role</button>
+          </div>
+          <button type="button" className="jb-side" aria-label="Next role" onClick={() => setSpot((n) => (n + 1) % featured.length)}>
+            <CompanyMark name={hero.company || hero.title} />
+            <b>{payLabel(readMeta(hero.meta).salary)}</b>
+            <i>{spot + 1}/{featured.length}</i>
+            <ChevronRight className="size-3.5" />
+          </button>
+        </section>
+      ) : <p className="job-empty">No approved roles in this cut.</p>}
+
+      <div className="jb-pills">
+        <button type="button" className="on" onClick={seeAll}><TrendingUp className="size-3.5" /> Trending</button>
+        {trends.slice(0, 6).map((name) => (
+          <button key={name} type="button" onClick={() => setQ(name)}>{name}</button>
         ))}
       </div>
 
-      <section className="job-block">
-        <div className="job-head">
-          <h3>Featured jobs</h3>
-          <button type="button" onClick={seeAll}>See all <ChevronRight className="size-3.5" /></button>
+      <section>
+        <div className="job-head"><h3>Quick access</h3></div>
+        <div className="jb-quick">
+          <button type="button" className={jobPill === "All" && jobTypeFilter === "All" && !onlyKept && !onlyApplied ? "on" : ""} onClick={seeAll}><Briefcase className="size-4" /><strong>All jobs</strong><em>{fmtCount(pool.length)}</em></button>
+          <button type="button" className={jobTypeFilter === "Remote" ? "on" : ""} onClick={() => pickType(jobTypeFilter === "Remote" ? "All" : "Remote")}><Home className="size-4" /><strong>Remote</strong><em>Work from anywhere</em></button>
+          <button type="button" className={onlyKept ? "on" : ""} onClick={() => setOnlyKept((v) => !v)}><Bookmark className="size-4" /><strong>Saved</strong><em>{fmtCount(kept.length)}</em></button>
+          <button type="button" className={onlyApplied ? "on" : ""} onClick={() => setOnlyApplied((v) => !v)}><Check className="size-4" /><strong>Applied</strong><em>{fmtCount(applied.length)}</em></button>
+          <button type="button" onClick={onPost}><Plus className="size-4" /><strong>Post</strong><em>A role</em></button>
         </div>
-        {featured.length === 0 ? (
-          <p className="job-empty">No roles in this cut yet. Change location or type, or post one.</p>
-        ) : (
-          <div className="job-featured">
-            {featured.map((r) => {
-              const meta = readMeta(r.meta);
-              return (
-                <button key={r.id} type="button" className="job-card" onClick={() => onOpen(r)}>
-                  <span className="job-card-top">
-                    <CompanyMark name={r.company || r.title} />
-                    <span>{r.company || "Company"}</span>
-                    <Bookmark className={kept.includes(r.id) ? "on" : ""} onClick={(e) => { e.stopPropagation(); onKeep(r.id); }} />
-                  </span>
-                  <strong>{r.title}</strong>
-                  <em><MapPin className="size-3" /> {r.city || "Nigeria"} · {meta.jobType || "Open role"}</em>
-                  <span className="job-card-foot">
-                    <b>{payLabel(meta.salary)}</b>
-                    <i>{stamp(r.ts)}</i>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </section>
 
-      <div className="job-lanes">
-        {JOB_LANES.map((lane) => {
-          const Icon = lane.icon;
-          const on = lane.id === "All" ? jobPill === "All" : jobPill === lane.id;
-          return (
-            <button key={lane.id} type="button" className={on ? "on" : ""} onClick={() => { setJobPill(lane.id); setRoleTab("foryou"); document.getElementById("kilode-roles")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>
-              <Icon className="size-4" />
-              <strong>{lane.id === "All" ? "All jobs" : lane.id}</strong>
-              <em>{fmtCount(laneCount(lane.id))}</em>
-            </button>
-          );
-        })}
-      </div>
+      {companies.length > 0 ? (
+        <section>
+          <div className="job-head"><h3>Hiring</h3></div>
+          <div className="jb-faces">
+            {companies.map((r) => (
+              <button key={r.company} type="button" onClick={() => setQ(r.company)}>
+                <CompanyMark name={r.company} />
+                <strong>{r.company}</strong>
+                <em>{r.city || "Nigeria"}</em>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
-      <section className="job-block" id="kilode-roles">
+      <section>
         <div className="job-head">
           <h3>Open roles</h3>
           <div className="job-tabs">
@@ -1135,45 +1103,35 @@ function JobBoard({
             <button type="button" className={roleTab === "recommended" ? "on" : ""} onClick={() => setRoleTab("recommended")}>Recommended</button>
           </div>
         </div>
-        {openRoles.length === 0 ? <p className="job-empty">{onlyKept ? "No saved roles in this cut." : onlyApplied ? "You have not applied to anything in this cut." : q.trim() ? "No role matches that search." : "Nothing in this lane. Saved roles and the filters you pick come back next time."}</p> : null}
-        <div className="job-roles">
-          {openRoles.slice(0, 12).map((r) => {
+        <div className="jb-types">
+          <label>
+            <MapPin className="size-3.5" />
+            <select value={cities.includes(filter) ? filter : "All"} onChange={(e) => setFilter(e.target.value)} aria-label="Location">
+              {cities.map((c) => <option key={c} value={c}>{c === "All" ? "Location" : c}</option>)}
+            </select>
+          </label>
+          {["All", "Full-time", "Part-time"].map((t) => (
+            <button key={t} type="button" className={jobTypeFilter === t ? "on" : ""} onClick={() => pickType(t)}>{t}</button>
+          ))}
+          {JOB_PILLS.filter((p) => p !== "All" && p !== "Remote").map((p) => (
+            <button key={p} type="button" className={jobPill === p ? "on" : ""} onClick={() => setJobPill(jobPill === p ? "All" : p)}>{p}</button>
+          ))}
+        </div>
+        {openRoles.length === 0 ? <p className="job-empty">{onlyKept ? "No saved roles in this cut." : onlyApplied ? "You have not applied to anything in this cut." : q.trim() ? "No role matches that search." : "Nothing in this cut."}</p> : null}
+        <div className="jb-grid">
+          {openRoles.slice(0, 8).map((r) => {
             const meta = readMeta(r.meta);
-            const tags = roleTags(r);
             return (
-              <article key={r.id} className="job-role">
-                <button type="button" className="job-role-main" onClick={() => onOpen(r)}>
+              <article key={r.id} className="jb-role">
+                <button type="button" onClick={() => onOpen(r)}>
                   <CompanyMark name={r.company || r.title} />
                   <span>
-                    <i>{r.company || "Company"}</i>
                     <strong>{r.title}</strong>
-                    <em><MapPin className="size-3" /> {r.city || "Nigeria"} · {meta.jobType || "Open role"}{applied.includes(r.id) ? " · Applied" : ""}{r.expiresAt ? ` · ${daysLeft(r.expiresAt, r.days)}d left` : ""}</em>
-                    {tags.length > 0 ? <span className="job-tags">{tags.map((t) => <b key={t}>{t}</b>)}</span> : null}
+                    <em>{r.company || "Company"} · {r.city || "Nigeria"}</em>
+                    <em>{payLabel(meta.salary)}{applied.includes(r.id) ? " · Applied" : ""}</em>
                   </span>
                 </button>
-                <span className="job-role-side">
-                  <span>
-                    <Bookmark className={kept.includes(r.id) ? "on" : ""} onClick={() => onKeep(r.id)} />
-                    <button type="button" aria-label="More" onClick={() => setMenu((id) => (id === r.id ? "" : r.id))}><MoreHorizontal className="size-4" /></button>
-                  </span>
-                  <b>{payLabel(meta.salary)}</b>
-                  <i>{timeAgo(r.ts)}</i>
-                  {menu === r.id ? (
-                    <span className="job-menu">
-                      <button type="button" onClick={() => { setMenu(""); onOpen(r); }}>Open</button>
-                      <button type="button" onClick={() => { onKeep(r.id); setMenu(""); }}>{kept.includes(r.id) ? "Unsave" : "Save"}</button>
-                      <button type="button" onClick={() => {
-                        setMenu("");
-                        const text = shareText({ title: r.title, company: r.company, city: r.city }, window.location.href);
-                        if (navigator.share) void navigator.share({ title: r.title, text, url: window.location.href }).catch(() => undefined);
-                        else void navigator.clipboard?.writeText(text);
-                        setCopied(r.id);
-                        window.setTimeout(() => setCopied(""), 1600);
-                      }}>{copied === r.id ? "Copied" : "Share"}</button>
-                      <button type="button" onClick={() => { if (window.confirm("Hide this role on this phone?")) { setHidden((list) => [...list, r.id]); setMenu(""); } }}>Hide</button>
-                    </span>
-                  ) : null}
-                </span>
+                <button type="button" aria-label={kept.includes(r.id) ? "Unsave" : "Save"} onClick={() => onKeep(r.id)}><Bookmark className={kept.includes(r.id) ? "on" : ""} /></button>
               </article>
             );
           })}
