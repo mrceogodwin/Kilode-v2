@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { listAdSlots } from "@/lib/ad-slots-server";
 import { isAdUnit, isPubId, type AdSlotRow } from "@/lib/ad-slots";
+import { SampleBanner } from "@/components/sample-banner";
 
 let cached: AdSlotRow[] | null = null;
 let inflight: Promise<AdSlotRow[]> | null = null;
@@ -130,11 +131,8 @@ export function AdReserve({ id, className = "", minH = "min-h-[72px]" }: { id: s
     return <AdSlot id={id} className={className} />;
   }
   return (
-    <div className={`grid ${minH} place-items-center rounded-lg border border-line bg-panel ${className}`}>
-      <div className="px-2 py-2 text-center">
-        <div className="text-[8px] font-medium tracking-[0.18em] text-muted">ADVERTISEMENT</div>
-        <div className="mt-0.5 text-[9px] text-muted/70">Google AdSense</div>
-      </div>
+    <div className={className}>
+      <SampleBanner id={id} />
     </div>
   );
 }

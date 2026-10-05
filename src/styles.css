@@ -5930,32 +5930,64 @@ html[data-skin="ivory"] .space-page .me-hero .btn-join * {
   color: #fff !important;
 }
 .verify-desk {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  display: flex;
-  flex-direction: column;
-  background: #0d0f0e;
+  position: relative;
+  margin: 0 0 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: #141614;
   color: #f5f3ee;
 }
-.verify-bar {
+.verify-flag {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 10px;
+  height: 84px;
+  padding: 12px 14px;
+  background:
+    linear-gradient(115deg, rgba(8, 8, 8, 0.15), rgba(8, 8, 8, 0.55)),
+    linear-gradient(160deg, #2f8f5e 0%, #145c38 42%, #07140d 100%);
 }
-.verify-bar button, .verify-bar span { border: 0; background: transparent; color: #f5f3ee; font-size: 13px; font-weight: 700; }
-.verify-step { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 12px; overflow-y: auto; padding: 8px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
-.verify-step strong { font-size: 28px; letter-spacing: -0.03em; }
-.verify-step p, .verify-step li { color: #c8c4bc; font-size: 14px; line-height: 1.4; }
-.verify-step ul { display: flex; flex-direction: column; gap: 8px; }
-.verify-step li { border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; background: #161816; padding: 12px 14px; list-style: none; }
-.verify-faces { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.verify-faces img { aspect-ratio: 3/4; width: 100%; border-radius: 18px; object-fit: cover; }
+.verify-flag img { height: 28px; width: auto; }
+.verify-flag span {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.verify-top { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px 0; }
+.verify-top button, .verify-top i { border: 0; background: transparent; color: #f5f3ee; font-size: 12px; font-style: normal; font-weight: 700; }
+.verify-body { display: flex; flex-direction: column; gap: 8px; padding: 8px 12px 12px; }
+.verify-body strong { font-size: 20px; letter-spacing: -0.03em; }
+.verify-body p, .verify-body li { color: #c8c4bc; font-size: 13px; line-height: 1.35; }
+.verify-body ul { display: flex; flex-direction: column; gap: 6px; }
+.verify-body li { border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; background: #101211; padding: 9px 12px; list-style: none; color: #f5f3ee; }
 .verify-pays { display: flex; gap: 6px; }
-.verify-pays button { height: 32px; border: 1px solid rgba(255,255,255,0.14); border-radius: 999px; background: transparent; padding: 0 12px; color: #f5f3ee; font-size: 12px; font-weight: 700; }
+.verify-pays button { height: 30px; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 999px; background: transparent; padding: 0 12px; color: #f5f3ee; font-size: 12px; font-weight: 700; }
 .verify-pays button.on, .verify-next { border: 0; border-radius: 999px; background: #f7f7f5; color: #111; font-weight: 800; }
-.verify-next { height: 42px; margin-top: auto; }
+.verify-next { height: 40px; }
+.sample-ad {
+  display: flex;
+  min-height: 72px;
+  width: 100%;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 12px 14px;
+  text-decoration: none;
+}
+.sample-ad.tall { min-height: 148px; }
+.sample-ad i { font-size: 9px; font-style: normal; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.7; }
+.sample-ad b { font-size: 26px; letter-spacing: -0.04em; line-height: 1; }
+.sample-ad span { font-size: 12px; }
+.tone-dark { background: #0e0e0e; color: #f7f7f5; }
+.tone-red { background: linear-gradient(135deg, #ff3b30, #b11218); color: #fff; }
+.tone-yellow { background: linear-gradient(135deg, #ffe14a, #f0b400); color: #111; }
+.tone-green { background: linear-gradient(145deg, #123024, #07110c 60%); color: #f4fff8; }
+.tone-green b { color: #3ddc84; }
 .take-stage-scroll { min-height: 0; flex: 1; overflow-y: auto; padding: 12px 12px calc(88px + env(safe-area-inset-bottom)); }
 .take-stage-who { display: flex; gap: 6px; align-items: baseline; font-size: 13px; }
 .take-stage-who span, .take-stage-replies p { color: #a7a7a4; font-size: 12px; }

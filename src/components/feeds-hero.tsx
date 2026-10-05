@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Play, Repeat2 } from "lucide-react";
-import { AdSlot, useAdSlots } from "@/components/ad-slot";
+import { SampleBanner } from "@/components/sample-banner";
 import { listAdCatalog, type AdCatalog } from "@/lib/ad-catalog-server";
 import { isAdUnit, isPubId } from "@/lib/ad-slots";
+import { AdSlot, useAdSlots } from "@/components/ad-slot";
 import { fmtCount, youtubeId, type Campaign, type Post } from "@/lib/qonvo-data";
 
 type Slide =
@@ -235,13 +236,7 @@ function HeroSlide({
       );
     }
     return (
-      <div className="hero-empty grid h-full w-full place-items-center px-6 text-center">
-        <div>
-          <div className="text-[9px] font-medium tracking-[0.2em] text-lime-2">ADVERTISEMENT</div>
-          <div className="mt-1 text-[13px] font-medium">Google AdSense</div>
-          <p className="mt-1 text-[11px] text-muted">This slide fills when Kilode turns on the ad unit.</p>
-        </div>
-      </div>
+      <SampleBanner id={slide.id} tall />
     );
   }
   if (slide.k === "company") {
@@ -261,19 +256,8 @@ function HeroSlide({
         />
       );
     }
-    const tints = ["#152018", "#1a1714", "#14181c", "#1a1520", "#18160f"];
     return (
-      <a
-        href="/advertise"
-        className="hero-empty grid h-full w-full place-items-center px-6 text-center"
-        style={{ background: tints[(slide.n - 1) % tints.length] }}
-      >
-        <div>
-          <div className="text-[9px] font-medium tracking-[0.2em] text-lime-2">COMPANY {slide.n}</div>
-          <div className="mt-1 text-[13px] font-medium">16:9 banner</div>
-          <p className="mt-1 text-[11px] text-muted">Reserved in this slider. Kilode adds the creative.</p>
-        </div>
-      </a>
+      <SampleBanner id={slide.id} tall />
     );
   }
   if (slide.k === "post") {

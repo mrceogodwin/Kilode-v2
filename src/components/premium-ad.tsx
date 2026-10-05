@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AdSlot, useAdSlots } from "@/components/ad-slot";
+import { SampleBanner } from "@/components/sample-banner";
 import { youtubeId } from "@/lib/qonvo-data";
 
 const ADS_MAIL = "kilodeafrica@gmail.com";
@@ -48,12 +49,7 @@ export function PremiumStoryAd({ compact }: { compact?: boolean }) {
       <img src={slot.image} alt="" className="mx-auto max-h-[280px] w-full object-contain" />
     </a>
   ) : (
-    <div className={`grid w-full place-items-center ad-void-empty px-4 text-center ${compact ? "h-[100px]" : "h-[128px]"}`}>
-      <div>
-        <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</div>
-        <p className="mt-1 text-[10px] font-normal text-muted">Image or YouTube. Kilode fills this slot.</p>
-      </div>
-    </div>
+    <SampleBanner id="premium_story" />
   );
   return <PremiumShell compact={compact}>{body}</PremiumShell>;
 }
@@ -70,12 +66,7 @@ export function PremiumSquareAd() {
   }
   return (
     <PremiumShell rent>
-      <a href="/advertise" className="grid h-[140px] w-full place-items-center ad-void-empty px-4 text-center">
-        <div>
-          <div className="text-[11px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</div>
-          <p className="mt-2 text-[11px] font-normal text-muted">Rent this square for your brand. Crypto + staff approve.</p>
-        </div>
-      </a>
+      <SampleBanner id="ads_square" />
     </PremiumShell>
   );
 }
@@ -90,9 +81,7 @@ export function MenuPremiumAd() {
         </a>
       </div>
       <div>
-        <a href="/advertise" className="grid h-[72px] w-full place-items-center ad-void-empty px-3 text-center">
-          <p className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · AT YOUR DURATION</p>
-        </a>
+        <SampleBanner id="menu_premium" />
       </div>
     </aside>
   );
@@ -128,11 +117,6 @@ export function PortraitAd({ id }: { id: string }) {
     );
   }
   return frame(
-    <a href="/advertise" className="grid h-36 w-full place-items-center ad-void-empty px-4 text-center">
-      <div>
-        <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">PLACE ADS HERE · 9:16</div>
-        <div className="mt-1 text-[9px] text-muted">Company portrait</div>
-      </div>
-    </a>,
+    <SampleBanner id={id} tall />,
   );
 }
