@@ -44,7 +44,20 @@ export function ArtFace({ name, cover, url, big = false }: { name: string; cover
 export function PushStrip() {
   const [rows, setRows] = useState<PushCard[]>([]);
   useEffect(() => {
-    void listLivePushes().then((list) => setRows(Array.isArray(list) ? list : [])).catch(() => setRows([]));
+    void listLivePushes().then((list) => {
+      const rows = Array.isArray(list) ? list : [];
+      setRows(rows);
+      for (const row of rows) {
+        const key = `kilode-push-seen-${row.id}`;
+        try {
+          if (sessionStorage.getItem(key)) continue;
+          sessionStorage.setItem(key, "1");
+        } catch {
+          continue;
+        }
+        void seePush({ data: { id: row.id, kind: "view" } });
+      }
+    }).catch(() => setRows([]));
   }, []);
   if (!rows.length) return null;
   return (

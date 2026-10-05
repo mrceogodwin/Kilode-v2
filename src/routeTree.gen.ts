@@ -30,6 +30,7 @@ import { Route as ApiIndexnowRouteImport } from './routes/api/indexnow'
 import { Route as ApiSitemapRouteImport } from './routes/api/sitemap'
 import { Route as DeskK7mSqd9f2e4aRouteImport } from './routes/desk/k7m-sqd-9f2e4a'
 import { Route as PIdRouteImport } from './routes/p.$id'
+import { Route as ArtistSlugRouteImport } from './routes/artist.$slug'
 import { Route as PayDoneRouteImport } from './routes/pay/done'
 import { Route as UHandleRouteImport } from './routes/u.$handle'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -144,6 +145,11 @@ const PIdRoute = PIdRouteImport.update({
   path: '/p/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArtistSlugRoute = ArtistSlugRouteImport.update({
+  id: '/artist/$slug',
+  path: '/artist/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PayDoneRoute = PayDoneRouteImport.update({
   id: '/pay/done',
   path: '/pay/done',
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/api/sitemap': typeof ApiSitemapRoute
   '/desk/k7m-sqd-9f2e4a': typeof DeskK7mSqd9f2e4aRoute
   '/p/$id': typeof PIdRoute
+  '/artist/$slug': typeof ArtistSlugRoute
   '/pay/done': typeof PayDoneRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -238,6 +245,7 @@ export interface FileRoutesByTo {
   '/api/sitemap': typeof ApiSitemapRoute
   '/desk/k7m-sqd-9f2e4a': typeof DeskK7mSqd9f2e4aRoute
   '/p/$id': typeof PIdRoute
+  '/artist/$slug': typeof ArtistSlugRoute
   '/pay/done': typeof PayDoneRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -270,6 +278,7 @@ export interface FileRoutesById {
   '/api/sitemap': typeof ApiSitemapRoute
   '/desk/k7m-sqd-9f2e4a': typeof DeskK7mSqd9f2e4aRoute
   '/p/$id': typeof PIdRoute
+  '/artist/$slug': typeof ArtistSlugRoute
   '/pay/done': typeof PayDoneRoute
   '/u/$handle': typeof UHandleRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -303,6 +312,7 @@ export interface FileRouteTypes {
     | '/api/sitemap'
     | '/desk/k7m-sqd-9f2e4a'
     | '/p/$id'
+    | '/artist/$slug'
     | '/pay/done'
     | '/u/$handle'
     | '/api/auth/$'
@@ -334,6 +344,7 @@ export interface FileRouteTypes {
     | '/api/sitemap'
     | '/desk/k7m-sqd-9f2e4a'
     | '/p/$id'
+    | '/artist/$slug'
     | '/pay/done'
     | '/u/$handle'
     | '/api/auth/$'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/api/sitemap'
     | '/desk/k7m-sqd-9f2e4a'
     | '/p/$id'
+    | '/artist/$slug'
     | '/pay/done'
     | '/u/$handle'
     | '/api/auth/$'
@@ -397,6 +409,7 @@ export interface RootRouteChildren {
   ApiSitemapRoute: typeof ApiSitemapRoute
   DeskK7mSqd9f2e4aRoute: typeof DeskK7mSqd9f2e4aRoute
   PIdRoute: typeof PIdRoute
+  ArtistSlugRoute: typeof ArtistSlugRoute
   PayDoneRoute: typeof PayDoneRoute
   UHandleRoute: typeof UHandleRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -556,6 +569,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/artist/$slug': {
+      id: '/artist/$slug'
+      path: '/artist/$slug'
+      fullPath: '/artist/$slug'
+      preLoaderRoute: typeof ArtistSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pay/done': {
       id: '/pay/done'
       path: '/pay/done'
@@ -637,6 +657,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSitemapRoute: ApiSitemapRoute,
   DeskK7mSqd9f2e4aRoute: DeskK7mSqd9f2e4aRoute,
   PIdRoute: PIdRoute,
+  ArtistSlugRoute: ArtistSlugRoute,
   PayDoneRoute: PayDoneRoute,
   UHandleRoute: UHandleRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

@@ -69,7 +69,8 @@ import { CinemaPane } from "@/components/cinema-pane";
 import { ChatTermsBar, ForumClock, ForumWhy } from "@/components/forum-why";
 import { PremiumSquareAd, PremiumStoryAd, MenuPremiumAd, PortraitAd } from "@/components/premium-ad";
 import { AdvertPane } from "@/components/advert-pane";
-import { ArtFace, PushDesk } from "@/components/artist-push";
+import { ArtFace } from "@/components/artist-push";
+import { MusicHub } from "@/components/music-hub";
 import { RoomList } from "@/components/rooms-list";
 import { listRoomOverlay } from "@/lib/rooms-server";
 import { Link } from "@tanstack/react-router";
@@ -2398,132 +2399,8 @@ function ArtistStage({ artist, onClose }: { artist: ArtistCard; onClose: () => v
 }
 
 function MusicPane({ store, onAdd }: { store: ReturnType<typeof useQonvo>; onAdd: () => void }) {
-  const [q, setQ] = useState("");
-  const [genre, setGenre] = useState<(typeof MUSIC_GENRES)[number]>("All");
-  const [page, setPage] = useState(0);
-  const [artist, setArtist] = useState<ArtistCard | null>(null);
-
-  const artists = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    const pool = store.tracks.filter((t) => {
-      if (!t?.id) return false;
-      if (genre !== "All" && (t.genre || "Afrobeats") !== genre) return false;
-      if (!s) return true;
-      return `${t.artist} ${t.title} ${t.genre ?? ""}`.toLowerCase().includes(s);
-    });
-    return collectArtists(pool);
-  }, [store.tracks, q, genre]);
-
-  const pages = Math.max(1, Math.ceil(artists.length / 4));
-  const safePage = Math.min(page, pages - 1);
-  const shown = artists.slice(safePage * 4, safePage * 4 + 4);
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b border-white/5 px-2 py-1.5">
-        <input
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setPage(0);
-          }}
-          placeholder="Search songs, artists, genres"
-          className="min-h-11 flex-1 rounded-lg border border-line bg-panel px-3 text-base outline-none"
-          aria-label="Search songs, artists, genres"
-        />
-      </div>
-
-      <div className="flex shrink-0 flex-nowrap gap-1.5 overflow-x-auto overscroll-x-contain border-b border-line px-3 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {MUSIC_GENRES.map((g) => (
-          <button
-            key={g}
-            type="button"
-            onClick={() => {
-              setGenre(g);
-              setPage(0);
-            }}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-bold tracking-wide ${genre === g ? "btn-yellow text-black" : "border border-line bg-panel-2 text-fg/80"}`}
-          >
-            {g}
-          </button>
-        ))}
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
-        {artist ? (
-          <ArtistStage artist={artist} onClose={() => setArtist(null)} />
-        ) : (
-        <>
-        <section className="mb-3">
-          <div className="mb-1.5 flex items-center justify-between">
-            <div className="text-[11px] font-bold">Browse</div>
-            <button type="button" className="text-[11px] font-semibold text-fg" onClick={onAdd}>
-              Add a link
-            </button>
-          </div>
-          <div className="flex gap-2 overflow-x-auto overscroll-x-contain pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {MUSIC_RAILS.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                className="music-rail w-[132px] shrink-0 overflow-hidden rounded-xl text-left"
-                style={{ ["--rail" as string]: r.color }}
-                onClick={() => {
-                  const genreFor: Record<string, (typeof MUSIC_GENRES)[number]> = {
-                    made: "Afrobeats",
-                    charts: "All",
-                    new: "All",
-                    mood: "R&B",
-                    party: "Afrobeats",
-                    focus: "Jazz",
-                    gospel: "Gospel",
-                    throwback: "Highlife",
-                  };
-                  setGenre(genreFor[r.id] ?? "All");
-                  setPage(0);
-                }}
-              >
-                <div className="p-2.5">
-                  <div className="text-[11px] font-bold leading-tight text-fg">{r.title}</div>
-                  <div className="mt-1 text-[9px] text-muted">{r.subtitle}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-[11px] font-bold tracking-wide">Artists</h3>
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] text-muted">{artists.length ? safePage + 1 : 0}/{pages}</span>
-              <button type="button" className="round-arrow" aria-label="Previous artists" onClick={() => setPage((n) => (n - 1 + pages) % pages)}>
-                <ChevronLeft className="size-3.5" />
-              </button>
-              <button type="button" className="round-arrow" aria-label="Next artists" onClick={() => setPage((n) => (n + 1) % pages)}>
-                <ChevronRight className="size-3.5" />
-              </button>
-            </div>
-          </div>
-          {shown.length === 0 ? <EmptyHero title="No artists match" body="Try another name, or add a track link from Create." cta="Add a link" onClick={onAdd} /> : null}
-          <div className="artist-grid">
-            {shown.map((a) => (
-              <button key={a.name} type="button" className="artist-orb" onClick={() => setArtist(a)}>
-                <ArtFace name={a.name} cover={a.cover} url={a.tracks[0]?.url} />
-                <strong>{a.name}</strong>
-                <em>{a.role}</em>
-              </button>
-            ))}
-          </div>
-        </section>
-        <PushDesk artist={store.kind === "artist"} />
-        </>
-        )}
-      </div>
-    </div>
-  );
+  return <MusicHub store={store} onAdd={onAdd} />;
 }
-
 function VideoPane() {
   const [sec, setSec] = useState<(typeof VIDEO_SECTIONS)[number]>("Movies");
   const [play, setPlay] = useState<string | null>(null);

@@ -455,6 +455,20 @@ export const saveComment = createServerFn({ method: "POST" })
     return { id };
   });
 
+export const seeTrack = createServerFn({ method: "POST" })
+  .validator((d: { id?: string }) => d)
+  .handler(async ({ data }) => {
+    const id = String(data.id || "").slice(0, 40);
+    if (!id) return { ok: false as const };
+    try {
+      const sql = await getSql();
+      await sql`update nf_tracks set views = coalesce(views, 0) + 1 where id = ${id}`;
+    } catch {
+      return { ok: false as const };
+    }
+    return { ok: true as const };
+  });
+
 export const listTracks = createServerFn({ method: "GET" }).handler(async () => {
   const sql = await getSql();
   const rows = await sql<{

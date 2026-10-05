@@ -5,10 +5,10 @@ You are working on **github.com/mrceogodwin/Kilode-v2** (live: https://kilode-v2
 Do **not** switch to mrceogodwin/Kilode. That is v1.
 
 Last shipped pass:
-- Job, market, and rent cards are smaller.
-- Artist faces load with `referrerPolicy="no-referrer"`, and Apple artwork is looked up when the stored cover is missing.
-- Artists can pay to push one social or music link onto Socials for 1, 3, or 7 days. It goes live only after Kilode confirms the payment.
+- Music is an artist hub: featured, artists, new releases, charts, live pushes, and Push a link.
+- Charts use stored opens only. A public page lives at `/artist/[slug]`.
+- Follows and push views are real rows. A push still goes live only after payment confirms.
 
-Still open: a live Paystack payment for a push. That was not run.
+Not built: city splits, payouts, pre-save reminders, or a live Paystack charge.
 
 Keep `npm run build` green. Do not point the v1 Vercel project at this repo.

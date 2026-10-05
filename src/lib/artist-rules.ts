@@ -13,6 +13,7 @@ const HOSTS: [string, string][] = [
   ["music.apple.com", "Apple Music"],
   ["soundcloud.com", "SoundCloud"],
   ["deezer.com", "Deezer"],
+  ["boomplay.com", "Boomplay"],
 ];
 
 export function pushNetwork(raw: string): { url: string; network: string } | null {

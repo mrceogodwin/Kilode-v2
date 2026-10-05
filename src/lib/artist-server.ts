@@ -26,8 +26,17 @@ async function ensure() {
     status TEXT NOT NULL,
     tx_hash TEXT NOT NULL DEFAULT '',
     clicks INT NOT NULL DEFAULT 0,
+    views INT NOT NULL DEFAULT 0,
     ts BIGINT NOT NULL,
     expires_at BIGINT
+  )`);
+  await sql.query(`ALTER TABLE nf_pushes ADD COLUMN IF NOT EXISTS views INT NOT NULL DEFAULT 0`);
+  await sql.query(`CREATE TABLE IF NOT EXISTS nf_artist_follows (
+    user_id TEXT NOT NULL,
+    slug TEXT NOT NULL,
+    name TEXT NOT NULL DEFAULT '',
+    ts BIGINT NOT NULL,
+    PRIMARY KEY (user_id, slug)
   )`);
   return sql;
 }
@@ -74,6 +83,7 @@ export type PushCard = {
   network: string;
   cover: string;
   clicks: number;
+  views: number;
   ts: number;
   expiresAt: number;
   days: number;
@@ -85,8 +95,8 @@ export const listLivePushes = createServerFn({ method: "GET" }).handler(async ()
     const now = Date.now();
     const rows = await sql<{
       id: string; handle: string; title: string; note: string | null; url: string; network: string;
-      cover: string | null; clicks: number | string | null; ts: number | string; expires_at: number | string | null; days: number | string;
-    }>`select id, handle, title, note, url, network, cover, clicks, ts, expires_at, days from nf_pushes
+      cover: string | null; clicks: number | string | null; views: number | string | null; ts: number | string; expires_at: number | string | null; days: number | string;
+    }>`select id, handle, title, note, url, network, cover, clicks, views, ts, expires_at, days from nf_pushes
       where status = ${"live"} and expires_at > ${now} order by ts desc limit 8`;
     return rows.map((r): PushCard => ({
       id: r.id,
@@ -97,6 +107,7 @@ export const listLivePushes = createServerFn({ method: "GET" }).handler(async ()
       network: r.network,
       cover: r.cover ?? "",
       clicks: Number(r.clicks ?? 0),
+      views: Number(r.views ?? 0),
       ts: Number(r.ts),
       expiresAt: Number(r.expires_at ?? 0),
       days: Number(r.days),
@@ -113,8 +124,8 @@ export const listMyPushes = createServerFn({ method: "GET" })
       const sql = await ensure();
       const rows = await sql<{
         id: string; handle: string; title: string; note: string | null; url: string; network: string;
-        cover: string | null; clicks: number | string | null; ts: number | string; expires_at: number | string | null; days: number | string; status: string;
-      }>`select id, handle, title, note, url, network, cover, clicks, ts, expires_at, days, status from nf_pushes
+        cover: string | null; clicks: number | string | null; views: number | string | null; ts: number | string; expires_at: number | string | null; days: number | string; status: string;
+      }>`select id, handle, title, note, url, network, cover, clicks, views, ts, expires_at, days, status from nf_pushes
         where user_id = ${context.userId} order by ts desc limit 12`;
       return rows.map((r) => ({
         id: r.id,
@@ -122,6 +133,7 @@ export const listMyPushes = createServerFn({ method: "GET" })
         network: r.network,
         url: r.url,
         clicks: Number(r.clicks ?? 0),
+        views: Number(r.views ?? 0),
         status: r.status,
         expiresAt: Number(r.expires_at ?? 0),
         days: Number(r.days),
@@ -141,7 +153,7 @@ export const savePush = createServerFn({ method: "POST" })
     const title = (data.title ?? "").trim().slice(0, 80);
     if (title.length < 2) return { ok: false as const, reason: "Add a title." };
     const link = pushNetwork(data.url ?? "");
-    if (!link) return { ok: false as const, reason: "Use an https link from Instagram, TikTok, X, YouTube, Spotify, Audiomack, Apple Music, SoundCloud, or Deezer." };
+    if (!link) return { ok: false as const, reason: "Use an https link from Instagram, TikTok, X, YouTube, Spotify, Audiomack, Apple Music, SoundCloud, Deezer, or Boomplay." };
     const days = pushDays(`push-${Number(data.days)}`);
     if (!days) return { ok: false as const, reason: "Pick 1, 3, or 7 days." };
     const sql = await ensure();
@@ -172,15 +184,45 @@ export const savePush = createServerFn({ method: "POST" })
   });
 
 export const seePush = createServerFn({ method: "POST" })
-  .validator((d: { id?: string }) => d)
+  .validator((d: { id?: string; kind?: string }) => d)
   .handler(async ({ data }) => {
     const id = String(data.id || "").slice(0, 40);
     if (!id) return { ok: false as const };
     try {
       const sql = await ensure();
-      await sql`update nf_pushes set clicks = clicks + 1 where id = ${id}`;
+      if (data.kind === "view") await sql`update nf_pushes set views = views + 1 where id = ${id}`;
+      else await sql`update nf_pushes set clicks = clicks + 1 where id = ${id}`;
     } catch {
       return { ok: false as const };
     }
     return { ok: true as const };
+  });
+
+export const artistFollowCount = createServerFn({ method: "GET" })
+  .validator((d: { slug?: string }) => d)
+  .handler(async ({ data }) => {
+    const slug = String(data.slug || "").slice(0, 60);
+    if (!slug) return { count: 0, following: false };
+    try {
+      const sql = await ensure();
+      const rows = await sql<{ n: number | string }>`select count(*)::int as n from nf_artist_follows where slug = ${slug}`;
+      return { count: Number(rows[0]?.n ?? 0), following: false };
+    } catch {
+      return { count: 0, following: false };
+    }
+  });
+
+export const followArtist = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { slug?: string; name?: string }) => d)
+  .handler(async ({ context, data }) => {
+    const slug = String(data.slug || "").slice(0, 60);
+    const name = String(data.name || "").trim().slice(0, 80);
+    if (!slug || name.length < 2) return { ok: false as const, reason: "Pick an artist.", following: false, count: 0 };
+    const sql = await ensure();
+    const mine = await sql<{ user_id: string }>`select user_id from nf_artist_follows where user_id = ${context.userId} and slug = ${slug} limit 1`;
+    if (mine[0]) await sql`delete from nf_artist_follows where user_id = ${context.userId} and slug = ${slug}`;
+    else await sql`insert into nf_artist_follows (user_id, slug, name, ts) values (${context.userId}, ${slug}, ${name}, ${Date.now()})`;
+    const rows = await sql<{ n: number | string }>`select count(*)::int as n from nf_artist_follows where slug = ${slug}`;
+    return { ok: true as const, following: !mine[0], count: Number(rows[0]?.n ?? 0) };
   });
