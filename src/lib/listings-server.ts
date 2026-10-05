@@ -153,6 +153,7 @@ export const listListings = createServerFn({ method: "GET" })
     const now = Date.now();
     const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at, image, meta from nf_listings where kind = ${kind} and status = 'approved' and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
     const live = rows.map(map);
+    if (kind === "job") return live;
     return live.length ? live : DEMO_LISTINGS.filter((l) => l.kind === kind).map((l) => ({
       id: l.id,
       kind,

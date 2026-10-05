@@ -1287,7 +1287,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
           {shot ? <input value={alt} onChange={(e) => setAlt(e.target.value)} maxLength={80} placeholder="Photo note" className="min-w-0 flex-1 rounded-md border border-line bg-transparent px-2 py-1 text-[12px] outline-none" style={{ fontSize: 16 }} /> : null}
         </div>
         {mentions.length > 0 ? (
-          <div className="mt-1 overflow-hidden rounded-[10px] border border-line">
+          <div className="mention-list">
             {mentions.map((p) => (
               <button
                 key={p.handle}
@@ -1323,7 +1323,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
         ) : null}
         <div className="mt-1 flex items-center justify-between gap-2">
           <p className="min-w-0 text-[10px] text-muted">{HINT[kind]}</p>
-          <span className="shrink-0 text-[10px] tabular-nums text-muted">{body.length}/280</span>
+          <span className={`shrink-0 text-[10px] tabular-nums ${body.length > 250 ? "text-[#ffd45a]" : "text-muted"}`}>{body.length}/280{body.trim() ? " · draft" : ""}</span>
         </div>
         {shot ? (
           <div className="relative mt-2">
@@ -1445,7 +1445,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
                 <img src={avatarUrl(p.handle, p.photo)} alt="" className="mb-1 size-8 rounded-full bg-panel-3 object-cover" />
                 <a href={`/u/${encodeURIComponent(p.handle)}`} className="block truncate text-[12px] font-semibold">@{p.handle}</a>
                 <div className="truncate text-[10px] text-muted">{p.mutuals > 0 ? `${p.mutuals} mutual` : "New on Kilode"}</div>
-                <button type="button" className="follow-slim mt-1.5" onClick={() => flipFollow(p.handle, p.id)}>
+                <button type="button" className={`know-follow ${followed(p.handle, p.id) ? "on" : ""}`} onClick={() => flipFollow(p.handle, p.id)}>
                   {followed(p.handle, p.id) ? "Following" : theyFollow(p.handle, p.id) ? "Follow back" : "Follow"}
                 </button>
               </div>
@@ -2153,7 +2153,7 @@ function TakeCard({
         <Face handle={ghost ? "ghost" : take.handle} photo={ghost ? "" : photo} size={28} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
-            <span className="truncate text-[12px] font-semibold">
+            <span className="take-name truncate">
               {ghost ? (
                 "Anonymous"
               ) : (

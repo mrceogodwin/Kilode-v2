@@ -1255,7 +1255,7 @@ function QonvoAppInner() {
         ) : null,
       )}
       {screen !== "home" && screen !== "search" && screen !== "dashboard" && screen !== "create" ? (
-        <div className="min-h-0 flex-1 overflow-hidden">
+        <div key={screen} className="pane-in min-h-0 flex-1 overflow-hidden">
           <QonvoScreen
             id={screen}
             store={store}

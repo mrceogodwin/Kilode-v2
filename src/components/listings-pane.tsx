@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Briefcase, Building2, Bookmark, ChevronRight, Home, Laptop, MapPin, MoreHorizontal, Pencil, Plus, Search, SlidersHorizontal, Store, TrendingUp } from "lucide-react";
-import { applyListing, listListingQueue, listListings, saveListing, setListingStatus, type Listing, type ListingKind } from "@/lib/listings-server";
+import { applyListing, listListingQueue, listListings, listMyApplicants, listMyApps, listMyListings, saveListing, setListingStatus, type Listing, type ListingKind, type MyApp, type MyApplicant } from "@/lib/listings-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getProfile } from "@/lib/forum-server";
 import { daysLeft, fmtCount, timeAgo, timeLabel, type AccountKind } from "@/lib/qonvo-data";
@@ -241,6 +241,10 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [salaryBand, setSalaryBand] = useState("Any");
   const [roleTab, setRoleTab] = useState<"foryou" | "recommended">("foryou");
   const [kept, setKept] = useState<string[]>([]);
+  const [desk, setDesk] = useState<"board" | "apps" | "posted">("board");
+  const [myApps, setMyApps] = useState<MyApp[]>([]);
+  const [myRoles, setMyRoles] = useState<Listing[]>([]);
+  const [myPeople, setMyPeople] = useState<MyApplicant[]>([]);
   const skipSave = useRef(true);
 
   function load() {
@@ -294,6 +298,18 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
       localStorage.setItem("kilode-job-seek", JSON.stringify({ type: jobTypeFilter, pill: jobPill, city: filter, band: salaryBand }));
     } catch { /* ignore */ }
   }, [kind, jobTypeFilter, jobPill, filter, salaryBand]);
+
+  function refreshJobDesk() {
+    if (!session.user) return;
+    void listMyApps().then((rows) => setMyApps(Array.isArray(rows) ? rows : [])).catch(() => setMyApps([]));
+    void listMyListings({ data: { kind: "job" } }).then((rows) => setMyRoles(Array.isArray(rows) ? rows : [])).catch(() => setMyRoles([]));
+    void listMyApplicants().then((rows) => setMyPeople(Array.isArray(rows) ? rows : [])).catch(() => setMyPeople([]));
+  }
+
+  useEffect(() => {
+    if (kind !== "job" || !session.user) return;
+    refreshJobDesk();
+  }, [kind, session.user?.id]);
 
   function keepJob(id: string) {
     setKept((list) => {
@@ -572,54 +588,60 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
       ) : null}
 
       {open ? (
-        <article className="raised mb-4 overflow-hidden rounded-2xl">
-          <img src={cover(open)} alt="" className="aspect-[16/9] w-full object-cover" />
+        <article className="job-detail mb-4">
+          {cover(open) ? <img src={cover(open)} alt="" className="aspect-[16/9] w-full object-cover" /> : null}
           <div className="p-3">
-            <div className="text-[10px] uppercase tracking-wide text-lime-2">
-              {open.city || kind} · {open.company}
+            <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#ffd45a]">
+              {open.company || open.city || kind}
             </div>
             <h3 className="mt-0.5 text-lg font-bold">{open.title}</h3>
             {(() => {
               const meta = readMeta(open.meta);
-              const bits = [meta.jobType, meta.category, meta.condition, meta.price ? `₦${meta.price}` : "", meta.salary].filter(Boolean);
-              return bits.length ? <p className="mt-1 text-[11px] text-muted">{bits.join(" · ")}</p> : null;
+              const bits = [meta.jobType, meta.category, open.city, meta.condition, meta.price ? naira(meta.price) : "", meta.salary ? payLabel(meta.salary) : ""].filter(Boolean);
+              return bits.length ? <p className="mt-1 text-[12px] text-muted">{bits.join(" · ")}</p> : null;
             })()}
-            <p className="mt-1 text-[13px] leading-snug text-muted">{open.body}</p>
-            <div className="mt-2 text-[10px] text-muted">
-              {open.submitter} · {timeLabel(open.ts)} · {fmtCount(open.views)} views
+            <p className="mt-2 text-[15px] leading-snug">{open.body}</p>
+            <div className="mt-2 text-[11px] text-muted">
+              @{open.submitter} · {timeLabel(open.ts)} · {fmtCount(open.views)} views
               {open.expiresAt ? ` · ${daysLeft(open.expiresAt, open.days)}d left` : open.days ? ` · ${open.days}d window` : ""}
             </div>
             {kind === "job" ? (
-              session.user && canApply ? (
+              myApps.some((a) => a.listingId === open.id) ? (
+                <p className="mt-3 text-[13px] font-bold text-[#ffd45a]">You already applied. The employer sees your note. Kilode does not hire for you.</p>
+              ) : session.user && canApply ? (
                 <div className="mt-3 space-y-2">
-                  <label className="flex items-start gap-2 text-[11px] leading-snug text-muted">
+                  <label className="flex items-start gap-2 text-[12px] leading-snug text-muted">
                     <input type="checkbox" className="mt-0.5" checked={legal} onChange={(e) => setLegal(e.target.checked)} />
                     <span>Kilode only introduces you. It does not hire, pay, or check the employer. Verify them before you send a CV or personal details.</span>
                   </label>
-                  <div className="flex gap-1">
-                  <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Short apply note" className="min-w-0 flex-1 rounded border border-line bg-panel px-2 py-1.5 text-base" />
+                  <div className="flex gap-2">
+                  <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Short apply note" className="min-w-0 flex-1 rounded-xl border border-line bg-panel px-3 py-2 text-base" />
                   <button
                     type="button"
-                    className="btn-3d rounded-md px-3 text-[11px] font-semibold"
+                    className="rounded-full bg-[#ffd45a] px-4 text-[13px] font-extrabold text-[#161616]"
                     onClick={() => {
                       if (!legal) {
                         setErr("Tick the notice before you apply.");
-                        setLegal(false);
                         return;
                       }
                       void applyListing({ data: { id: open.id, note } }).then((a) => {
                         if (!a.ok) setErr("reason" in a ? a.reason : "Could not apply.");
-                        else setMsg("Application sent. Contact is on the listing — Kilode does not hire for you.");
+                        else {
+                          setMsg("Application sent.");
+                          setNote("");
+                          refreshJobDesk();
+                        }
                       });
                     }}
                   >
                     Apply
                   </button>
                   </div>
+                  {msg && open.contact ? <p className="text-[12px] text-fg">Contact: {open.contact}</p> : null}
                 </div>
               ) : (
                 <div className="mt-3 text-center">
-                  <p className="mb-1 text-[11px] text-muted">{session.user ? kindActionHint("jobs.apply") : "Join as Job Seeker or Member to apply."}</p>
+                  <p className="mb-1 text-[12px] text-muted">{session.user ? kindActionHint("jobs.apply") : "Join as Job Seeker or Member to apply."}</p>
                   <JoinCta className="mx-auto w-40" />
                 </div>
               )
@@ -627,15 +649,15 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
               <p className="mt-2 text-base text-fg">Contact: {open.contact}</p>
             ) : null}
             {open.link ? (
-              <a href={open.link} target="_blank" rel="noreferrer" className="mt-2 inline-block text-[11px] text-lime-2">
+              <a href={open.link} target="_blank" rel="noreferrer" className="mt-2 inline-block text-[12px] font-bold text-[#ffd45a]">
                 Open link
               </a>
             ) : null}
-            <button type="button" className="mt-3 block text-[11px] text-muted" onClick={() => setOpen(null)}>
+            <button type="button" className="mt-3 block text-[12px] text-muted" onClick={() => { setOpen(null); setErr(""); setMsg(""); }}>
               Close
             </button>
-            {err ? <p className="mt-1 text-[11px] text-danger">{err}</p> : null}
-            {msg ? <p className="mt-1 text-[11px] text-lime-2">{msg}</p> : null}
+            {err ? <p className="mt-1 text-[12px] text-danger">{err}</p> : null}
+            {msg ? <p className="mt-1 text-[12px] text-[#ffd45a]">{msg}</p> : null}
           </div>
         </article>
       ) : null}
@@ -650,6 +672,51 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
           setFormOn(true);
         }} />
       ) : kind === "job" ? (
+        <>
+          {session.user ? (
+            <div className="job-desk">
+              <button type="button" className={desk === "board" ? "on" : ""} onClick={() => setDesk("board")}>Roles</button>
+              <button type="button" className={desk === "apps" ? "on" : ""} onClick={() => { setDesk("apps"); refreshJobDesk(); }}>Applications{myApps.length ? ` ${myApps.length}` : ""}</button>
+              <button type="button" className={desk === "posted" ? "on" : ""} onClick={() => { setDesk("posted"); refreshJobDesk(); }}>Posted{myRoles.length ? ` ${myRoles.length}` : ""}</button>
+            </div>
+          ) : null}
+          {desk === "apps" && session.user ? (
+            <div className="job-roles">
+              {myApps.length === 0 ? <p className="job-empty">No applications yet. Open a role and send a note.</p> : myApps.map((a) => (
+                <article key={a.id} className="job-role">
+                  <button type="button" className="job-role-main" onClick={() => { const hit = rows.find((r) => r.id === a.listingId); if (hit) setOpen(hit); }}>
+                    <CompanyMark name={a.company || a.title} />
+                    <span>
+                      <i>{a.company || "Company"}</i>
+                      <strong>{a.title}</strong>
+                      <em>{a.city || "Nigeria"} · {a.status}</em>
+                      {a.note ? <span className="job-tags"><b>{a.note}</b></span> : null}
+                    </span>
+                  </button>
+                  <span className="job-role-side"><i>{timeAgo(a.ts)}</i></span>
+                </article>
+              ))}
+            </div>
+          ) : desk === "posted" && session.user ? (
+            <div className="job-roles">
+              {myRoles.length === 0 ? <p className="job-empty">You have not posted a role. Use Post a role in filters. Staff approve it before it is public.</p> : myRoles.map((r) => {
+                const people = myPeople.filter((p) => p.listingId === r.id);
+                return (
+                  <article key={r.id} className="job-role">
+                    <span className="job-role-main">
+                      <CompanyMark name={r.company || r.title} />
+                      <span>
+                        <i>{r.status}</i>
+                        <strong>{r.title}</strong>
+                        <em>{r.city || "Nigeria"} · {people.length} applicant{people.length === 1 ? "" : "s"}</em>
+                        {people.slice(0, 3).map((p) => <span key={p.id} className="job-tags"><b>@{p.handle}</b></span>)}
+                      </span>
+                    </span>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
         <JobBoard
           rows={jobRows}
           pool={rows}
@@ -667,6 +734,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
           roleTab={roleTab}
           setRoleTab={setRoleTab}
           kept={kept}
+          applied={myApps.map((a) => a.listingId)}
           onKeep={keepJob}
           onOpen={setOpen}
           onPost={() => {
@@ -678,6 +746,8 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             setFormOn((v) => !v);
           }}
         />
+          )}
+        </>
       ) : (
         <>
       <SlimRail rows={featured} onOpen={setOpen} />
@@ -789,6 +859,7 @@ function JobBoard({
   onKeep,
   onOpen,
   onPost,
+  applied = [],
 }: {
   rows: Card[];
   pool: Card[];
@@ -809,6 +880,7 @@ function JobBoard({
   onKeep: (id: string) => void;
   onOpen: (r: Card) => void;
   onPost: () => void;
+  applied?: string[];
 }) {
   const [filtersOn, setFiltersOn] = useState(false);
   const [menu, setMenu] = useState("");
@@ -958,7 +1030,7 @@ function JobBoard({
                   <span>
                     <i>{r.company || "Company"}</i>
                     <strong>{r.title}</strong>
-                    <em><MapPin className="size-3" /> {r.city || "Nigeria"} · {meta.jobType || "Open role"}</em>
+                    <em><MapPin className="size-3" /> {r.city || "Nigeria"} · {meta.jobType || "Open role"}{applied.includes(r.id) ? " · Applied" : ""}</em>
                     {tags.length > 0 ? <span className="job-tags">{tags.map((t) => <b key={t}>{t}</b>)}</span> : null}
                   </span>
                 </button>
