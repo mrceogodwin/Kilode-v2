@@ -1055,9 +1055,16 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
     );
   }
 
+  if (verifyOpen) {
+    return (
+      <div className="verify-stage">
+        <VerifyDesk kind={kind} onClose={() => setVerifyOpen(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-page mx-auto max-w-2xl p-4 pb-36">
-      {verifyOpen ? <VerifyDesk kind={kind} onClose={() => setVerifyOpen(false)} /> : null}
       <div className="mb-2 text-[10px] font-bold tracking-[0.18em] text-muted">MY SPACE</div>
       <div className="me-hero relative mb-4 overflow-hidden rounded-2xl border border-line">
         <div className="flex items-end gap-3 px-4 pt-4">
