@@ -4,6 +4,7 @@ import { listLivePushes, listMyPushes, savePush, seePush, type PushCard } from "
 import { listPayMethods } from "@/lib/pay-gateways";
 import { GatewayPay } from "@/components/pay-checkout";
 import type { PayProvider } from "@/lib/pay-money";
+import { Tip } from "@/components/tip";
 import { timeLeftLabel } from "@/lib/qonvo-data";
 
 export function ArtFace({ name, cover, url, big = false }: { name: string; cover?: string; url?: string; big?: boolean }) {
@@ -117,7 +118,7 @@ export function PushDesk({ artist }: { artist: boolean }) {
       </div>
       {step === 1 ? (
         <>
-          <p>Paste a supported link. Kilode does not host the audio.</p>
+          <Tip text="Paste a supported link. Kilode does not host the audio." />
           <div className="ad-pills">
             {nets.map((name) => <span key={name} className="ad-note">{name}</span>)}
           </div>
@@ -135,7 +136,7 @@ export function PushDesk({ artist }: { artist: boolean }) {
       ) : null}
       {step === 3 ? (
         <>
-          <p>City and age are what you ask for. They are not measured results.</p>
+          <Tip text="City and age are what you ask for. They are not measured results." />
           <input value={city} onChange={(e) => setCity(e.target.value)} maxLength={40} placeholder="City, optional" className="ad-field" />
           <input value={age} onChange={(e) => setAge(e.target.value)} maxLength={24} placeholder="Age, optional" className="ad-field" />
           <button type="button" className="push-next" onClick={() => setStep(4)}>Next</button>

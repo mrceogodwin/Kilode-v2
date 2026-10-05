@@ -50,7 +50,7 @@ import { staffMe } from "@/lib/staff-server";
 import { usePublicSite } from "@/components/site-chrome";
 import { listMySpaces, type SpaceCard } from "@/lib/spaces-server";
 import { ArtFace, PushDesk } from "@/components/artist-push";
-import { listMyPushes } from "@/lib/artist-server";
+import { artistFollowCount, listMyPayouts, listMyPushes, listPresaves } from "@/lib/artist-server";
 import { getBearerToken } from "@/lib/auth/client";
 
 type Store = ReturnType<typeof useQonvo>;
@@ -626,6 +626,37 @@ function MySpacesHome() {
   );
 }
 
+function DeskList({ rows }: { rows: [string, string, () => void][] }) {
+  return (
+    <div className="adesk-list">
+      {rows.map(([label, value, go]) => (
+        <button key={label} type="button" onClick={go}>
+          <b>{label}</b>
+          <em>{value}</em>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ViewChart({ rows }: { rows: { id: string; title?: string; views?: number }[] }) {
+  const top = [...rows].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 6);
+  const max = Math.max(1, ...top.map((r) => r.views || 0));
+  if (!top.length) return <Tip text="The chart uses track views already stored. Nothing is added." />;
+  return (
+    <div className="adesk-chart">
+      <div className="adesk-scope">Scope {fmtCount(max)}</div>
+      {top.map((r) => (
+        <div key={r.id}>
+          <span>{r.title || "Track"}</span>
+          <i><b style={{ width: `${Math.max(4, Math.round(((r.views || 0) / max) * 100))}%` }} /></i>
+          <em>{fmtCount(r.views || 0)}</em>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ArtistPanel({
   handle, city, bio, face, verified, songs, views, saved, tab, onTab, onBack, onAdd, onOpen,
 }: {
@@ -644,9 +675,15 @@ function ArtistPanel({
   onOpen: (id: string, url?: string) => void;
 }) {
   const [pushes, setPushes] = useState<{ id: string; title: string; network: string; clicks: number; status: string; expiresAt: number }[]>([]);
+  const [follows, setFollows] = useState(0);
+  const [presaves, setPresaves] = useState(0);
+  const [payouts, setPayouts] = useState(0);
   useEffect(() => {
     void listMyPushes().then((rows) => setPushes(Array.isArray(rows) ? rows : [])).catch(() => setPushes([]));
-  }, [tab]);
+    void artistFollowCount({ data: { slug: handle } }).then((r) => setFollows(r.count || 0)).catch(() => setFollows(0));
+    void listPresaves().then((rows) => setPresaves(Array.isArray(rows) ? rows.length : 0)).catch(() => setPresaves(0));
+    void listMyPayouts().then((rows) => setPayouts(Array.isArray(rows) ? rows.length : 0)).catch(() => setPayouts(0));
+  }, [tab, handle]);
   const clicks = pushes.reduce((n, row) => n + (row.clicks || 0), 0);
   const top = [...songs].sort((a, b) => (b.views || 0) - (a.views || 0))[0];
   const tabs = ["overview", "music", "push", "audience", "analytics"] as const;
@@ -666,20 +703,16 @@ function ArtistPanel({
         <strong>Artist Desk</strong>
         <em className={verified ? "on" : ""}>{verified ? "Verified" : "Unverified"}</em>
       </div>
-      <div className="adesk-who">
-        <ArtFace name={handle || "Artist"} cover={face} big />
-        <div>
-          <b>@{handle}</b>
-          <span>Artist{city ? ` · ${city}` : ""}</span>
-          <p>{bio?.trim() || "Add a bio from Edit profile."}</p>
-        </div>
-      </div>
       <div className="adesk-stats">
         <span><b>{fmtCount(songs.length)}</b>Tracks</span>
         <span><b>{fmtCount(views)}</b>Views</span>
         <span><b>{fmtCount(clicks)}</b>Clicks</span>
-        <span><b>{fmtCount(saved)}</b>Saved</span>
+        <span><b>{fmtCount(follows)}</b>Fans</span>
       </div>
+      <button type="button" className="adesk-push" onClick={() => onTab("push")}>
+        Push Link
+        <i>{pushes.length ? `${pushes.length} live` : "Paid"}</i>
+      </button>
       <div className="adesk-tabs" role="tablist">
         {tabs.map((id) => (
           <button key={id} type="button" className={tab === id ? "on" : ""} onClick={() => onTab(id)}>{id}</button>
@@ -687,21 +720,31 @@ function ArtistPanel({
       </div>
       {tab === "overview" ? (
         <div className="adesk-block">
-          <div className="adesk-head"><span>Latest</span><button type="button" onClick={onAdd}>Add</button></div>
+          <div className="adesk-head"><span>Latest</span><Tip text="Releases are links. Kilode does not host the audio." /><button type="button" onClick={onAdd}>Add</button></div>
           {songs[0] ? (
             <button type="button" className="adesk-song" onClick={() => onOpen(songs[0].id, songs[0].url)}>
               <ArtFace name={songs[0].title || handle} cover={songs[0].cover} url={songs[0].url} />
-              <span><b>{songs[0].title}</b><em>{songs[0].platform || "Link"} · {fmtCount(songs[0].views || 0)} views</em></span>
+              <span><b>{songs[0].title}</b><em>{songs[0].platform || "Link"} · {fmtCount(songs[0].views || 0)}</em></span>
             </button>
-          ) : <p className="adesk-empty">Your releases show here after you add an external music link. Kilode does not host the audio.</p>}
-          <button type="button" className="adesk-row" onClick={() => onTab("push")}><b>Create Push Link</b><em>Paid card on Socials</em></button>
-          <button type="button" className="adesk-row" onClick={() => onTab("push")}><b>Campaigns</b><em>{pushes.length ? `${pushes.length} on your desk` : "None yet"}</em></button>
+          ) : null}
+          <DeskList rows={[
+            ["Campaigns", pushes.length ? String(pushes.length) : "0", () => onTab("push")],
+            ["Pre-saves", String(presaves), () => onTab("music")],
+            ["Payouts", String(payouts), () => onTab("analytics")],
+            ["Followers", String(follows), () => onTab("audience")],
+            ["Saved", String(saved), () => onTab("audience")],
+            ["Top track", top?.title || "None", () => top ? onOpen(top.id, top.url) : onAdd()],
+            ["Platforms", String(new Set(songs.map((t) => t.platform || "Link")).size), () => onTab("music")],
+            ["Copy link", "Profile", () => void navigator.clipboard?.writeText(`${window.location.origin}/u/${handle}`)],
+            ["Verify", verified ? "On" : "Off", () => undefined],
+            ["Add release", "Link", onAdd],
+          ]} />
         </div>
       ) : null}
       {tab === "music" ? (
         <div className="adesk-block">
           <div className="adesk-head"><span>Your music</span><button type="button" onClick={onAdd}>Add</button></div>
-          {songs.length === 0 ? <p className="adesk-empty">Spotify, Apple Music, YouTube, Audiomack, SoundCloud or Deezer.</p> : songs.slice(0, 12).map((t) => (
+          {songs.length === 0 ? <Tip text="Spotify, Apple Music, YouTube, Audiomack, SoundCloud or Deezer." /> : songs.slice(0, 12).map((t) => (
             <div key={t.id} className="adesk-song">
               <ArtFace name={t.title || handle} cover={t.cover} url={t.url} />
               <span><b>{t.title}</b><em>{t.platform || "Link"} · {fmtCount(t.views || 0)} views</em></span>
@@ -711,17 +754,22 @@ function ArtistPanel({
         </div>
       ) : null}
       {tab === "push" ? <PushDesk artist /> : null}
-      {tab === "audience" || tab === "analytics" ? (
+      {tab === "audience" ? (
         <div className="adesk-block">
-          <p className="adesk-empty">These numbers are track views and opens on paid pushes. Kilode does not invent followers or cities.</p>
+          <div className="adesk-head"><span>Audience</span><Tip text="Fans are people who followed this artist on Kilode. Opens are clicks on paid pushes." /></div>
           <div className="adesk-stats">
-            <span><b>{fmtCount(views)}</b>Views</span>
+            <span><b>{fmtCount(follows)}</b>Fans</span>
             <span><b>{fmtCount(clicks)}</b>Opens</span>
-            <span><b>{fmtCount(pushes.length)}</b>Pushes</span>
-            <span><b>{fmtCount(songs.length)}</b>Tracks</span>
+            <span><b>{fmtCount(saved)}</b>Saved</span>
+            <span><b>{fmtCount(presaves)}</b>Pre-saves</span>
           </div>
-          <p className="adesk-note">{top ? `Top track · ${top.title} · ${fmtCount(top.views || 0)} views` : "No track views yet."}</p>
-          {pushes[0] ? <p className="adesk-note">Latest push · {pushes[0].title} · {pushes[0].status} · {pushes[0].clicks} opens</p> : null}
+        </div>
+      ) : null}
+      {tab === "analytics" ? (
+        <div className="adesk-block">
+          <div className="adesk-head"><span>Views</span><Tip text="Bars are the view counts already on each track. Kilode does not invent a number." /></div>
+          <ViewChart rows={songs} />
+          {pushes[0] ? <p className="adesk-note">{pushes[0].title} · {pushes[0].clicks} opens</p> : null}
         </div>
       ) : null}
     </div>

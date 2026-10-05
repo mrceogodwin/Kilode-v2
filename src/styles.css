@@ -5987,7 +5987,45 @@ html[data-skin="ivory"] .space-page .me-hero .btn-join * {
 .tone-red { background: linear-gradient(135deg, #ff3b30, #b11218); color: #fff; }
 .tone-yellow { background: linear-gradient(135deg, #ffe14a, #f0b400); color: #111; }
 .tone-green { background: linear-gradient(145deg, #123024, #07110c 60%); color: #f4fff8; }
-.tone-green b { color: #3ddc84; }
+.adesk-push {
+  display: flex;
+  width: 100%;
+  height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 0;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(165deg, #4eaf78 0%, #1b6b45 55%, #0c2e1e 100%);
+  padding: 0 14px;
+  color: #f4fff8;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 3px 0 #062015;
+}
+.adesk-push i { font-style: normal; font-size: 11px; opacity: 0.85; }
+.adesk-list { display: flex; flex-direction: column; }
+.adesk-list button {
+  display: flex;
+  height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  color: #f5f3ee;
+  font-size: 13px;
+}
+.adesk-list em { color: #a7a7a4; font-size: 11px; font-style: normal; }
+.adesk-chart { display: flex; flex-direction: column; gap: 6px; }
+.adesk-scope { color: #a7a7a4; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.adesk-chart div { display: grid; grid-template-columns: 72px 1fr 28px; gap: 6px; align-items: center; font-size: 11px; }
+.adesk-chart span, .adesk-chart em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #c8c4bc; font-style: normal; }
+.adesk-chart i { display: block; height: 4px; border-radius: 99px; background: #222; }
+.adesk-chart i b { display: block; height: 4px; border-radius: 99px; background: linear-gradient(90deg, #4eaf78, #1b6b45); }
+.adesk-stats span { border: 0 !important; background: transparent !important; padding: 2px 0 !important; }
+.adesk-song, .adesk-row { padding: 6px !important; border-radius: 10px !important; }
+.adesk-tabs button { height: 24px !important; font-size: 11px !important; }
 .take-stage-scroll { min-height: 0; flex: 1; overflow-y: auto; padding: 12px 12px calc(88px + env(safe-area-inset-bottom)); }
 .take-stage-who { display: flex; gap: 6px; align-items: baseline; font-size: 13px; }
 .take-stage-who span, .take-stage-replies p { color: #a7a7a4; font-size: 12px; }
