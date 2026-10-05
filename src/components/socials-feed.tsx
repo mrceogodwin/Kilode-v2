@@ -1021,11 +1021,12 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
         </div>
       ) : null}
       {lane === "posts" ? (
-        <div className="soc-tools mb-2">
+        <div className="soc-one">
           <button type="button" className="soc-tool" onClick={() => onOpenPeople?.()}>Connect</button>
           <button type="button" className="soc-tool" onClick={() => setTrendOpen(true)}>Trending</button>
           <button type="button" className="soc-tool" onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))}>Market</button>
           <button type="button" className="soc-tool" onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "teams" } }))}>Groups</button>
+          <LiquidCuts value={feedCut} onPick={(id) => { setTag(""); setFeedCut(id); }} />
         </div>
       ) : (
         <button type="button" className="mb-2 text-[12px] font-semibold text-fg" onClick={() => onOpenFeed?.()}>
@@ -1216,7 +1217,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
 
       {lane !== "people" ? (
       <>
-      <LiquidCuts value={feedCut} onPick={(id) => { setTag(""); setFeedCut(id); }} />
+      {lane === "posts" ? null : <LiquidCuts value={feedCut} onPick={(id) => { setTag(""); setFeedCut(id); }} />}
       {tag ? (
         <div className="mb-2 flex gap-1.5">
           <button type="button" className="soc-chip on shrink-0 px-2.5 py-1 text-[12px]" onClick={() => setFeedCut("tag")}>#{tag}</button>
@@ -1328,7 +1329,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
           />
         ) : null}
         <div className="mt-1 flex items-center justify-between gap-2">
-          <p className="min-w-0 text-[10px] text-muted">{HINT[kind]}</p>
+          <Tip text={HINT[kind]} />
           <span className={`shrink-0 text-[10px] tabular-nums ${body.length > 250 ? "text-[#ffd45a]" : "text-muted"}`}>{body.length}/280{body.trim() ? " · draft" : ""}</span>
         </div>
         {shot ? (
@@ -1737,7 +1738,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
         return (
           <div className="take-stage" role="dialog" aria-modal="true" aria-label={stage.mode === "photo" ? "Photo" : "Comments"}>
             <div className="take-stage-bar">
-              <button type="button" onClick={() => { setStage(null); setOpenReply(""); }}>Close</button>
+              <button type="button" onClick={() => { setStage(null); setOpenReply(""); }}>Back</button>
               <b>{stage.mode === "photo" ? "Photo" : "Comments"}</b>
             </div>
             <div className="take-stage-scroll">

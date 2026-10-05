@@ -67,9 +67,6 @@ export function DigestBox({ quiet = false, defaultOpen = true }: { quiet?: boole
             });
           }}
         >
-          <p className="mb-1.5 text-center text-[11px] leading-snug text-muted">
-            Get new Kilode posts by email · one at a time · no spam.
-          </p>
           <div className="flex items-center gap-1.5">
             <input
               type="email"

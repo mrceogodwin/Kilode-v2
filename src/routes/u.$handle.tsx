@@ -9,10 +9,8 @@ import { ACCOUNT_KINDS, avatarUrl, fmtCount, handleColor, isOfficialHandle, time
 import { OfficialLockup } from "@/components/brand-lockup";
 import { ReportMenu } from "@/components/report-menu";
 import { VerifiedMark } from "@/components/handle-link";
-import { GatewayPay } from "@/components/pay-checkout";
-import { listPayMethods, submitVerification } from "@/lib/pay-gateways";
+import { VerifyDesk } from "@/components/verify-desk";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import type { PayProvider } from "@/lib/pay-money";
 
 export const Route = createFileRoute("/u/$handle")({
   loader: async ({ params }) => {
@@ -57,9 +55,6 @@ function PublicProfile() {
   const [muted, setMuted] = useState(false);
   const [look, setLook] = useState({ followers: 0, following: 0, mutuals: 0, followerHandles: [] as string[], followingHandles: [] as string[] });
   const [followList, setFollowList] = useState<"" | "followers" | "following">("");
-  const [payWith, setPayWith] = useState<PayProvider>("paystack");
-  const [payNote, setPayNote] = useState("");
-  const [gate, setGate] = useState<{ paystack: boolean; flutterwave: boolean; nowpayments: boolean; ngnPerUsd: number; verifyUsd: number } | null>(null);
   useEffect(() => {
     if (!profile?.handle) return;
     void listUserTakes({ data: profile.handle }).then((rows) => {
@@ -101,10 +96,6 @@ function PublicProfile() {
       .catch(() => undefined);
   }, [session.user, profile?.handle, mine]);
   const showBadge = Boolean(profile && (profile.verified || isOfficialHandle(profile.handle)));
-  useEffect(() => {
-    if (!mine || showBadge) return;
-    void listPayMethods().then((m) => setGate(m)).catch(() => undefined);
-  }, [mine, showBadge]);
   if (!profile) {
     return (
       <main className="grid min-h-svh place-items-center bg-bg p-6 text-fg">
@@ -275,34 +266,7 @@ function PublicProfile() {
           )}
         </section>
         {mine && !showBadge ? (
-          <section className="mt-4 rounded-2xl border border-line bg-panel p-3">
-            <h2 className="text-sm font-extrabold">Get verified</h2>
-            <p className="mt-1 text-[12px] text-muted">Pay the fee. The badge turns on as soon as the payment confirms. No staff wait.</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(["paystack", "flutterwave", "nowpayments"] as const).map((id) => (
-                <button key={id} type="button" className={`rounded-full px-3 py-1 text-[12px] font-bold ${payWith === id ? "btn-join" : "border border-line"}`} onClick={() => setPayWith(id)}>
-                  {id === "paystack" ? "Paystack" : id === "flutterwave" ? "Flutterwave" : "Crypto"}
-                </button>
-              ))}
-            </div>
-            <div className="mt-2">
-              <GatewayPay
-                provider={payWith}
-                kind="verify"
-                purpose="badge"
-                usd={gate?.verifyUsd ?? 5}
-                rate={gate?.ngnPerUsd ?? 1600}
-                ready={payWith === "paystack" ? Boolean(gate?.paystack) : payWith === "flutterwave" ? Boolean(gate?.flutterwave) : Boolean(gate?.nowpayments)}
-                onPaid={(paid) => {
-                  void submitVerification({ data: { reference: paid.reference } }).then((r) => {
-                    setPayNote(r.ok && r.status === "verified" ? "Paid. Your badge is on." : r.ok ? "Paid." : r.reason);
-                    if (r.ok && r.status === "verified") window.location.reload();
-                  });
-                }}
-              />
-            </div>
-            {payNote ? <p className="mt-2 text-[12px] text-lime-2">{payNote}</p> : null}
-          </section>
+          <VerifyDesk kind={profile.kind || "member"} />
         ) : null}
         {!mine && friend === "friends" ? <ProfileMessage to={profile.handle} /> : !mine ? <p className="mt-3 text-[12px] text-muted">You can message after they accept.</p> : null}
         <button

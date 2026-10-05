@@ -43,6 +43,7 @@ import { SiteFooter } from "@/components/site-chrome";
 import { listMyCinema, type CinemaMovie } from "@/lib/cinema-server";
 import { deleteListing, listListings, listMyApps, listMyApplicants, listMyListings, updateListing, type Listing, type MyApp, type MyApplicant } from "@/lib/listings-server";
 import { Tip } from "@/components/tip";
+import { VerifyDesk } from "@/components/verify-desk";
 import { disconnectFellow, listConnects, listMyFollows, listSavedTakes, replyConnect, toggleFollow, type ConnectRow, type FollowPerson, type TakeRow } from "@/lib/takes-server";
 import { getProfile } from "@/lib/forum-server";
 import { staffMe } from "@/lib/staff-server";
@@ -752,6 +753,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
   const [photo, setPhoto] = useState(boot?.photo || "");
   const [mePane, setMePane] = useState<null | "friends" | "follows" | "saved">(null);
   const [artistOpen, setArtistOpen] = useState(false);
+  const [verifyOpen, setVerifyOpen] = useState(false);
   const [artistTab, setArtistTab] = useState<"overview" | "music" | "push" | "audience" | "analytics">("overview");
   const { site } = usePublicSite();
 
@@ -1007,6 +1009,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
 
   return (
     <div className="space-page mx-auto max-w-2xl p-4 pb-36">
+      {verifyOpen ? <VerifyDesk kind={kind} onClose={() => setVerifyOpen(false)} /> : null}
       <div className="mb-2 text-[10px] font-bold tracking-[0.18em] text-muted">MY SPACE</div>
       <div className="me-hero relative mb-4 overflow-hidden rounded-2xl border border-line bg-panel">
         <div className="flex items-end gap-3 px-4 pt-4">
@@ -1048,7 +1051,7 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
           <Tip text={purpose} />
         </p>
         <p className="hero-copy px-4 pt-1 text-[13px] leading-snug">{store.bio?.trim() || "No bio yet."}</p>
-        {!store.verified ? <a href={`/u/${encodeURIComponent(store.handle || "me")}`} className="mt-1 block px-4 text-[12px] font-bold text-lime-2">Get verified</a> : null}
+        {!store.verified ? <button type="button" className="mt-1 block px-4 text-left text-[12px] font-bold text-lime-2" onClick={() => setVerifyOpen(true)}>Get verified</button> : null}
         {store.interests ? <p className="px-4 pt-1 text-[11px] text-muted">{store.interests.split(",").join(" · ")}</p> : null}
         {store.website ? (
           <a href={store.website} target="_blank" rel="noreferrer" className="mt-1 block truncate px-4 text-[11px] font-semibold text-lime-2">
@@ -1754,9 +1757,9 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         </div>
       </Section>
 
-      <Section kicker="SAVED" title="Bookmarks" action="All saved" onAction={() => goto({ screen: "bookmarks" })}>
+      <Section kicker="SAVED" title="Bookmarks" tip="Saved stories land here." action="All saved" onAction={() => goto({ screen: "bookmarks" })}>
         {saved.length === 0 ? (
-          <EmptyBlock body="Save a feed post from the article view — it lands here." cta="Open Feeds" onClick={() => goto({ tab: "feeds" })} />
+          <EmptyBlock body="Nothing saved." cta="Open Feeds" onClick={() => goto({ tab: "feeds" })} />
         ) : (
           <div className="space-y-2">
             {saved.slice(0, 5).map((p) => (
@@ -1793,9 +1796,8 @@ export function MeDashboard({ store, onForum, onLogout }: { store: Store; onForu
         </div>
       </Section>
 
-      <Section kicker="UPDATES" title="Email digest">
+      <Section kicker="UPDATES" title="Email digest" tip="New public posts by email, one at a time. No spam.">
         <div className="digest-card raised rounded-2xl border border-line p-3">
-          <p className="mb-2 text-[12px] text-muted">Get new public posts by email, one at a time. No spam.</p>
           <DigestBox quiet defaultOpen />
         </div>
       </Section>

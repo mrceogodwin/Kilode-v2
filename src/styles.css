@@ -5874,11 +5874,88 @@ html:not([data-skin="ivory"]) .take-follow.on {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 48px;
-  padding: 0 12px;
+  min-height: 48px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
   border-bottom: 1px solid #2a2a2a;
 }
-.take-stage-bar button { border: 0; background: transparent; color: #f5f3ee; font-size: 13px; font-weight: 700; }
+.take-stage-bar button { border: 0; background: transparent; color: #f5f3ee; font-size: 15px; font-weight: 800; }
+.soc-one {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.soc-one .liquid-rail { margin: 0; flex: 0 0 auto; }
+.in-feed-line {
+  height: 3px;
+  margin: 10px 2px 12px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #4eaf78 0%, #1b6b45 55%, #0c2e1e 100%);
+}
+.menu-drawer .menu-sheet {
+  height: auto !important;
+  max-height: calc(100dvh - 28px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+  margin: calc(12px + env(safe-area-inset-top, 0px)) 0 calc(12px + env(safe-area-inset-bottom, 0px)) 10px !important;
+  border-radius: 28px !important;
+  overflow: hidden !important;
+}
+.menu-row > span.min-w-0 > span.text-muted { display: none; }
+html[data-skin="ivory"] .space-page .me-hero {
+  background: #fff !important;
+  color: #141414 !important;
+  border: 1px solid rgba(20, 20, 20, 0.08) !important;
+  box-shadow: 0 10px 28px rgba(20, 20, 20, 0.06) !important;
+}
+html[data-skin="ivory"] .space-page .me-hero p,
+html[data-skin="ivory"] .space-page .me-hero span,
+html[data-skin="ivory"] .space-page .me-hero a,
+html[data-skin="ivory"] .space-page .me-hero b,
+html[data-skin="ivory"] .space-page .me-hero .hero-copy,
+html[data-skin="ivory"] .space-page .me-hero .text-fg,
+html[data-skin="ivory"] .space-page .me-hero div {
+  color: #141414 !important;
+}
+html[data-skin="ivory"] .space-page .me-hero .text-muted { color: #6d675f !important; }
+html[data-skin="ivory"] .space-page .me-hero .text-lime-2 { color: #1b6b45 !important; }
+html[data-skin="ivory"] .space-page .me-hero .btn-3d,
+html[data-skin="ivory"] .space-page .me-hero .btn-3d * {
+  background: #f3f0e8 !important;
+  color: #141414 !important;
+}
+html[data-skin="ivory"] .space-page .me-hero .btn-join,
+html[data-skin="ivory"] .space-page .me-hero .btn-join * {
+  background: #1b6b45 !important;
+  color: #fff !important;
+}
+.verify-desk {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  background: #0d0f0e;
+  color: #f5f3ee;
+}
+.verify-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 10px;
+}
+.verify-bar button, .verify-bar span { border: 0; background: transparent; color: #f5f3ee; font-size: 13px; font-weight: 700; }
+.verify-step { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 12px; overflow-y: auto; padding: 8px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+.verify-step strong { font-size: 28px; letter-spacing: -0.03em; }
+.verify-step p, .verify-step li { color: #c8c4bc; font-size: 14px; line-height: 1.4; }
+.verify-step ul { display: flex; flex-direction: column; gap: 8px; }
+.verify-step li { border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; background: #161816; padding: 12px 14px; list-style: none; }
+.verify-faces { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.verify-faces img { aspect-ratio: 3/4; width: 100%; border-radius: 18px; object-fit: cover; }
+.verify-pays { display: flex; gap: 6px; }
+.verify-pays button { height: 32px; border: 1px solid rgba(255,255,255,0.14); border-radius: 999px; background: transparent; padding: 0 12px; color: #f5f3ee; font-size: 12px; font-weight: 700; }
+.verify-pays button.on, .verify-next { border: 0; border-radius: 999px; background: #f7f7f5; color: #111; font-weight: 800; }
+.verify-next { height: 42px; margin-top: auto; }
 .take-stage-scroll { min-height: 0; flex: 1; overflow-y: auto; padding: 12px 12px calc(88px + env(safe-area-inset-bottom)); }
 .take-stage-who { display: flex; gap: 6px; align-items: baseline; font-size: 13px; }
 .take-stage-who span, .take-stage-replies p { color: #a7a7a4; font-size: 12px; }

@@ -2997,7 +2997,7 @@ function InFeed({ posts, onOpen }: { posts: { id: string; title?: string; image?
   if (rows.length < 4) return null;
   return (
     <section className="in-feed" aria-label="In the feed">
-      <div className="in-feed-kicker">In the feed</div>
+      <div className="in-feed-line" aria-hidden />
       <div className="in-feed-row">
         {rows.map((p) => (
           <button key={p.id} type="button" className="in-feed-card" onClick={() => onOpen(p.id)}>
