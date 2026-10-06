@@ -1249,7 +1249,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
         </div>
       ) : null}
       <PushStrip />
-      <div className="take-compose mb-3 glass-3d px-2.5 py-2">
+      <div className="take-compose">
         {quoting ? (
           <div className="mb-2 flex items-start justify-between gap-2 rounded-[10px] border border-line px-2 py-1.5">
             <p className="line-clamp-2 text-[11px] text-muted">Quoting @{quoting.handle}: {quoting.body}</p>
@@ -2099,6 +2099,15 @@ function KSend() {
     </svg>
   );
 }
+function KLink() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className="size-3.5">
+      <path d="M6.4 9.6 9.6 6.4" />
+      <path d="M7.2 4.2 8.4 3a2.6 2.6 0 0 1 3.6 3.6L10.8 7.8" />
+      <path d="M8.8 11.8 7.6 13a2.6 2.6 0 0 1-3.6-3.6l1.2-1.2" />
+    </svg>
+  );
+}
 function KEye() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden className="size-3.5">
@@ -2459,6 +2468,9 @@ function TakeCard({
           <KMark />
         </button>
         <button type="button" className="text-[11px] font-bold" onClick={onQuote}>Quote</button>
+        <button type="button" aria-label="Copy link" onClick={() => void navigator.clipboard?.writeText(`${window.location.origin}/?tab=socials&take=${encodeURIComponent(take.id)}`)}>
+          <KLink />
+        </button>
         <button type="button" onClick={onShare} aria-label="Share">
           <KSend />
         </button>

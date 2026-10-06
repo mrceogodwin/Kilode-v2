@@ -156,13 +156,18 @@ export const listMyPushes = createServerFn({ method: "GET" })
       const rows = await sql<{
         id: string; handle: string; title: string; note: string | null; url: string; network: string;
         cover: string | null; clicks: number | string | null; views: number | string | null; ts: number | string; expires_at: number | string | null; days: number | string; status: string;
-      }>`select id, handle, title, note, url, network, cover, clicks, views, ts, expires_at, days, status from nf_pushes
+        target_city: string | null; target_age: string | null;
+      }>`select id, handle, title, note, url, network, cover, clicks, views, ts, expires_at, days, status, target_city, target_age from nf_pushes
         where user_id = ${context.userId} order by ts desc limit 12`;
       return rows.map((r) => ({
         id: r.id,
         title: r.title,
+        note: r.note ?? "",
         network: r.network,
         url: r.url,
+        cover: r.cover ?? "",
+        city: r.target_city ?? "",
+        age: r.target_age ?? "",
         clicks: Number(r.clicks ?? 0),
         views: Number(r.views ?? 0),
         status: r.status,

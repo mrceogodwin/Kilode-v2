@@ -100,7 +100,7 @@ export function PushDesk({ artist }: { artist: boolean }) {
   const [err, setErr] = useState("");
   const [done, setDone] = useState("");
   const [step, setStep] = useState(1);
-  const [mine, setMine] = useState<{ id: string; title: string; network: string; url: string; clicks: number; views: number; status: string; expiresAt: number; days: number }[]>([]);
+  const [mine, setMine] = useState<{ id: string; title: string; note: string; network: string; url: string; cover: string; city: string; age: string; clicks: number; views: number; status: string; expiresAt: number; days: number }[]>([]);
   const [drops, setDrops] = useState<{ id: string; title: string; artist: string; whenLabel: string; interests: number }[]>([]);
   const [payouts, setPayouts] = useState<{ id: string; note: string; status: string }[]>([]);
   const [whenLabel, setWhenLabel] = useState("");
@@ -108,7 +108,7 @@ export function PushDesk({ artist }: { artist: boolean }) {
   const [tool, setTool] = useState("");
   useEffect(() => {
     void listPayMethods().then((m) => setGate({ paystack: m.paystack, flutterwave: m.flutterwave, nowpayments: m.nowpayments, ngnPerUsd: m.ngnPerUsd })).catch(() => undefined);
-    void listMyPushes().then((rows) => setMine(Array.isArray(rows) ? rows.map((r) => ({ ...r, url: r.url || "", views: r.views || 0, days: r.days || 0 })) : [])).catch(() => setMine([]));
+    void listMyPushes().then((rows) => setMine(Array.isArray(rows) ? rows.map((r) => ({ ...r, url: r.url || "", note: r.note || "", cover: r.cover || "", city: r.city || "", age: r.age || "", views: r.views || 0, days: r.days || 0 })) : [])).catch(() => setMine([]));
     void listPresaves().then((rows) => setDrops(Array.isArray(rows) ? rows.map((r) => ({ id: r.id, title: r.title, artist: r.artist, whenLabel: r.whenLabel, interests: r.interests })) : [])).catch(() => setDrops([]));
     void listMyPayouts().then((rows) => setPayouts(Array.isArray(rows) ? rows : [])).catch(() => setPayouts([]));
   }, [done]);
@@ -199,10 +199,18 @@ export function PushDesk({ artist }: { artist: boolean }) {
             const rate = row.views > 0 ? Math.round((row.clicks / row.views) * 100) : null;
             return (
               <div key={row.id} className="ad-card">
-                <strong>{row.title}</strong>
-                <em>{row.status} · {row.network} · {row.days || "?"}d · {row.views} seen · {row.clicks} opens{rate == null ? "" : ` · ${rate}%`} · {row.expiresAt > Date.now() ? timeLeftLabel(row.expiresAt) : "Ended"}</em>
+                <div className="flex items-center gap-2">
+                  <ArtFace name={row.title} cover={row.cover} url={row.url} />
+                  <span className="min-w-0">
+                    <strong>{row.title}</strong>
+                    <em>{row.status} · {row.network} · {row.days || "?"}d · {row.views} seen · {row.clicks} opens{rate == null ? "" : ` · ${rate}%`} · {row.expiresAt > Date.now() ? timeLeftLabel(row.expiresAt) : "Ended"}</em>
+                    {row.note ? <em>{row.note}</em> : null}
+                    {row.city || row.age ? <em>{[row.city, row.age].filter(Boolean).join(" · ")}</em> : null}
+                  </span>
+                </div>
                 <div className="push-tools">
                   <button type="button" onClick={() => { void navigator.clipboard?.writeText(row.url); setTool("Copied"); }}>Copy</button>
+                  <button type="button" onClick={() => { void navigator.clipboard?.writeText(`${row.title}\n${row.url}`); setTool("Line copied"); }}>Line</button>
                   <button type="button" onClick={() => { if (navigator.share) void navigator.share({ title: row.title, url: row.url }); else window.open(row.url, "_blank", "noopener"); }}>Share</button>
                   <a href={row.url} target="_blank" rel="noreferrer">Open</a>
                 </div>

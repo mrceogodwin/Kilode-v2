@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, Play, Repeat2 } from "lucide-react";
 import { SampleBanner } from "@/components/sample-banner";
 import { listAdCatalog, type AdCatalog } from "@/lib/ad-catalog-server";
 import { isAdUnit, isPubId } from "@/lib/ad-slots";
 import { AdSlot, useAdSlots } from "@/components/ad-slot";
-import { fmtCount, youtubeId, type Campaign, type Post } from "@/lib/qonvo-data";
+import { fmtCount, timeAgo, youtubeId, type Campaign, type Post } from "@/lib/qonvo-data";
 
 type Slide =
   | { k: "post"; post: Post }
@@ -62,6 +62,7 @@ export function FeedsHero({
   const [i, setI] = useState(0);
   const [hover, setHover] = useState(false);
   const [play, setPlay] = useState<string | null>(null);
+  const drag = useRef(0);
 
   useEffect(() => {
     void listAdCatalog()
@@ -150,6 +151,12 @@ export function FeedsHero({
       className="hero-flag glass-3d mb-3 overflow-hidden"
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
+      onPointerDown={(e) => { drag.current = e.clientX; setHover(true); }}
+      onPointerUp={(e) => {
+        const dx = e.clientX - drag.current;
+        if (dx > 48) go(i - 1);
+        else if (dx < -48) go(i + 1);
+      }}
     >
       <div className="hero-stage relative aspect-[16/9] w-full overflow-hidden">
         <HeroSlide slide={slide} play={play} onPlay={setPlay} onOpen={onOpen} onViewAd={onViewAd} onRepost={onRepost} />
@@ -172,6 +179,11 @@ export function FeedsHero({
               MORE
               <span aria-hidden>››</span>
             </button>
+            <div className="absolute top-2 right-12 z-10">
+              <span className="rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-white/90">
+                {i + 1}/{slides.length}
+              </span>
+            </div>
             {slides.length <= 8 ? (
             <div className="absolute bottom-2 left-0 right-0 z-10 flex justify-center gap-1">
               {slides.map((_, n) => (
@@ -184,13 +196,7 @@ export function FeedsHero({
                 />
               ))}
             </div>
-            ) : (
-            <div className="absolute top-2 right-12 z-10">
-              <span className="rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-white/90">
-                {i + 1}/{slides.length}
-              </span>
-            </div>
-            )}
+            ) : null}
           </>
         ) : null}
       </div>
@@ -298,10 +304,13 @@ function HeroSlide({
           <div className="mt-2 line-clamp-3 text-[18px] font-extrabold leading-tight text-white sm:text-[22px]">
             <HeroTitle title={p.title} />
           </div>
-          <div className="mt-2 flex items-center gap-2 text-[11px] text-white/80">
-            {(p.comments?.length ?? 0) > 0 ? <span>{fmtCount(p.comments?.length ?? 0)} talking</span> : (p.views ?? 0) > 0 ? <span>{fmtCount(p.views ?? 0)} views</span> : null}
-            {Date.now() - p.ts < 6 * 3600_000 ? <span className="text-[#b7f0c8]">Live updates</span> : null}
+          {p.excerpt ? <div className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-white/80">{p.excerpt}</div> : null}
+          <div className="mt-1.5 flex items-center gap-2 text-[11px] text-white/80">
+            <span>{timeAgo(p.ts)}</span>
+            <span>{fmtCount(p.views ?? 0)} views</span>
+            <span>{p.comments?.length ?? 0} comments</span>
           </div>
+          <span className="hero-read">Read more</span>
         </div>
       </div>
     );

@@ -26,7 +26,7 @@ import { listPayMethods } from "@/lib/pay-gateways";
 import { GatewayPay, DeskPayBox } from "@/components/pay-checkout";
 import type { PayProvider } from "@/lib/pay-money";
 import { dbStatus } from "@/lib/register-server";
-import { listInbox, listNotes, sendDm } from "@/lib/social-server";
+import { listInbox, listNotes, markNotesRead, sendDm } from "@/lib/social-server";
 import { uploadCvFile } from "@/lib/supabase";
 import { creativeFits, runEnd, slotCharge } from "@/lib/board-rules";
 import { Tip } from "@/components/tip";
@@ -1208,51 +1208,64 @@ function Communities({ onHome }: { onHome: (roomId?: string) => void }) {
 }
 
 function ActivityHome({ store, onJump }: { store: Store; onJump: (d: { screen?: string; tab?: string }) => void }) {
-  const [notes, setNotes] = useState<{ id: string; text: string; href?: string; ts: number }[]>([]);
+  const [notes, setNotes] = useState<{ id: string; text: string; href?: string; ts: number; seen: number }[]>([]);
   const [counts, setCounts] = useState<{ jobs: number; market: number; rent: number } | null>(null);
-  useEffect(() => {
-    void listNotes().then((rows) => setNotes(Array.isArray(rows) ? rows.slice(0, 8) : [])).catch(() => setNotes([]));
+  const [tick, setTick] = useState(0);
+  function load() {
+    void listNotes().then((rows) => setNotes(Array.isArray(rows) ? rows.slice(0, 8).map((n) => ({ ...n, seen: n.seen || 0 })) : [])).catch(() => setNotes([]));
+    void markNotesRead().catch(() => undefined);
     void Promise.all([
       listListings({ data: { kind: "job" } }),
       listListings({ data: { kind: "market" } }),
       listListings({ data: { kind: "rent" } }),
     ]).then(([jobs, market, rent]) => setCounts({ jobs: jobs.length, market: market.length, rent: rent.length })).catch(() => setCounts({ jobs: 0, market: 0, rent: 0 }));
-  }, []);
+  }
+  useEffect(() => { load(); }, [tick]);
   const handle = (store.handle || "").toLowerCase();
   const mine = store.posts.filter((p) => !!p?.id && p.status !== "draft" && (p.author || "").toLowerCase() === handle);
   const reached = mine.reduce((n, p) => n + (p.views ?? 0), 0);
   const talks = mine.reduce((n, p) => n + (p.comments?.length ?? 0), 0);
   const liveAds = store.campaigns.filter((c) => c.status === "approved").length;
-  const metrics = [
-    [String(reached), "Views on your stories"],
-    [String(mine.length), "Your stories"],
+  const reach = [
+    [String(reached), "Views"],
+    [String(mine.length), "Stories"],
     [String(talks), "Comments"],
     [String(store.savedPosts.length), "Saved"],
-    [String(store.pins.length), "Rooms"],
-    [String(store.tracks.length), "Tracks"],
+  ];
+  const ads = [
     [String(liveAds), "Live ads"],
     [String(store.campaigns.length), "Campaigns"],
-    [String(counts?.jobs ?? 0), "Jobs listed"],
+    [String(store.tracks.length), "Tracks"],
+  ];
+  const community = [
+    [String(store.pins.length), "Rooms"],
+    [String(counts?.jobs ?? 0), "Jobs"],
     [String(counts?.market ?? 0), "Market"],
     [String(counts?.rent ?? 0), "Rent"],
     [String(notes.length), "Notes"],
   ];
+  const unread = notes.filter((n) => !n.seen).length;
   return (
     <section>
       <div className="act-hero">
-        <div className="act-kicker">ACTIVITY</div>
+        <div className="act-kicker">ACTIVITY{unread ? ` · ${unread} new` : ""}</div>
         <h2>Your Kilode, in motion.</h2>
-        <p>Counts are from your account and the live desks. No estimates.</p>
+        <p>{store.kind || "Member"} · live counts only.</p>
+        <button type="button" className="act-refresh" onClick={() => setTick((n) => n + 1)}>Refresh</button>
       </div>
-      <div className="act-metrics">
-        {metrics.map(([n, label]) => (
-          <div key={label} className="act-metric"><b>{n}</b><span>{label}</span></div>
-        ))}
-      </div>
-      <div className="act-kicker" style={{ marginTop: 16 }}>Recent</div>
+      <div className="act-kicker">Reach</div>
+      <div className="act-metrics">{reach.map(([n, label]) => <div key={label} className="act-metric"><b>{n}</b><span>{label}</span></div>)}</div>
+      <div className="act-kicker">Ads and music</div>
+      <div className="act-metrics">{ads.map(([n, label]) => <div key={label} className="act-metric"><b>{n}</b><span>{label}</span></div>)}</div>
+      <div className="act-kicker">Desks</div>
+      <div className="act-metrics">{community.map(([n, label]) => <div key={label} className="act-metric"><b>{n}</b><span>{label}</span></div>)}</div>
+      <div className="act-kicker">Recent</div>
       {notes.length === 0 ? <p className="mt-2 text-[12px] text-muted">Nothing new yet. Post, follow, or open a desk and it shows here.</p> : notes.map((n) => (
         <button key={n.id} type="button" className="act-note" onClick={() => { if (n.href) window.location.href = n.href; }}>
-          <span className="min-w-0 flex-1"><strong>{n.text}</strong></span>
+          <span className="min-w-0 flex-1">
+            <strong>{n.text}</strong>
+            <em>{timeAgo(n.ts)}</em>
+          </span>
           <ChevronRight className="size-3.5 text-muted" />
         </button>
       ))}
@@ -1261,6 +1274,10 @@ function ActivityHome({ store, onJump }: { store: Store; onJump: (d: { screen?: 
         <button type="button" onClick={() => onJump({ tab: "feeds" })}>Media</button>
         <button type="button" onClick={() => onJump({ screen: "jobs" })}>Jobs</button>
         <button type="button" onClick={() => onJump({ tab: "music" })}>Music</button>
+        <button type="button" onClick={() => onJump({ screen: "ads" })}>Ads</button>
+        <button type="button" onClick={() => onJump({ screen: "market" })}>Market</button>
+        <button type="button" onClick={() => onJump({ screen: "inbox" })}>Messages</button>
+        <button type="button" onClick={() => onJump({ screen: "bookmarks" })}>Saved</button>
       </div>
     </section>
   );

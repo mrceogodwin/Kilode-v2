@@ -54,7 +54,7 @@ import {
   Sun,
   Tv,
 } from "lucide-react";
-import { ACCOUNT_KINDS, MENU, POST_CATS, ROOMS, AD_COINS, KIND_FACE, avatarUrl, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
+import { ACCOUNT_KINDS, MENU, POST_CATS, ROOMS, AD_COINS, KIND_FACE, avatarUrl, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeAgo, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { canKind, canCreateMenu, createLabelFor } from "@/lib/permissions";
 import { disconnectFellow, listConnects, listLive, listTakes, replyConnect, type ConnectRow } from "@/lib/takes-server";
 import { listInbox, sendDm } from "@/lib/social-server";
@@ -3304,6 +3304,18 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
             </div>
             );
           })}
+        </div>
+        <div className="news-list">
+          {live.slice(0, 6).map((p) => (
+            <button key={`row-${p.id}`} type="button" className="news-row" onClick={() => store.setOpenPost(p.id)}>
+              {p.image ? <img src={p.image} alt="" /> : <i />}
+              <span>
+                <em>{p.category || "Story"}</em>
+                <strong>{p.title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))}</strong>
+                <small>{timeAgo(p.ts)} · {fmtCount(p.views ?? 0)}</small>
+              </span>
+            </button>
+          ))}
         </div>
         {shown < live.length ? (
           <div className="feed-more-wrap">
