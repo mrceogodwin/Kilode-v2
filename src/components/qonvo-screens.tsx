@@ -1,6 +1,6 @@
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { STAFF_PATH } from "@/lib/staff-path";
-import { Eye, Mail, MessageSquare, Share2, Bookmark, Search as SearchIcon, Newspaper, Users, Zap, Image as ImageIcon, Music, Clapperboard, Briefcase, Store, Download, Building2, Inbox as InboxIcon } from "lucide-react";
+import { Eye, Mail, MessageSquare, Share2, Bookmark, Search as SearchIcon, Newspaper, Users, Zap, Image as ImageIcon, Music, Clapperboard, Briefcase, Store, Download, Building2, Inbox as InboxIcon, Calendar, Tv, Megaphone, Bell, PenLine, ChevronRight } from "lucide-react";
 import { AD_COINS, AD_DAYS, AD_KINDS, AD_PLACEMENTS, AD_SIZES, ACCOUNT_KINDS, CHAT_TTLS, COMMUNITIES, KIND_FACE, KIND_PURPOSE, POST_CATS, REGIONS, ROOMS, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, safeHttpUrl, slugify, timeAgo, timeLabel, timeLeftLabel, youtubeId, type AccountKind, type AdKind, type AdPlacement, type MenuId, type Post } from "@/lib/qonvo-data";
 import type { useQonvo } from "@/lib/use-qonvo";
 import { approveTeamAsk, getProfile, leaveTeam, postTeamNote, reportPost, requestJoinTeam, teamDesk } from "@/lib/forum-server";
@@ -30,7 +30,7 @@ import { listInbox, listNotes, sendDm } from "@/lib/social-server";
 import { uploadCvFile } from "@/lib/supabase";
 import { creativeFits, runEnd, slotCharge } from "@/lib/board-rules";
 import { Tip } from "@/components/tip";
-import { searchPeople, searchTakes, suggestFollows } from "@/lib/takes-server";
+import { searchPeople, searchTakes, suggestFollows, toggleFollow } from "@/lib/takes-server";
 import { authClient, signOut } from "@/lib/auth/client";
 import { AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { canKind, createSheetTitle } from "@/lib/permissions";
@@ -1217,7 +1217,19 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
   const [foundTakes, setFoundTakes] = useState<{ id: string; handle: string; body: string }[]>([]);
   const [foundSpaces, setFoundSpaces] = useState<SpaceCard[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
+  const [followed, setFollowed] = useState<Record<string, boolean>>({});
   const s = q.trim().toLowerCase();
+  function jump(detail: { screen?: string; tab?: string }) {
+    window.dispatchEvent(new CustomEvent("kilode:goto", { detail }));
+  }
+  function followPerson(handle: string) {
+    const key = handle.toLowerCase();
+    setFollowed((m) => ({ ...m, [key]: !m[key] }));
+    void toggleFollow({ data: { handle } }).then((r) => {
+      if (!r.ok) setFollowed((m) => ({ ...m, [key]: !m[key] }));
+      else setFollowed((m) => ({ ...m, [key]: r.on }));
+    }).catch(() => setFollowed((m) => ({ ...m, [key]: !m[key] })));
+  }
   const rooms = useMemo(
     () =>
       ROOMS.filter(
@@ -1300,7 +1312,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
     try { setRecent(JSON.parse(localStorage.getItem("kilode-recent-search") || "[]") as string[]); } catch { setRecent([]); }
   }, []);
   return (
-    <Screen kicker="KILODE" title="Activity" sub="Jump in, or search if you already know the name." className="paper-page">
+    <Screen kicker="KILODE" title="Activity" className="paper-page">
       <label className="act-search">
         <SearchIcon className="size-4" />
         <input
@@ -1310,10 +1322,11 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
         />
       </label>
       {!s && recent.length > 0 ? (
-        <div className="flex gap-1.5 overflow-x-auto">
+        <div className="flex items-center gap-1.5 overflow-x-auto">
           {recent.map((word) => (
             <button key={word} type="button" className="soc-chip shrink-0 px-2.5 py-1 text-[12px]" onClick={() => setQ(word)}>{word}</button>
           ))}
+          <button type="button" className="shrink-0 text-[11px] font-bold text-muted" onClick={() => { try { localStorage.removeItem("kilode-recent-search"); } catch { /* ignore */ } setRecent([]); }}>Clear</button>
         </div>
       ) : null}
       <div className="act-lanes" role="tablist">
@@ -1328,10 +1341,15 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           <div className="text-[11px] font-medium text-muted">People</div>
           {foundPeople.length === 0 ? <p className="text-sm text-muted">No people match.</p> : null}
           {foundPeople.map((p) => (
-            <a key={p.handle} href={`/u/${encodeURIComponent(p.handle)}`} className="block rounded-xl border border-line bg-panel p-3 text-sm">
-              <div className="font-semibold">@{p.handle}</div>
-              <div className="text-xs text-muted">{p.role}{p.line ? ` · ${p.line}` : ""}</div>
-            </a>
+            <div key={p.handle} className="act-person">
+              <a href={`/u/${encodeURIComponent(p.handle)}`} className="min-w-0 flex-1">
+                <div className="font-semibold">@{p.handle}</div>
+                <div className="text-xs text-muted">{p.role}{p.line ? ` · ${p.line}` : ""}</div>
+              </a>
+              <button type="button" className={`act-follow ${followed[p.handle.toLowerCase()] ? "on" : ""}`} onClick={() => followPerson(p.handle)}>
+                {followed[p.handle.toLowerCase()] ? "Following" : "Follow"}
+              </button>
+            </div>
           ))}
           <div className="text-[11px] font-medium text-muted">Spaces</div>
           {foundSpaces.length === 0 ? <p className="text-sm text-muted">No spaces match.</p> : null}
@@ -1364,17 +1382,21 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           <div className="text-[11px] font-medium text-muted">Music</div>
           {tracks.length === 0 ? <p className="rounded-xl border border-line bg-panel p-6 text-center text-sm text-muted">No tracks match.</p> : null}
           {tracks.filter((t) => !!t?.id).map((t) => (
-            <div key={t.id} className="rounded-xl border border-line bg-panel p-3 text-sm">
-              {t.title} <span className="text-muted">· {t.artist}</span>
-            </div>
+            <button key={t.id} type="button" className="act-person w-full text-left" onClick={() => { store.setOpenTrack?.(t.id); jump({ tab: "music" }); }}>
+              <span className="min-w-0 flex-1 text-sm">{t.title} <span className="text-muted">· {t.artist}</span></span>
+              <ChevronRight className="size-3.5 text-muted" />
+            </button>
           ))}
           <div className="text-[11px] font-medium text-muted">Jobs · Market · Rent</div>
           {jobs.length === 0 ? <p className="text-sm text-muted">No listings match.</p> : null}
           {jobs.map((j) => (
-            <div key={j.id} className="rounded-xl border border-line bg-panel p-3 text-sm">
-              <div className="font-semibold">{j.title}</div>
-              <div className="text-xs text-muted">{j.kind} · {j.city} · {j.company}</div>
-            </div>
+            <button key={j.id} type="button" className="act-person w-full text-left" onClick={() => jump({ screen: j.kind === "market" ? "market" : j.kind === "rent" ? "rent" : "jobs" })}>
+              <span className="min-w-0 flex-1">
+                <div className="font-semibold">{j.title}</div>
+                <div className="text-xs text-muted">{j.kind} · {j.city} · {j.company}</div>
+              </span>
+              <ChevronRight className="size-3.5 text-muted" />
+            </button>
           ))}
           <div className="text-[11px] font-medium text-muted">Rooms</div>
           {rooms.map((r) => (
@@ -1385,29 +1407,35 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           ))}
         </>
       ) : lane === "home" ? (
-        <div className="act-board">
+        <div className="act-list">
           {(
             [
-              ["Socials", "Takes and people", Users, true, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "socials" } }))],
-              ["Media", "News and stories", Newspaper, true, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "feeds" } }))],
-              ["Buzz", "What is hot", Zap, false, () => setLane("trending")],
-              ["People", "Who to follow", Users, false, () => setLane("discover")],
-              ["Rooms", "Live talk", MessageSquare, false, () => setLane("all")],
-              ["Photos", "The picture grid", ImageIcon, false, () => setLane("explore")],
-              ["Music", "Artists and links", Music, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "music" } }))],
-              ["Cinema", "Films and votes", Clapperboard, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "watch" } }))],
-              ["Jobs", "Roles and applications", Briefcase, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "jobs" } }))],
-              ["Market", "Buy and sell", Store, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))],
-              ["Downloads", "Files from Kilode", Download, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "downloads" } }))],
-              ["Spaces", "Business pages", Building2, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "spaces" } }))],
-              ["Messages", "Your inbox", InboxIcon, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "inbox" } }))],
-              ["Saved", "Posts you kept", Bookmark, false, () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "bookmarks" } }))],
+              ["Socials", Users, () => jump({ tab: "socials" })],
+              ["Media", Newspaper, () => jump({ tab: "feeds" })],
+              ["Buzz", Zap, () => setLane("trending")],
+              ["People", Users, () => setLane("discover")],
+              ["Rooms", MessageSquare, () => setLane("all")],
+              ["Photos", ImageIcon, () => setLane("explore")],
+              ["Music", Music, () => jump({ tab: "music" })],
+              ["Events", Calendar, () => jump({ tab: "cinema" })],
+              ["Films", Clapperboard, () => jump({ tab: "watch" })],
+              ["Jobs", Briefcase, () => jump({ screen: "jobs" })],
+              ["Market", Store, () => jump({ screen: "market" })],
+              ["Rent", Building2, () => jump({ screen: "rent" })],
+              ["Spaces", Building2, () => jump({ screen: "spaces" })],
+              ["Messages", InboxIcon, () => jump({ screen: "inbox" })],
+              ["Saved", Bookmark, () => jump({ screen: "bookmarks" })],
+              ["TV", Tv, () => jump({ screen: "tv" })],
+              ["Ads", Megaphone, () => jump({ screen: "ads" })],
+              ["Alerts", Bell, () => jump({ screen: "notifications" })],
+              ["Write", PenLine, () => jump({ screen: "create" })],
+              ["Downloads", Download, () => jump({ tab: "downloads" })],
             ] as const
-          ).map(([title, body, Icon, wide, go]) => (
-            <button key={title} type="button" className={`act-tile ${wide ? "wide" : ""}`} onClick={go}>
+          ).map(([title, Icon, go]) => (
+            <button key={title} type="button" className="act-row" onClick={go}>
               <Icon className="size-4" />
               <strong>{title}</strong>
-              <span>{body}</span>
+              <ChevronRight className="size-3.5" />
             </button>
           ))}
         </div>
@@ -1430,10 +1458,15 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
         <div className="space-y-2">
           {people.length === 0 ? <p className="text-sm text-muted">No new people yet. Follow a few and this fills up.</p> : null}
           {people.map((p) => (
-            <a key={p.id || p.handle} href={`/u/${encodeURIComponent(p.handle)}`} className="block rounded-xl border border-line bg-panel p-3 text-sm">
-              <div className="font-semibold">@{p.handle}</div>
-              <div className="text-xs text-muted">{p.role}</div>
-            </a>
+            <div key={p.id || p.handle} className="act-person">
+              <a href={`/u/${encodeURIComponent(p.handle)}`} className="min-w-0 flex-1 text-sm">
+                <div className="font-semibold">@{p.handle}</div>
+                <div className="text-xs text-muted">{p.role}</div>
+              </a>
+              <button type="button" className={`act-follow ${followed[p.handle.toLowerCase()] ? "on" : ""}`} onClick={() => followPerson(p.handle)}>
+                {followed[p.handle.toLowerCase()] ? "Following" : "Follow"}
+              </button>
+            </div>
           ))}
           <div className="pt-2 text-[11px] font-medium text-muted">Spaces</div>
           {foundSpaces.length === 0 ? <p className="text-sm text-muted">No public spaces yet.</p> : null}
