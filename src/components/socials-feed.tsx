@@ -301,11 +301,13 @@ function LiquidCuts({ value, onPick }: { value: string; onPick: (id: (typeof SOC
 function KnowRail({
   people,
   onFollow,
+  onHide,
   isOn,
   back,
 }: {
   people: { id: string; handle: string; mutuals?: number; photo?: string }[];
   onFollow: (handle: string, id: string) => void;
+  onHide: (handle: string) => void;
   isOn: (handle: string, id: string) => boolean;
   back: (handle: string, id: string) => boolean;
 }) {
@@ -322,6 +324,7 @@ function KnowRail({
             <button type="button" onClick={(e) => { e.preventDefault(); onFollow(p.handle, p.id); }}>
               {isOn(p.handle, p.id) ? "Following" : back(p.handle, p.id) ? "Follow back" : "Follow"}
             </button>
+            <button type="button" onClick={(e) => { e.preventDefault(); onHide(p.handle); }}>Hide</button>
           </a>
         ))}
       </div>
@@ -339,6 +342,14 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
   const [err, setErr] = useState("");
   const [body, setBody] = useState("");
   const [sheet, setSheet] = useState(false);
+  const [skipPeople, setSkipPeople] = useState<string[]>(() => {
+    try {
+      const raw = JSON.parse(sessionStorage.getItem("kilode-skip-people") || "[]");
+      return Array.isArray(raw) ? raw.map((x) => String(x).toLowerCase()) : [];
+    } catch {
+      return [];
+    }
+  });
   const [place, setPlace] = useState("");
   const [cityOn, setCityOn] = useState(false);
   const [alt, setAlt] = useState("");
@@ -1480,6 +1491,16 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
             />
           </label>
           <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+            {["Naija", "Music", "Jobs", "Lagos"].map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className="soc-chip shrink-0 px-1.5 py-0.5 text-[10px]"
+                onClick={() => setBody((cur) => (cur.includes(`#${tag}`) ? cur : `${cur.trim()} #${tag}`.trim()).slice(0, 280))}
+              >
+                #{tag}
+              </button>
+            ))}
             {pills.map((k) => (
               <button
                 key={k.id}
@@ -1771,8 +1792,15 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
           />
           {lane === "posts" && (i + 1) % 7 === 0 ? (
             <KnowRail
-              people={suggested.filter((p) => !hidden(p.handle)).slice(0, 8)}
+              people={suggested.filter((p) => !hidden(p.handle) && !skipPeople.includes((p.handle || "").toLowerCase())).slice(0, 8)}
               onFollow={flipFollow}
+              onHide={(handle) => {
+                setSkipPeople((list) => {
+                  const next = [...list, handle.toLowerCase()];
+                  try { sessionStorage.setItem("kilode-skip-people", JSON.stringify(next)); } catch { /* ignore */ }
+                  return next;
+                });
+              }}
               isOn={(handle, id) => followed(handle, id)}
               back={(handle, id) => theyFollow(handle, id)}
             />

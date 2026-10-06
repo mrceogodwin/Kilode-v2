@@ -56,7 +56,7 @@ import {
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, ROOMS, AD_COINS, KIND_FACE, avatarUrl, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeAgo, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { canKind, canCreateMenu, createLabelFor } from "@/lib/permissions";
-import { disconnectFellow, listConnects, listLive, listTakes, replyConnect, type ConnectRow } from "@/lib/takes-server";
+import { disconnectFellow, listConnects, listLive, listTakes, replyConnect, toggleFollow, type ConnectRow } from "@/lib/takes-server";
 import { listInbox, sendDm } from "@/lib/social-server";
 import { unlockSound, pingMessage } from "@/lib/ping";
 import { useRealtimeInbox } from "@/lib/use-realtime";
@@ -75,7 +75,7 @@ import { listRoomOverlay } from "@/lib/rooms-server";
 import { Link } from "@tanstack/react-router";
 import { SignedIn, SignedOut } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { getPublicPost, listPostSeen, listWallets, notePostSeen, deleteOwnPost, pingPresence, listMyTopics, toggleTopic } from "@/lib/forum-server";
+import { getPublicPost, listPostSeen, listWallets, notePostSeen, deleteOwnPost, pingPresence, listMyTopics, toggleTopic, reportPost } from "@/lib/forum-server";
 import { kilodeSignIn, kilodeSignUp } from "@/lib/register";
 import { AccountKindPicker, AvatarImg, AvatarPicker } from "@/components/account-kind";
 import { ThreadTranslateBar, TranslatedLine } from "@/components/translate-btn";
@@ -2486,6 +2486,19 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
   const [topicBusy, setTopicBusy] = useState(false);
   const [socialNote, setSocialNote] = useState("");
   const [socialBusy, setSocialBusy] = useState(false);
+  const scroller = useRef<HTMLElement>(null);
+  const [progress, setProgress] = useState(0);
+  const [size, setSize] = useState<"s" | "m" | "l">(() => {
+    try {
+      const v = localStorage.getItem("kilode-read-size");
+      return v === "s" || v === "l" ? v : "m";
+    } catch {
+      return "m";
+    }
+  });
+  const [authorOn, setAuthorOn] = useState(false);
+  const [reportWhy, setReportWhy] = useState("");
+  const [reportNote, setReportNote] = useState("");
   useEffect(() => {
     setFullBody(post.body || "");
     void getPublicPost({ data: post.slug || post.id })
@@ -2508,6 +2521,10 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [post.id, session.user?.id]);
   const mins = Math.max(1, Math.round(postBodyPlain(fullBody || "").split(/\s+/).filter(Boolean).length / 180));
+  const left = Math.max(1, Math.ceil(mins * (1 - progress)));
+  const ring = store.posts.filter((p) => p.id && p.status !== "draft");
+  const prevStory = ring.filter((p) => p.ts < post.ts).sort((a, b) => b.ts - a.ts)[0];
+  const nextStory = ring.filter((p) => p.ts > post.ts).sort((a, b) => a.ts - b.ts)[0];
   const saved = store.savedPosts.includes(post.id);
   const likes = store.likes[post.id] ?? 0;
   const shares = store.shares[post.id] ?? 0;
@@ -2530,11 +2547,37 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
     if (kind === "native" && navigator.share) void navigator.share({ title: post.title, text: shareText, url });
   }
   return (
-    <article className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto dock-pad">
+    <article
+      ref={scroller}
+      className={`read-size-${size} min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto dock-pad`}
+      onScroll={(e) => {
+        const el = e.currentTarget;
+        const max = el.scrollHeight - el.clientHeight;
+        setProgress(max > 0 ? el.scrollTop / max : 0);
+      }}
+    >
+      <div className="read-progress" style={{ width: `${Math.round(progress * 100)}%` }} />
       <div className="mx-auto min-w-0 max-w-3xl overflow-x-hidden break-words px-4 py-4 [overflow-wrap:anywhere]">
-        <button type="button" className="text-[11px] text-muted" onClick={() => store.setOpenPost(null)}>
-          ← Media
-        </button>
+        <div className="flex items-center justify-between gap-2">
+          <button type="button" className="text-[11px] text-muted" onClick={() => store.setOpenPost(null)}>
+            ← Media
+          </button>
+          <div className="flex items-center gap-1">
+            {(["s", "m", "l"] as const).map((id) => (
+              <button
+                key={id}
+                type="button"
+                className={`read-size ${size === id ? "on" : ""}`}
+                onClick={() => {
+                  setSize(id);
+                  try { localStorage.setItem("kilode-read-size", id); } catch { /* ignore */ }
+                }}
+              >
+                {id.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="raised mt-3 overflow-hidden rounded-2xl">
           {post.image ? (
             <div className="relative">
@@ -2578,6 +2621,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
               <HandleLink handle={post.author} className="text-[13px] font-bold" />
               <span>· {timeLabel(post.ts)}</span>
               <span>· {mins} min read</span>
+              <span>· {left} left</span>
               {mine ? (
                 <button
                   type="button"
@@ -2609,7 +2653,24 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
                 >
                   Who saw this
                 </button>
-              ) : null}
+              ) : (
+                <button
+                  type="button"
+                  className="font-bold text-fg"
+                  onClick={() => {
+                    if (!session.user) {
+                      window.location.href = "/login?mode=up";
+                      return;
+                    }
+                    void toggleFollow({ data: { handle: post.author } }).then((r) => {
+                      if (r.ok) setAuthorOn(r.on);
+                      else setNote(r.reason);
+                    }).catch(() => setNote("Could not follow."));
+                  }}
+                >
+                  {authorOn ? "Following" : "Follow"}
+                </button>
+              )}
             </div>
             {seenOpen && mine ? (
               <p className="mt-1 text-[11px] text-muted">
@@ -2689,15 +2750,47 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
           </ShareIco>
         </div>
         {socialNote ? <p className="mt-2 text-[12px] font-semibold text-lime-2">{socialNote}</p> : null}
+        <div className="read-nav">
+          <button type="button" disabled={!prevStory} onClick={() => prevStory && store.setOpenPost(prevStory.id)}>Previous</button>
+          <button type="button" onClick={() => document.getElementById("story-comments")?.scrollIntoView({ behavior: "smooth" })}>Comments</button>
+          <button type="button" onClick={() => window.print()}>Print</button>
+          <button type="button" disabled={!nextStory} onClick={() => nextStory && store.setOpenPost(nextStory.id)}>Next</button>
+        </div>
+        {!mine ? (
+          <form
+            className="read-report"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!session.user) {
+                window.location.href = "/login?mode=up";
+                return;
+              }
+              const reason = reportWhy.trim();
+              if (reason.length < 3) {
+                setReportNote("Say why, in a few words.");
+                return;
+              }
+              void reportPost({ data: { postId: post.id, reason } }).then(() => {
+                setReportWhy("");
+                setReportNote("Sent to Kilode.");
+              }).catch(() => setReportNote("Could not send."));
+            }}
+          >
+            <input value={reportWhy} onChange={(e) => setReportWhy(e.target.value)} maxLength={180} placeholder="Report this story" />
+            <button type="submit">Send</button>
+          </form>
+        ) : null}
+        {reportNote ? <p className="mt-1 text-[11px] text-muted">{reportNote}</p> : null}
         {(() => {
           const related = store.posts
             .filter((p) => p.id !== post.id && p.status !== "draft" && (p.category || "General") === (post.category || "General"))
             .slice(0, 4);
-          if (related.length === 0) return null;
+          const list = related.length ? related : store.posts.filter((p) => p.id !== post.id && p.status !== "draft").slice(0, 4);
+          if (list.length === 0) return null;
           return (
             <div className="mt-4">
-              <div className="mb-1 text-[10px] font-bold tracking-[0.16em] text-muted">MORE IN {post.category || "GENERAL"}</div>
-              {related.map((p) => (
+              <div className="mb-1 text-[10px] font-bold tracking-[0.16em] text-muted">{related.length ? `MORE IN ${post.category || "GENERAL"}` : "MORE STORIES"}</div>
+              {list.map((p) => (
                 <button key={p.id} type="button" className="flex w-full items-center gap-2 border-t border-line py-2 text-left" onClick={() => store.setOpenPost(p.id)}>
                   {p.image ? <img src={p.image} alt="" className="size-10 rounded object-cover" /> : <span className="size-10 rounded bg-panel-3" />}
                   <span className="min-w-0">
@@ -2719,7 +2812,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
         <div className="mt-6">
           <AdSlotOrEmpty id="article_mid" label="" />
         </div>
-        <div className="mt-8 border-t border-line pt-4">
+        <div id="story-comments" className="mt-8 border-t border-line pt-4">
           <div className="flex items-end justify-between gap-2">
             <div>
               <div className="text-[10px] font-bold tracking-[0.16em] text-lime-2">COMMENTS</div>
@@ -3336,6 +3429,21 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
                     </svg>
                   </span>
                 ) : null}
+                <button
+                  type="button"
+                  aria-label={store.savedPosts.includes(p.id) ? "Saved" : "Save"}
+                  className="media-save"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!store.authed) {
+                      window.location.href = "/login?mode=up";
+                      return;
+                    }
+                    store.savePostMark(p.id);
+                  }}
+                >
+                  <Bookmark className={`size-[11px] ${store.savedPosts.includes(p.id) ? "fill-current" : ""}`} />
+                </button>
                 <button
                   type="button"
                   aria-label="Repost"

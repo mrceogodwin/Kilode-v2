@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { appleTrackId, artworkFromLookup, artworkSearchUrl, pushNetwork, pushUsd } from "@/lib/artist-rules";
-import { listLivePushes, listMyPushes, listMyPayouts, listPresaves, releasePresave, requestPayout, savePresave, savePush, seePush, wantPresave, type PushCard } from "@/lib/artist-server";
+import { listLivePushes, listMyPushes, listMyPayouts, listPresaves, releasePresave, requestPayout, savePresave, savePush, seePush, setPushState, wantPresave, type PushCard } from "@/lib/artist-server";
 import { listPayMethods } from "@/lib/pay-gateways";
 import { GatewayPay } from "@/components/pay-checkout";
 import type { PayProvider } from "@/lib/pay-money";
@@ -78,9 +78,10 @@ export function PushStrip() {
         >
           <ArtFace name={row.handle} cover={row.cover} url={row.url} />
           <span>
-            <b>Push · {row.network}</b>
+            <b>Promoted · {row.network}</b>
             <strong>{row.title}</strong>
             <em>@{row.handle} · {timeLeftLabel(row.expiresAt)}</em>
+            {row.note ? <em>{row.note}</em> : null}
           </span>
         </a>
       ))}
@@ -99,8 +100,11 @@ export function PushDesk({ artist }: { artist: boolean }) {
   const [gate, setGate] = useState({ paystack: false, flutterwave: false, nowpayments: false, ngnPerUsd: 1600 });
   const [err, setErr] = useState("");
   const [done, setDone] = useState("");
+  const [tick, setTick] = useState(0);
   const [step, setStep] = useState(1);
-  const [mine, setMine] = useState<{ id: string; title: string; note: string; network: string; url: string; cover: string; city: string; age: string; clicks: number; views: number; status: string; expiresAt: number; days: number }[]>([]);
+  const [mine, setMine] = useState<{ id: string; title: string; note: string; network: string; url: string; cover: string; city: string; age: string; clicks: number; views: number; status: string; expiresAt: number; days: number; receipt?: string }[]>([]);
+  const [bag, setBag] = useState<"all" | "live" | "paused" | "ended">("all");
+  const [preview, setPreview] = useState("");
   const [drops, setDrops] = useState<{ id: string; title: string; artist: string; whenLabel: string; interests: number }[]>([]);
   const [payouts, setPayouts] = useState<{ id: string; note: string; status: string }[]>([]);
   const [whenLabel, setWhenLabel] = useState("");
@@ -108,10 +112,10 @@ export function PushDesk({ artist }: { artist: boolean }) {
   const [tool, setTool] = useState("");
   useEffect(() => {
     void listPayMethods().then((m) => setGate({ paystack: m.paystack, flutterwave: m.flutterwave, nowpayments: m.nowpayments, ngnPerUsd: m.ngnPerUsd })).catch(() => undefined);
-    void listMyPushes().then((rows) => setMine(Array.isArray(rows) ? rows.map((r) => ({ ...r, url: r.url || "", note: r.note || "", cover: r.cover || "", city: r.city || "", age: r.age || "", views: r.views || 0, days: r.days || 0 })) : [])).catch(() => setMine([]));
+    void listMyPushes().then((rows) => setMine(Array.isArray(rows) ? rows.map((r) => ({ ...r, url: r.url || "", note: r.note || "", cover: r.cover || "", city: r.city || "", age: r.age || "", views: r.views || 0, days: r.days || 0, receipt: r.receipt || "" })) : [])).catch(() => setMine([]));
     void listPresaves().then((rows) => setDrops(Array.isArray(rows) ? rows.map((r) => ({ id: r.id, title: r.title, artist: r.artist, whenLabel: r.whenLabel, interests: r.interests })) : [])).catch(() => setDrops([]));
     void listMyPayouts().then((rows) => setPayouts(Array.isArray(rows) ? rows : [])).catch(() => setPayouts([]));
-  }, [done]);
+  }, [done, tick]);
   if (!artist) return <p className="ad-note">Push is for Artist accounts. A pushed link is a paid card on Socials.</p>;
   const link = pushNetwork(url);
   const usd = pushUsd(days);
@@ -195,24 +199,52 @@ export function PushDesk({ artist }: { artist: boolean }) {
       {done ? <p className="ad-note">{done} is on Socials.</p> : null}
       {mine.length ? (
         <div className="ad-list">
-          {mine.map((row) => {
+          <div className="push-tools">
+            {(["all", "live", "paused", "ended"] as const).map((id) => (
+              <button key={id} type="button" className={bag === id ? "on" : ""} onClick={() => setBag(id)}>{id}</button>
+            ))}
+          </div>
+          {mine.filter((row) => {
+            const ended = row.status === "ended" || row.expiresAt <= Date.now();
+            if (bag === "live") return row.status === "live" && !ended;
+            if (bag === "paused") return row.status === "paused";
+            if (bag === "ended") return ended;
+            return true;
+          }).map((row) => {
             const rate = row.views > 0 ? Math.round((row.clicks / row.views) * 100) : null;
+            const ended = row.status === "ended" || row.expiresAt <= Date.now();
             return (
               <div key={row.id} className="ad-card">
                 <div className="flex items-center gap-2">
                   <ArtFace name={row.title} cover={row.cover} url={row.url} />
                   <span className="min-w-0">
                     <strong>{row.title}</strong>
-                    <em>{row.status} · {row.network} · {row.days || "?"}d · {row.views} seen · {row.clicks} opens{rate == null ? "" : ` · ${rate}%`} · {row.expiresAt > Date.now() ? timeLeftLabel(row.expiresAt) : "Ended"}</em>
+                    <em>{row.status} · {row.network} · {row.days || "?"}d · {row.views} seen · {row.clicks} opens{rate == null ? "" : ` · ${rate}% open rate`} · {ended ? "Ended" : timeLeftLabel(row.expiresAt)}</em>
                     {row.note ? <em>{row.note}</em> : null}
-                    {row.city || row.age ? <em>{[row.city, row.age].filter(Boolean).join(" · ")}</em> : null}
+                    {row.city || row.age ? <em>Audience · {[row.city, row.age].filter(Boolean).join(" · ")}</em> : null}
+                    <em>Receipt {row.receipt ? row.receipt.slice(0, 14) : row.id.slice(0, 10)}</em>
                   </span>
                 </div>
+                {preview === row.id ? (
+                  <a className="push-card" href={row.url} target="_blank" rel="noreferrer">
+                    <ArtFace name={row.title} cover={row.cover} url={row.url} />
+                    <span>
+                      <b>Promoted · {row.network}</b>
+                      <strong>{row.title}</strong>
+                      <em>This is the card Socials shows.</em>
+                    </span>
+                  </a>
+                ) : null}
                 <div className="push-tools">
                   <button type="button" onClick={() => { void navigator.clipboard?.writeText(row.url); setTool("Copied"); }}>Copy</button>
                   <button type="button" onClick={() => { void navigator.clipboard?.writeText(`${row.title}\n${row.url}`); setTool("Line copied"); }}>Line</button>
                   <button type="button" onClick={() => { if (navigator.share) void navigator.share({ title: row.title, url: row.url }); else window.open(row.url, "_blank", "noopener"); }}>Share</button>
                   <a href={row.url} target="_blank" rel="noreferrer">Open</a>
+                  <button type="button" onClick={() => setPreview((id) => (id === row.id ? "" : row.id))}>{preview === row.id ? "Hide" : "Preview"}</button>
+                  <button type="button" onClick={() => { setTitle(row.title); setUrl(row.url); setNote(row.note); setCity(row.city); setAge(row.age); if (row.days === 1 || row.days === 3 || row.days === 7) setDays(row.days); setStep(1); setTool("Copied into a new draft. It is not live until you pay."); }}>Use again</button>
+                  {row.status === "live" && !ended ? <button type="button" onClick={() => void setPushState({ data: { id: row.id, action: "pause" } }).then((r) => { setTool(r.ok ? "Paused. It is off Socials until you resume." : r.reason); if (r.ok) setTick((n) => n + 1); })}>Pause</button> : null}
+                  {row.status === "paused" && !ended ? <button type="button" onClick={() => void setPushState({ data: { id: row.id, action: "resume" } }).then((r) => { setTool(r.ok ? "Live again" : r.reason); if (r.ok) setTick((n) => n + 1); })}>Resume</button> : null}
+                  {!ended ? <button type="button" onClick={() => { if (!window.confirm("End this push now? This does not refund the payment.")) return; void setPushState({ data: { id: row.id, action: "end" } }).then((r) => { setTool(r.ok ? "Ended" : r.reason); if (r.ok) setTick((n) => n + 1); }); }}>End</button> : null}
                 </div>
               </div>
             );

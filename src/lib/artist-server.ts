@@ -156,8 +156,8 @@ export const listMyPushes = createServerFn({ method: "GET" })
       const rows = await sql<{
         id: string; handle: string; title: string; note: string | null; url: string; network: string;
         cover: string | null; clicks: number | string | null; views: number | string | null; ts: number | string; expires_at: number | string | null; days: number | string; status: string;
-        target_city: string | null; target_age: string | null;
-      }>`select id, handle, title, note, url, network, cover, clicks, views, ts, expires_at, days, status, target_city, target_age from nf_pushes
+        target_city: string | null; target_age: string | null; tx_hash: string | null;
+      }>`select id, handle, title, note, url, network, cover, clicks, views, ts, expires_at, days, status, target_city, target_age, tx_hash from nf_pushes
         where user_id = ${context.userId} order by ts desc limit 12`;
       return rows.map((r) => ({
         id: r.id,
@@ -173,6 +173,7 @@ export const listMyPushes = createServerFn({ method: "GET" })
         status: r.status,
         expiresAt: Number(r.expires_at ?? 0),
         days: Number(r.days),
+        receipt: r.tx_hash ?? "",
       }));
     } catch {
       return [];
@@ -232,6 +233,35 @@ export const seePush = createServerFn({ method: "POST" })
       return { ok: false as const };
     }
     return { ok: true as const };
+  });
+
+export const setPushState = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id?: string; action?: string }) => d)
+  .handler(async ({ context, data }) => {
+    const id = String(data.id || "").slice(0, 40);
+    const action = data.action === "pause" || data.action === "resume" || data.action === "end" ? data.action : "";
+    if (!id || !action) return { ok: false as const, reason: "Pick a campaign." };
+    const sql = await ensure();
+    const now = Date.now();
+    const rows = await sql<{ status: string; expires_at: number | string }>`select status, expires_at from nf_pushes where id = ${id} and user_id = ${context.userId} limit 1`;
+    const row = rows[0];
+    if (!row) return { ok: false as const, reason: "That push is not yours." };
+    const exp = Number(row.expires_at || 0);
+    if (action === "end") {
+      await sql`update nf_pushes set status = ${"ended"}, expires_at = ${now} where id = ${id} and user_id = ${context.userId}`;
+      return { ok: true as const, status: "ended" };
+    }
+    if (action === "pause") {
+      if (row.status !== "live") return { ok: false as const, reason: "Only a live push can pause." };
+      await sql`update nf_pushes set status = ${"paused"} where id = ${id} and user_id = ${context.userId}`;
+      return { ok: true as const, status: "paused" };
+    }
+    if (exp <= now) return { ok: false as const, reason: "This push has ended." };
+    const live = await sql<{ id: string }>`select id from nf_pushes where user_id = ${context.userId} and status = ${"live"} and expires_at > ${now} and id <> ${id} limit 1`;
+    if (live[0]) return { ok: false as const, reason: "You already have a live push." };
+    await sql`update nf_pushes set status = ${"live"} where id = ${id} and user_id = ${context.userId}`;
+    return { ok: true as const, status: "live" };
   });
 
 export const artistFollowCount = createServerFn({ method: "GET" })
