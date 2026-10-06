@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Play, Repeat2 } from "lucide-react";
+import { ChevronLeft, Play, Repeat2 } from "lucide-react";
 import { SampleBanner } from "@/components/sample-banner";
 import { listAdCatalog, type AdCatalog } from "@/lib/ad-catalog-server";
 import { isAdUnit, isPubId } from "@/lib/ad-slots";
@@ -166,10 +166,11 @@ export function FeedsHero({
             <button
               type="button"
               aria-label="Next"
-              className="absolute top-1/2 right-2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-black/45 text-white"
+              className="hero-more"
               onClick={() => go(i + 1)}
             >
-              <ChevronRight className="size-4" />
+              MORE
+              <span aria-hidden>››</span>
             </button>
             {slides.length <= 8 ? (
             <div className="absolute bottom-2 left-0 right-0 z-10 flex justify-center gap-1">

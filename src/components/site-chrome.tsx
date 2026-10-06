@@ -3,7 +3,6 @@ import { Share2, X } from "lucide-react";
 import { fmtCount, type Post } from "@/lib/qonvo-data";
 import { DigestBox, TelegramLink } from "@/components/get-app";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { ABOUT_SHORT } from "@/lib/legal";
 import { getPublicSite, pingShare, pingVisit, saveSiteFlags, DEFAULT_DESKS, type PublicSite, type ShareKey } from "@/lib/site-server";
 
 const GONE_KEY = "kilode-install-toast";
@@ -193,7 +192,7 @@ export function SiteFooter() {
   ];
   return (
     <footer className="site-foot mt-5 overflow-hidden rounded-2xl px-3.5 py-4 sm:px-4">
-      {session.isPending || signedIn ? null : (
+      {signedIn ? null : (
         <div className="text-center">
           <img src="/kilode-official.png" alt="Kilode" className="join-logo join-logo-dark mx-auto h-14 w-auto" />
           <img src="/kilode-logo-ivory.png" alt="" className="join-logo join-logo-ivory mx-auto h-14 w-auto" />
@@ -201,10 +200,6 @@ export function SiteFooter() {
           <p className="mx-auto mt-2 max-w-[20rem] text-[12px] leading-snug text-white/75">
             Password only. No email to sign up. {joinHint}
           </p>
-          <p className="mx-auto mt-1 max-w-[20rem] text-[12px] leading-snug text-white/60">{ABOUT_SHORT}</p>
-          <a href="/about" className="mt-1 inline-block text-[11px] font-semibold text-lime-2 underline-offset-2 hover:underline">
-            Read the full about
-          </a>
           <a
             href="/login?mode=up"
             className="btn-yellow mt-3 flex min-h-11 w-full items-center justify-center rounded-full px-3 text-[14px] font-extrabold text-black"
@@ -213,37 +208,22 @@ export function SiteFooter() {
           </a>
           <p className="mt-1.5 text-[11px] text-muted">
             Already here?{" "}
-            <a href="/login?mode=in" className="font-semibold text-[#e6c56a] underline-offset-2 hover:underline">
+            <a href="/login?mode=in" className="font-semibold text-fg underline-offset-2 hover:underline">
               Sign in
             </a>
           </p>
         </div>
       )}
 
-      {signedIn ? (
-        <div className="text-center">
-          <p className="text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">About Kilode</p>
-          <p className="mx-auto mt-1 max-w-[20rem] text-[12px] leading-snug text-muted">{ABOUT_SHORT}</p>
-          <a href="/about" className="mt-1 inline-block text-[11px] font-semibold text-lime-2 underline-offset-2 hover:underline">
-            Read the full about
-          </a>
-        </div>
-      ) : null}
+      <img src="/kilode-word.png?v=3" alt="Kilode" className="foot-mark mx-auto mt-1 h-8 w-auto" />
 
-      <div className="foot-stats mt-3 grid grid-cols-4 overflow-hidden rounded-xl" aria-label="Site stats">
-        {stats.map((s) => (
-          <div key={s.key} className="foot-stat px-1 py-1.5 text-center">
-            <div className="flex items-center justify-center gap-0.5">
-              {s.live ? <span className="size-1 animate-pulse rounded-full bg-lime-2" /> : null}
-              <span className="text-[13px] font-bold tabular-nums leading-none text-fg">{fmtCount(s.value)}</span>
-            </div>
-            <div className="mt-0.5 text-[8px] font-semibold tracking-[0.1em] text-muted uppercase">{s.label}</div>
-          </div>
-        ))}
+      <div className="foot-digest mt-3 rounded-xl px-2.5 pt-2 pb-2">
+        <div className="mb-1.5 text-center text-[9px] font-semibold tracking-[0.14em] text-muted uppercase">Subscribe</div>
+        <DigestBox quiet defaultOpen={false} />
       </div>
 
       <div className="mt-3 border-t border-white/10 pt-2.5">
-        <div className="mb-1.5 text-center text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">Share Kilode</div>
+        <div className="mb-1.5 text-center text-[9px] font-semibold tracking-[0.14em] text-muted uppercase">Share</div>
         <div className="grid grid-cols-5 gap-0.5">
           <ShareChip label="X" count={n.x} onClick={() => share("x")}>
             <IconX />
@@ -263,12 +243,21 @@ export function SiteFooter() {
         </div>
       </div>
 
-      <div className="mt-2.5 border-t border-white/10 pt-2.5">
-        <div className="foot-digest rounded-xl px-2.5 pt-2 pb-2">
-          <div className="mb-1.5 text-center text-[9px] font-semibold tracking-[0.14em] text-lime-2 uppercase">Email updates</div>
-          <DigestBox quiet defaultOpen={false} />
-        </div>
-        <img src="/kilode-word.png?v=3" alt="Kilode" className="foot-mark mx-auto mt-3 h-7 w-auto" />
+      <a href="/install" className="foot-install">
+        <span>Install Kilode</span>
+        <em>Add it to your home screen</em>
+      </a>
+
+      <div className="foot-stats mt-3 grid grid-cols-4 overflow-hidden rounded-xl" aria-label="Site stats">
+        {stats.map((s) => (
+          <div key={s.key} className="foot-stat px-1 py-1.5 text-center">
+            <div className="flex items-center justify-center gap-0.5">
+              {s.live ? <span className="size-1 animate-pulse rounded-full bg-lime-2" /> : null}
+              <span className="text-[13px] font-bold tabular-nums leading-none text-fg">{fmtCount(s.value)}</span>
+            </div>
+            <div className="mt-0.5 text-[8px] font-semibold tracking-[0.1em] text-muted uppercase">{s.label}</div>
+          </div>
+        ))}
       </div>
 
       <p className="mt-2.5 text-center text-[10px] leading-snug text-muted">

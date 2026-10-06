@@ -234,14 +234,6 @@ const KINDS: { id: TakeKind; label: string }[] = [
   { id: "banter", label: "Debate" },
 ];
 
-const HINT: Record<string, string> = {
-  news: "News is one short line. People mark it Fact or Cap.",
-  take: "Take is your opinion. People mark it Fact or Cap.",
-  job: "Job is a role. Add pay and place. A seeker can apply once.",
-  music: "Music is a song link. Play opens Spotify, Audiomack, Apple, or YouTube.",
-  banter: "Debate is two sides. People pick For or Against.",
-};
-
 function pillsFor(account: string) {
   if (account === "artist") return KINDS.filter((k) => k.id === "take" || k.id === "music" || k.id === "banter");
   if (account === "job_poster") return KINDS.filter((k) => k.id === "take" || k.id === "job" || k.id === "banter");
@@ -316,6 +308,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
   const [err, setErr] = useState("");
   const [body, setBody] = useState("");
   const [place, setPlace] = useState("");
+  const [cityOn, setCityOn] = useState(false);
   const [alt, setAlt] = useState("");
   const [circle, setCircle] = useState<"" | "followers">("");
   const [linkNote, setLinkNote] = useState("");
@@ -1287,9 +1280,16 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
             }}
           />
         </div>
-        <div className="mt-1 flex gap-1.5">
-          <input value={place} onChange={(e) => setPlace(e.target.value)} maxLength={40} placeholder="City, optional" className="min-w-0 flex-1 rounded-md border border-line bg-transparent px-2 py-1 text-[12px] outline-none" style={{ fontSize: 16 }} />
-          {shot ? <input value={alt} onChange={(e) => setAlt(e.target.value)} maxLength={80} placeholder="Photo note" className="min-w-0 flex-1 rounded-md border border-line bg-transparent px-2 py-1 text-[12px] outline-none" style={{ fontSize: 16 }} /> : null}
+        <div className="mt-1 flex items-center justify-end gap-2">
+          {cityOn ? (
+            <input value={place} onChange={(e) => setPlace(e.target.value)} maxLength={40} placeholder="City" aria-label="City" className="city-mini" style={{ fontSize: 16 }} autoFocus />
+          ) : (
+            <button type="button" className="city-mini-btn" onClick={() => setCityOn(true)}>
+              {place || "City"}
+              <span aria-hidden>▾</span>
+            </button>
+          )}
+          <span className={`shrink-0 text-[10px] tabular-nums ${body.length > 250 ? "text-[#ffd45a]" : "text-muted"}`}>{body.length}/280{body.trim() ? " · draft" : ""}</span>
         </div>
         {mentions.length > 0 ? (
           <div className="mention-list">
@@ -1328,10 +1328,9 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
             style={{ fontSize: 16 }}
           />
         ) : null}
-        <div className="mt-1 flex items-center justify-between gap-2">
-          <Tip text={HINT[kind]} />
-          <span className={`shrink-0 text-[10px] tabular-nums ${body.length > 250 ? "text-[#ffd45a]" : "text-muted"}`}>{body.length}/280{body.trim() ? " · draft" : ""}</span>
-        </div>
+        {shot ? (
+          <input value={alt} onChange={(e) => setAlt(e.target.value)} maxLength={80} placeholder="Photo note" className="mt-1 w-full rounded-md border border-line bg-transparent px-2 py-1 text-[12px] outline-none" style={{ fontSize: 16 }} />
+        ) : null}
         {shot ? (
           <div className="relative mt-2">
             <img src={shot} alt="" className="max-h-52 w-full rounded-[10px] object-cover" />
