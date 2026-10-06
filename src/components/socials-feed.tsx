@@ -298,6 +298,37 @@ function LiquidCuts({ value, onPick }: { value: string; onPick: (id: (typeof SOC
   );
 }
 
+function KnowRail({
+  people,
+  onFollow,
+  isOn,
+  back,
+}: {
+  people: { id: string; handle: string; mutuals?: number; photo?: string }[];
+  onFollow: (handle: string, id: string) => void;
+  isOn: (handle: string, id: string) => boolean;
+  back: (handle: string, id: string) => boolean;
+}) {
+  if (!people.length) return null;
+  return (
+    <div className="know-rail">
+      <div>People you may know</div>
+      <div>
+        {people.map((p) => (
+          <a key={p.id || p.handle} href={`/u/${encodeURIComponent(p.handle)}`}>
+            <img src={avatarUrl(p.handle, p.photo)} alt="" />
+            <b>@{p.handle}</b>
+            <em>{p.mutuals ? `${p.mutuals} mutual` : "New"}</em>
+            <button type="button" onClick={(e) => { e.preventDefault(); onFollow(p.handle, p.id); }}>
+              {isOn(p.handle, p.id) ? "Following" : back(p.handle, p.id) ? "Follow back" : "Follow"}
+            </button>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function SocialsFeed({ authed, account = "member", me = "", face = "", lane = "posts", onOpenPeople, onOpenFeed }: { authed: boolean; account?: string; me?: string; face?: string; lane?: "people" | "posts"; onOpenPeople?: () => void; onOpenFeed?: () => void }) {
   const pills = pillsFor(account);
   const boot = bootCache();
@@ -307,6 +338,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
   const [next, setNext] = useState(0);
   const [err, setErr] = useState("");
   const [body, setBody] = useState("");
+  const [sheet, setSheet] = useState(false);
   const [place, setPlace] = useState("");
   const [cityOn, setCityOn] = useState(false);
   const [alt, setAlt] = useState("");
@@ -413,6 +445,16 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
       dead = true;
     };
   }, [takes, followTakes, trendTakes, tagTakes]);
+  useEffect(() => {
+    const open = () => setSheet(true);
+    window.addEventListener("kilode:compose", open);
+    return () => window.removeEventListener("kilode:compose", open);
+  }, []);
+  useEffect(() => {
+    if (!sheet) return;
+    const t = window.setTimeout(() => document.querySelector<HTMLTextAreaElement>("#kilode-take")?.focus(), 40);
+    return () => window.clearTimeout(t);
+  }, [sheet]);
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("take") || "";
     if (!id) return;
@@ -884,6 +926,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
         setCircle("");
         setQuoting(null);
         setMentions([]);
+        setSheet(false);
         kilodeSound("sent");
         try { localStorage.removeItem("kilode-take-draft"); } catch { /* ignore */ }
       }
@@ -1249,7 +1292,22 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
         </div>
       ) : null}
       <PushStrip />
-      <div className="take-compose">
+      <div className={sheet ? "take-sheet" : "hidden"}>
+        <div className="take-sheet-bar">
+          <button
+            type="button"
+            onClick={() => {
+              if ((body.trim() || shot || clip) && !window.confirm("Discard this take?")) return;
+              setSheet(false);
+            }}
+          >
+            Close
+          </button>
+          <strong>New take</strong>
+          <button type="button" disabled={busy || mediaBusy || body.trim().length < 1} className="btn-join" onClick={() => void post()}>
+            {busy || mediaBusy ? "Sending" : "Post"}
+          </button>
+        </div>
         {quoting ? (
           <div className="mb-2 flex items-start justify-between gap-2 rounded-[10px] border border-line px-2 py-1.5">
             <p className="line-clamp-2 text-[11px] text-muted">Quoting @{quoting.handle}: {quoting.body}</p>
@@ -1442,23 +1500,6 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
         </div>
         {err ? <p className="mt-1 text-[12px] font-semibold text-danger" role="alert">{err}</p> : null}
       </div>
-      {lane === "posts" && suggested.filter((p) => !hidden(p.handle)).length > 0 ? (
-        <div className="mb-3">
-          <div className="mb-1.5 text-[12px] font-semibold">People you may know</div>
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-            {suggested.filter((p) => !hidden(p.handle)).slice(0, 8).map((p) => (
-              <div key={p.id || p.handle} className="know-card">
-                <img src={avatarUrl(p.handle, p.photo)} alt="" className="mb-1 size-8 rounded-full bg-panel-3 object-cover" />
-                <a href={`/u/${encodeURIComponent(p.handle)}`} className="block truncate text-[12px] font-semibold">@{p.handle}</a>
-                <div className="truncate text-[10px] text-muted">{p.mutuals > 0 ? `${p.mutuals} mutual` : "New on Kilode"}</div>
-                <button type="button" className={`know-follow ${followed(p.handle, p.id) ? "on" : ""}`} onClick={() => flipFollow(p.handle, p.id)}>
-                  {followed(p.handle, p.id) ? "Following" : theyFollow(p.handle, p.id) ? "Follow back" : "Follow"}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
       {lane === "posts" && spaces.length > 0 ? (
         <div className="mb-3">
           <div className="mb-1.5 flex items-center justify-between">
@@ -1518,8 +1559,9 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
           </span>
         </div>
       ) : null}
-      <div className="space-y-2">
-        {shownTakes.map((t) => (
+      <div className="space-y-3">
+        {shownTakes.map((t, i) => (
+          <div key={t.id}>
           <TakeCard
             key={t.id}
             take={t}
@@ -1727,6 +1769,15 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
                 .finally(() => setBusyId(""));
             }}
           />
+          {lane === "posts" && (i + 1) % 7 === 0 ? (
+            <KnowRail
+              people={suggested.filter((p) => !hidden(p.handle)).slice(0, 8)}
+              onFollow={flipFollow}
+              isOn={(handle, id) => followed(handle, id)}
+              back={(handle, id) => theyFollow(handle, id)}
+            />
+          ) : null}
+          </div>
         ))}
       </div>
       {stage ? (() => {

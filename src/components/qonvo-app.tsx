@@ -87,7 +87,7 @@ import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagA
 import { LinkText } from "@/components/link-text";
 import { PostBody } from "@/components/post-body";
 import { postBodyPlain } from "@/lib/post-body";
-import { InstallToast, PublicSiteProvider, SiteFooter, TrendingTicker, usePublicSite } from "@/components/site-chrome";
+import { InstallToast, PublicSiteProvider, TrendingTicker, usePublicSite } from "@/components/site-chrome";
 import type { PublicSite } from "@/lib/site-server";
 import { OnboardSheet } from "@/components/onboard-sheet";
 import { FeedsHero } from "@/components/feeds-hero";
@@ -845,7 +845,7 @@ function QonvoAppInner() {
                   return;
                 }
                 if (homeTab === "socials") {
-                  document.querySelector<HTMLTextAreaElement>("#kilode-take")?.focus();
+                  window.dispatchEvent(new Event("kilode:compose"));
                   return;
                 }
                 queueNewsPost();
@@ -1296,6 +1296,10 @@ function QonvoAppInner() {
             if (session.isPending) return;
             if (!signedIn) {
               window.location.href = "/login?mode=up";
+              return;
+            }
+            if (screen === "home" && homeTab === "socials") {
+              window.dispatchEvent(new Event("kilode:compose"));
               return;
             }
             openRoleCreate();
@@ -3044,6 +3048,68 @@ function FeedDiscover({ posts, onOpen }: { posts: { id: string; title?: string; 
   );
 }
 
+function RankDots({ posts, onOpen }: { posts: { id: string; title: string; category?: string; views?: number; status?: string }[]; onOpen: (id: string) => void }) {
+  const [n, setN] = useState(0);
+  const top = [...posts].filter((p) => p.id && p.status !== "draft" && p.title).sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).slice(0, 10);
+  if (top.length < 3) return null;
+  const cur = top[Math.min(n, top.length - 1)]!;
+  return (
+    <section className="rank-dots">
+      <div className="story-rail-head">Top 10</div>
+      <div className="rank-row">
+        {top.map((p, i) => (
+          <button key={p.id} type="button" className={i === n ? "on" : ""} onClick={() => setN(i)}>{i + 1}</button>
+        ))}
+      </div>
+      <button type="button" className="rank-title" onClick={() => onOpen(cur.id)}>
+        <em>{cur.category || "Story"}</em>
+        <strong>{cur.title}</strong>
+        <small>{fmtCount(cur.views ?? 0)} views</small>
+      </button>
+    </section>
+  );
+}
+
+function PulseBoard({ posts, onOpen }: { posts: { id: string; title: string; image?: string; category?: string; status?: string }[]; onOpen: (id: string) => void }) {
+  const rows = posts.filter((p) => p.id && p.status !== "draft" && p.title).slice(0, 5);
+  if (rows.length < 3) return null;
+  return (
+    <section className="pulse-board">
+      <div className="story-rail-head">Kilode Pulse</div>
+      <div>
+        {rows.map((p, i) => (
+          <button key={p.id} type="button" className={i === 0 ? "wide" : ""} onClick={() => onOpen(p.id)}>
+            {p.image ? <img src={p.image} alt="" /> : null}
+            <span>{p.category || "Now"}</span>
+            <strong>{p.title}</strong>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ExploreKilode({ onLeave }: { onLeave: (where: "trending" | "music" | "cinema" | "jobs" | "sports" | "tech") => void }) {
+  const doors = [
+    ["Socials", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { tab: "socials" } }))],
+    ["Music", () => onLeave("music")],
+    ["Cinema", () => onLeave("cinema")],
+    ["Jobs", () => onLeave("jobs")],
+    ["Market", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "market" } }))],
+    ["Ads", () => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "ads" } }))],
+  ] as const;
+  return (
+    <section className="explore-k">
+      <div className="story-rail-head">Explore Kilode</div>
+      <div>
+        {doors.map(([label, go]) => (
+          <button key={label} type="button" onClick={go}>{label}</button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "jobs" | "sports" | "tech") => void }) {
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(48);
@@ -3148,6 +3214,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
           <p className="mb-2 text-[12px] text-muted">{live.length} stories for “{q.trim()}”. Press enter to open the first.</p>
         ) : (
           <>
+            <div className="hero-split">
             <FeedsHero
               posts={store.posts}
               ads={store.campaigns}
@@ -3162,6 +3229,19 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
                 setCap("");
               }}
             />
+            <div className="hero-stack">
+              {store.posts.filter((p) => p.status !== "draft" && p.image && p.title).slice(1, 3).map((p) => (
+                <button key={p.id} type="button" className="hero-side" onClick={() => store.setOpenPost(p.id)}>
+                  <img src={p.image} alt="" />
+                  <span>
+                    <em>{p.category || "Story"}</em>
+                    <strong>{p.title}</strong>
+                  </span>
+                </button>
+              ))}
+            </div>
+            </div>
+            <RankDots posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
             <DeskLine onLane={setLane} onLeave={onLeave} onDesk={onDesk} />
             <div className="mb-2">
               <div className="lane-rail" role="tablist" aria-label="Feeds">
@@ -3358,7 +3438,8 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
         />
         <TagArchive posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
         <AdReserve id="feeds_after_tags" className="mt-3" />
-        <SiteFooter />
+        <PulseBoard posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
+        <ExploreKilode onLeave={onLeave} />
       </div>
     </div>
   );
