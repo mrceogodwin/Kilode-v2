@@ -2239,7 +2239,7 @@ function TakeCard({
     }, 280);
   }
   return (
-    <article className="take-card glass-3d px-2.5 py-2" data-take={take.id}>
+    <article className="take-line" data-take={take.id}>
       {take.via ? <div className="mb-1 text-[10px] font-semibold text-muted">Reposted by @{take.via}</div> : null}
       <div className="flex items-start gap-2">
         <Face handle={ghost ? "ghost" : take.handle} photo={ghost ? "" : photo} size={28} />

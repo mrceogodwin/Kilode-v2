@@ -2799,13 +2799,6 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
         <TopTen posts={store.posts} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
         <PortraitAd id="feeds_portrait_after" />
         <AdReserve id="article_after_top10" className="mt-8 mb-8" />
-        <LandscapeGrid title="MORE HIGHLIGHTS" posts={[...store.posts].sort((a, b) => (b.views ?? 0) - (a.views ?? 0))} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
-        <div className="mt-10 mb-8">
-          <PremiumStoryAd compact />
-        </div>
-        <AdReserve id="feeds_highlights_ad" className="mt-8 mb-8" />
-        <LandscapeGrid title="MORE NEWS" posts={store.posts.filter((p) => p.category === "News" || p.category === "Naija" || p.category === "Politics")} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
-        <AdReserve id="feeds_news_ad" className="mt-8 mb-8" />
         <DontMissGrid posts={[...store.posts].sort((a, b) => b.ts - a.ts)} exclude={post.id} onOpen={(id) => store.setOpenPost(id)} />
         <PortraitAd id="feeds_portrait_miss" />
         <div className="mt-8 grid grid-cols-2 gap-2">
@@ -3010,13 +3003,13 @@ function PulseStrip({ posts, onOpen }: { posts: { category?: string; views?: num
   const counts = new Map<string, number>();
   for (const p of posts) {
     const c = p.category || "General";
-    counts.set(c, (counts.get(c) ?? 0) + (p.views ?? 0) + 1);
+    counts.set(c, (counts.get(c) ?? 0) + 1);
   }
   const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
   if (!top.length) return null;
   const max = top[0][1] || 1;
   return (
-    <button type="button" className="pulse-card mb-3 w-full text-left" onClick={onOpen}>
+    <button type="button" className="pulse-card text-left" onClick={onOpen}>
       <div className="mb-2 flex items-center gap-1.5">
         <svg viewBox="0 0 16 16" className="size-3.5 text-lime-2" aria-hidden>
           <path d="M2 12 6.1 7.6 8.5 9.8 14 3.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
@@ -3026,12 +3019,27 @@ function PulseStrip({ posts, onOpen }: { posts: { category?: string; views?: num
       </div>
       {top.map(([name, n], i) => (
         <div key={name} className="pulse-row">
+          <em className="pulse-rank">{i + 1}</em>
           <span>{name}</span>
-          <b><i className={i === 0 ? "lead" : ""} style={{ width: `${Math.max(18, Math.round((n / max) * 100))}%` }} /></b>
+          <b><i className={i === 0 ? "lead" : ""} style={{ width: `${Math.max(12, Math.round((n / max) * 100))}%` }} /></b>
           <em>{n} posts</em>
         </div>
       ))}
-      <div className="pulse-more">See more</div>
+    </button>
+  );
+}
+
+function FeedDiscover({ posts, onOpen }: { posts: { id: string; title?: string; image?: string; category?: string; status?: string }[]; onOpen: (id: string) => void }) {
+  const hit = posts.find((p) => p.id && p.status !== "draft" && p.image && p.title);
+  if (!hit) return null;
+  return (
+    <button type="button" className="feed-discover" onClick={() => onOpen(hit.id)}>
+      <img src={hit.image} alt="" />
+      <span>
+        <em>{hit.category || "Story"}</em>
+        <strong>{(hit.title || "").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))}</strong>
+        <b>Open</b>
+      </span>
     </button>
   );
 }
@@ -3155,29 +3163,44 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
               }}
             />
             <DeskLine onLane={setLane} onLeave={onLeave} onDesk={onDesk} />
-            <InFeed posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
-            <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} onOpen={() => onLeave("trending")} />
+            <div className="mb-2">
+              <div className="lane-rail" role="tablist" aria-label="Feeds">
+                {FEED_LANES.map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={lane === id}
+                    className={`lane-chip ${lane === id ? "on" : ""}`}
+                    onClick={() => {
+                      setLane(id);
+                      setShown(48);
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="story-rail">
+              <div className="story-rail-head">Top stories</div>
+              <div className="story-rail-row">
+                {live.filter((p) => p.image).slice(0, 10).map((p) => (
+                  <button key={p.id} type="button" className="story-card" onClick={() => store.setOpenPost(p.id)}>
+                    <img src={p.image} alt="" />
+                    <em>{p.category || "Story"}</em>
+                    <strong>{p.title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))}</strong>
+                    <span><Eye className="size-2.5" />{fmtCount(p.views ?? 0)} <MessageSquare className="size-2.5" />{p.comments?.length ?? 0}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="pulse-split">
+              <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} onOpen={() => onLeave("trending")} />
+              <FeedDiscover posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
+            </div>
           </>
         )}
-        <div className="mb-2">
-          <div className="lane-rail" role="tablist" aria-label="Feeds">
-            {FEED_LANES.map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={lane === id}
-                className={`lane-chip ${lane === id ? "on" : ""}`}
-                onClick={() => {
-                  setLane(id);
-                  setShown(48);
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
         {catsOpen ? (
           <ul className="mb-3 overflow-hidden rounded-xl border border-line">
             <li>
@@ -3283,13 +3306,9 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
           })}
         </div>
         {shown < live.length ? (
-          <button
-            type="button"
-            className="btn-3d mt-6 mb-8 w-full rounded-md py-2.5 text-[12px] font-extrabold tracking-[0.18em]"
-            onClick={() => setShown((n) => n + 24)}
-          >
-            NEXT
-          </button>
+          <div className="feed-more-wrap">
+            <button type="button" className="feed-more" onClick={() => setShown((n) => n + 24)}>MORE</button>
+          </div>
         ) : live.length > 0 ? (
           <p className="mt-6 mb-6 text-center text-[11px] text-muted">End of feeds · {live.length} posts</p>
         ) : null}
@@ -3315,13 +3334,6 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
         <TopTen posts={store.posts} exclude="" onOpen={(id) => store.setOpenPost(id)} />
         <PortraitAd id="feeds_portrait_after" />
         <AdReserve id="feeds_after_top10" className="mt-8 mb-8" />
-        <LandscapeGrid title="MORE HIGHLIGHTS" posts={[...store.posts].sort((a, b) => (b.views ?? 0) - (a.views ?? 0))} onOpen={(id) => store.setOpenPost(id)} />
-        <div className="mt-10 mb-8">
-          <PremiumStoryAd compact />
-        </div>
-        <AdReserve id="feeds_highlights_ad" className="mt-8 mb-8" />
-        <LandscapeGrid title="MORE NEWS" posts={store.posts.filter((p) => p.category === "News" || p.category === "Naija" || p.category === "Politics")} onOpen={(id) => store.setOpenPost(id)} />
-        <AdReserve id="feeds_news_ad" className="mt-8 mb-8" />
         <DontMissGrid posts={[...store.posts].sort((a, b) => b.ts - a.ts)} onOpen={(id) => store.setOpenPost(id)} />
         <PortraitAd id="feeds_portrait_miss" />
         <AdReserve id="feeds_after_miss" className="mt-8 mb-8" />

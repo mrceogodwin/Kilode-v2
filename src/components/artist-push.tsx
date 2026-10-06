@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { appleTrackId, artworkFromLookup, artworkSearchUrl, pushNetwork, pushUsd } from "@/lib/artist-rules";
-import { listLivePushes, listMyPushes, savePush, seePush, type PushCard } from "@/lib/artist-server";
+import { listLivePushes, listMyPushes, listMyPayouts, listPresaves, releasePresave, requestPayout, savePresave, savePush, seePush, wantPresave, type PushCard } from "@/lib/artist-server";
 import { listPayMethods } from "@/lib/pay-gateways";
 import { GatewayPay } from "@/components/pay-checkout";
 import type { PayProvider } from "@/lib/pay-money";
@@ -100,15 +100,22 @@ export function PushDesk({ artist }: { artist: boolean }) {
   const [err, setErr] = useState("");
   const [done, setDone] = useState("");
   const [step, setStep] = useState(1);
-  const [mine, setMine] = useState<{ id: string; title: string; network: string; clicks: number; status: string; expiresAt: number }[]>([]);
+  const [mine, setMine] = useState<{ id: string; title: string; network: string; url: string; clicks: number; views: number; status: string; expiresAt: number; days: number }[]>([]);
+  const [drops, setDrops] = useState<{ id: string; title: string; artist: string; whenLabel: string; interests: number }[]>([]);
+  const [payouts, setPayouts] = useState<{ id: string; note: string; status: string }[]>([]);
+  const [whenLabel, setWhenLabel] = useState("");
+  const [payNote, setPayNote] = useState("");
+  const [tool, setTool] = useState("");
   useEffect(() => {
     void listPayMethods().then((m) => setGate({ paystack: m.paystack, flutterwave: m.flutterwave, nowpayments: m.nowpayments, ngnPerUsd: m.ngnPerUsd })).catch(() => undefined);
-    void listMyPushes().then((rows) => setMine(Array.isArray(rows) ? rows : [])).catch(() => setMine([]));
+    void listMyPushes().then((rows) => setMine(Array.isArray(rows) ? rows.map((r) => ({ ...r, url: r.url || "", views: r.views || 0, days: r.days || 0 })) : [])).catch(() => setMine([]));
+    void listPresaves().then((rows) => setDrops(Array.isArray(rows) ? rows.map((r) => ({ id: r.id, title: r.title, artist: r.artist, whenLabel: r.whenLabel, interests: r.interests })) : [])).catch(() => setDrops([]));
+    void listMyPayouts().then((rows) => setPayouts(Array.isArray(rows) ? rows : [])).catch(() => setPayouts([]));
   }, [done]);
   if (!artist) return <p className="ad-note">Push is for Artist accounts. A pushed link is a paid card on Socials.</p>;
   const link = pushNetwork(url);
   const usd = pushUsd(days);
-  const nets = ["Spotify", "Apple Music", "YouTube", "Audiomack", "SoundCloud", "Instagram", "TikTok", "X"];
+  const nets = ["Spotify", "Apple Music", "YouTube", "Audiomack", "SoundCloud", "Deezer", "Boomplay", "Instagram", "TikTok", "X"];
   return (
     <section className="push-desk">
       <div className="push-steps">
@@ -188,14 +195,47 @@ export function PushDesk({ artist }: { artist: boolean }) {
       {done ? <p className="ad-note">{done} is on Socials.</p> : null}
       {mine.length ? (
         <div className="ad-list">
-          {mine.map((row) => (
-            <div key={row.id} className="ad-card">
-              <strong>{row.title}</strong>
-              <em>{row.status} · {row.network} · {row.clicks} opens · {row.expiresAt > Date.now() ? timeLeftLabel(row.expiresAt) : "Ended"}</em>
-            </div>
-          ))}
+          {mine.map((row) => {
+            const rate = row.views > 0 ? Math.round((row.clicks / row.views) * 100) : null;
+            return (
+              <div key={row.id} className="ad-card">
+                <strong>{row.title}</strong>
+                <em>{row.status} · {row.network} · {row.days || "?"}d · {row.views} seen · {row.clicks} opens{rate == null ? "" : ` · ${rate}%`} · {row.expiresAt > Date.now() ? timeLeftLabel(row.expiresAt) : "Ended"}</em>
+                <div className="push-tools">
+                  <button type="button" onClick={() => { void navigator.clipboard?.writeText(row.url); setTool("Copied"); }}>Copy</button>
+                  <button type="button" onClick={() => { if (navigator.share) void navigator.share({ title: row.title, url: row.url }); else window.open(row.url, "_blank", "noopener"); }}>Share</button>
+                  <a href={row.url} target="_blank" rel="noreferrer">Open</a>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      ) : null}
+      ) : <p className="ad-note">No push yet. A paid link is the only thing that appears on Socials.</p>}
+      <div className="push-power">
+        <div className="act-kicker">Drop</div>
+        <input value={whenLabel} onChange={(e) => setWhenLabel(e.target.value)} placeholder="Date, like 18 Oct" className="ad-field" />
+        <button type="button" className="push-next" onClick={() => {
+          void savePresave({ data: { title, whenLabel, url } }).then((r) => {
+            setTool(r.ok ? "Drop is open" : ("reason" in r ? r.reason : "Could not save the drop"));
+            if (r.ok) void listPresaves().then((rows) => setDrops(rows.map((d) => ({ id: d.id, title: d.title, artist: d.artist, whenLabel: d.whenLabel, interests: d.interests }))));
+          });
+        }}>Save pre-save</button>
+        {drops.map((d) => (
+          <div key={d.id} className="ad-card">
+            <strong>{d.title}</strong>
+            <em>{d.artist} · {d.whenLabel} · {d.interests} waiting</em>
+            <div className="push-tools">
+              <button type="button" onClick={() => void wantPresave({ data: { id: d.id } }).then(() => listPresaves().then((rows) => setDrops(rows.map((x) => ({ id: x.id, title: x.title, artist: x.artist, whenLabel: x.whenLabel, interests: x.interests })))))}>Want</button>
+              <button type="button" onClick={() => void releasePresave({ data: { id: d.id } }).then((r) => setTool(r.ok ? `Told ${r.told}` : r.reason))}>Release</button>
+            </div>
+          </div>
+        ))}
+        <div className="act-kicker">Payout</div>
+        <input value={payNote} onChange={(e) => setPayNote(e.target.value)} placeholder="Bank or wallet" className="ad-field" />
+        <button type="button" className="push-next" onClick={() => void requestPayout({ data: { note: payNote } }).then((r) => { setTool(r.ok ? "Payout asked" : r.reason); if (r.ok) void listMyPayouts().then(setPayouts); })}>Ask payout</button>
+        {payouts.map((p) => <p key={p.id} className="ad-note">{p.status} · {p.note}</p>)}
+      </div>
+      {tool ? <p className="ad-note">{tool}</p> : null}
     </section>
   );
 }

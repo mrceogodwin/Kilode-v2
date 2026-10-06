@@ -1207,6 +1207,65 @@ function Communities({ onHome }: { onHome: (roomId?: string) => void }) {
   );
 }
 
+function ActivityHome({ store, onJump }: { store: Store; onJump: (d: { screen?: string; tab?: string }) => void }) {
+  const [notes, setNotes] = useState<{ id: string; text: string; href?: string; ts: number }[]>([]);
+  const [counts, setCounts] = useState<{ jobs: number; market: number; rent: number } | null>(null);
+  useEffect(() => {
+    void listNotes().then((rows) => setNotes(Array.isArray(rows) ? rows.slice(0, 8) : [])).catch(() => setNotes([]));
+    void Promise.all([
+      listListings({ data: { kind: "job" } }),
+      listListings({ data: { kind: "market" } }),
+      listListings({ data: { kind: "rent" } }),
+    ]).then(([jobs, market, rent]) => setCounts({ jobs: jobs.length, market: market.length, rent: rent.length })).catch(() => setCounts({ jobs: 0, market: 0, rent: 0 }));
+  }, []);
+  const handle = (store.handle || "").toLowerCase();
+  const mine = store.posts.filter((p) => !!p?.id && p.status !== "draft" && (p.author || "").toLowerCase() === handle);
+  const reached = mine.reduce((n, p) => n + (p.views ?? 0), 0);
+  const talks = mine.reduce((n, p) => n + (p.comments?.length ?? 0), 0);
+  const liveAds = store.campaigns.filter((c) => c.status === "approved").length;
+  const metrics = [
+    [String(reached), "Views on your stories"],
+    [String(mine.length), "Your stories"],
+    [String(talks), "Comments"],
+    [String(store.savedPosts.length), "Saved"],
+    [String(store.pins.length), "Rooms"],
+    [String(store.tracks.length), "Tracks"],
+    [String(liveAds), "Live ads"],
+    [String(store.campaigns.length), "Campaigns"],
+    [String(counts?.jobs ?? 0), "Jobs listed"],
+    [String(counts?.market ?? 0), "Market"],
+    [String(counts?.rent ?? 0), "Rent"],
+    [String(notes.length), "Notes"],
+  ];
+  return (
+    <section>
+      <div className="act-hero">
+        <div className="act-kicker">ACTIVITY</div>
+        <h2>Your Kilode, in motion.</h2>
+        <p>Counts are from your account and the live desks. No estimates.</p>
+      </div>
+      <div className="act-metrics">
+        {metrics.map(([n, label]) => (
+          <div key={label} className="act-metric"><b>{n}</b><span>{label}</span></div>
+        ))}
+      </div>
+      <div className="act-kicker" style={{ marginTop: 16 }}>Recent</div>
+      {notes.length === 0 ? <p className="mt-2 text-[12px] text-muted">Nothing new yet. Post, follow, or open a desk and it shows here.</p> : notes.map((n) => (
+        <button key={n.id} type="button" className="act-note" onClick={() => { if (n.href) window.location.href = n.href; }}>
+          <span className="min-w-0 flex-1"><strong>{n.text}</strong></span>
+          <ChevronRight className="size-3.5 text-muted" />
+        </button>
+      ))}
+      <div className="mt-3 flex flex-wrap gap-3 text-[11px] font-bold">
+        <button type="button" onClick={() => onJump({ tab: "socials" })}>Socials</button>
+        <button type="button" onClick={() => onJump({ tab: "feeds" })}>Media</button>
+        <button type="button" onClick={() => onJump({ screen: "jobs" })}>Jobs</button>
+        <button type="button" onClick={() => onJump({ tab: "music" })}>Music</button>
+      </div>
+    </section>
+  );
+}
+
 function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => void }) {
   const [q, setQ] = useState("");
   const [lane, setLane] = useState<"home" | "explore" | "all" | "discover" | "trending">("home");
@@ -1407,38 +1466,7 @@ function Search({ store, onHome }: { store: Store; onHome: (roomId?: string) => 
           ))}
         </>
       ) : lane === "home" ? (
-        <div className="act-list">
-          {(
-            [
-              ["Socials", Users, () => jump({ tab: "socials" })],
-              ["Media", Newspaper, () => jump({ tab: "feeds" })],
-              ["Buzz", Zap, () => setLane("trending")],
-              ["People", Users, () => setLane("discover")],
-              ["Rooms", MessageSquare, () => setLane("all")],
-              ["Photos", ImageIcon, () => setLane("explore")],
-              ["Music", Music, () => jump({ tab: "music" })],
-              ["Events", Calendar, () => jump({ tab: "cinema" })],
-              ["Films", Clapperboard, () => jump({ tab: "watch" })],
-              ["Jobs", Briefcase, () => jump({ screen: "jobs" })],
-              ["Market", Store, () => jump({ screen: "market" })],
-              ["Rent", Building2, () => jump({ screen: "rent" })],
-              ["Spaces", Building2, () => jump({ screen: "spaces" })],
-              ["Messages", InboxIcon, () => jump({ screen: "inbox" })],
-              ["Saved", Bookmark, () => jump({ screen: "bookmarks" })],
-              ["TV", Tv, () => jump({ screen: "tv" })],
-              ["Ads", Megaphone, () => jump({ screen: "ads" })],
-              ["Alerts", Bell, () => jump({ screen: "notifications" })],
-              ["Write", PenLine, () => jump({ screen: "create" })],
-              ["Downloads", Download, () => jump({ tab: "downloads" })],
-            ] as const
-          ).map(([title, Icon, go]) => (
-            <button key={title} type="button" className="act-row" onClick={go}>
-              <Icon className="size-4" />
-              <strong>{title}</strong>
-              <ChevronRight className="size-3.5" />
-            </button>
-          ))}
-        </div>
+        <ActivityHome store={store} onJump={jump} />
       ) : lane === "explore" ? (
         tiles.length === 0 && grid.length === 0 ? (
           <p className="text-sm text-muted">No photos yet. Pictures, videos, products, and places show up in this grid as soon as they are posted.</p>
