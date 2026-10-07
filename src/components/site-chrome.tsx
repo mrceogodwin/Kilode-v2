@@ -88,7 +88,7 @@ function decodeBits(s: string) {
   return out;
 }
 
-export function TrendingTicker({ posts, onOpen }: { posts: Post[]; onOpen: (id: string) => void }) {
+export function TrendingTicker({ posts, onOpen, names = false }: { posts: Post[]; onOpen: (id: string) => void; names?: boolean }) {
   const items = useMemo(() => {
     const ranked = [...posts]
       .filter((p) => p.status !== "draft" && p.title)
@@ -99,26 +99,35 @@ export function TrendingTicker({ posts, onOpen }: { posts: Post[]; onOpen: (id: 
   const loop = items.length ? [...items, ...items] : [];
   if (!loop.length) return null;
   return (
-    <div className="trend-ticker flex min-h-9 min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-md px-1.5">
-      <span className="btn-join inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[9px] font-extrabold tracking-[0.08em]">
+    <div className="trend-ticker flex min-h-9 min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-full px-1">
+      <span className="home-trend-pill">
         <svg viewBox="0 0 16 16" className="size-3" aria-hidden>
-          <path d="M2 12 6.1 7.6 8.5 9.8 14 3.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M10.2 3.4H14v3.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M3 11.5 7 6.2l2.2 2.1L13 4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M9.2 4H13v3.6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         </svg>
         TRENDING
       </span>
       <div className="min-w-0 flex-1 overflow-hidden">
-        <div className="ticker-track gap-6 px-0 text-[12px] leading-7">
+        <div className="ticker-track gap-0 px-0 text-[13px] leading-8">
           {loop.map((p, i) => (
             <button key={`${p.id}-${i}`} type="button" className="shrink-0 font-medium hover:text-lime-2" onClick={() => onOpen(p.id)}>
-              {decodeBits(p.title)}
-              <span className="ml-1.5 font-normal text-muted">{fmtCount(p.views ?? 0)}</span>
+              {names ? shortName(p) : decodeBits(p.title)}
+              {names ? <span className="mx-2 text-muted">•</span> : <span className="ml-1.5 font-normal text-muted">{fmtCount(p.views ?? 0)}</span>}
             </button>
           ))}
         </div>
       </div>
     </div>
   );
+}
+
+function shortName(p: Post) {
+  const tag = (p.tags || "")
+    .split(/[,#]+/)
+    .map((t) => t.trim())
+    .find((t) => t.length > 2 && t.length < 22);
+  if (tag) return tag;
+  return decodeBits(p.title).split(/\s+/).slice(0, 2).join(" ");
 }
 
 function IconX() {
