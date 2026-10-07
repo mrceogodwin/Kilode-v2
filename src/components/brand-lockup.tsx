@@ -22,7 +22,21 @@ export function BangMark({ className }: { className: string }) {
 }
 
 export function BrandLockup({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
-  return <KilodeMark large={size === "lg"} />;
+  const icon = size === "lg" ? "size-10 rounded-[12px]" : size === "sm" ? "size-8 rounded-[10px]" : "size-8 rounded-[10px]";
+  const word = size === "lg" ? "text-[18px]" : size === "sm" ? "text-[15px]" : "text-[16px]";
+  return (
+    <span className="brand-lockup inline-flex items-center gap-2">
+      <span className={`brand-mark ${icon} shrink-0`} aria-hidden>
+        <img src="/kilode-bang-mark-white.png" alt="" className="h-full w-full object-contain p-[12%]" draggable={false} />
+      </span>
+      <span className="brand-copy min-w-0">
+        <span className={`brand-word ${word}`}>
+          <span className="brand-word-k">K</span>ILODE
+        </span>
+        <span className="brand-url">Talk News. Real People.</span>
+      </span>
+    </span>
+  );
 }
 
 export function CinemaTvIcon({ className = "size-3.5" }: { className?: string }) {

@@ -96,28 +96,28 @@ export function TrendingTicker({ posts, onOpen }: { posts: Post[]; onOpen: (id: 
       .slice(0, 12);
     return ranked.length ? ranked : posts.filter((p) => p.title).slice(0, 8);
   }, [posts]);
-  const [n, setN] = useState(0);
-  useEffect(() => {
-    if (items.length < 2) return;
-    const t = window.setInterval(() => setN((i) => (i + 1) % items.length), 5000);
-    return () => window.clearInterval(t);
-  }, [items.length]);
-  const cur = items[n];
-  if (!cur) return null;
+  const loop = items.length ? [...items, ...items] : [];
+  if (!loop.length) return null;
   return (
-    <button type="button" className="trend-ticker" onClick={() => onOpen(cur.id)}>
-      <span className="trend-mark">
+    <div className="trend-ticker flex min-h-9 min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-md px-1.5">
+      <span className="btn-join inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[9px] font-extrabold tracking-[0.08em]">
         <svg viewBox="0 0 16 16" className="size-3" aria-hidden>
           <path d="M2 12 6.1 7.6 8.5 9.8 14 3.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M10.2 3.4H14v3.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         TRENDING
       </span>
-      <span className="min-w-0 flex-1 truncate text-left">{decodeBits(cur.title)}</span>
-      <svg viewBox="0 0 16 16" className="size-3.5 shrink-0 text-[#3dff7a]" aria-hidden>
-        <path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </button>
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="ticker-track gap-6 px-0 text-[12px] leading-7">
+          {loop.map((p, i) => (
+            <button key={`${p.id}-${i}`} type="button" className="shrink-0 font-medium hover:text-lime-2" onClick={() => onOpen(p.id)}>
+              {decodeBits(p.title)}
+              <span className="ml-1.5 font-normal text-muted">{fmtCount(p.views ?? 0)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
