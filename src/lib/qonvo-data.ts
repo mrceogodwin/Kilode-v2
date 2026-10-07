@@ -459,7 +459,7 @@ export type Campaign = {
   name: string;
   note: string;
   ts: number;
-  status: "pending" | "paid" | "approved" | "rejected";
+  status: "pending" | "paid" | "approved" | "rejected" | "paused" | "ended";
   placement: AdPlacement | "sidebar" | "hero";
   txHash?: string;
   amount?: string;

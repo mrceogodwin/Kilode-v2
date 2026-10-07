@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Briefcase, Bookmark, Building2, Check, ChevronRight, Home, Laptop, MapPin, MoreHorizontal, Pencil, Plus, Search, SlidersHorizontal, Store, TrendingUp } from "lucide-react";
-import { applyListing, listListingQueue, listListings, listMyApplicants, listMyApps, listMyListings, saveListing, setListingStatus, withdrawApplication, type Listing, type ListingKind, type MyApp, type MyApplicant } from "@/lib/listings-server";
+import { applyListing, listListingQueue, listListings, listMyApplicants, listMyApps, listMyListings, saveListing, seeListing, setListingStatus, setOwnListing, withdrawApplication, type Listing, type ListingKind, type MyApp, type MyApplicant } from "@/lib/listings-server";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { getProfile } from "@/lib/forum-server";
 import { daysLeft, fmtCount, timeAgo, timeLabel, type AccountKind } from "@/lib/qonvo-data";
@@ -361,8 +361,23 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
       if (!jobPillMatch(r, jobPill)) return false;
       if (query && rank(r) === 0) return false;
       return true;
-    }).sort((a, b) => (query ? rank(b) - rank(a) : 0));
+    }).sort((a, b) => (query ? rank(b) - rank(a) : b.ts - a.ts));
   }, [rows, q, filter, jobTypeFilter, salaryBand, jobPill, includeOpen, expPick]);
+
+  function openRow(row: Card) {
+    setOpen(row);
+    const key = `kilode-list-seen-${row.id}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      return;
+    }
+    void seeListing({ data: { id: row.id } }).then((r) => {
+      if (!r.ok) return;
+      setOpen((cur) => (cur && cur.id === row.id ? { ...cur, views: (cur.views || 0) + 1 } : cur));
+    });
+  }
 
   function rememberSeeker(next: { phone?: string; cv?: string; skills?: string }) {
     const card = { phone: next.phone ?? phone, cv: next.cv ?? cv, skills: next.skills ?? skills };
@@ -717,6 +732,26 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
                 Open link
               </a>
             ) : null}
+            <button type="button" className="mt-2 block text-[12px] font-bold" onClick={() => { void navigator.clipboard?.writeText(`${open.title}${open.company ? ` · ${open.company}` : ""}${open.link ? `\n${open.link}` : ""}`); setMsg("Copied"); }}>Copy</button>
+            {myRoles.some((r) => r.id === open.id && (r.status === "approved" || r.status === "pending" || r.status === "awaiting_pay")) ? (
+              <button
+                type="button"
+                className="mt-2 block text-[12px] font-bold text-danger"
+                onClick={() => {
+                  if (!window.confirm("Close this listing? People will stop seeing it. This does not refund a payment.")) return;
+                  void setOwnListing({ data: { id: open.id, action: "close" } }).then((r) => {
+                    if (!r.ok) setErr(r.reason);
+                    else {
+                      setMsg("Closed.");
+                      setOpen(null);
+                      load();
+                    }
+                  });
+                }}
+              >
+                Close listing
+              </button>
+            ) : null}
             <button type="button" className="mt-3 block text-[12px] text-muted" onClick={() => { setOpen(null); setErr(""); setMsg(""); }}>
               Close
             </button>
@@ -727,7 +762,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
       ) : null}
 
       {kind === "market" ? (
-        <MarketBoard rows={marketRows} onOpen={setOpen} onSell={() => {
+        <MarketBoard rows={marketRows} onOpen={openRow} onSell={() => {
           if (session.isPending) return;
           if (!session.user) {
             needJoin();
@@ -748,7 +783,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
             <div className="job-roles">
               {myApps.length === 0 ? <p className="job-empty">No applications yet. Open a role and send a note.</p> : myApps.map((a) => (
                 <article key={a.id} className="job-role">
-                  <button type="button" className="job-role-main" onClick={() => { const hit = rows.find((r) => r.id === a.listingId); if (hit) setOpen(hit); }}>
+                  <button type="button" className="job-role-main" onClick={() => { const hit = rows.find((r) => r.id === a.listingId); if (hit) openRow(hit); }}>
                     <CompanyMark name={a.company || a.title} />
                     <span>
                       <i>{a.company || "Company"}</i>
@@ -827,7 +862,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
           kept={kept}
           applied={myApps.map((a) => a.listingId)}
           onKeep={keepJob}
-          onOpen={setOpen}
+          onOpen={openRow}
           onPost={() => {
             if (session.isPending) return;
             if (!session.user) {
@@ -841,7 +876,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
         </>
       ) : (
         <>
-      <SlimRail rows={featured} onOpen={setOpen} />
+      <SlimRail rows={featured} onOpen={openRow} />
       <AdReserve id={`list_${kind}_mid`} className="mb-4" />
 
       <section>
@@ -851,7 +886,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
         </div>
         <div className="grid grid-cols-3 gap-1.5">
           {filtered.slice(0, shown).map((r) => (
-            <Tile key={r.id} r={r} kind={kind} onOpen={setOpen} />
+            <Tile key={r.id} r={r} kind={kind} onOpen={openRow} />
           ))}
         </div>
         {shown < filtered.length ? (
@@ -869,7 +904,7 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
           <div className="mb-1.5 text-[10px] font-medium tracking-[0.16em] text-lime-2">MORE SPACES</div>
           <div className="grid grid-cols-3 gap-1.5">
             {filtered.slice(shown, shown + 6).map((r) => (
-              <Tile key={`m-${r.id}`} r={r} kind={kind} onOpen={setOpen} />
+              <Tile key={`m-${r.id}`} r={r} kind={kind} onOpen={openRow} />
             ))}
           </div>
         </section>
@@ -983,7 +1018,7 @@ function JobBoard({
   const [hidden, setHidden] = useState<string[]>([]);
   const [onlyKept, setOnlyKept] = useState(false);
   const [onlyApplied, setOnlyApplied] = useState(false);
-  const [sort, setSort] = useState<"new" | "old">("new");
+  const [sort, setSort] = useState<"new" | "old" | "seen">("new");
   const [copied, setCopied] = useState("");
   const [spot, setSpot] = useState(0);
   const query = q.trim().toLowerCase();
@@ -991,7 +1026,7 @@ function JobBoard({
   let live = rows.filter((r) => !hidden.includes(r.id));
   if (onlyKept) live = live.filter((r) => kept.includes(r.id));
   if (onlyApplied) live = live.filter((r) => applied.includes(r.id));
-  if (!q.trim()) live = [...live].sort((a, b) => (sort === "old" ? a.ts - b.ts : b.ts - a.ts));
+  if (!q.trim()) live = [...live].sort((a, b) => (sort === "old" ? a.ts - b.ts : sort === "seen" ? (b.views || 0) - (a.views || 0) : b.ts - a.ts));
   const spotlight = pool.filter((r) => !hidden.includes(r.id)).slice(0, 5);
   const hero = spotlight[Math.min(spot, Math.max(spotlight.length - 1, 0))];
   const companies = [...new Map(pool.filter((r) => r.company).map((r) => [r.company, r])).values()].slice(0, 8);
@@ -1063,6 +1098,7 @@ function JobBoard({
             ))}
             <button type="button" className={sort === "new" ? "on" : ""} onClick={() => setSort("new")}>Newest</button>
             <button type="button" className={sort === "old" ? "on" : ""} onClick={() => setSort("old")}>Oldest</button>
+            <button type="button" className={sort === "seen" ? "on" : ""} onClick={() => setSort("seen")}>Most seen</button>
             <button type="button" onClick={() => { setSalaryBand("Any"); setJobTypeFilter("All"); setJobPill("All"); setFilter("All"); setQ(""); setIncludeOpen(true); setOnlyKept(false); setOnlyApplied(false); setSort("new"); setExpPick("All"); }}>Clear</button>
           </div>
         </div>

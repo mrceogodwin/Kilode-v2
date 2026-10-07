@@ -18,7 +18,7 @@ import {
   parseMusicUrl,
   type Team,
 } from "@/lib/qonvo-data";
-import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, deleteOwnMsg, savePin, savePost, savePrefs, saveProfile, saveRx, saveTeam, saveTrack, sendMail } from "@/lib/forum-server";
+import { bumpView, getChatTtl, getProfile, joinTeamRow, listAds, listJoins, listMsgs, listMyAds, listPins, listPosts, listScores, listTeams, listTracks, pingPresence, purgeMsgs, reportPost, saveAdRow, saveComment, saveJoin, saveMsg, deleteOwnMsg, savePin, savePost, savePrefs, saveProfile, saveRx, saveTeam, saveTrack, sendMail, setOwnAdRun } from "@/lib/forum-server";
 import { postBodyPlain } from "@/lib/post-body";
 import { listNotes } from "@/lib/social-server";
 import { hidePost as hidePostRow, setAdPlacement, setAdStatus, setAdWindow } from "@/lib/staff-server";
@@ -1540,9 +1540,16 @@ export function useQonvo() {
     [needAccount, note],
   );
 
+  const runOwnAd = useCallback((id: string, action: "pause" | "resume" | "end") => {
+    return setOwnAdRun({ data: { id, action } }).then((r) => {
+      if (r.ok) setCampaigns((prev) => prev.map((c) => (c?.id === id ? { ...c, status: r.status, expiresAt: action === "end" ? Date.now() : c.expiresAt } : c)));
+      return r;
+    });
+  }, []);
+
   const patchAd = useCallback((id: string, patch: Partial<Campaign>) => {
     setCampaigns((prev) => prev.map((c) => (c?.id === id ? { ...c, ...patch } : c)));
-    if (patch.status) {
+    if (patch.status === "pending" || patch.status === "paid" || patch.status === "approved" || patch.status === "rejected") {
       void setAdStatus({ data: { id, status: patch.status } }).catch(() => undefined);
     }
     if (patch.placement) {
@@ -1694,6 +1701,7 @@ export function useQonvo() {
     joinTeam,
     saveAd,
     patchAd,
+    runOwnAd,
     hidePost,
     pushPost,
     flagPost,

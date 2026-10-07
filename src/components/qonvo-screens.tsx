@@ -46,7 +46,7 @@ import { MeDashboard } from "@/components/me-dashboard";
 import { AdCatalogPanel, AdSlotsPanel, LivePausePanel, OpsKeysPanel, OpsSeoPanel, PaywaysPanel, RoomsAdminPanel } from "@/components/ops-tools";
 import { SiteFlagsPanel } from "@/components/site-chrome";
 import { matchAdPayments, matchOneAd } from "@/lib/pay-match-server";
-import { applyListing, listExploreGrid, listListings, saveListing, type ExploreTile, type Listing } from "@/lib/listings-server";
+import { applyListing, listExploreGrid, listListings, listMyApps, listMyListings, saveListing, type ExploreTile, type Listing } from "@/lib/listings-server";
 import { submitMovie } from "@/lib/cinema-server";
 import { DEFAULT_MOD, type ModSettings } from "@/lib/moderator";
 import { SitePulsePanel } from "@/components/pulse-panel";
@@ -1209,7 +1209,7 @@ function Communities({ onHome }: { onHome: (roomId?: string) => void }) {
 
 function ActivityHome({ store, onJump }: { store: Store; onJump: (d: { screen?: string; tab?: string }) => void }) {
   const [notes, setNotes] = useState<{ id: string; text: string; href?: string; ts: number; seen: number }[]>([]);
-  const [counts, setCounts] = useState<{ jobs: number; market: number; rent: number } | null>(null);
+  const [counts, setCounts] = useState<{ jobs: number; market: number; rent: number; apps: number; roles: number } | null>(null);
   const [tick, setTick] = useState(0);
   function load() {
     void listNotes().then((rows) => setNotes(Array.isArray(rows) ? rows.slice(0, 8).map((n) => ({ ...n, seen: n.seen || 0 })) : [])).catch(() => setNotes([]));
@@ -1218,7 +1218,9 @@ function ActivityHome({ store, onJump }: { store: Store; onJump: (d: { screen?: 
       listListings({ data: { kind: "job" } }),
       listListings({ data: { kind: "market" } }),
       listListings({ data: { kind: "rent" } }),
-    ]).then(([jobs, market, rent]) => setCounts({ jobs: jobs.length, market: market.length, rent: rent.length })).catch(() => setCounts({ jobs: 0, market: 0, rent: 0 }));
+      listMyApps().catch(() => []),
+      listMyListings({ data: { kind: "job" } }).catch(() => []),
+    ]).then(([jobs, market, rent, apps, roles]) => setCounts({ jobs: jobs.length, market: market.length, rent: rent.length, apps: apps.length, roles: roles.length })).catch(() => setCounts({ jobs: 0, market: 0, rent: 0, apps: 0, roles: 0 }));
   }
   useEffect(() => { load(); }, [tick]);
   const handle = (store.handle || "").toLowerCase();
@@ -1240,6 +1242,8 @@ function ActivityHome({ store, onJump }: { store: Store; onJump: (d: { screen?: 
   const community = [
     [String(store.pins.length), "Rooms"],
     [String(counts?.jobs ?? 0), "Jobs"],
+    [String(counts?.apps ?? 0), "Applications"],
+    [String(counts?.roles ?? 0), "Your roles"],
     [String(counts?.market ?? 0), "Market"],
     [String(counts?.rent ?? 0), "Rent"],
     [String(notes.length), "Notes"],
@@ -2298,7 +2302,7 @@ function Ads({ store }: { store: Store }) {
           <p>Slot: {slot?.label}. {days} days. {mustPay ? `$${usd}` : "Free slot"}.</p>
         </div>
         <button type="button" className="ad-next" onClick={() => setDone(null)}>Place another</button>
-        <CampaignList rows={mine} />
+        <CampaignList rows={mine} onRun={(id, action) => store.runOwnAd(id, action)} />
       </Screen>
     );
   }
@@ -2309,7 +2313,7 @@ function Ads({ store }: { store: Store }) {
         <button type="button" className={showMine ? "" : "on"} onClick={() => setShowMine(false)}>Place</button>
         <button type="button" className={showMine ? "on" : ""} onClick={() => setShowMine(true)}>Your ads</button>
       </div>
-      {showMine ? <CampaignList rows={mine} /> : (
+      {showMine ? <CampaignList rows={mine} onRun={(id, action) => store.runOwnAd(id, action)} /> : (
         <>
           <div className="ad-rail" aria-label="Ad steps">
             {AD_STEPS.map((label, i) => (
@@ -2451,20 +2455,49 @@ function Ads({ store }: { store: Store }) {
   );
 }
 
-function CampaignList({ rows }: { rows: { id: string; name: string; status: string; placement: string; expiresAt?: number; days?: number; views?: number; image?: string }[] }) {
+function CampaignList({ rows, onRun }: { rows: { id: string; name: string; status: string; placement: string; expiresAt?: number; days?: number; views?: number; image?: string; link?: string; amount?: string; txHash?: string }[]; onRun: (id: string, action: "pause" | "resume" | "end") => Promise<{ ok: boolean; reason?: string; status?: string }> }) {
+  const [bag, setBag] = useState<"all" | "live" | "paused" | "waiting" | "ended">("all");
+  const [note, setNote] = useState("");
+  const shown = rows.filter((c) => {
+    const expired = !!c.expiresAt && c.expiresAt <= Date.now();
+    if (bag === "live") return c.status === "approved" && !expired;
+    if (bag === "paused") return c.status === "paused";
+    if (bag === "waiting") return c.status === "pending" || c.status === "paid";
+    if (bag === "ended") return c.status === "ended" || c.status === "rejected" || expired;
+    return true;
+  });
   if (!rows.length) return <p className="ad-note">No campaigns on this account yet. An unpaid draft is only in this browser until you pay or submit.</p>;
   return (
     <div className="ad-list">
-      {rows.map((c) => (
-        <div key={c.id} className="ad-card ad-row">
-          {c.image ? <img src={c.image} alt="" /> : <b>AD</b>}
-          <span>
-            <strong>{c.name}</strong>
-            <em className={`ad-status ${c.status}`}>{c.status === "approved" ? "Live" : c.status} · {c.placement}</em>
-            <em>{c.expiresAt ? timeLeftLabel(c.expiresAt) : `${c.days ?? 7} days`} · {fmtCount(c.views ?? 0)} views</em>
-          </span>
-        </div>
-      ))}
+      <div className="push-tools">
+        {(["all", "live", "paused", "waiting", "ended"] as const).map((id) => (
+          <button key={id} type="button" className={bag === id ? "on" : ""} onClick={() => setBag(id)}>{id}</button>
+        ))}
+      </div>
+      {shown.length === 0 ? <p className="ad-note">Nothing in {bag}.</p> : null}
+      {shown.map((c) => {
+        const expired = !!c.expiresAt && c.expiresAt <= Date.now();
+        const live = c.status === "approved" && !expired;
+        return (
+          <div key={c.id} className="ad-card ad-row">
+            {c.image ? <img src={c.image} alt="" /> : <b>AD</b>}
+            <span>
+              <strong>{c.name}</strong>
+              <em className={`ad-status ${c.status}`}>{live ? "Live" : expired && c.status === "approved" ? "Expired" : c.status} · {c.placement}</em>
+              <em>{c.expiresAt ? timeLeftLabel(c.expiresAt) : `${c.days ?? 7} days`} · {fmtCount(c.views ?? 0)} views</em>
+              {c.amount || c.txHash ? <em>Paid {c.amount || "—"} · {c.txHash ? c.txHash.slice(0, 14) : "no reference"}</em> : null}
+            </span>
+            <div className="push-tools">
+              {c.link ? <button type="button" onClick={() => { void navigator.clipboard?.writeText(c.link || ""); setNote("Link copied"); }}>Copy link</button> : null}
+              {c.link ? <a href={c.link} target="_blank" rel="noreferrer">Open</a> : null}
+              {live ? <button type="button" onClick={() => void onRun(c.id, "pause").then((r) => setNote(r.ok ? "Paused. It is off every placement until you resume." : r.reason || "Could not pause."))}>Pause</button> : null}
+              {c.status === "paused" && !expired ? <button type="button" onClick={() => void onRun(c.id, "resume").then((r) => setNote(r.ok ? "Live again" : r.reason || "Could not resume."))}>Resume</button> : null}
+              {live || c.status === "paused" ? <button type="button" onClick={() => { if (!window.confirm("End this ad now? This does not refund the payment.")) return; void onRun(c.id, "end").then((r) => setNote(r.ok ? "Ended" : r.reason || "Could not end.")); }}>End</button> : null}
+            </div>
+          </div>
+        );
+      })}
+      {note ? <p className="ad-note">{note}</p> : null}
     </div>
   );
 }

@@ -577,7 +577,7 @@ function mapAd(r: {
     name: r.name,
     note: r.note ?? "",
     placement: (r.placement || "board") as CampaignPlacement,
-    status: r.status as "pending" | "paid" | "approved" | "rejected",
+    status: r.status as "pending" | "paid" | "approved" | "rejected" | "paused" | "ended",
     amount: r.amount ?? undefined,
     txHash: r.tx_hash ?? undefined,
     coin: r.coin ?? undefined,
@@ -622,6 +622,35 @@ export const listMyAds = createServerFn({ method: "GET" })
     } catch {
       return [] as ReturnType<typeof mapAd>[];
     }
+  });
+
+export const setOwnAdRun = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id?: string; action?: string }) => d)
+  .handler(async ({ context, data }) => {
+    const id = String(data.id || "").slice(0, 40);
+    const action = data.action === "pause" || data.action === "resume" || data.action === "end" ? data.action : "";
+    if (!id || !action) return { ok: false as const, reason: "Pick a campaign." };
+    const sql = await getSql();
+    const rows = await sql<{ status: string; expires_at: number | string | null }>`select status, expires_at from nf_ads where id = ${id} and user_id = ${context.userId} limit 1`;
+    const row = rows[0];
+    if (!row) return { ok: false as const, reason: "That ad is not yours." };
+    const exp = row.expires_at ? Number(row.expires_at) : 0;
+    const ended = exp > 0 && exp <= Date.now();
+    if (action === "end") {
+      if (row.status === "rejected") return { ok: false as const, reason: "A rejected ad cannot be ended from here." };
+      await sql`update nf_ads set status = ${"ended"}, expires_at = ${Date.now()} where id = ${id} and user_id = ${context.userId}`;
+      return { ok: true as const, status: "ended" as const };
+    }
+    if (ended) return { ok: false as const, reason: "This ad has already expired." };
+    if (action === "pause") {
+      if (row.status !== "approved") return { ok: false as const, reason: "Only a live ad can pause." };
+      await sql`update nf_ads set status = ${"paused"} where id = ${id} and user_id = ${context.userId}`;
+      return { ok: true as const, status: "paused" as const };
+    }
+    if (row.status !== "paused") return { ok: false as const, reason: "Only a paused ad can resume." };
+    await sql`update nf_ads set status = ${"approved"} where id = ${id} and user_id = ${context.userId}`;
+    return { ok: true as const, status: "approved" as const };
   });
 
 export const saveAdRow = createServerFn({ method: "POST" })

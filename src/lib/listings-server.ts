@@ -401,6 +401,32 @@ export const listMyListings = createServerFn({ method: "GET" })
     return rows.map(map);
   });
 
+export const seeListing = createServerFn({ method: "POST" })
+  .validator((d: { id?: string }) => d)
+  .handler(async ({ data }) => {
+    const id = String(data.id || "").slice(0, 40);
+    if (!id) return { ok: false as const };
+    try {
+      const sql = await getSql();
+      await sql`update nf_listings set views = coalesce(views, 0) + 1 where id = ${id} and status = 'approved'`;
+    } catch {
+      return { ok: false as const };
+    }
+    return { ok: true as const };
+  });
+
+export const setOwnListing = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id?: string; action?: string }) => d)
+  .handler(async ({ context, data }) => {
+    const id = String(data.id || "").slice(0, 40);
+    if (!id || data.action !== "close") return { ok: false as const, reason: "Pick a listing." };
+    const sql = await getSql();
+    const rows = await sql<{ id: string }>`update nf_listings set status = ${"closed"}, expires_at = ${Date.now()} where id = ${id} and user_id = ${context.userId} and status in ('approved', 'pending', 'awaiting_pay') returning id`;
+    if (!rows[0]) return { ok: false as const, reason: "That listing is not yours, or it is already closed." };
+    return { ok: true as const };
+  });
+
 export type MyApp = {
   id: string;
   listingId: string;

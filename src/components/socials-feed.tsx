@@ -8,6 +8,7 @@ import { SocialDesk } from "@/components/social-desk";
 import { Tip } from "@/components/tip";
 import { connectFellow, listConnects, replyConnect, applyTake, deleteOwnReply, deleteOwnTake, editOwnTake, getTake, likeTake, likeReply, listLikeFaces, listMyBlocks, listMyMutes, listMyTags, listSavedTakeIds, listSavedTakes, listTakes, listFollowingTakes, listMyFollows, listTakeReplies, listTakesByTag, listTopicTakes, listTrending, listWordMutes, muteWord, pinOwnTake, replyTake, reportTake, repostTake, saveTake, searchPeople, seeTake, suggestFollows, toggleFollow, togglePing, toggleReplyLock, toggleSaveTake, toggleSensitive, toggleTagFollow, voteTake, type ConnectRow, type FellowRow, type TakeKind, type TakeReply, type TakeRow } from "@/lib/takes-server";
 import { kilodeSound, setSounds } from "@/lib/sfx";
+import { listListings } from "@/lib/listings-server";
 import { sendDm } from "@/lib/social-server";
 import { ReportMenu } from "@/components/report-menu";
 import { LinkText } from "@/components/link-text";
@@ -294,6 +295,29 @@ function LiquidCuts({ value, onPick }: { value: string; onPick: (id: (typeof SOC
           {label}
         </button>
       ))}
+    </div>
+  );
+}
+
+function JobRail() {
+  const [rows, setRows] = useState<{ id: string; title: string; company: string; city: string }[]>([]);
+  useEffect(() => {
+    void listListings({ data: { kind: "job" } })
+      .then((list) => setRows((Array.isArray(list) ? list : []).slice(0, 6).map((r) => ({ id: r.id, title: r.title, company: r.company || "", city: r.city || "" }))))
+      .catch(() => setRows([]));
+  }, []);
+  if (!rows.length) return null;
+  return (
+    <div className="know-rail">
+      <div>Open roles</div>
+      <div>
+        {rows.map((r) => (
+          <button key={r.id} type="button" onClick={() => window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: "jobs" } }))}>
+            <b>{r.title}</b>
+            <em>{[r.company, r.city].filter(Boolean).join(" · ") || "Kilode"}</em>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1805,6 +1829,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
               back={(handle, id) => theyFollow(handle, id)}
             />
           ) : null}
+          {lane === "posts" && (i + 1) % 9 === 0 ? <JobRail /> : null}
           </div>
         ))}
       </div>

@@ -2754,6 +2754,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
           <button type="button" disabled={!prevStory} onClick={() => prevStory && store.setOpenPost(prevStory.id)}>Previous</button>
           <button type="button" onClick={() => document.getElementById("story-comments")?.scrollIntoView({ behavior: "smooth" })}>Comments</button>
           <button type="button" onClick={() => window.print()}>Print</button>
+          <button type="button" onClick={() => { void navigator.clipboard?.writeText(`${post.title}\n${url}`); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? "Copied" : "Quote"}</button>
           <button type="button" disabled={!nextStory} onClick={() => nextStory && store.setOpenPost(nextStory.id)}>Next</button>
         </div>
         {!mine ? (
@@ -3210,6 +3211,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
   const [repost, setRepost] = useState<(typeof store.posts)[number] | null>(null);
   const [cap, setCap] = useState("");
   const [lane, setLane] = useState("latest");
+  const [order, setOrder] = useState<"new" | "seen">("new");
   const [follows, setFollows] = useState<string[] | null>(null);
   const [topics, setTopics] = useState<string[] | null>(null);
   useEffect(() => {
@@ -3246,6 +3248,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
           `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase().includes(needle)),
     )
     .sort((a, b) => {
+      if (order === "seen") return (b.views ?? 0) - (a.views ?? 0) || b.ts - a.ts;
       if (lane === "latest") return b.ts - a.ts;
       const words = (store.interests || "").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
       const score = (p: (typeof store.posts)[number]) => {
@@ -3409,6 +3412,10 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
           </ul>
         ) : null}
         <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+          <div className="col-span-4 flex justify-end gap-2">
+            <button type="button" className={`text-[11px] font-bold ${order === "new" ? "text-fg" : "text-muted"}`} onClick={() => setOrder("new")}>Newest</button>
+            <button type="button" className={`text-[11px] font-bold ${order === "seen" ? "text-fg" : "text-muted"}`} onClick={() => setOrder("seen")}>Most seen</button>
+          </div>
           {lane === "following" && follows && live.length === 0 ? (
             <p className="col-span-4 py-6 text-center text-[12px] text-muted">Connect with people on Socials. Their posts show here. Nothing is invented.</p>
           ) : null}

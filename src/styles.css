@@ -6709,7 +6709,8 @@ html:not([data-skin="ivory"]) .media-tile,
 .know-rail a { display: flex; width: 72px; flex: 0 0 72px; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
 .know-rail img { width: 44px; height: 44px; border-radius: 99px; object-fit: cover; background: #222; }
 .know-rail b, .know-rail em { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; font-style: normal; }
-.know-rail button { border: 1px solid rgba(255,255,255,0.3); border-radius: 99px; background: transparent; padding: 2px 8px; color: #f5f3ee; font-size: 10px; font-weight: 750; }
+.know-rail > div:last-child > button { display: flex; width: 132px; flex: 0 0 132px; flex-direction: column; align-items: flex-start; gap: 2px; border: 1px solid #2e2e2e; background: #171717; color: #f5f3ee; padding: 8px; text-align: left; }
+.know-rail a button { width: auto; flex: none; border: 1px solid rgba(255,255,255,0.3); border-radius: 99px; background: transparent; padding: 2px 8px; color: #f5f3ee; font-size: 10px; font-weight: 750; }
 .hero-split { display: grid; gap: 8px; margin-bottom: 10px; }
 .hero-stack { display: grid; gap: 8px; }
 .hero-side { position: relative; min-height: 92px; overflow: hidden; border: 1px solid #2a2a2a; background: #141414; color: #fff; text-align: left; }
