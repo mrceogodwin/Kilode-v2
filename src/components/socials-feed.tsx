@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Briefcase, Headphones, ImagePlus, Lock, Video } from "lucide-react";
+import { Briefcase, Headphones, ImagePlus, Lock, UsersRound, Video } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { uploadTakeMedia, readVideoSeconds, trimTakeVideo } from "@/lib/supabase";
 import { getPublicSite } from "@/lib/site-server";
@@ -328,31 +328,39 @@ function KnowRail({
   onHide,
   isOn,
   back,
+  onSeeAll,
 }: {
-  people: { id: string; handle: string; mutuals?: number; photo?: string }[];
+  people: { id: string; handle: string; name?: string; role?: string; line?: string; mutuals?: number; photo?: string }[];
   onFollow: (handle: string, id: string) => void;
   onHide: (handle: string) => void;
   isOn: (handle: string, id: string) => boolean;
   back: (handle: string, id: string) => boolean;
+  onSeeAll?: () => void;
 }) {
   if (!people.length) return null;
   return (
-    <div className="know-rail">
-      <div>People you may know</div>
-      <div>
+    <section className="pymk">
+      <div className="pymk-head">
+        <span><UsersRound className="size-4" /> People You May Know</span>
+        {onSeeAll ? <button type="button" onClick={onSeeAll}>See all ›</button> : null}
+      </div>
+      <div className="pymk-row">
         {people.map((p) => (
-          <a key={p.id || p.handle} href={`/u/${encodeURIComponent(p.handle)}`}>
-            <img src={avatarUrl(p.handle, p.photo)} alt="" />
-            <b>@{p.handle}</b>
-            <em>{p.mutuals ? `${p.mutuals} mutual` : "New"}</em>
-            <button type="button" onClick={(e) => { e.preventDefault(); onFollow(p.handle, p.id); }}>
+          <article key={p.id || p.handle}>
+            <button type="button" className="pymk-x" aria-label={`Hide ${p.handle}`} onClick={() => onHide(p.handle)}>×</button>
+            <a href={`/u/${encodeURIComponent(p.handle)}`}>
+              <img src={avatarUrl(p.handle, p.photo)} alt="" />
+              <b>{p.name || p.handle}</b>
+              <em>{[p.role, p.line].filter(Boolean).join(" · ") || "On Kilode"}</em>
+              {p.mutuals ? <small>{p.mutuals} mutual</small> : <small>Suggested</small>}
+            </a>
+            <button type="button" className="pymk-follow" onClick={() => onFollow(p.handle, p.id)}>
               {isOn(p.handle, p.id) ? "Following" : back(p.handle, p.id) ? "Follow back" : "Follow"}
             </button>
-            <button type="button" onClick={(e) => { e.preventDefault(); onHide(p.handle); }}>Hide</button>
-          </a>
+          </article>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -1605,6 +1613,48 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
         </div>
       ) : null}
       <div className="space-y-3">
+        {lane === "posts" ? (
+          <form
+            className="mind-bar"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!authed) return goLogin();
+              if (body.trim().length < 1 || busy || mediaBusy) return;
+              void post();
+            }}
+          >
+            <img src={avatarUrl(me || "me", face)} alt="" />
+            <input
+              value={body}
+              maxLength={280}
+              placeholder="What's on your mind?"
+              aria-label="What's on your mind?"
+              onChange={(e) => setBody(e.target.value)}
+            />
+            <label className="mind-pic" aria-label="Add photo">
+              <ImagePlus className="size-4" />
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,.jpg,.jpeg,.png,.webp"
+                className="sr-only"
+                disabled={mediaBusy}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  if (!authed) return goLogin();
+                  setMediaBusy(true);
+                  void uploadTakeMedia(file)
+                    .then((r) => setShot(r.url))
+                    .catch(() => setErr("Photo did not upload."))
+                    .finally(() => setMediaBusy(false));
+                }}
+              />
+            </label>
+            <button type="submit" disabled={busy || mediaBusy || body.trim().length < 1}>Post</button>
+            {shot ? <img src={shot} alt="" className="mind-shot" /> : null}
+          </form>
+        ) : null}
         {shownTakes.map((t, i) => (
           <div key={t.id}>
           <TakeCard
@@ -1827,6 +1877,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
               }}
               isOn={(handle, id) => followed(handle, id)}
               back={(handle, id) => theyFollow(handle, id)}
+              onSeeAll={onOpenPeople}
             />
           ) : null}
           {lane === "posts" && (i + 1) % 9 === 0 ? <JobRail /> : null}
@@ -2236,6 +2287,14 @@ function KMark() {
   );
 }
 
+function fmtSocial(n: number) {
+  if (n >= 1000) {
+    const v = n / 1000;
+    return `${v >= 10 ? Math.round(v) : v.toFixed(1).replace(/\.0$/, "")}k`;
+  }
+  return String(n);
+}
+
 function TakeCard({
   take,
   photo,
@@ -2326,6 +2385,7 @@ function TakeCard({
   const hours = expires ? Math.max(0, Math.round((expires - Date.now()) / 3600000)) : 0;
   const seenLike = useRef(false);
   const [burst, setBurst] = useState("");
+  const [more, setMore] = useState(false);
   useEffect(() => {
     if (!seenLike.current) {
       seenLike.current = true;
@@ -2355,32 +2415,36 @@ function TakeCard({
     <article className="take-card rounded-[12px] border border-line bg-panel px-2.5 py-2" data-take={take.id}>
       {take.via ? <div className="mb-1 text-[10px] font-semibold text-muted">Reposted by @{take.via}</div> : null}
       <div className="flex items-start gap-2">
-        <Face handle={ghost ? "ghost" : take.handle} photo={ghost ? "" : photo} size={28} />
+        <Face handle={ghost ? "ghost" : take.handle} photo={ghost ? "" : photo} size={36} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1">
-            <span className="take-name truncate">
-              {ghost ? (
-                "Anonymous"
-              ) : (
-                <a href={`/u/${encodeURIComponent(take.handle)}`} className="hover:underline">
-                  {take.name}
-                </a>
-              )}
-            </span>
-            {!ghost && live ? <span className="live-dot" title="Active" /> : null}
-            {!ghost && take.verified ? <VerifiedMark /> : null}
-            {!ghost ? <span className="truncate text-[10px] text-muted">@{take.handle}</span> : null}
-            <span className="shrink-0 text-[10px] text-muted">· {timeAgo(take.ts)}{take.meta.edited === "1" ? " · Edited" : ""}</span>
+          <div className="take-who">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1">
+                <span className="take-name truncate">
+                  {ghost ? "Anonymous" : <a href={`/u/${encodeURIComponent(take.handle)}`}>{take.name}</a>}
+                </span>
+                {!ghost && take.verified ? <VerifiedMark /> : null}
+                {!ghost ? <span className="truncate text-[11px] text-muted">@{take.handle}</span> : null}
+                <span className="shrink-0 text-[11px] text-muted">· {timeAgo(take.ts)}</span>
+              </div>
+              {!ghost && take.role ? <div className="take-role">{take.role}</div> : null}
+            </div>
             {!ghost && !mine ? (
               <button type="button" className={`take-follow ${following ? "on" : ""}`} onClick={onFollow}>
                 {following ? "Following" : followsYou ? "Follow back" : "Follow"}
               </button>
             ) : null}
-            <button type="button" aria-label="Report gist" className={`${!ghost && !mine ? "" : "ml-auto"} shrink-0 px-1 text-[12px] font-bold tracking-widest text-muted`} onClick={onReport}>
-              =
-            </button>
+            <button type="button" aria-label="More" className="take-more" onClick={() => setMore((v) => !v)}>···</button>
           </div>
-          {take.role ? <div className="text-[10px] text-muted">{take.role}</div> : null}
+          {more ? (
+            <div className="take-more-menu">
+              <button type="button" onClick={() => { setMore(false); onQuote(); }}>Quote</button>
+              <button type="button" onClick={() => { setMore(false); void navigator.clipboard?.writeText(`${window.location.origin}/?tab=socials&take=${encodeURIComponent(take.id)}`); }}>Copy link</button>
+              <button type="button" onClick={() => { setMore(false); onReport(); }}>Report</button>
+              {hot ? <span>Trending</span> : null}
+              {typeof take.views === "number" && take.views > 0 ? <span>{take.views.toLocaleString()} seen</span> : null}
+            </div>
+          ) : null}
           {take.kind === "news" ? <div className="mt-1 text-[10px] font-semibold text-lime-2">News</div> : null}
           {ghost ? (
             <div className="mt-0.5 flex items-center justify-between text-[10px] text-violet-300/80">
@@ -2560,40 +2624,20 @@ function TakeCard({
       </div>
       <div className="take-react">
         <button type="button" className={`${liked ? "on" : ""} ${burst === "like" ? "pop" : ""}`} onClick={onLike}>
-          <KSpark /> {take.likes ? take.likes.toLocaleString() : ""}
+          <KSpark /> {take.likes ? fmtSocial(take.likes) : ""}
         </button>
         <button type="button" onClick={onReplyOpen}>
-          <KTalk /> {take.comments ? take.comments.toLocaleString() : ""}
+          <KTalk /> {take.comments ? fmtSocial(take.comments) : ""}
         </button>
         <button type="button" className="repost" onClick={(e) => { e.currentTarget.classList.remove("spin"); void e.currentTarget.offsetWidth; e.currentTarget.classList.add("spin"); onRepost(); }}>
-          <KLoop /> {take.reposts ? take.reposts.toLocaleString() : ""}
+          <KLoop /> {take.reposts ? fmtSocial(take.reposts) : ""}
         </button>
         <button type="button" className={saved ? "on" : ""} onClick={onSave} aria-label={saved ? "Unsave" : "Save"}>
           <KMark />
         </button>
-        <button type="button" className="text-[11px] font-bold" onClick={onQuote}>Quote</button>
-        <button type="button" aria-label="Copy link" onClick={() => void navigator.clipboard?.writeText(`${window.location.origin}/?tab=socials&take=${encodeURIComponent(take.id)}`)}>
-          <KLink />
-        </button>
         <button type="button" onClick={onShare} aria-label="Share">
           <KSend />
         </button>
-        {hot ? (
-          <span className="take-meta" title="Trending" aria-label="Trending">
-            <KTrend />
-          </span>
-        ) : null}
-        {typeof take.views === "number" && take.views > 0 ? (
-          <span className="take-meta" title={`${take.views} seen`} aria-label={`${take.views.toLocaleString()} seen`}>
-            <KEye />
-            {take.views.toLocaleString()}
-          </span>
-        ) : null}
-        <span className="take-faces" aria-label="Liked by">
-          {likers.slice(0, 3).map((p) => (
-            <img key={p.handle} src={avatarUrl(p.handle, p.photo)} alt="" title={p.handle} />
-          ))}
-        </span>
       </div>
     </article>
   );

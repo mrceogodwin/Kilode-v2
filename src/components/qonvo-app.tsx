@@ -91,7 +91,7 @@ import { InstallToast, PublicSiteProvider, SiteFooter, TrendingTicker, usePublic
 import type { PublicSite } from "@/lib/site-server";
 import { OnboardSheet } from "@/components/onboard-sheet";
 import { FeedsHero } from "@/components/feeds-hero";
-import { BrandLockup, CinemaTvIcon } from "@/components/brand-lockup";
+import { BrandLockup, KilodeMark } from "@/components/brand-lockup";
 import { DownloadsPane } from "@/components/downloads-pane";
 import { TvPane } from "@/components/tv-pane";
 import { DESKS, MarketRail, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
@@ -692,125 +692,132 @@ function QonvoAppInner() {
   return (
     <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg" data-paper={(screen === "home" && homeTab === "feeds" && !marketDesk) || screen === "dashboard" || screen === "search" ? "1" : "0"} data-pin={screen === "dashboard" ? "space" : "free"} data-chrome={(screen === "home" && (homeTab === "feeds" || homeTab === "socials") && !marketDesk) || screen === "search" ? "auto" : "lock"}>
       <header className="kilode-chrome z-20 shrink-0">
-        <div className="kilode-header-capsule">
-          <div className="flex min-h-12 min-w-0 items-center gap-1 px-2.5 py-2">
-            <button type="button" className="shrink-0" aria-label="Kilode home" onClick={() => goHome()}>
-              <BrandLockup size="sm" />
+        <div className="kilode-header-capsule soc-head">
+          <div className="flex min-h-12 min-w-0 items-center gap-2 px-2.5 py-2">
+            <button type="button" className="soc-ico" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}>
+              <Menu className="size-4" />
             </button>
-            <div className="ml-auto flex shrink-0 items-center gap-0.5">
+            <button type="button" className="shrink-0" aria-label="Kilode home" onClick={() => goHome()}>
+              <KilodeMark />
+            </button>
+            <div className="ml-auto flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                className="soc-ico"
+                aria-label="Friends"
+                onClick={() => {
+                  setMenuOpen(false);
+                  if (session.isPending) return;
+                  if (!signedIn) {
+                    window.location.href = "/login";
+                    return;
+                  }
+                  setFriendsOpen(true);
+                }}
+              >
+                <FriendsIcon />
+              </button>
               <NotifyBell
                 signedIn={signedIn}
                 posts={store.posts}
                 unread={store.notes.filter((n) => n.seen === 0).length}
-                onOpenNotes={() => {
-                  setScreen("notifications");
-                  setMenuOpen(false);
-                }}
-                onOpenInbox={() => {
-                  setScreen("inbox");
-                  setMenuOpen(false);
-                }}
-                onOpenFriends={() => {
-                  setMenuOpen(false);
-                  setFriendsOpen(true);
-                }}
-                onOpenPost={(id) => {
-                  store.setOpenPost(id);
-                  setHomeTab("feeds");
-                  setScreen("home");
-                }}
+                onOpenNotes={() => { setScreen("notifications"); setMenuOpen(false); }}
+                onOpenInbox={() => { setScreen("inbox"); setMenuOpen(false); }}
+                onOpenFriends={() => { setMenuOpen(false); setFriendsOpen(true); }}
+                onOpenPost={(id) => { store.setOpenPost(id); setHomeTab("feeds"); setScreen("home"); }}
               />
-              <SkinToggle />
-              <button type="button" className="chrome-ico" aria-label="Kilode TV" onClick={() => { setScreen("tv"); setMenuOpen(false); }}>
-                <CinemaTvIcon className="size-3.5" />
-              </button>
-              <button type="button" className="chrome-ico" aria-label="Menu" onClick={() => setMenuOpen((v) => !v)}>
-                <Menu className="size-3.5" />
+              <button type="button" className="soc-ico" aria-label="Buzz" onClick={() => { setMenuOpen(false); setMarketDesk(null); store.setOpenPost(null); setScreen("trending"); }}>
+                <Zap className="size-4" />
               </button>
               <button
                 type="button"
-                aria-label="Me"
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#2f6b3c] text-[13px] font-bold text-white"
+                className="soc-ico relative"
+                aria-label={dmCount > 0 ? `Messages, ${dmCount} new` : "Messages"}
                 onClick={() => {
                   setMenuOpen(false);
                   if (session.isPending) return;
-                  if (signedIn) setScreen("dashboard");
-                  else window.location.href = "/login?mode=up";
+                  if (signedIn) setScreen("inbox");
+                  else window.location.href = "/login";
                 }}
               >
-                {(signedIn ? store.handle || session.user?.displayName || "M" : "M").charAt(0).toUpperCase()}
+                <MessageIcon />
+                {dmCount > 0 ? <span className="msg-badge">{dmCount > 9 ? "9+" : dmCount}</span> : null}
+              </button>
+              <button
+                type="button"
+                className="soc-face"
+                aria-label="Me"
+                onClick={() => {
+                  setMenuOpen(false);
+                  if (session.isPending) return;
+                  if (!signedIn || !store.handle) {
+                    window.location.href = "/login";
+                    return;
+                  }
+                  setScreen("dashboard");
+                }}
+              >
+                <AvatarImg handle={store.handle || "me"} face={store.face} size={28} className="rounded-full" />
               </button>
             </div>
           </div>
         </div>
-        <div className="kilode-chrome-ticker">
-          <div className="ticker-track px-8 text-[10px] leading-5 text-muted">
-            {[...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 8), ...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 8)].map((r, i) => (
-              <button key={r.id + i} type="button" className="shrink-0 hover:text-fg" onClick={() => goHome(r.id)}>
-                {r.name} · {fmtCount(r.online)}
-                <svg viewBox="0 0 10 10" className="ml-1 inline size-2 align-middle text-lime-2" aria-hidden>
-                  <path d="M5 1.2 8.5 8.2H1.5L5 1.2Z" fill="currentColor" />
-                </svg>
-              </button>
-            ))}
-          </div>
-        </div>
         {screen === "home" && homeTab === "feeds" && !marketDesk ? (
-          <div className="feed-tools flex items-center gap-1.5 px-2 py-1">
-            {feedSearchOn ? (
-              <input
-                value={feedQ}
-                onChange={(e) => setFeedQ(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key !== "Enter") return;
-                  const n = feedQ.trim().toLowerCase();
-                  if (n.length < 2) return;
-                  const hit = store.posts.find((p) => {
-                    if (!p?.id || p.status === "draft") return false;
-                    const blob = `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase();
-                    return blob.includes(n);
-                  });
-                  if (hit) {
-                    store.setOpenPost(hit.id);
-                    setHomeTab("feeds");
-                    setScreen("home");
-                  }
+          <>
+            <div className="kilode-chrome-ticker">
+              <div className="ticker-track px-8 text-[10px] leading-5 text-muted">
+                {[...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 8), ...liveRooms.filter((r) => r.region === "Featured" || r.region === "More rooms").slice(0, 8)].map((r, i) => (
+                  <button key={r.id + i} type="button" className="shrink-0 hover:text-fg" onClick={() => goHome(r.id)}>
+                    {r.name} · {fmtCount(r.online)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="feed-tools flex items-center gap-1.5 px-2 py-1">
+              {feedSearchOn ? (
+                <input
+                  value={feedQ}
+                  onChange={(e) => setFeedQ(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    const n = feedQ.trim().toLowerCase();
+                    if (n.length < 2) return;
+                    const hit = store.posts.find((p) => {
+                      if (!p?.id || p.status === "draft") return false;
+                      const blob = `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase();
+                      return blob.includes(n);
+                    });
+                    if (hit) {
+                      store.setOpenPost(hit.id);
+                      setHomeTab("feeds");
+                      setScreen("home");
+                    }
+                  }}
+                  placeholder="Search feeds"
+                  className="min-h-9 min-w-0 flex-1 rounded-md border border-line bg-panel px-2 text-base"
+                  autoFocus
+                />
+              ) : (
+                <TrendingTicker posts={store.posts} onOpen={(id) => { store.setOpenPost(id); setHomeTab("feeds"); setScreen("home"); }} />
+              )}
+              <button type="button" aria-label="Search feeds" className="btn-3d grid size-8 place-items-center rounded-md" onClick={() => { setFeedSearchOn((v) => !v); if (feedSearchOn) setFeedQ(""); }}>
+                <Search className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Post news"
+                className="btn-3d grid size-8 place-items-center rounded-md"
+                onClick={() => {
+                  if (session.isPending) return;
+                  if (!signedIn) { window.location.href = "/login?mode=up"; return; }
+                  queueNewsPost();
+                  setScreen("create");
                 }}
-                placeholder="Search feeds"
-                className="min-h-9 min-w-0 flex-1 rounded-md border border-line bg-panel px-2 text-base"
-                autoFocus
-              />
-            ) : (
-              <TrendingTicker posts={store.posts} onOpen={(id) => { store.setOpenPost(id); setHomeTab("feeds"); setScreen("home"); }} />
-            )}
-            <button
-              type="button"
-              aria-label="Search feeds"
-              className="btn-3d grid size-8 place-items-center rounded-md"
-              onClick={() => {
-                setFeedSearchOn((v) => !v);
-                if (feedSearchOn) setFeedQ("");
-              }}
-            >
-              <Search className="size-3.5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Post news"
-              className="btn-3d grid size-8 place-items-center rounded-md"
-              onClick={() => {
-                if (session.isPending) return;
-                if (!signedIn) {
-                  window.location.href = "/login?mode=up";
-                  return;
-                }
-                queueNewsPost();
-                setScreen("create");
-              }}
-            >
-              <Plus className="size-3.5" />
-            </button>
-          </div>
+              >
+                <Plus className="size-3.5" />
+              </button>
+            </div>
+          </>
         ) : null}
       </header>
 
@@ -1233,25 +1240,35 @@ function QonvoAppInner() {
       ) : null}
       <DockBar
         slot={
-          screen === "dashboard" || screen === "profile" ? "me"
-          : screen === "home" && homeTab === "chat" ? "chat"
-          : screen === "home" && homeTab === "music" ? "music"
+          screen === "search" ? "activity"
+          : screen === "dashboard" || screen === "profile" ? "space"
           : screen === "home" && homeTab === "socials" ? "socials"
-          : screen === "home" && homeTab === "cinema" ? "events"
-          : screen === "home" && homeTab === "advert" ? "ads"
-          : screen === "home" && homeTab === "downloads" ? "downloads"
-          : screen === "home" && homeTab === "feeds" && !marketDesk ? "feeds"
+          : screen === "home" && homeTab === "feeds" && !marketDesk ? "media"
           : ""
         }
       >
-        <Tab icon={<Home className="size-3.5" />} label="Feeds" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
-        <Tab icon={<MessageSquare className="size-3.5" />} label="Chat" on={screen === "home" && homeTab === "chat"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("chat"); }} />
-        <Tab icon={<Radio className="size-3.5" />} label="Music" on={screen === "home" && homeTab === "music"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("music"); }} />
-        <Tab icon={<Globe className="size-3.5" />} label="Socials" on={screen === "home" && homeTab === "socials"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); store.setOpenPost(null); }} />
-        <Tab icon={<Film className="size-3.5" />} label="Events" on={screen === "home" && homeTab === "cinema"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("cinema"); }} />
-        <Tab icon={<Megaphone className="size-3.5" />} label="Ads" on={screen === "home" && homeTab === "advert"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("advert"); }} />
-        <Tab icon={<Download className="size-3.5" />} label="Downloads" on={screen === "home" && homeTab === "downloads"} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("downloads"); }} />
-        <Tab icon={<User className="size-3.5" />} label="Me" on={screen === "dashboard" || screen === "profile"} onClick={() => { setMenuOpen(false); if (signedIn) setScreen("dashboard"); else window.location.href = "/login?mode=up"; }} />
+        <Tab icon={<Newspaper className="size-5" />} label="Media" on={screen === "home" && homeTab === "feeds" && !marketDesk} onClick={() => { setMenuOpen(false); setScreen("home"); setHomeTab("feeds"); setMarketDesk(null); store.setOpenPost(null); }} />
+        <Tab icon={<UsersRound className="size-5" />} label="Socials" on={screen === "home" && homeTab === "socials"} onClick={() => { setMenuOpen(false); setSocialLane("posts"); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); store.setOpenPost(null); }} />
+        <button
+          type="button"
+          className="dock-plus"
+          aria-label="Create"
+          onClick={() => {
+            setMenuOpen(false);
+            if (session.isPending) return;
+            if (!signedIn) { window.location.href = "/login?mode=up"; return; }
+            if (screen === "home" && homeTab === "socials") {
+              window.dispatchEvent(new Event("kilode:compose"));
+              return;
+            }
+            openRoleCreate();
+            setScreen("create");
+          }}
+        >
+          <Plus className="size-6" strokeWidth={2.75} />
+        </button>
+        <Tab icon={<Activity className="size-5" />} label="Activity" on={screen === "search"} onClick={() => { setMenuOpen(false); if (!signedIn) { window.location.href = "/login?mode=up"; return; } setScreen("search"); }} />
+        <Tab icon={<Layers className="size-5" />} label="My Space" on={screen === "dashboard"} onClick={() => { setMenuOpen(false); if (!signedIn) { window.location.href = "/login?mode=up"; return; } setScreen("dashboard"); }} />
       </DockBar>
 
       {roomsOpen ? (
