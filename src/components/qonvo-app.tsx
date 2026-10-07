@@ -706,6 +706,19 @@ function QonvoAppInner() {
               <BrandLockup size="sm" />
             </button>
             <div className="ml-auto flex items-center gap-1">
+              {screen === "home" && homeTab === "feeds" && !marketDesk ? (
+                <button
+                  type="button"
+                  className="hdr-ico"
+                  aria-label="Search"
+                  onClick={() => {
+                    setFeedSearchOn((v) => !v);
+                    if (feedSearchOn) setFeedQ("");
+                  }}
+                >
+                  <Search className="size-4" />
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="hdr-ico"
@@ -822,6 +835,7 @@ function QonvoAppInner() {
             ) : (
               <TrendingTicker posts={store.posts} onOpen={(id) => { store.setOpenPost(id); setHomeTab("feeds"); setScreen("home"); }} />
             )}
+            {homeTab === "feeds" && !feedSearchOn ? null : (
             <button
               type="button"
               aria-label="Search feeds"
@@ -833,6 +847,8 @@ function QonvoAppInner() {
             >
               <Search className="size-3.5" />
             </button>
+            )}
+            {homeTab === "feeds" ? null : (
             <button
               type="button"
               aria-label={homeTab === "socials" ? "Write a take" : "Post news"}
@@ -854,6 +870,7 @@ function QonvoAppInner() {
             >
               <Plus className="size-4" strokeWidth={2.75} />
             </button>
+            )}
           </div>
         ) : null}
       </header>
@@ -3204,6 +3221,157 @@ function ExploreKilode({ onLeave }: { onLeave: (where: "trending" | "music" | "c
   );
 }
 
+function storyTitle(title: string) {
+  return title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&/g, "&").replace(/&nbsp;/g, " ");
+}
+
+function MhClock() {
+  return (
+    <svg viewBox="0 0 16 16" className="mdh-ico" aria-hidden>
+      <circle cx="8" cy="8" r="5.5" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M8 4.8V8l2 1.3" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+function MhEye() {
+  return (
+    <svg viewBox="0 0 16 16" className="mdh-ico" aria-hidden>
+      <path d="M1.5 8s2.4-4 6.5-4 6.5 4 6.5 4-2.4 4-6.5 4S1.5 8 1.5 8Z" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="8" cy="8" r="1.6" fill="none" stroke="currentColor" strokeWidth="1.3" />
+    </svg>
+  );
+}
+function MhChat() {
+  return (
+    <svg viewBox="0 0 16 16" className="mdh-ico" aria-hidden>
+      <path d="M3 3.5h10v7H6.2L3 12.5v-9Z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function MediaHome({ posts, onOpen }: { posts: { id: string; title: string; excerpt?: string; image?: string; category?: string; views?: number; comments?: unknown[]; ts: number }[]; onOpen: (id: string) => void }) {
+  const live = posts.filter((p) => p.id && p.title);
+  const deck = live.filter((p) => p.image).slice(0, 12);
+  const slides = deck.length ? deck : live.slice(0, 12);
+  const [i, setI] = useState(0);
+  const [pick, setPick] = useState(0);
+  const [topAll, setTopAll] = useState(false);
+  const [newsAll, setNewsAll] = useState(false);
+  const drag = useRef(0);
+  const n = slides.length;
+  const feature = n ? slides[i % n] : undefined;
+  const sideA = n > 1 ? slides[(i + 1) % n] : undefined;
+  const sideB = n > 2 ? slides[(i + 2) % n] : undefined;
+  const top = [...live].sort((a, b) => (b.views ?? 0) - (a.views ?? 0) || b.ts - a.ts).slice(0, 10);
+  const latest = live.filter((p) => p.id !== feature?.id).slice(0, newsAll ? 12 : 4);
+  const cards = latest.length ? latest : live.slice(0, newsAll ? 12 : 4);
+  useEffect(() => {
+    if (n < 2) return;
+    const t = window.setInterval(() => setI((cur) => (cur + 1) % n), 7000);
+    return () => window.clearInterval(t);
+  }, [n]);
+  if (!feature) return <p className="py-10 text-center text-[12px] text-muted">No stories yet.</p>;
+  const dots = Math.min(n, 8);
+  return (
+    <div className="mh">
+      <div
+        className="mdh-hero"
+        onPointerDown={(e) => { drag.current = e.clientX; }}
+        onPointerUp={(e) => {
+          const dx = e.clientX - drag.current;
+          if (n < 2) return;
+          if (dx > 36) setI((cur) => (cur - 1 + n) % n);
+          else if (dx < -36) setI((cur) => (cur + 1) % n);
+        }}
+      >
+        <button type="button" className="mdh-feature" onClick={() => onOpen(feature.id)}>
+          {feature.image ? <img src={feature.image} alt="" /> : null}
+          <span className="mdh-shade" />
+          <span className="mdh-count">{(i % n) + 1}/{n}</span>
+          <span className="mdh-copy">
+            <em>{(feature.category || "Story").toUpperCase()}</em>
+            <strong>{storyTitle(feature.title)}</strong>
+            {feature.excerpt ? <p>{storyTitle(feature.excerpt)}</p> : null}
+            <small>
+              <MhClock /> {timeAgo(feature.ts)}
+              <MhEye /> {fmtCount(feature.views ?? 0)} views
+              <MhChat /> {feature.comments?.length ?? 0} comments
+            </small>
+          </span>
+        </button>
+        {sideA || sideB ? (
+          <div className="mdh-stack">
+            {[sideA, sideB].filter(Boolean).map((p) => p ? (
+              <button key={p.id} type="button" className="mdh-side" onClick={() => onOpen(p.id)}>
+                {p.image ? <img src={p.image} alt="" /> : null}
+                <span className="mdh-shade" />
+                <span className="mdh-copy">
+                  <em>{(p.category || "Story").toUpperCase()}</em>
+                  <strong>{storyTitle(p.title)}</strong>
+                  <small><MhClock /> {timeAgo(p.ts)} <MhEye /> {fmtCount(p.views ?? 0)}</small>
+                </span>
+              </button>
+            ) : null)}
+          </div>
+        ) : null}
+      </div>
+      <div className="mdh-dots">
+        {Array.from({ length: dots }, (_, d) => (
+          <button key={d} type="button" className={d === i % dots ? "on" : ""} aria-label={`Story ${d + 1}`} onClick={() => setI(d % n)} />
+        ))}
+      </div>
+      {top.length > 0 ? (
+        <section>
+          <div className="mdh-head">
+            <h3>Top 10</h3>
+            <button type="button" onClick={() => setTopAll((v) => !v)}>{topAll ? "Close" : "See all"} <span aria-hidden>›</span></button>
+          </div>
+          <div className="mdh-top">
+            {top.map((p, idx) => (
+              <button key={p.id} type="button" className={`mdh-rank ${pick === idx ? "on" : ""}`} onClick={() => { setPick(idx); onOpen(p.id); }}>
+                <i>{idx + 1}</i>
+                <b>{storyTitle(p.title)}</b>
+              </button>
+            ))}
+          </div>
+          {topAll ? (
+            <div className="mdh-latest mdh-latest-full">
+              {top.map((p) => (
+                <button key={`top-${p.id}`} type="button" className="mdh-news" onClick={() => onOpen(p.id)}>
+                  {p.image ? <img src={p.image} alt="" /> : <i className="mdh-ph" />}
+                  <span>
+                    <em>{(p.category || "Story").toUpperCase()}</em>
+                    <strong>{storyTitle(p.title)}</strong>
+                    <small><MhClock /> {timeAgo(p.ts)} <MhEye /> {fmtCount(p.views ?? 0)}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+      <section>
+        <div className="mdh-head">
+          <h3><i />Latest News</h3>
+          <button type="button" onClick={() => setNewsAll((v) => !v)}>{newsAll ? "Close" : "See all"} <span aria-hidden>›</span></button>
+        </div>
+        <div className="mdh-latest">
+          {cards.map((p) => (
+            <button key={p.id} type="button" className="mdh-news" onClick={() => onOpen(p.id)}>
+              {p.image ? <img src={p.image} alt="" /> : <i className="mdh-ph" />}
+              <span>
+                <em>{(p.category || "Story").toUpperCase()}</em>
+                <strong>{storyTitle(p.title)}</strong>
+                <small><MhClock /> {timeAgo(p.ts)} <MhEye /> {fmtCount(p.views ?? 0)}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "jobs" | "sports" | "tech") => void }) {
   const [cat, setCat] = useState("All");
   const [shown, setShown] = useState(48);
@@ -3305,256 +3473,9 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
   }
   return (
     <div className="media-page flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
-        {needle ? (
-          <p className="mb-2 text-[12px] text-muted">{live.length} stories for “{q.trim()}”. Press enter to open the first.</p>
-        ) : (
-          <>
-            <div className="hero-split">
-            <FeedsHero
-              posts={store.posts}
-              ads={store.campaigns}
-              onOpen={(id) => store.setOpenPost(id)}
-              onViewAd={(id) => store.see("ads", id)}
-              onRepost={(p) => {
-                if (!store.authed) {
-                  window.location.href = "/login?mode=up";
-                  return;
-                }
-                setRepost(p);
-                setCap("");
-              }}
-            />
-            <div className="hero-stack">
-              {store.posts.filter((p) => p.status !== "draft" && p.image && p.title).slice(1, 3).map((p) => (
-                <button key={p.id} type="button" className="hero-side" onClick={() => store.setOpenPost(p.id)}>
-                  <img src={p.image} alt="" />
-                  <span>
-                    <em>{p.category || "Story"}</em>
-                    <strong>{p.title}</strong>
-                  </span>
-                </button>
-              ))}
-            </div>
-            </div>
-            <RankDots posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
-            <DeskLine onLane={setLane} onLeave={onLeave} onDesk={onDesk} />
-            <div className="mb-2">
-              <div className="lane-rail" role="tablist" aria-label="Feeds">
-                {FEED_LANES.map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="tab"
-                    aria-selected={lane === id}
-                    className={`lane-chip ${lane === id ? "on" : ""}`}
-                    onClick={() => {
-                      setLane(id);
-                      setShown(48);
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="story-rail">
-              <div className="story-rail-head">Top stories</div>
-              <div className="story-rail-row">
-                {live.filter((p) => p.image).slice(0, 10).map((p) => (
-                  <button key={p.id} type="button" className="story-card" onClick={() => store.setOpenPost(p.id)}>
-                    <img src={p.image} alt="" />
-                    <em>{p.category || "Story"}</em>
-                    <strong>{p.title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))}</strong>
-                    <span><Eye className="size-2.5" />{fmtCount(p.views ?? 0)} <MessageSquare className="size-2.5" />{p.comments?.length ?? 0}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="pulse-split">
-              <PulseStrip posts={store.posts.filter((p) => p.status !== "draft")} onOpen={() => onLeave("trending")} />
-              <FeedDiscover posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
-            </div>
-          </>
-        )}
-        {catsOpen ? (
-          <ul className="mb-3 overflow-hidden rounded-xl border border-line">
-            <li>
-              <button
-                type="button"
-                className={`flex w-full items-center justify-between px-3 py-2.5 text-left ${cat === "All" ? "text-lime-2" : ""}`}
-                onClick={() => {
-                  setCat("All");
-                  setShown(48);
-                  setCatsOpen(false);
-                }}
-              >
-                <span className="text-[13px] font-semibold">All</span>
-                <span className="tabular-nums text-[11px] text-muted">{store.posts.filter((p) => p.status !== "draft").length} posts</span>
-              </button>
-            </li>
-            {POST_CATS.map((c) => (
-              <li key={c} className="border-t border-line">
-                <button
-                  type="button"
-                  className={`flex w-full items-center justify-between px-3 py-2.5 text-left ${cat === c ? "text-lime-2" : ""}`}
-                  onClick={() => {
-                    setCat(c);
-                    setShown(48);
-                    setCatsOpen(false);
-                  }}
-                >
-                  <span className="text-[13px] font-semibold">{c}</span>
-                  <span className="tabular-nums text-[11px] text-muted">{catCounts.get(c) ?? 0}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
-          <div className="col-span-4 flex justify-end gap-2">
-            <button type="button" className={`text-[11px] font-bold ${order === "new" ? "text-fg" : "text-muted"}`} onClick={() => setOrder("new")}>Newest</button>
-            <button type="button" className={`text-[11px] font-bold ${order === "seen" ? "text-fg" : "text-muted"}`} onClick={() => setOrder("seen")}>Most seen</button>
-          </div>
-          {lane === "following" && follows && live.length === 0 ? (
-            <p className="col-span-4 py-6 text-center text-[12px] text-muted">Connect with people on Socials. Their posts show here. Nothing is invented.</p>
-          ) : null}
-          {lane === "topics" && topics && live.length === 0 ? (
-            <p className="col-span-4 py-6 text-center text-[12px] text-muted">Follow a topic on a story. Those stories show here. Nothing is invented.</p>
-          ) : null}
-          {live.filter((p) => !!p?.id).slice(0, shown).map((p) => {
-            const hot = (p.views ?? 0) >= 350 || (p.comments?.length ?? 0) >= 6;
-            return (
-            <div key={p.id} role="button" tabIndex={0} data-feed-card="1" className="media-tile text-left" onClick={() => store.setOpenPost(p.id)} onKeyDown={(e) => { if (e.key === "Enter") store.setOpenPost(p.id); }}>
-              <div className="relative">
-                {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" className="media-shot" /> : <div className="media-shot bg-panel-3" />}
-                {hot ? (
-                  <span className="media-orb absolute top-1.5 left-1.5" title="Trending">
-                    <svg viewBox="0 0 16 16" className="size-3" aria-hidden>
-                      <path d="M2 12 6.1 7.6 8.5 9.8 14 3.4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                      <path d="M10.2 3.4H14v3.6" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                ) : null}
-                <button
-                  type="button"
-                  aria-label={store.savedPosts.includes(p.id) ? "Saved" : "Save"}
-                  className="media-save"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!store.authed) {
-                      window.location.href = "/login?mode=up";
-                      return;
-                    }
-                    store.savePostMark(p.id);
-                  }}
-                >
-                  <Bookmark className={`size-[11px] ${store.savedPosts.includes(p.id) ? "fill-current" : ""}`} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Repost"
-                  className="media-repost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!store.authed) {
-                      window.location.href = "/login?mode=up";
-                      return;
-                    }
-                    setRepost(p);
-                    setCap("");
-                  }}
-                >
-                  <Repeat2 className="size-[11px]" strokeWidth={2.25} />
-                </button>
-              </div>
-              <div className="px-1.5 py-1.5">
-                <div className="text-[9px] font-medium tracking-wide text-lime-2">{p.category || "General"}</div>
-                <div className="media-title mt-0.5 line-clamp-3">{p.title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&/g, "&")}</div>
-                <div className="mt-1 flex items-center gap-1.5 text-[9px] font-normal tabular-nums text-muted">
-                  <span className="inline-flex items-center gap-0.5">
-                    <Eye className="size-2.5" />
-                    {fmtCount(p.views ?? 0)}
-                  </span>
-                  <span className="inline-flex items-center gap-0.5">
-                    <MessageSquare className="size-2.5" />
-                    {p.comments?.length ?? 0}
-                  </span>
-                  <span
-                    role="button"
-                    aria-label="Share"
-                    className="ml-auto inline-flex items-center"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      store.sharePost(p.id);
-                      const url = `${window.location.origin}/p/${encodeURIComponent(p.slug || p.id)}`;
-                      if (navigator.share) void navigator.share({ title: p.title, url });
-                      else void navigator.clipboard?.writeText(url);
-                    }}
-                  >
-                    <Share2 className="size-2.5" />
-                  </span>
-                </div>
-              </div>
-            </div>
-            );
-          })}
-        </div>
-        <div className="news-list">
-          {live.slice(0, 6).map((p) => (
-            <button key={`row-${p.id}`} type="button" className="news-row" onClick={() => store.setOpenPost(p.id)}>
-              {p.image ? <img src={p.image} alt="" /> : <i />}
-              <span>
-                <em>{p.category || "Story"}</em>
-                <strong>{p.title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))}</strong>
-                <small>{timeAgo(p.ts)} · {fmtCount(p.views ?? 0)}</small>
-              </span>
-            </button>
-          ))}
-        </div>
-        {shown < live.length ? (
-          <div className="feed-more-wrap">
-            <button type="button" className="feed-more" onClick={() => setShown((n) => n + 24)}>MORE</button>
-          </div>
-        ) : live.length > 0 ? (
-          <p className="mt-6 mb-6 text-center text-[11px] text-muted">End of feeds · {live.length} posts</p>
-        ) : null}
-        {repost ? (
-          <RepostModal
-            post={repost}
-            handle={store.handle}
-            cap={cap}
-            onCap={setCap}
-            onClose={() => setRepost(null)}
-            onSend={() => {
-              const extra = cap.trim();
-              const path = `/p/${encodeURIComponent(repost.slug || repost.id)}`;
-              store.send(`reposted: ${repost.title}${extra ? `\n${extra}` : ""}\n${path}`);
-              store.sharePost(repost.id);
-              setRepost(null);
-              setCap("");
-            }}
-          />
-        ) : null}
-        <PortraitAd id="feeds_portrait_before" />
-        <AdReserve id="feeds_before_top10" className="mt-8 mb-8" />
-        <TopTen posts={store.posts} exclude="" onOpen={(id) => store.setOpenPost(id)} />
-        <PortraitAd id="feeds_portrait_after" />
-        <AdReserve id="feeds_after_top10" className="mt-8 mb-8" />
-        <DontMissGrid posts={[...store.posts].sort((a, b) => b.ts - a.ts)} onOpen={(id) => store.setOpenPost(id)} />
-        <PortraitAd id="feeds_portrait_miss" />
-        <AdReserve id="feeds_after_miss" className="mt-8 mb-8" />
-        <CategoryArchive
-          posts={store.posts}
-          onPick={(c) => {
-            setCat(c);
-            setShown(48);
-          }}
-        />
-        <TagArchive posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
-        <AdReserve id="feeds_after_tags" className="mt-3" />
-        <PulseBoard posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
-        <ExploreKilode onLeave={onLeave} />
+      <div className="mdh-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain dock-pad">
+        {needle ? <p className="mdh-query">{live.length} stories for “{q.trim()}”</p> : null}
+        <MediaHome posts={live} onOpen={(id) => store.setOpenPost(id)} />
       </div>
     </div>
   );
