@@ -89,7 +89,7 @@ import { RelatedGrid, TopTen, TrendingRail, LandscapeGrid, CategoryArchive, TagA
 import { LinkText } from "@/components/link-text";
 import { PostBody } from "@/components/post-body";
 import { postBodyPlain } from "@/lib/post-body";
-import { InstallToast, PublicSiteProvider, SiteFooter, TrendingTicker, usePublicSite } from "@/components/site-chrome";
+import { InstallToast, PublicSiteProvider, usePublicSite } from "@/components/site-chrome";
 import type { PublicSite } from "@/lib/site-server";
 import { OnboardSheet } from "@/components/onboard-sheet";
 import { FeedsHero } from "@/components/feeds-hero";
@@ -267,7 +267,6 @@ function QonvoAppInner() {
   });
   const [homeTab, setHomeTabNow] = useState<"chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials">("feeds");
   const [feedQ, setFeedQ] = useState("");
-  const [feedSearchOn, setFeedSearchOn] = useState(false);
   const [socialLane, setSocialLane] = useState<"people" | "posts">("posts");
   const [keptTabs, setKeptTabs] = useState<Record<string, true>>({ feeds: true });
   const setHomeTab = (tab: "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials") => startTransition(() => {
@@ -767,33 +766,14 @@ function QonvoAppInner() {
           </div>
         </div>
         {screen === "home" && homeTab === "feeds" && !marketDesk ? (
-          <div className="home-trend-bar">
-            {feedSearchOn ? (
-              <input
-                value={feedQ}
-                onChange={(e) => setFeedQ(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key !== "Enter") return;
-                  const n = feedQ.trim().toLowerCase();
-                  if (n.length < 2) return;
-                  const hit = store.posts.find((p) => {
-                    if (!p?.id || p.status === "draft") return false;
-                    const blob = `${p.title} ${p.excerpt || ""} ${p.category || ""} ${p.tags || ""} ${postBodyPlain(p.body || "")}`.toLowerCase();
-                    return blob.includes(n);
-                  });
-                  if (hit) store.setOpenPost(hit.id);
-                }}
-                placeholder="Search Kilode"
-                className="min-h-9 min-w-0 flex-1 rounded-full border border-white/10 bg-transparent px-3 text-base"
-                autoFocus
-              />
-            ) : (
-              <TrendingTicker posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
-            )}
-            <button type="button" className="home-search" aria-label="Search" onClick={() => { setFeedSearchOn((v) => !v); if (feedSearchOn) setFeedQ(""); }}>
-              <Search className="size-4" />
-            </button>
-          </div>
+          <label className="kh-search">
+            <Search className="size-4" />
+            <input
+              value={feedQ}
+              onChange={(e) => setFeedQ(e.target.value)}
+              placeholder="Search people, posts, music, events, products, jobs..."
+            />
+          </label>
         ) : null}
       </header>
 
@@ -811,7 +791,7 @@ function QonvoAppInner() {
                 <div className={homeTab === "feeds" && !marketDesk ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "hidden"}>
                   <FeedPane
                     store={store}
-                    q=""
+                    q={feedQ}
                     onDesk={setMarketDesk}
                     onLeave={(where) => {
                       if (where === "trending") setScreen("trending");
@@ -827,6 +807,7 @@ function QonvoAppInner() {
                       else if (where === "tech") setMarketDesk("tech");
                       else if (where === "downloads") setHomeTab("downloads");
                       else if (where === "tv") setScreen("tv");
+                      else if (where === "community") setScreen("community");
                     }}
                   />
                 </div>
@@ -3341,7 +3322,7 @@ function HomeRail({ title, icon, empty, rows, onAll }: { title: string; icon: Re
   );
 }
 
-function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "events" | "jobs" | "ads" | "chat" | "socials" | "market" | "rent" | "sports" | "tech" | "downloads" | "tv") => void }) {
+function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "events" | "jobs" | "ads" | "chat" | "socials" | "market" | "rent" | "sports" | "tech" | "downloads" | "tv" | "community") => void }) {
   void onDesk;
   const [shown, setShown] = useState(12);
   const [repost, setRepost] = useState<(typeof store.posts)[number] | null>(null);
@@ -3354,6 +3335,10 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
   const [gigs, setGigs] = useState<{ id: string; title: string; city: string; image?: string }[]>([]);
   const [stalls, setStalls] = useState<{ id: string; title: string; city: string; image?: string }[]>([]);
   const [lets, setLets] = useState<{ id: string; title: string; city: string; image?: string }[]>([]);
+  const [people, setPeople] = useState<{ id: string; handle: string; role: string; mutuals: number; photo?: string }[]>([]);
+  useEffect(() => {
+    void suggestFollows().then((rows) => setPeople(Array.isArray(rows) ? rows : [])).catch(() => setPeople([]));
+  }, []);
   useEffect(() => {
     void listEvents().then((r) => setShows(r.events.slice(0, 6))).catch(() => setShows([]));
     const take = (kind: "job" | "market" | "rent", set: (rows: { id: string; title: string; city: string; image?: string }[]) => void) => {
@@ -3409,7 +3394,10 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
       return score(b) - score(a);
     })
     .filter((p) => lane !== "following" || (follows ? follows.includes((p.author || "").toLowerCase()) : false));
+  const hero = live.find((p) => p.image) || live[0];
+  const cards = live.filter((p) => !!p?.id).slice(0, shown);
   if (open) {
+
     return (
       <>
         <ArticleRead
@@ -3447,163 +3435,104 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
-        {needle ? (
-          <p className="mb-2 text-[12px] text-muted">{live.length} stories for “{q.trim()}”.</p>
-        ) : null}
-        <div className="home-services">
+        {needle ? <p className="mb-2 text-[12px] text-muted">{live.length} results for “{q.trim()}”.</p> : null}
+        {hero ? (
+          <button type="button" className="kh-hero" onClick={() => store.setOpenPost(hero.id)}>
+            {hero.image ? <img src={hero.image} alt="" referrerPolicy="no-referrer" /> : null}
+            <span>
+              <i>TRENDING NOW</i>
+              <strong>{hero.title}</strong>
+              {hero.excerpt ? <em>{hero.excerpt}</em> : null}
+              <b>Open story →</b>
+            </span>
+          </button>
+        ) : <p className="home-empty">No posts yet.</p>}
+        <div className="home-services kh-apps">
           {([
+            ["Socials", UsersRound, () => onLeave("socials")],
             ["Music", Music, () => onLeave("music")],
             ["Events", CalendarDays, () => onLeave("events")],
-            ["Jobs", Briefcase, () => onLeave("jobs")],
             ["Market", Store, () => onLeave("market")],
-            ["Rent", Home, () => onLeave("rent")],
-            ["Ads", Megaphone, () => onLeave("ads")],
-            ["Socials", UsersRound, () => onLeave("socials")],
-            ["Chat", MessageSquare, () => onLeave("chat")],
-            ["Cinema", Film, () => onLeave("cinema")],
-            ["Sports", Trophy, () => onLeave("sports")],
-            ["Tech", Cpu, () => onLeave("tech")],
-            ["Downloads", Download, () => onLeave("downloads")],
-            ["TV", Tv, () => onLeave("tv")],
+            ["Jobs", Briefcase, () => onLeave("jobs")],
+            ["Media", Newspaper, () => setLane("foryou")],
+            ["Communities", Users, () => onLeave("community")],
           ] as const).map(([label, Icon, go]) => (
-            <button key={label} type="button" onClick={go}>
-              <Icon className="size-4" />
-              {label}
-            </button>
+            <button key={label} type="button" onClick={go}><Icon className="size-4" />{label}</button>
           ))}
         </div>
-        <FeedsHero
-          posts={store.posts}
-          ads={store.campaigns}
-          onOpen={(id) => store.setOpenPost(id)}
-          onViewAd={(id) => store.see("ads", id)}
-          onRepost={(p) => {
-            if (!store.authed) { window.location.href = "/login?mode=up"; return; }
-            setRepost(p);
-            setCap("");
-          }}
-        />
-        <div className="v1-grid">
-          {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
-            <button key={p.id} type="button" className="v1-tile" onClick={() => store.setOpenPost(p.id)}>
-              {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" /> : <span />}
-              <em>{p.category || "General"}</em>
-              <strong>{p.title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))}</strong>
-              <small><Eye className="size-3" /> {fmtCount(p.views ?? 0)} <MessageSquare className="size-3" /> {p.comments?.length ?? 0}</small>
-            </button>
-          ))}
-        </div>
-        {shown < live.length ? (
-          <button type="button" className="home-more" onClick={() => setShown((n) => n + 12)}>NEXT</button>
-        ) : null}
-        <section className="home-block">
-          <div className="home-block-h">
-            <span><Flame className="size-4 text-[#f5c451]" /> Trending Near You</span>
-            <button type="button" onClick={() => onLeave("trending")}>See All ›</button>
-          </div>
-          <div className="home-chips">
-            {nearChips(store.posts).map(([name, n], i) => (
-              <button key={name} type="button" className={!near && i === 0 || near === name ? "on" : ""} onClick={() => setNear((cur) => cur === name ? "" : name)}>
-                {name} <b>{fmtCount(n)}</b>
-              </button>
-            ))}
-          </div>
-        </section>
-        <section className="home-block">
-          <div className="home-block-h">
-            <span><Flame className="size-4 text-[#f5c451]" /> New Music Releases</span>
-            <button type="button" onClick={() => onLeave("music")}>See All ›</button>
-          </div>
-          {store.tracks.filter((t) => t?.id).length === 0 ? (
-            <p className="home-empty">No releases yet. Artists drop them in Music.</p>
-          ) : (
-            <div className="home-grid">
-              {store.tracks.filter((t) => t?.id).slice(0, 8).map((t) => (
-                <button key={t.id} type="button" className="home-release" onClick={() => { store.setOpenTrack(t.id); onLeave("music"); }}>
-                  {t.cover ? <img src={t.cover} alt="" /> : <span className="home-ph" />}
-                  <i aria-hidden><Play className="size-3" /></i>
-                  <b>{t.artist || t.author}</b>
-                  <strong>{t.title}</strong>
-                  <em>{t.genre || t.platform || "Music"}</em>
-                </button>
+        <div className="kh-split">
+          <div>
+            <div className="kh-lanes">
+              {([["foryou", "For You"], ["following", "Following"], ["trending", "Trending"], ["latest", "Latest"]] as const).map(([id, label]) => (
+                <button key={id} type="button" className={lane === id ? "on" : ""} onClick={() => { setLane(id); setShown(8); }}>{label}</button>
               ))}
             </div>
-          )}
-        </section>
-        <section className="home-block">
-          <div className="home-block-h">
-            <span><Music className="size-4" /> Artists</span>
-            <button type="button" onClick={() => onLeave("music")}>See All ›</button>
-          </div>
-          {(() => {
-            const seen = new Set<string>();
-            const artists = store.tracks.filter((t) => {
-              const name = (t.artist || t.author || "").trim();
-              if (!t?.id || !name || seen.has(name.toLowerCase())) return false;
-              seen.add(name.toLowerCase());
-              return true;
-            }).slice(0, 8);
-            if (!artists.length) return <p className="home-empty">No artists yet.</p>;
-            return (
-              <div className="home-grid">
-                {artists.map((t) => (
-                  <button key={t.id} type="button" className="home-release" onClick={() => { store.setOpenTrack(t.id); onLeave("music"); }}>
-                    {t.cover ? <img src={t.cover} alt="" /> : <span className="home-ph" />}
-                    <strong>{t.artist || t.author}</strong>
-                    <em>{t.genre || "Artist"}</em>
-                  </button>
-                ))}
-              </div>
-            );
-          })()}
-        </section>
-        <section className="home-block">
-          <div className="home-block-h">
-            <span><CalendarDays className="size-4" /> Upcoming Events</span>
-            <button type="button" onClick={() => onLeave("events")}>See All ›</button>
-          </div>
-          {shows.length === 0 ? <p className="home-empty">No events listed yet.</p> : (
-            <div className="home-grid">
-              {shows.slice(0, 8).map((ev) => {
-                const d = new Date(ev.startsAt);
-                const mon = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][d.getMonth()];
-                const liveNow = ev.startsAt <= Date.now() && ev.endsAt >= Date.now();
-                return (
-                  <button key={ev.id} type="button" className="home-event" onClick={() => onLeave("events")}>
-                    {ev.cover ? <img src={ev.cover} alt="" /> : <span className="home-ph" />}
-                    <span className="home-when"><b>{String(d.getDate()).padStart(2, "0")}</b>{mon}</span>
-                    <span className="min-w-0">
-                      <strong>{ev.title}</strong>
-                      <em>{ev.place || "Kilode"}</em>
-                      <small className={liveNow ? "live" : ""}>{liveNow ? "Live" : "Upcoming"}</small>
+            {lane === "following" && follows && live.length === 0 ? <p className="home-empty">Follow people, then their posts show here.</p> : null}
+            {cards.map((p, i) => (
+              <div key={p.id}>
+                <article className="kh-post">
+                  <header>
+                    <AvatarImg handle={p.author} size={36} />
+                    <span>
+                      <b>{p.author || "Kilode"}</b>
+                      <em>@{p.author || "kilode"} · {timeAgo(p.ts)}</em>
                     </span>
+                    <i>{p.category || "Post"}</i>
+                  </header>
+                  <button type="button" className="kh-body" onClick={() => store.setOpenPost(p.id)}>
+                    <strong>{p.title}</strong>
+                    {p.excerpt && p.excerpt !== p.title ? <p>{p.excerpt}</p> : null}
+                    {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" /> : null}
                   </button>
-                );
-              })}
-            </div>
-          )}
-        </section>
-        <HomeRail title="Jobs" icon={<Briefcase className="size-4" />} empty="No open jobs yet." rows={gigs} onAll={() => onLeave("jobs")} />
-        <HomeRail title="Products" icon={<Store className="size-4" />} empty="No products listed yet." rows={stalls} onAll={() => onLeave("market")} />
-        <HomeRail title="Rent" icon={<Home className="size-4" />} empty="No rentals listed yet." rows={lets} onAll={() => onLeave("rent")} />
-        <section className="home-block">
-          <div className="home-block-h">
-            <span><Megaphone className="size-4" /> Ads on Kilode</span>
-            <button type="button" onClick={() => onLeave("ads")}>See All ›</button>
+                  <footer>
+                    <button type="button" onClick={() => store.likePost(p.id)}><Heart className="size-4" /> {fmtCount(store.likes[p.id] ?? 0)}</button>
+                    <button type="button" onClick={() => store.setOpenPost(p.id)}><MessageSquare className="size-4" /> {p.comments?.length ?? 0}</button>
+                    <button type="button" onClick={() => { if (!store.authed) { window.location.href = "/login?mode=up"; return; } setRepost(p); setCap(""); }}><Repeat2 className="size-4" /> {fmtCount(store.shares[p.id] ?? 0)}</button>
+                    <button type="button" onClick={() => store.savePostMark(p.id)}><Bookmark className={`size-4 ${store.savedPosts.includes(p.id) ? "fill-current" : ""}`} /></button>
+                  </footer>
+                </article>
+                {i === 2 && people.length > 0 ? (
+                  <section className="kh-mod kh-insert">
+                    <b>People you may know</b>
+                    {people.slice(0, 4).map((person) => (
+                      <a key={person.id} href={`/u/${encodeURIComponent(person.handle)}`}>@{person.handle} <em>{person.role || "Member"}</em></a>
+                    ))}
+                  </section>
+                ) : null}
+              </div>
+            ))}
+            {shown < live.length ? <button type="button" className="home-more" onClick={() => setShown((n) => n + 8)}>NEXT</button> : null}
           </div>
-          {store.campaigns.filter((a) => a?.id).length === 0 ? <p className="home-empty">No live ads yet.</p> : (
-            <div className="home-grid">
-              {store.campaigns.filter((a) => a?.id).slice(0, 8).map((a) => (
-                <button key={a.id} type="button" className="home-release" onClick={() => { store.see("ads", a.id); onLeave("ads"); }}>
-                  {a.image ? <img src={a.image} alt="" /> : <span className="home-ph" />}
-                  <strong>{a.name}</strong>
-                  <em>{fmtCount(a.views ?? 0)} seen</em>
-                </button>
+          <aside className="kh-side">
+            {people.length > 0 ? (
+              <section className="kh-mod">
+                <b>People you may know</b>
+                {people.slice(0, 4).map((person) => (
+                  <a key={person.id} href={`/u/${encodeURIComponent(person.handle)}`}>@{person.handle} <em>{person.role || "Member"}</em></a>
+                ))}
+              </section>
+            ) : null}
+            <section className="kh-mod">
+              <b>Trending topics</b>
+              {nearChips(store.posts).map(([name, n]) => (
+                <button key={name} type="button" onClick={() => setNear((cur) => cur === name ? "" : name)}>{name} <em>{fmtCount(n)}</em></button>
               ))}
-            </div>
-          )}
-        </section>
-        <SiteFooter />
+            </section>
+            {shows[0] ? (
+              <section className="kh-mod">
+                <b>Events near you</b>
+                <button type="button" onClick={() => onLeave("events")}>{shows[0].title}<em>{shows[0].place || "Kilode"}</em></button>
+              </section>
+            ) : null}
+            {stalls[0] ? (
+              <section className="kh-mod">
+                <b>From the market</b>
+                <button type="button" onClick={() => onLeave("market")}>{stalls[0].title}<em>{stalls[0].city || "Nigeria"}</em></button>
+              </section>
+            ) : null}
+          </aside>
+        </div>
+
         {repost ? (
           <RepostModal post={repost} handle={store.handle} cap={cap} onCap={setCap} onClose={() => setRepost(null)} onSend={() => {
             const extra = cap.trim();
