@@ -58,7 +58,7 @@ import {
 } from "lucide-react";
 import { ACCOUNT_KINDS, MENU, POST_CATS, ROOMS, AD_COINS, KIND_FACE, avatarUrl, chatTtlLabel, fmtCount, handleColor, parseMusicUrl, roomName, timeAgo, timeLabel, youtubeId, type AccountKind, type Campaign, type ChatMsg, type MenuId, type Room } from "@/lib/qonvo-data";
 import { canKind, canCreateMenu, createLabelFor } from "@/lib/permissions";
-import { disconnectFellow, listConnects, listLive, listTakes, replyConnect, toggleFollow, type ConnectRow } from "@/lib/takes-server";
+import { disconnectFellow, listConnects, listLive, listTakes, replyConnect, suggestFollows, toggleFollow, type ConnectRow } from "@/lib/takes-server";
 import { listInbox, sendDm } from "@/lib/social-server";
 import { unlockSound, pingMessage } from "@/lib/ping";
 import { useRealtimeInbox } from "@/lib/use-realtime";
@@ -788,7 +788,7 @@ function QonvoAppInner() {
                 autoFocus
               />
             ) : (
-              <TrendingTicker names posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
+              <TrendingTicker posts={store.posts} onOpen={(id) => store.setOpenPost(id)} />
             )}
             <button type="button" className="home-search" aria-label="Search" onClick={() => { setFeedSearchOn((v) => !v); if (feedSearchOn) setFeedQ(""); }}>
               <Search className="size-4" />
@@ -832,8 +832,20 @@ function QonvoAppInner() {
                 </div>
               ) : null}
               {keptTabs.socials ? (
-                <div className={homeTab === "socials" ? "min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad" : "hidden"}>
+                <div className={homeTab === "socials" ? "soc-desk min-h-0 flex-1 overflow-y-auto overscroll-contain dock-pad" : "hidden"}>
                   <SocialsFeed lane={socialLane} authed={store.authed || !!session.user} account={store.kind} me={store.handle} face={store.face} onOpenPeople={() => setSocialLane("people")} onOpenFeed={() => setSocialLane("posts")} />
+                  <aside className="soc-side">
+                    <div className="soc-side-card">
+                      <b>Trending topics</b>
+                      {nearChips(store.posts).map(([name, n]) => (
+                        <button key={name} type="button" onClick={() => { setHomeTab("feeds"); setScreen("home"); }}>{name} <em>{fmtCount(n)}</em></button>
+                      ))}
+                    </div>
+                    <button type="button" className="soc-side-card" onClick={() => setFriendsOpen(true)}>
+                      <b>People you may know</b>
+                      <span>Open connections</span>
+                    </button>
+                  </aside>
                 </div>
               ) : null}
               {homeTab === "music" ? (
@@ -1683,6 +1695,12 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
   const [chat, setChat] = useState("");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [tab, setTab] = useState<"all" | "friends" | "requests" | "sent">("all");
+  const [q, setQ] = useState("");
+  const [suggested, setSuggested] = useState<{ id: string; handle: string; role: string; mutuals: number; photo?: string }[]>([]);
+  useEffect(() => {
+    void suggestFollows().then((rows) => setSuggested(Array.isArray(rows) ? rows : [])).catch(() => setSuggested([]));
+  }, []);
   useEffect(() => {
     void listConnects()
       .then((next) => {
@@ -1753,19 +1771,38 @@ function FriendsSheet({ onClose }: { onClose: () => void }) {
   }
   return (
     <div className="app-drawer friends-drawer">
-      <aside className="menu-sheet flex h-full w-[min(340px,92vw)] flex-col">
-        <div className="menu-head flex items-center justify-between">
-          <strong>Friends</strong>
-          <button type="button" className="grid size-8 place-items-center rounded-full border border-white/25" aria-label="Close friends" onClick={onClose}>
-            <X className="size-4" />
-          </button>
+      <aside className="menu-sheet flex h-full w-[min(420px,100vw)] flex-col">
+        <div className="menu-head flex items-center gap-2">
+          <button type="button" aria-label="Close" onClick={onClose}><ChevronLeft className="size-4" /></button>
+          <div>
+            <strong>Connections</strong>
+            <div className="text-[11px] font-normal text-muted">Friends · People · Requests</div>
+          </div>
         </div>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-3">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
           {err ? <p className="text-[12px] text-danger">{err}</p> : null}
           {note ? <p className="text-[12px] text-muted">{note}</p> : null}
-          <FriendBlock title="Requests" empty="No requests." rows={incoming} live={live} settled={ready} onAccept={(id) => act(id, true)} onDecline={(id) => act(id, false)} />
-          <FriendBlock title="Friends" empty="Connect with someone on Socials." rows={friends} live={live} settled={ready} onMessage={message} onDisconnect={drop} active={chat} />
-          <FriendBlock title="Sent" empty="No pending asks." rows={outgoing} live={live} settled={ready} onDisconnect={drop} onWait={() => setNote("They have to accept before you can message.")} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search people, usernames..." className="w-full rounded-full border border-white/10 bg-transparent px-3 py-2 text-[14px]" />
+          <div className="flex gap-2 overflow-x-auto">
+            {([["all", "All"], ["friends", "Friends"], ["requests", `Requests${incoming.length ? ` ${incoming.length}` : ""}`], ["sent", "Sent"]] as const).map(([id, label]) => (
+              <button key={id} type="button" className={`conn-tab ${tab === id ? "on" : ""}`} onClick={() => setTab(id)}>{label}</button>
+            ))}
+          </div>
+          {tab === "all" || tab === "friends" ? null : null}
+          {(tab === "all") && suggested.length > 0 ? (
+            <section>
+              <div className="mb-2 text-[11px] font-bold tracking-wide text-muted">PEOPLE YOU MAY KNOW</div>
+              {suggested.filter((p) => !q || p.handle.toLowerCase().includes(q.toLowerCase())).map((p) => (
+                <a key={p.id} href={`/u/${encodeURIComponent(p.handle)}`} className="conn-row">
+                  <img src={avatarUrl(p.handle, p.photo)} alt="" />
+                  <span><b>{p.handle}</b><em>@{p.handle} · {p.role || "Member"}{p.mutuals ? ` · ${p.mutuals} mutual` : ""}</em></span>
+                </a>
+              ))}
+            </section>
+          ) : null}
+          {(tab === "all" || tab === "requests") ? <FriendBlock title="Friend requests" empty="No requests." rows={incoming.filter((r) => !q || r.handle.toLowerCase().includes(q.toLowerCase()))} live={live} settled={ready} onAccept={(id) => act(id, true)} onDecline={(id) => act(id, false)} /> : null}
+          {(tab === "all" || tab === "friends") ? <FriendBlock title="Your friends" empty="Connect with someone on Socials." rows={friends.filter((r) => !q || r.handle.toLowerCase().includes(q.toLowerCase()))} live={live} settled={ready} onMessage={message} onDisconnect={drop} active={chat} /> : null}
+          {(tab === "all" || tab === "sent") ? <FriendBlock title="Sent requests" empty="No pending asks." rows={outgoing.filter((r) => !q || r.handle.toLowerCase().includes(q.toLowerCase()))} live={live} settled={ready} onDisconnect={drop} onWait={() => setNote("They have to accept before you can message.")} /> : null}
         </div>
         {chat ? (
           <form
@@ -2498,70 +2535,24 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
     >
       <div className="read-progress" style={{ width: `${Math.round(progress * 100)}%` }} />
       <div className="mx-auto min-w-0 max-w-3xl overflow-x-hidden break-words px-4 py-4 [overflow-wrap:anywhere]">
-        <div className="flex items-center justify-between gap-2">
-          <button type="button" className="text-[11px] text-muted" onClick={() => store.setOpenPost(null)}>
-            ← Media
-          </button>
-          <div className="flex items-center gap-1">
-            {(["s", "m", "l"] as const).map((id) => (
-              <button
-                key={id}
-                type="button"
-                className={`read-size ${size === id ? "on" : ""}`}
-                onClick={() => {
-                  setSize(id);
-                  try { localStorage.setItem("kilode-read-size", id); } catch { /* ignore */ }
-                }}
-              >
-                {id.toUpperCase()}
-              </button>
-            ))}
-          </div>
+        <div className="flex items-center gap-2 text-[12px] text-muted">
+          <button type="button" onClick={() => store.setOpenPost(null)}>← Media</button>
+          <span>›</span>
+          <span>{post.category || "News"}</span>
         </div>
-        <div className="raised mt-3 overflow-hidden rounded-2xl">
-          {post.image ? (
-            <div className="relative">
-              <img src={post.image} alt="" className="aspect-[16/9] w-full object-cover" />
-              {onRepost ? <RepostFab onClick={onRepost} /> : null}
-            </div>
-          ) : null}
-          <div className="p-4">
-            <div className="flex items-center gap-2">
-              <div className="text-[10px] font-medium tracking-[0.16em] text-lime-2">{post.category || "General"}</div>
-              <button
-                type="button"
-                disabled={topicBusy}
-                className="rounded-full border border-line px-2 py-0.5 text-[10px] font-bold text-fg disabled:opacity-60"
-                onClick={() => {
-                  if (!session.user) {
-                    window.location.href = "/login?mode=up";
-                    return;
-                  }
-                  const topic = post.category || "General";
-                  setTopicBusy(true);
-                  void toggleTopic({ data: { topic } })
-                    .then((r) => {
-                      if (!r.ok) return;
-                      setTopics((list) => (r.on ? [...list.filter((t) => t !== topic), topic] : list.filter((t) => t !== topic)));
-                    })
-                    .catch((e) => {
-                      const m = e instanceof Error ? e.message : "";
-                      if (/unauthor|sign in|forbidden/i.test(m)) window.location.href = "/login?mode=up";
-                    })
-                    .finally(() => setTopicBusy(false));
-                }}
-              >
-                {topics.includes(post.category || "General") ? "Following" : "Follow topic"}
-              </button>
-            </div>
-            <h1 className="mt-1 text-2xl font-extrabold leading-tight">{post.title}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted">
-              <AvatarImg handle={post.author} size={28} />
-              <span className="font-semibold tracking-wide text-muted">POSTED BY</span>
-              <HandleLink handle={post.author} className="text-[13px] font-bold" />
-              <span>· {timeLabel(post.ts)}</span>
-              <span>· {mins} min read</span>
-              <span>· {left} left</span>
+        <div className="story-read mt-3">
+          {post.image ? <img src={post.image} alt="" className="story-hero" referrerPolicy="no-referrer" /> : null}
+          <div className="mt-3 flex items-center gap-2">
+            <span className="story-cat">{(post.category || "News").toUpperCase()}</span>
+            <span className="ml-auto inline-flex items-center gap-1 text-[12px] text-muted"><Eye className="size-3.5" /> {fmtCount(post.views ?? 0)}</span>
+            <button type="button" aria-label="Save" onClick={() => store.savePostMark(post.id)}><Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} /></button>
+          </div>
+          <h1 className="mt-2 text-[28px] font-extrabold leading-[1.05]">{post.title}</h1>
+          <div className="mt-3 flex items-center gap-2 text-[12px]">
+            <AvatarImg handle={post.author} size={32} />
+            <HandleLink handle={post.author} className="font-extrabold uppercase" />
+            <span className="text-muted">· {timeAgo(post.ts)} · {mins} min read</span>
+          </div>
               {mine ? (
                 <button
                   type="button"
@@ -2617,9 +2608,11 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
                 {seen.length === 0 ? "No signed-in readers yet. Only you can see this list." : seen.map((s) => `@${s.handle}`).join(" · ")}
               </p>
             ) : null}
-            {post.excerpt && !isDupExcerpt(post.title, post.excerpt) ? <p className="mt-2 text-[13px] leading-5 text-muted">{post.excerpt}</p> : null}
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-white/5 px-3 py-2 text-[11px]">
+            {post.excerpt && !isDupExcerpt(post.title, post.excerpt) ? <p className="mt-3 text-[15px] leading-6">{post.excerpt}</p> : null}
+            {post.link && /^https?:\/\//i.test(post.link) ? (
+              <a className="story-source" href={post.link} target="_blank" rel="noopener noreferrer">Read the original: {post.link.replace(/^https?:\/\//, "").split("/")[0]}</a>
+            ) : null}
+          <div className="story-actions">
             {[
               { icon: Eye, n: post.views ?? 0, label: "Views" },
               { icon: MessageSquare, n: post.comments.length, label: "Comments" },
@@ -2843,7 +2836,6 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
           <AdReserve id="article_box" minH="min-h-[120px]" />
           <AdReserve id="article_video" minH="min-h-[120px]" />
         </div>
-      </div>
     </article>
   );
 }
@@ -3351,7 +3343,7 @@ function HomeRail({ title, icon, empty, rows, onAll }: { title: string; icon: Re
 
 function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "events" | "jobs" | "ads" | "chat" | "socials" | "market" | "rent" | "sports" | "tech" | "downloads" | "tv") => void }) {
   void onDesk;
-  const [shown, setShown] = useState(16);
+  const [shown, setShown] = useState(12);
   const [repost, setRepost] = useState<(typeof store.posts)[number] | null>(null);
   const [cap, setCap] = useState("");
   const [lane, setLane] = useState("foryou");
@@ -3480,21 +3472,30 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
             </button>
           ))}
         </div>
-        <div className="home-lanes">
-          {([["foryou", "For You"], ["latest", "Latest"], ["following", "Following"]] as const).map(([id, label]) => (
-            <button key={id} type="button" className={lane === id ? "on" : ""} onClick={() => { setLane(id); setShown(8); }}>
-              {label}
+        <FeedsHero
+          posts={store.posts}
+          ads={store.campaigns}
+          onOpen={(id) => store.setOpenPost(id)}
+          onViewAd={(id) => store.see("ads", id)}
+          onRepost={(p) => {
+            if (!store.authed) { window.location.href = "/login?mode=up"; return; }
+            setRepost(p);
+            setCap("");
+          }}
+        />
+        <div className="v1-grid">
+          {live.filter((p) => !!p?.id).slice(0, shown).map((p) => (
+            <button key={p.id} type="button" className="v1-tile" onClick={() => store.setOpenPost(p.id)}>
+              {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" /> : <span />}
+              <em>{p.category || "General"}</em>
+              <strong>{p.title.replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))}</strong>
+              <small><Eye className="size-3" /> {fmtCount(p.views ?? 0)} <MessageSquare className="size-3" /> {p.comments?.length ?? 0}</small>
             </button>
           ))}
         </div>
-        {lane === "following" && follows && live.length === 0 ? (
-          <p className="py-6 text-center text-[12px] text-muted">Follow people on Socials. Their posts show here. Nothing is invented.</p>
+        {shown < live.length ? (
+          <button type="button" className="home-more" onClick={() => setShown((n) => n + 12)}>NEXT</button>
         ) : null}
-        <div className="home-grid">
-          {live.filter((p) => !!p?.id).slice(0, 8).map((p) => (
-            <HomeCard key={p.id} post={p} onOpen={() => store.setOpenPost(p.id)} onMenu={(e) => { e.stopPropagation(); if (!store.authed) { window.location.href = "/login?mode=up"; return; } setRepost(p); setCap(""); }} />
-          ))}
-        </div>
         <section className="home-block">
           <div className="home-block-h">
             <span><Flame className="size-4 text-[#f5c451]" /> Trending Near You</span>
@@ -3602,19 +3603,6 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
             </div>
           )}
         </section>
-        {live.length > 8 ? (
-          <section className="home-block">
-            <div className="home-block-h"><span>More stories</span></div>
-            <div className="home-grid">
-              {live.slice(8, shown).map((p) => (
-                <HomeCard key={p.id} post={p} onOpen={() => store.setOpenPost(p.id)} onMenu={(e) => { e.stopPropagation(); if (!store.authed) { window.location.href = "/login?mode=up"; return; } setRepost(p); setCap(""); }} />
-              ))}
-            </div>
-            {shown < live.length ? (
-              <button type="button" className="home-more" onClick={() => setShown((n) => n + 8)}>More</button>
-            ) : null}
-          </section>
-        ) : null}
         <SiteFooter />
         {repost ? (
           <RepostModal post={repost} handle={store.handle} cap={cap} onCap={setCap} onClose={() => setRepost(null)} onSend={() => {

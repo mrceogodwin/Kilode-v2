@@ -1180,30 +1180,36 @@ function compressImage(file: File): Promise<string> {
 }
 
 function Communities({ onHome }: { onHome: (roomId?: string) => void }) {
+  const [q, setQ] = useState("");
+  const [region, setRegion] = useState("All");
+  const regions = ["All", ...Array.from(new Set(ROOMS.map((r) => r.region)))];
+  const rooms = ROOMS.filter((r) => (region === "All" || r.region === region) && (!q || r.name.toLowerCase().includes(q.toLowerCase())));
   return (
-    <Screen kicker="DISCOVER" title="Communities" sub="Hubs by region. Tap a room to chat.">
-      {COMMUNITIES.map((c) => {
-        const rooms = ROOMS.filter((r) => r.region === c.region);
-        return (
-          <div key={c.id} className="raised mb-3 rounded-2xl p-4">
-            <div className="text-sm font-extrabold">{c.name}</div>
-            <div className="text-[10px] text-muted">{rooms.length} rooms</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {rooms.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  className="rounded-full border border-line px-3 py-1 text-xs"
-                  onClick={() => onHome(r.id)}
-                >
-                  {r.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </Screen>
+    <div className="msg-page">
+      <div className="msg-head">
+        <Users className="size-5" />
+        <div>
+          <h2>Kilode Community</h2>
+          <p>Real rooms. Tap one to talk.</p>
+        </div>
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {regions.map((name) => (
+          <button key={name} type="button" className={`conn-tab ${region === name ? "on" : ""}`} onClick={() => setRegion(name)}>{name}</button>
+        ))}
+      </div>
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search this channel..." className="msg-search" />
+      {rooms.map((r) => (
+        <button key={r.id} type="button" className="msg-row" onClick={() => onHome(r.id)}>
+          <span className="msg-face">{r.name.slice(0, 1)}</span>
+          <span className="min-w-0 flex-1 text-left">
+            <b>{r.name}</b>
+            <em>{r.region}{r.online > 0 ? ` · ${r.online} in the room` : ""}</em>
+          </span>
+          <ChevronRight className="size-4 text-muted" />
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -1870,25 +1876,28 @@ function Inbox() {
         .filter((r) => r.from.toLowerCase() === open.toLowerCase() || r.to.toLowerCase() === open.toLowerCase())
         .sort((a, b) => a.ts - b.ts)
     : [];
+  const [find, setFind] = useState("");
+  const shown = threads.filter((p) => !find || `${p.handle} ${p.last}`.toLowerCase().includes(find.toLowerCase()));
   return (
-    <Screen kicker="YOU" title="Messages" sub="Tap a person. Write back. No username box.">
-      {ready && threads.length === 0 ? <p className="text-sm text-muted">No messages yet. Message someone from Socials.</p> : null}
-      <div className="space-y-2">
-        {threads.map((p) => (
-          <button
-            key={p.handle}
-            type="button"
-            className={`flex w-full items-center gap-2 rounded-2xl border px-3 py-2 text-left ${open.toLowerCase() === p.handle.toLowerCase() ? "border-lime-2 bg-lime-2/10" : "border-line bg-panel"}`}
-            onClick={() => {
-              setTo(p.handle);
-              setMsg("");
-            }}
-          >
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-panel-3 text-[12px] font-bold">{p.handle.slice(0, 1).toUpperCase()}</span>
-            <span className="min-w-0">
-              <span className="block truncate text-[13px] font-bold">@{p.handle}</span>
-              <span className="block truncate text-[11px] text-muted">{p.last}</span>
+    <div className="msg-page">
+      <div className="msg-head">
+        <MessageSquare className="size-5" />
+        <div>
+          <h2>Messages</h2>
+          <p>Chat with your friends, creators and community.</p>
+        </div>
+      </div>
+      <input value={find} onChange={(e) => setFind(e.target.value)} placeholder="Search conversations..." className="msg-search" />
+      {ready && shown.length === 0 ? <p className="mt-3 text-sm text-muted">No messages yet. Message someone from Socials.</p> : null}
+      <div>
+        {shown.map((p) => (
+          <button key={p.handle} type="button" className={`msg-row ${open.toLowerCase() === p.handle.toLowerCase() ? "on" : ""}`} onClick={() => { setTo(p.handle); setMsg(""); }}>
+            <span className="msg-face">{p.handle.slice(0, 1).toUpperCase()}</span>
+            <span className="min-w-0 flex-1">
+              <b>@{p.handle}</b>
+              <em>{p.last}</em>
             </span>
+            <span className="msg-time">{timeAgo(p.ts)}</span>
           </button>
         ))}
       </div>
@@ -1897,7 +1906,7 @@ function Inbox() {
           <div className="text-[12px] font-bold">@{open}</div>
           <div className="mt-2 space-y-2">
             {thread.map((r) => (
-              <div key={r.id} className={`rounded-xl px-2.5 py-1.5 text-[13px] ${r.from.toLowerCase() === me ? "bg-lime-2/10" : "bg-panel-2"}`}>
+              <div key={r.id} className={`rounded-xl px-2.5 py-1.5 text-[13px] ${r.from.toLowerCase() === me ? "bg-white/5" : "bg-panel-2"}`}>
                 <div className="text-[10px] text-muted">{r.from}</div>
                 <p>{r.body}</p>
               </div>
@@ -1905,24 +1914,15 @@ function Inbox() {
           </div>
           <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={2} placeholder={`Reply to @${open}`} className="mt-2 w-full rounded-xl border border-line bg-bg px-3 py-2 text-base" />
           {msg ? <p className="mt-1 text-[12px] text-muted">{msg}</p> : null}
-          <button
-            type="button"
-            className="btn-join mt-2 rounded-full px-4 py-2 text-[12px] font-bold"
-            onClick={() => {
-              void sendDm({ data: { to: open, body } }).then((r) => {
-                if (r.ok) {
-                  setBody("");
-                  setMsg("Sent.");
-                  reload();
-                } else setMsg(r.reason);
-              });
-            }}
-          >
-            Send
-          </button>
+          <button type="button" className="btn-join mt-2 rounded-full px-4 py-2 text-[12px] font-bold" onClick={() => {
+            void sendDm({ data: { to: open, body } }).then((r) => {
+              if (r.ok) { setBody(""); setMsg("Sent."); reload(); }
+              else setMsg(r.reason);
+            });
+          }}>Send</button>
         </div>
       ) : null}
-    </Screen>
+    </div>
   );
 }
 
