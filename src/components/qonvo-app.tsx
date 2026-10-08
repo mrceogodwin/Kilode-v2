@@ -3336,8 +3336,28 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
   const [stalls, setStalls] = useState<{ id: string; title: string; city: string; image?: string }[]>([]);
   const [lets, setLets] = useState<{ id: string; title: string; city: string; image?: string }[]>([]);
   const [people, setPeople] = useState<{ id: string; handle: string; role: string; mutuals: number; photo?: string }[]>([]);
+  const [statuses, setStatuses] = useState<{ handle: string; ts: number; photo: string }[]>([]);
   useEffect(() => {
     void suggestFollows().then((rows) => setPeople(Array.isArray(rows) ? rows : [])).catch(() => setPeople([]));
+    void listTakes({ data: {} })
+      .then((r) => {
+        const seen = new Set<string>();
+        const out: { handle: string; ts: number; photo: string }[] = [];
+        for (const t of r.takes || []) {
+          const key = (t.handle || "").toLowerCase();
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          out.push({ handle: t.handle, ts: t.ts, photo: r.faces?.[key] || "" });
+        }
+        for (const f of r.fellows || []) {
+          const key = f.handle.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push({ handle: f.handle, ts: 0, photo: f.photo || r.faces?.[key] || "" });
+        }
+        setStatuses(out.slice(0, 18));
+      })
+      .catch(() => setStatuses([]));
   }, []);
   useEffect(() => {
     void listEvents().then((r) => setShows(r.events.slice(0, 6))).catch(() => setShows([]));
@@ -3436,6 +3456,25 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
         {needle ? <p className="mb-2 text-[12px] text-muted">{live.length} results for “{q.trim()}”.</p> : null}
+        <div className="kh-status">
+          <button type="button" onClick={() => window.dispatchEvent(new Event("kilode:compose"))}>
+            <span className="kh-add">+</span>
+            Create
+          </button>
+          {store.handle ? (
+            <button type="button" onClick={() => window.dispatchEvent(new Event("kilode:compose"))}>
+              <AvatarImg handle={store.handle} face={store.face} size={46} />
+              You
+            </button>
+          ) : null}
+          {statuses.filter((s) => s.handle.toLowerCase() !== (store.handle || "").toLowerCase()).map((s) => (
+            <a key={s.handle} href={`/u/${encodeURIComponent(s.handle)}`}>
+              <AvatarImg handle={s.handle} face={s.photo} size={46} />
+              {s.handle.slice(0, 8)}
+              <em>{s.ts ? timeAgo(s.ts) : "Member"}</em>
+            </a>
+          ))}
+        </div>
         {hero ? (
           <button type="button" className="kh-hero" onClick={() => store.setOpenPost(hero.id)}>
             {hero.image ? <img src={hero.image} alt="" referrerPolicy="no-referrer" /> : null}
@@ -3467,6 +3506,10 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
                 <button key={id} type="button" className={lane === id ? "on" : ""} onClick={() => { setLane(id); setShown(8); }}>{label}</button>
               ))}
             </div>
+            <button type="button" className="kh-mind" onClick={() => window.dispatchEvent(new Event("kilode:compose"))}>
+              <AvatarImg handle={store.handle || "me"} face={store.face} size={28} />
+              <span>What’s on your mind?</span>
+            </button>
             {lane === "following" && follows && live.length === 0 ? <p className="home-empty">Follow people, then their posts show here.</p> : null}
             {cards.map((p, i) => (
               <div key={p.id}>
@@ -3504,30 +3547,59 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
             {shown < live.length ? <button type="button" className="home-more" onClick={() => setShown((n) => n + 8)}>NEXT</button> : null}
           </div>
           <aside className="kh-side">
+            <section className="kh-mod">
+              <b>Trending topics</b>
+              {nearChips(store.posts).slice(0, 5).map(([name, n], i) => (
+                <button key={name} type="button" onClick={() => setNear((cur) => cur === name ? "" : name)}><em>{i + 1}</em> {name} <strong>{fmtCount(n)}</strong></button>
+              ))}
+            </section>
             {people.length > 0 ? (
               <section className="kh-mod">
                 <b>People you may know</b>
                 {people.slice(0, 4).map((person) => (
-                  <a key={person.id} href={`/u/${encodeURIComponent(person.handle)}`}>@{person.handle} <em>{person.role || "Member"}</em></a>
+                  <a key={person.id} href={`/u/${encodeURIComponent(person.handle)}`}>@{person.handle}</a>
                 ))}
               </section>
             ) : null}
-            <section className="kh-mod">
-              <b>Trending topics</b>
-              {nearChips(store.posts).map(([name, n]) => (
-                <button key={name} type="button" onClick={() => setNear((cur) => cur === name ? "" : name)}>{name} <em>{fmtCount(n)}</em></button>
-              ))}
-            </section>
-            {shows[0] ? (
+            {store.campaigns.find((a) => a?.id && a.image) ? (
               <section className="kh-mod">
-                <b>Events near you</b>
-                <button type="button" onClick={() => onLeave("events")}>{shows[0].title}<em>{shows[0].place || "Kilode"}</em></button>
+                <b>Sponsored</b>
+                <button type="button" onClick={() => onLeave("ads")}>
+                  {store.campaigns.find((a) => a.image)?.name}
+                  <em>{fmtCount(store.campaigns.find((a) => a.image)?.views ?? 0)} seen</em>
+                </button>
               </section>
             ) : null}
-            {stalls[0] ? (
+            {store.tracks.filter((t) => t?.id).length > 0 ? (
               <section className="kh-mod">
-                <b>From the market</b>
-                <button type="button" onClick={() => onLeave("market")}>{stalls[0].title}<em>{stalls[0].city || "Nigeria"}</em></button>
+                <b>Music</b>
+                {store.tracks.filter((t) => t?.id).slice(0, 4).map((t) => (
+                  <button key={t.id} type="button" onClick={() => { store.setOpenTrack(t.id); onLeave("music"); }}>{t.title}<em>{t.artist || "Artist"}</em></button>
+                ))}
+              </section>
+            ) : null}
+            {shows.length > 0 ? (
+              <section className="kh-mod">
+                <b>Events</b>
+                {shows.slice(0, 2).map((ev) => (
+                  <button key={ev.id} type="button" onClick={() => onLeave("events")}>{ev.title}</button>
+                ))}
+              </section>
+            ) : null}
+            {gigs.length > 0 ? (
+              <section className="kh-mod">
+                <b>Jobs</b>
+                {gigs.slice(0, 2).map((row) => (
+                  <button key={row.id} type="button" onClick={() => onLeave("jobs")}>{row.title}</button>
+                ))}
+              </section>
+            ) : null}
+            {stalls.length > 0 ? (
+              <section className="kh-mod">
+                <b>Market</b>
+                {stalls.slice(0, 2).map((row) => (
+                  <button key={row.id} type="button" onClick={() => onLeave("market")}>{row.title}</button>
+                ))}
               </section>
             ) : null}
           </aside>
