@@ -92,10 +92,19 @@ export function TrendingTicker({ posts, onOpen, names = false }: { posts: Post[]
   const items = useMemo(() => {
     const ranked = [...posts]
       .filter((p) => p.status !== "draft" && p.title)
-      .sort((a, b) => (b.views ?? 0) - (a.views ?? 0) || b.ts - a.ts)
-      .slice(0, 12);
-    return ranked.length ? ranked : posts.filter((p) => p.title).slice(0, 8);
-  }, [posts]);
+      .sort((a, b) => (b.views ?? 0) - (a.views ?? 0) || b.ts - a.ts);
+    if (!names) return ranked.slice(0, 12);
+    const seen = new Set<string>();
+    const out: Post[] = [];
+    for (const p of ranked) {
+      const key = shortName(p).toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(p);
+      if (out.length >= 10) break;
+    }
+    return out;
+  }, [posts, names]);
   const loop = items.length ? [...items, ...items] : [];
   if (!loop.length) return null;
   return (

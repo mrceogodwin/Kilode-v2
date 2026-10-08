@@ -7259,7 +7259,6 @@ html[data-skin="ivory"] .pymk { background: #fff; border-color: #d5dfd6; }
 }
 
 /* Home: one trending bar, story cards, service rails. */
-.kilode-shell[data-home="1"] .soc-head { display: none; }
 .home-trend-bar {
   display: flex;
   align-items: center;
@@ -7349,3 +7348,26 @@ html[data-skin="ivory"] .home-release,
 html[data-skin="ivory"] .home-event,
 html[data-skin="ivory"] .home-services button,
 html[data-skin="ivory"] .home-trend-bar { background: #fff; color: #1c1c1a; border-color: #e4e4e0; }
+
+/* Home grids stay four-up with light type. Dock sits on the bottom and covers the gap. */
+.home-grid { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 6px !important; }
+.home-card { gap: 3px !important; padding-bottom: 6px !important; border-radius: 10px !important; }
+.home-card img, .home-ph.tall, .home-grid .home-release img, .home-grid .home-event img, .home-grid .home-ph { height: 46px !important; width: 100% !important; flex: none !important; }
+.home-card strong, .home-release strong, .home-release b, .home-event strong, .home-card-meta, .home-card-stats, .home-release em, .home-event em {
+  font-size: 9px !important;
+  font-weight: 400 !important;
+  line-height: 1.2 !important;
+}
+.home-grid .home-release, .home-grid .home-event { flex: none !important; width: auto !important; min-width: 0 !important; }
+.home-grid .home-event { flex-direction: column !important; align-items: stretch !important; padding: 0 0 6px !important; }
+.home-services { display: flex !important; overflow-x: auto; gap: 8px; margin: 0 0 8px !important; grid-template-columns: none !important; }
+.home-services button { flex: 0 0 64px; font-size: 9px !important; font-weight: 400 !important; padding: 8px 0 !important; }
+.dock {
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  border-radius: 22px 22px 0 0 !important;
+  background: #101412 !important;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+}
+html[data-skin="ivory"] .dock { background: #f4f7f4 !important; }

@@ -825,6 +825,8 @@ function QonvoAppInner() {
                       else if (where === "rent") setScreen("rent");
                       else if (where === "sports") setMarketDesk("sports");
                       else if (where === "tech") setMarketDesk("tech");
+                      else if (where === "downloads") setHomeTab("downloads");
+                      else if (where === "tv") setScreen("tv");
                     }}
                   />
                 </div>
@@ -3333,7 +3335,7 @@ function HomeRail({ title, icon, empty, rows, onAll }: { title: string; icon: Re
         <button type="button" onClick={onAll}>See All ›</button>
       </div>
       {rows.length === 0 ? <p className="home-empty">{empty}</p> : (
-        <div className="home-hrow">
+        <div className="home-grid">
           {rows.map((row) => (
             <button key={row.id} type="button" className="home-release" onClick={onAll}>
               {row.image ? <img src={row.image} alt="" /> : <span className="home-ph" />}
@@ -3347,7 +3349,7 @@ function HomeRail({ title, icon, empty, rows, onAll }: { title: string; icon: Re
   );
 }
 
-function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "events" | "jobs" | "ads" | "chat" | "socials" | "market" | "rent" | "sports" | "tech") => void }) {
+function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "events" | "jobs" | "ads" | "chat" | "socials" | "market" | "rent" | "sports" | "tech" | "downloads" | "tv") => void }) {
   void onDesk;
   const [shown, setShown] = useState(16);
   const [repost, setRepost] = useState<(typeof store.posts)[number] | null>(null);
@@ -3456,6 +3458,28 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
         {needle ? (
           <p className="mb-2 text-[12px] text-muted">{live.length} stories for “{q.trim()}”.</p>
         ) : null}
+        <div className="home-services">
+          {([
+            ["Music", Music, () => onLeave("music")],
+            ["Events", CalendarDays, () => onLeave("events")],
+            ["Jobs", Briefcase, () => onLeave("jobs")],
+            ["Market", Store, () => onLeave("market")],
+            ["Rent", Home, () => onLeave("rent")],
+            ["Ads", Megaphone, () => onLeave("ads")],
+            ["Socials", UsersRound, () => onLeave("socials")],
+            ["Chat", MessageSquare, () => onLeave("chat")],
+            ["Cinema", Film, () => onLeave("cinema")],
+            ["Sports", Trophy, () => onLeave("sports")],
+            ["Tech", Cpu, () => onLeave("tech")],
+            ["Downloads", Download, () => onLeave("downloads")],
+            ["TV", Tv, () => onLeave("tv")],
+          ] as const).map(([label, Icon, go]) => (
+            <button key={label} type="button" onClick={go}>
+              <Icon className="size-4" />
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="home-lanes">
           {([["foryou", "For You"], ["latest", "Latest"], ["following", "Following"]] as const).map(([id, label]) => (
             <button key={id} type="button" className={lane === id ? "on" : ""} onClick={() => { setLane(id); setShown(8); }}>
@@ -3484,21 +3508,6 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
             ))}
           </div>
         </section>
-        <div className="home-services">
-          {([
-            ["music", "Music", Music],
-            ["events", "Events", CalendarDays],
-            ["jobs", "Jobs", Briefcase],
-            ["market", "Market", Store],
-            ["rent", "Rent", Home],
-            ["ads", "Ads", Megaphone],
-          ] as const).map(([id, label, Icon]) => (
-            <button key={id} type="button" onClick={() => onLeave(id)}>
-              <Icon className="size-5" />
-              {label}
-            </button>
-          ))}
-        </div>
         <section className="home-block">
           <div className="home-block-h">
             <span><Flame className="size-4 text-[#f5c451]" /> New Music Releases</span>
@@ -3507,7 +3516,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
           {store.tracks.filter((t) => t?.id).length === 0 ? (
             <p className="home-empty">No releases yet. Artists drop them in Music.</p>
           ) : (
-            <div className="home-hrow">
+            <div className="home-grid">
               {store.tracks.filter((t) => t?.id).slice(0, 8).map((t) => (
                 <button key={t.id} type="button" className="home-release" onClick={() => { store.setOpenTrack(t.id); onLeave("music"); }}>
                   {t.cover ? <img src={t.cover} alt="" /> : <span className="home-ph" />}
@@ -3522,12 +3531,39 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
         </section>
         <section className="home-block">
           <div className="home-block-h">
+            <span><Music className="size-4" /> Artists</span>
+            <button type="button" onClick={() => onLeave("music")}>See All ›</button>
+          </div>
+          {(() => {
+            const seen = new Set<string>();
+            const artists = store.tracks.filter((t) => {
+              const name = (t.artist || t.author || "").trim();
+              if (!t?.id || !name || seen.has(name.toLowerCase())) return false;
+              seen.add(name.toLowerCase());
+              return true;
+            }).slice(0, 8);
+            if (!artists.length) return <p className="home-empty">No artists yet.</p>;
+            return (
+              <div className="home-grid">
+                {artists.map((t) => (
+                  <button key={t.id} type="button" className="home-release" onClick={() => { store.setOpenTrack(t.id); onLeave("music"); }}>
+                    {t.cover ? <img src={t.cover} alt="" /> : <span className="home-ph" />}
+                    <strong>{t.artist || t.author}</strong>
+                    <em>{t.genre || "Artist"}</em>
+                  </button>
+                ))}
+              </div>
+            );
+          })()}
+        </section>
+        <section className="home-block">
+          <div className="home-block-h">
             <span><CalendarDays className="size-4" /> Upcoming Events</span>
             <button type="button" onClick={() => onLeave("events")}>See All ›</button>
           </div>
           {shows.length === 0 ? <p className="home-empty">No events listed yet.</p> : (
-            <div className="home-hrow">
-              {shows.map((ev) => {
+            <div className="home-grid">
+              {shows.slice(0, 8).map((ev) => {
                 const d = new Date(ev.startsAt);
                 const mon = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"][d.getMonth()];
                 const liveNow = ev.startsAt <= Date.now() && ev.endsAt >= Date.now();
@@ -3547,7 +3583,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
           )}
         </section>
         <HomeRail title="Jobs" icon={<Briefcase className="size-4" />} empty="No open jobs yet." rows={gigs} onAll={() => onLeave("jobs")} />
-        <HomeRail title="Market" icon={<Store className="size-4" />} empty="No market listings yet." rows={stalls} onAll={() => onLeave("market")} />
+        <HomeRail title="Products" icon={<Store className="size-4" />} empty="No products listed yet." rows={stalls} onAll={() => onLeave("market")} />
         <HomeRail title="Rent" icon={<Home className="size-4" />} empty="No rentals listed yet." rows={lets} onAll={() => onLeave("rent")} />
         <section className="home-block">
           <div className="home-block-h">
@@ -3555,8 +3591,8 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
             <button type="button" onClick={() => onLeave("ads")}>See All ›</button>
           </div>
           {store.campaigns.filter((a) => a?.id).length === 0 ? <p className="home-empty">No live ads yet.</p> : (
-            <div className="home-hrow">
-              {store.campaigns.filter((a) => a?.id).slice(0, 6).map((a) => (
+            <div className="home-grid">
+              {store.campaigns.filter((a) => a?.id).slice(0, 8).map((a) => (
                 <button key={a.id} type="button" className="home-release" onClick={() => { store.see("ads", a.id); onLeave("ads"); }}>
                   {a.image ? <img src={a.image} alt="" /> : <span className="home-ph" />}
                   <strong>{a.name}</strong>
