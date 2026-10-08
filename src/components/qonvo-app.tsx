@@ -808,6 +808,10 @@ function QonvoAppInner() {
                       else if (where === "downloads") setHomeTab("downloads");
                       else if (where === "tv") setScreen("tv");
                       else if (where === "community") setScreen("community");
+                      else if (where === "space") setScreen("dashboard");
+                      else if (where === "crypto") { setScreen("home"); setHomeTab("feeds"); setMarketDesk("crypto"); }
+                      else if (where === "forex") { setScreen("home"); setHomeTab("feeds"); setMarketDesk("forex"); }
+                      else if (where === "weather") { setScreen("home"); setHomeTab("feeds"); setMarketDesk("weather"); }
                     }}
                   />
                 </div>
@@ -3322,9 +3326,9 @@ function HomeRail({ title, icon, empty, rows, onAll }: { title: string; icon: Re
   );
 }
 
-function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "events" | "jobs" | "ads" | "chat" | "socials" | "market" | "rent" | "sports" | "tech" | "downloads" | "tv" | "community") => void }) {
+function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "events" | "jobs" | "ads" | "chat" | "socials" | "market" | "rent" | "sports" | "tech" | "downloads" | "tv" | "community" | "space" | "crypto" | "forex" | "weather") => void }) {
   void onDesk;
-  const [shown, setShown] = useState(12);
+  const [shown, setShown] = useState(20);
   const [repost, setRepost] = useState<(typeof store.posts)[number] | null>(null);
   const [cap, setCap] = useState("");
   const [lane, setLane] = useState("foryou");
@@ -3416,6 +3420,21 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
     .filter((p) => lane !== "following" || (follows ? follows.includes((p.author || "").toLowerCase()) : false));
   const hero = live.find((p) => p.image) || live[0];
   const cards = live.filter((p) => !!p?.id).slice(0, shown);
+  function tap() {
+    try {
+      const ctx = new AudioContext();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "sine";
+      o.frequency.value = 740;
+      g.gain.value = 0.02;
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
+      o.stop(ctx.currentTime + 0.05);
+    } catch { /* sound is optional */ }
+  }
   if (open) {
 
     return (
@@ -3502,8 +3521,25 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
         <div className="kh-split">
           <div>
             <div className="kh-lanes">
-              {([["foryou", "For You"], ["following", "Following"], ["trending", "Trending"], ["latest", "Latest"]] as const).map(([id, label]) => (
-                <button key={id} type="button" className={lane === id ? "on" : ""} onClick={() => { setLane(id); setShown(8); }}>{label}</button>
+              {([
+                ["Media", () => onLeave("trending")],
+                ["Socials", () => onLeave("socials")],
+                ["Ads", () => onLeave("ads")],
+                ["Marketplace", () => onLeave("market")],
+                ["Events", () => onLeave("events")],
+                ["My Space", () => onLeave("space")],
+                ["Crypto", () => onLeave("crypto")],
+                ["Music", () => onLeave("music")],
+                ["Jobs", () => onLeave("jobs")],
+                ["Rent", () => onLeave("rent")],
+                ["Sports", () => onLeave("sports")],
+                ["Cinema", () => onLeave("cinema")],
+                ["Chat", () => onLeave("chat")],
+                ["Tech", () => onLeave("tech")],
+                ["Downloads", () => onLeave("downloads")],
+                ["TV", () => onLeave("tv")],
+              ] as const).map(([label, go]) => (
+                <button key={label} type="button" onClick={() => { tap(); go(); }}>{label}</button>
               ))}
             </div>
             <button type="button" className="kh-mind" onClick={() => window.dispatchEvent(new Event("kilode:compose"))}>
@@ -3511,7 +3547,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
               <span>What’s on your mind?</span>
             </button>
             {lane === "following" && follows && live.length === 0 ? <p className="home-empty">Follow people, then their posts show here.</p> : null}
-            {cards.map((p, i) => (
+            {cards.slice(0, 2).map((p) => (
               <div key={p.id}>
                 <article className="kh-post">
                   <header>
@@ -3524,7 +3560,6 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
                   </header>
                   <button type="button" className="kh-body" onClick={() => store.setOpenPost(p.id)}>
                     <strong>{p.title}</strong>
-                    {p.excerpt && p.excerpt !== p.title ? <p>{p.excerpt}</p> : null}
                     {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" /> : null}
                   </button>
                   <footer>
@@ -3534,17 +3569,28 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
                     <button type="button" onClick={() => store.savePostMark(p.id)}><Bookmark className={`size-4 ${store.savedPosts.includes(p.id) ? "fill-current" : ""}`} /></button>
                   </footer>
                 </article>
-                {i === 2 && people.length > 0 ? (
-                  <section className="kh-mod kh-insert">
-                    <b>People you may know</b>
-                    {people.slice(0, 4).map((person) => (
-                      <a key={person.id} href={`/u/${encodeURIComponent(person.handle)}`}>@{person.handle} <em>{person.role || "Member"}</em></a>
-                    ))}
-                  </section>
-                ) : null}
               </div>
             ))}
-            {shown < live.length ? <button type="button" className="home-more" onClick={() => setShown((n) => n + 8)}>NEXT</button> : null}
+            <div className="kh-news">
+              {cards.slice(2).map((p) => (
+                <button key={p.id} type="button" className="kh-news-tile" onClick={() => store.setOpenPost(p.id)}>
+                  {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" /> : <span />}
+                  <strong>{p.title}</strong>
+                </button>
+              ))}
+            </div>
+            {(() => {
+              const ad = store.campaigns.find((a) => a?.id && a.image);
+              if (!ad) return null;
+              return (
+                <button type="button" className="kh-portrait" onClick={() => { store.see("ads", ad.id); onLeave("ads"); }}>
+                  <img src={ad.image} alt="" referrerPolicy="no-referrer" />
+                  <em>Sponsored</em>
+                  <strong>{ad.name}</strong>
+                </button>
+              );
+            })()}
+            {shown < live.length ? <button type="button" className="home-more" onClick={() => setShown((n) => n + 12)}>Load more</button> : null}
           </div>
           <aside className="kh-side">
             <section className="kh-mod">
@@ -3555,34 +3601,43 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
             </section>
             {people.length > 0 ? (
               <section className="kh-mod">
-                <b>People you may know</b>
+                <b>People you may know <button type="button" onClick={() => onLeave("socials")}>See all</button></b>
                 {people.slice(0, 4).map((person) => (
-                  <a key={person.id} href={`/u/${encodeURIComponent(person.handle)}`}>@{person.handle}</a>
+                  <a key={person.id} className="kh-person" href={`/u/${encodeURIComponent(person.handle)}`}>
+                    <AvatarImg handle={person.handle} face={person.photo} size={28} />
+                    <span><strong>@{person.handle}</strong><em>{person.role || "Member"}</em></span>
+                  </a>
                 ))}
               </section>
             ) : null}
             {store.campaigns.find((a) => a?.id && a.image) ? (
               <section className="kh-mod">
-                <b>Sponsored</b>
-                <button type="button" onClick={() => onLeave("ads")}>
-                  {store.campaigns.find((a) => a.image)?.name}
-                  <em>{fmtCount(store.campaigns.find((a) => a.image)?.views ?? 0)} seen</em>
-                </button>
+                <b>Sponsored <button type="button" onClick={() => onLeave("ads")}>See all</button></b>
+                {store.campaigns.filter((a) => a?.image).slice(0, 1).map((ad) => (
+                  <button key={ad.id} type="button" className="kh-spot" onClick={() => { store.see("ads", ad.id); onLeave("ads"); }}>
+                    <img src={ad.image} alt="" referrerPolicy="no-referrer" />
+                    <strong>{ad.name}</strong>
+                    <em>{fmtCount(ad.views ?? 0)} seen</em>
+                  </button>
+                ))}
               </section>
             ) : null}
             {store.tracks.filter((t) => t?.id).length > 0 ? (
               <section className="kh-mod">
-                <b>Music</b>
+                <b>Music trending <button type="button" onClick={() => onLeave("music")}>See all</button></b>
                 {store.tracks.filter((t) => t?.id).slice(0, 4).map((t) => (
-                  <button key={t.id} type="button" onClick={() => { store.setOpenTrack(t.id); onLeave("music"); }}>{t.title}<em>{t.artist || "Artist"}</em></button>
+                  <button key={t.id} type="button" className="kh-person" onClick={() => { store.setOpenTrack(t.id); onLeave("music"); }}>
+                    {t.cover ? <img src={t.cover} alt="" /> : <span className="kh-dot" />}
+                    <span><strong>{t.title}</strong><em>{t.artist || "Artist"}</em></span>
+                  </button>
                 ))}
               </section>
             ) : null}
             {shows.length > 0 ? (
               <section className="kh-mod">
-                <b>Events</b>
-                {shows.slice(0, 2).map((ev) => (
-                  <button key={ev.id} type="button" onClick={() => onLeave("events")}>{ev.title}</button>
+                <b>Events near you <button type="button" onClick={() => onLeave("events")}>See all</button></b>
+                {shows.slice(0, 3).map((ev) => (
+                  <button key={ev.id} type="button" onClick={() => onLeave("events")}>{ev.title}<em>{ev.place || "Kilode"}</em></button>
                 ))}
               </section>
             ) : null}
