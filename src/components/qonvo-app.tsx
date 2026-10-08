@@ -3475,190 +3475,163 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 dock-pad">
         {needle ? <p className="mb-2 text-[12px] text-muted">{live.length} results for “{q.trim()}”.</p> : null}
+        <div className="eco-nav">
+          {([
+            ["Home", Home, () => onLeave("trending")],
+            ["Socials", UsersRound, () => onLeave("socials")],
+            ["Media", Newspaper, () => onLeave("trending")],
+            ["Music", Music, () => onLeave("music")],
+            ["Events", CalendarDays, () => onLeave("events")],
+            ["Market", Store, () => onLeave("market")],
+            ["Jobs", Briefcase, () => onLeave("jobs")],
+            ["Communities", Users, () => onLeave("community")],
+          ] as const).map(([label, Icon, go]) => (
+            <button key={label} type="button" onClick={() => { tap(); go(); }}><Icon className="size-4" />{label}</button>
+          ))}
+        </div>
+        <button type="button" className="kh-mind" onClick={() => { tap(); window.dispatchEvent(new Event("kilode:compose")); }}>
+          <AvatarImg handle={store.handle || "me"} face={store.face} size={28} />
+          <span>What’s on your mind?</span>
+        </button>
         <div className="kh-status">
-          <button type="button" onClick={() => window.dispatchEvent(new Event("kilode:compose"))}>
+          <button type="button" onClick={() => { tap(); window.dispatchEvent(new Event("kilode:compose")); }}>
             <span className="kh-add">+</span>
             Create
           </button>
           {store.handle ? (
-            <button type="button" onClick={() => window.dispatchEvent(new Event("kilode:compose"))}>
+            <button type="button" onClick={() => { tap(); window.dispatchEvent(new Event("kilode:compose")); }}>
               <AvatarImg handle={store.handle} face={store.face} size={46} />
               You
             </button>
           ) : null}
-          {statuses.filter((s) => s.handle.toLowerCase() !== (store.handle || "").toLowerCase()).map((s) => (
-            <a key={s.handle} href={`/u/${encodeURIComponent(s.handle)}`}>
+          {statuses.filter((s) => s.handle.toLowerCase() !== (store.handle || "").toLowerCase()).slice(0, 12).map((s) => (
+            <a key={s.handle} href={`/u/${encodeURIComponent(s.handle)}`} onClick={() => tap()}>
               <AvatarImg handle={s.handle} face={s.photo} size={46} />
               {s.handle.slice(0, 8)}
               <em>{s.ts ? timeAgo(s.ts) : "Member"}</em>
             </a>
           ))}
         </div>
-        {hero ? (
-          <button type="button" className="kh-hero" onClick={() => store.setOpenPost(hero.id)}>
-            {hero.image ? <img src={hero.image} alt="" referrerPolicy="no-referrer" /> : null}
-            <span>
-              <i>TRENDING NOW</i>
-              <strong>{hero.title}</strong>
-              {hero.excerpt ? <em>{hero.excerpt}</em> : null}
-              <b>Open story →</b>
-            </span>
-          </button>
-        ) : <p className="home-empty">No posts yet.</p>}
-        <div className="home-services kh-apps">
-          {([
-            ["Socials", UsersRound, () => onLeave("socials")],
-            ["Music", Music, () => onLeave("music")],
-            ["Events", CalendarDays, () => onLeave("events")],
-            ["Market", Store, () => onLeave("market")],
-            ["Jobs", Briefcase, () => onLeave("jobs")],
-            ["Media", Newspaper, () => setLane("foryou")],
-            ["Communities", Users, () => onLeave("community")],
-          ] as const).map(([label, Icon, go]) => (
-            <button key={label} type="button" onClick={go}><Icon className="size-4" />{label}</button>
+        <section className="w-card">
+          <header><Newspaper className="size-3.5" /> Media <span>Top stories</span><button type="button" onClick={() => { tap(); onLeave("trending"); }}>See all</button></header>
+          <div className="w-media">
+            {hero ? (
+              <button type="button" className="w-feature" onClick={() => { tap(); store.setOpenPost(hero.id); }}>
+                {hero.image ? <img src={hero.image} alt="" referrerPolicy="no-referrer" /> : null}
+                <b>{hero.category || "Story"}</b>
+                <strong>{hero.title}</strong>
+                <em>{fmtCount(hero.views ?? 0)} views · {timeAgo(hero.ts)}</em>
+              </button>
+            ) : <p className="home-empty">No stories yet.</p>}
+            <div>
+              {live.filter((p) => p.image && p.id !== hero?.id).slice(0, 2).map((p) => (
+                <button key={p.id} type="button" onClick={() => { tap(); store.setOpenPost(p.id); }}>
+                  {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" /> : null}
+                  <span><b>{p.category || "Story"}</b><strong>{p.title}</strong><em>{fmtCount(p.views ?? 0)} · {timeAgo(p.ts)}</em></span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+        {cards[0] ? (
+          <article className="w-card kh-post">
+            <header>
+              <AvatarImg handle={cards[0].author} size={32} />
+              <span><b>{cards[0].author || "Kilode"}</b><em>@{cards[0].author || "kilode"} · {timeAgo(cards[0].ts)}</em></span>
+              <i>{cards[0].category || "Post"}</i>
+            </header>
+            <button type="button" className="kh-body" onClick={() => { tap(); store.setOpenPost(cards[0].id); }}>
+              <strong>{cards[0].title}</strong>
+              {cards[0].image ? <img src={cards[0].image} alt="" referrerPolicy="no-referrer" /> : null}
+            </button>
+            <footer>
+              <button type="button" onClick={() => { tap(); store.likePost(cards[0].id); }}><Heart className="size-4" /> {fmtCount(store.likes[cards[0].id] ?? 0)}</button>
+              <button type="button" onClick={() => { tap(); store.setOpenPost(cards[0].id); }}><MessageSquare className="size-4" /> {cards[0].comments?.length ?? 0}</button>
+              <button type="button" onClick={() => { tap(); if (!store.authed) { window.location.href = "/login?mode=up"; return; } setRepost(cards[0]); setCap(""); }}><Repeat2 className="size-4" /> {fmtCount(store.shares[cards[0].id] ?? 0)}</button>
+              <button type="button" onClick={() => { tap(); store.savePostMark(cards[0].id); }}><Bookmark className="size-4" /></button>
+            </footer>
+          </article>
+        ) : null}
+        {people.length > 0 ? (
+          <section className="w-card">
+            <header><Users className="size-3.5" /> People <span>You may know</span><button type="button" onClick={() => { tap(); onLeave("socials"); }}>See all</button></header>
+            <div className="w-rail">
+              {people.slice(0, 8).map((person) => (
+                <a key={person.id} href={`/u/${encodeURIComponent(person.handle)}`} onClick={() => tap()}>
+                  <AvatarImg handle={person.handle} face={person.photo} size={36} />
+                  <strong>@{person.handle}</strong>
+                  <em>{person.role || "Member"}</em>
+                </a>
+              ))}
+            </div>
+          </section>
+        ) : null}
+        {shows[0] ? (
+          <section className="w-card">
+            <header><CalendarDays className="size-3.5" /> Events <span>Upcoming</span><button type="button" onClick={() => { tap(); onLeave("events"); }}>See all</button></header>
+            <button type="button" className="w-event" onClick={() => { tap(); onLeave("events"); }}>
+              {shows[0].cover ? <img src={shows[0].cover} alt="" referrerPolicy="no-referrer" /> : <span />}
+              <span>
+                <strong>{shows[0].title}</strong>
+                <em>{new Date(shows[0].startsAt).toLocaleDateString()} · {shows[0].place || "Kilode"}</em>
+                <em>{shows[0].rsvps} going</em>
+              </span>
+            </button>
+          </section>
+        ) : null}
+        {stalls.length > 0 ? (
+          <section className="w-card">
+            <header><Store className="size-3.5" /> Market <span>Near you</span><button type="button" onClick={() => { tap(); onLeave("market"); }}>See all</button></header>
+            <div className="w-rail w-products">
+              {stalls.slice(0, 8).map((row) => (
+                <button key={row.id} type="button" onClick={() => { tap(); onLeave("market"); }}>
+                  {row.image ? <img src={row.image} alt="" referrerPolicy="no-referrer" /> : <span />}
+                  <strong>{row.title}</strong>
+                  <em>{row.city || "Nigeria"}</em>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+        {store.tracks.filter((t) => t?.id).length > 0 ? (
+          <section className="w-card">
+            <header><Music className="size-3.5" /> Music <span>New releases</span><button type="button" onClick={() => { tap(); onLeave("music"); }}>See all</button></header>
+            {store.tracks.filter((t) => t?.id).slice(0, 1).map((t) => (
+              <button key={t.id} type="button" className="w-event" onClick={() => { tap(); store.setOpenTrack(t.id); onLeave("music"); }}>
+                {t.cover ? <img src={t.cover} alt="" /> : <span />}
+                <span><strong>{t.title}</strong><em>{t.artist || "Artist"}</em></span>
+              </button>
+            ))}
+          </section>
+        ) : null}
+        <section className="w-card">
+          <header><Users className="size-3.5" /> Communities <span>Rooms</span><button type="button" onClick={() => { tap(); onLeave("community"); }}>See all</button></header>
+          <div className="w-rail">
+            {ROOMS.slice(0, 8).map((r) => (
+              <button key={r.id} type="button" onClick={() => { tap(); onLeave("chat"); }}>
+                <strong>{r.name}</strong>
+                <em>{r.region}</em>
+              </button>
+            ))}
+          </div>
+        </section>
+        {gigs.length > 0 ? (
+          <section className="w-card">
+            <header><Briefcase className="size-3.5" /> Jobs <span>Open</span><button type="button" onClick={() => { tap(); onLeave("jobs"); }}>See all</button></header>
+            {gigs.slice(0, 3).map((row) => (
+              <button key={row.id} type="button" className="w-line" onClick={() => { tap(); onLeave("jobs"); }}>{row.title}<em>{row.city || ""}</em></button>
+            ))}
+          </section>
+        ) : null}
+        <div className="kh-news">
+          {cards.slice(1, shown).map((p) => (
+            <button key={p.id} type="button" className="kh-news-tile" onClick={() => { tap(); store.setOpenPost(p.id); }}>
+              {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" /> : <span />}
+              <strong>{p.title}</strong>
+            </button>
           ))}
         </div>
-        <div className="kh-split">
-          <div>
-            <div className="kh-lanes">
-              {([
-                ["Media", () => onLeave("trending")],
-                ["Socials", () => onLeave("socials")],
-                ["Ads", () => onLeave("ads")],
-                ["Marketplace", () => onLeave("market")],
-                ["Events", () => onLeave("events")],
-                ["My Space", () => onLeave("space")],
-                ["Crypto", () => onLeave("crypto")],
-                ["Music", () => onLeave("music")],
-                ["Jobs", () => onLeave("jobs")],
-                ["Rent", () => onLeave("rent")],
-                ["Sports", () => onLeave("sports")],
-                ["Cinema", () => onLeave("cinema")],
-                ["Chat", () => onLeave("chat")],
-                ["Tech", () => onLeave("tech")],
-                ["Downloads", () => onLeave("downloads")],
-                ["TV", () => onLeave("tv")],
-              ] as const).map(([label, go]) => (
-                <button key={label} type="button" onClick={() => { tap(); go(); }}>{label}</button>
-              ))}
-            </div>
-            <button type="button" className="kh-mind" onClick={() => window.dispatchEvent(new Event("kilode:compose"))}>
-              <AvatarImg handle={store.handle || "me"} face={store.face} size={28} />
-              <span>What’s on your mind?</span>
-            </button>
-            {lane === "following" && follows && live.length === 0 ? <p className="home-empty">Follow people, then their posts show here.</p> : null}
-            {cards.slice(0, 2).map((p) => (
-              <div key={p.id}>
-                <article className="kh-post">
-                  <header>
-                    <AvatarImg handle={p.author} size={36} />
-                    <span>
-                      <b>{p.author || "Kilode"}</b>
-                      <em>@{p.author || "kilode"} · {timeAgo(p.ts)}</em>
-                    </span>
-                    <i>{p.category || "Post"}</i>
-                  </header>
-                  <button type="button" className="kh-body" onClick={() => store.setOpenPost(p.id)}>
-                    <strong>{p.title}</strong>
-                    {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" /> : null}
-                  </button>
-                  <footer>
-                    <button type="button" onClick={() => store.likePost(p.id)}><Heart className="size-4" /> {fmtCount(store.likes[p.id] ?? 0)}</button>
-                    <button type="button" onClick={() => store.setOpenPost(p.id)}><MessageSquare className="size-4" /> {p.comments?.length ?? 0}</button>
-                    <button type="button" onClick={() => { if (!store.authed) { window.location.href = "/login?mode=up"; return; } setRepost(p); setCap(""); }}><Repeat2 className="size-4" /> {fmtCount(store.shares[p.id] ?? 0)}</button>
-                    <button type="button" onClick={() => store.savePostMark(p.id)}><Bookmark className={`size-4 ${store.savedPosts.includes(p.id) ? "fill-current" : ""}`} /></button>
-                  </footer>
-                </article>
-              </div>
-            ))}
-            <div className="kh-news">
-              {cards.slice(2).map((p) => (
-                <button key={p.id} type="button" className="kh-news-tile" onClick={() => store.setOpenPost(p.id)}>
-                  {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" /> : <span />}
-                  <strong>{p.title}</strong>
-                </button>
-              ))}
-            </div>
-            {(() => {
-              const ad = store.campaigns.find((a) => a?.id && a.image);
-              if (!ad) return null;
-              return (
-                <button type="button" className="kh-portrait" onClick={() => { store.see("ads", ad.id); onLeave("ads"); }}>
-                  <img src={ad.image} alt="" referrerPolicy="no-referrer" />
-                  <em>Sponsored</em>
-                  <strong>{ad.name}</strong>
-                </button>
-              );
-            })()}
-            {shown < live.length ? <button type="button" className="home-more" onClick={() => setShown((n) => n + 12)}>Load more</button> : null}
-          </div>
-          <aside className="kh-side">
-            <section className="kh-mod">
-              <b>Trending topics</b>
-              {nearChips(store.posts).slice(0, 5).map(([name, n], i) => (
-                <button key={name} type="button" onClick={() => setNear((cur) => cur === name ? "" : name)}><em>{i + 1}</em> {name} <strong>{fmtCount(n)}</strong></button>
-              ))}
-            </section>
-            {people.length > 0 ? (
-              <section className="kh-mod">
-                <b>People you may know <button type="button" onClick={() => onLeave("socials")}>See all</button></b>
-                {people.slice(0, 4).map((person) => (
-                  <a key={person.id} className="kh-person" href={`/u/${encodeURIComponent(person.handle)}`}>
-                    <AvatarImg handle={person.handle} face={person.photo} size={28} />
-                    <span><strong>@{person.handle}</strong><em>{person.role || "Member"}</em></span>
-                  </a>
-                ))}
-              </section>
-            ) : null}
-            {store.campaigns.find((a) => a?.id && a.image) ? (
-              <section className="kh-mod">
-                <b>Sponsored <button type="button" onClick={() => onLeave("ads")}>See all</button></b>
-                {store.campaigns.filter((a) => a?.image).slice(0, 1).map((ad) => (
-                  <button key={ad.id} type="button" className="kh-spot" onClick={() => { store.see("ads", ad.id); onLeave("ads"); }}>
-                    <img src={ad.image} alt="" referrerPolicy="no-referrer" />
-                    <strong>{ad.name}</strong>
-                    <em>{fmtCount(ad.views ?? 0)} seen</em>
-                  </button>
-                ))}
-              </section>
-            ) : null}
-            {store.tracks.filter((t) => t?.id).length > 0 ? (
-              <section className="kh-mod">
-                <b>Music trending <button type="button" onClick={() => onLeave("music")}>See all</button></b>
-                {store.tracks.filter((t) => t?.id).slice(0, 4).map((t) => (
-                  <button key={t.id} type="button" className="kh-person" onClick={() => { store.setOpenTrack(t.id); onLeave("music"); }}>
-                    {t.cover ? <img src={t.cover} alt="" /> : <span className="kh-dot" />}
-                    <span><strong>{t.title}</strong><em>{t.artist || "Artist"}</em></span>
-                  </button>
-                ))}
-              </section>
-            ) : null}
-            {shows.length > 0 ? (
-              <section className="kh-mod">
-                <b>Events near you <button type="button" onClick={() => onLeave("events")}>See all</button></b>
-                {shows.slice(0, 3).map((ev) => (
-                  <button key={ev.id} type="button" onClick={() => onLeave("events")}>{ev.title}<em>{ev.place || "Kilode"}</em></button>
-                ))}
-              </section>
-            ) : null}
-            {gigs.length > 0 ? (
-              <section className="kh-mod">
-                <b>Jobs</b>
-                {gigs.slice(0, 2).map((row) => (
-                  <button key={row.id} type="button" onClick={() => onLeave("jobs")}>{row.title}</button>
-                ))}
-              </section>
-            ) : null}
-            {stalls.length > 0 ? (
-              <section className="kh-mod">
-                <b>Market</b>
-                {stalls.slice(0, 2).map((row) => (
-                  <button key={row.id} type="button" onClick={() => onLeave("market")}>{row.title}</button>
-                ))}
-              </section>
-            ) : null}
-          </aside>
-        </div>
+        {shown < live.length ? <button type="button" className="home-more" onClick={() => { tap(); setShown((n) => n + 12); }}>Load more</button> : null}
 
         {repost ? (
           <RepostModal post={repost} handle={store.handle} cap={cap} onCap={setCap} onClose={() => setRepost(null)} onSend={() => {
