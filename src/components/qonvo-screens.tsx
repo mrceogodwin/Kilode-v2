@@ -37,6 +37,8 @@ import { canKind, createSheetTitle } from "@/lib/permissions";
 import { CinemaAdminPanel } from "@/components/cinema-pane";
 import { EventsAdminPanel } from "@/components/events-pane";
 import { ListingsAdminPanel, ListingsPane } from "@/components/listings-pane";
+import { ShopDesk } from "@/components/shop-desk";
+import { CommunitiesHub } from "@/components/communities-hub";
 import { ShopAdminPanel } from "@/components/downloads-pane";
 import { SocialsAdminPanel, TvPane } from "@/components/tv-pane";
 import { JoinCta } from "@/components/get-app";
@@ -104,7 +106,7 @@ export function QonvoScreen({
   else if (id === "leaderboard") view = <Board store={store} />;
   else if (id === "ads") view = <Ads store={store} />;
   else if (id === "jobs") view = <ListingsPane kind="job" />;
-  else if (id === "market") view = <ListingsPane kind="market" />;
+  else if (id === "market") view = <ShopDesk />;
   else if (id === "rent") view = <ListingsPane kind="rent" />;
   else if (id === "help") view = <Help />;
   else if (id === "how") view = <HowKilodePage />;
@@ -1180,39 +1182,8 @@ function compressImage(file: File): Promise<string> {
 }
 
 function Communities({ onHome }: { onHome: (roomId?: string) => void }) {
-  const [q, setQ] = useState("");
-  const [region, setRegion] = useState("All");
-  const regions = ["All", ...Array.from(new Set(ROOMS.map((r) => r.region)))];
-  const rooms = ROOMS.filter((r) => (region === "All" || r.region === region) && (!q || r.name.toLowerCase().includes(q.toLowerCase())));
-  return (
-    <div className="msg-page">
-      <div className="msg-head">
-        <Users className="size-5" />
-        <div>
-          <h2>Kilode Community</h2>
-          <p>Real rooms. Tap one to talk.</p>
-        </div>
-      </div>
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {regions.map((name) => (
-          <button key={name} type="button" className={`conn-tab ${region === name ? "on" : ""}`} onClick={() => setRegion(name)}>{name}</button>
-        ))}
-      </div>
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search this channel..." className="msg-search" />
-      {rooms.map((r) => (
-        <button key={r.id} type="button" className="msg-row" onClick={() => onHome(r.id)}>
-          <span className="msg-face">{r.name.slice(0, 1)}</span>
-          <span className="min-w-0 flex-1 text-left">
-            <b>{r.name}</b>
-            <em>{r.region}{r.online > 0 ? ` · ${r.online} in the room` : ""}</em>
-          </span>
-          <ChevronRight className="size-4 text-muted" />
-        </button>
-      ))}
-    </div>
-  );
+  return <CommunitiesHub onHome={onHome} />;
 }
-
 function ActivityHome({ store, onJump }: { store: Store; onJump: (d: { screen?: string; tab?: string }) => void }) {
   const [notes, setNotes] = useState<{ id: string; text: string; href?: string; ts: number; seen: number }[]>([]);
   const [counts, setCounts] = useState<{ jobs: number; market: number; rent: number; apps: number; roles: number } | null>(null);

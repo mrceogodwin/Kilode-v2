@@ -1,225 +1,268 @@
-import { useEffect, useState } from "react";
-import { ChevronRight, Clock, Eye, Search } from "lucide-react";
-import { AdReserve } from "@/components/ad-slot";
-import { listAdCatalog } from "@/lib/ad-catalog-server";
-import { AD_VERTICALS, adDayBucket, adVertical, daysLeft, fmtCount, youtubeId, type Campaign } from "@/lib/qonvo-data";
+import { useMemo, useState } from "react";
+import {
+  Briefcase,
+  Calendar,
+  Eye,
+  Flame,
+  Landmark,
+  Laptop,
+  Megaphone,
+  Music,
+  Newspaper,
+  Radio,
+  Search,
+  Shirt,
+  Sparkles,
+  Star,
+  Store,
+  Users,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
+import { adVertical, fmtCount, type Campaign } from "@/lib/qonvo-data";
+
+const ACCENT = "#22c55e";
+
+const FILTERS = ["All", "Premium", "30 Days", "7 Days", "Sponsored"] as const;
+const CATS: { id: string; Icon: LucideIcon }[] = [
+  { id: "Telecom", Icon: Radio },
+  { id: "Banking", Icon: Landmark },
+  { id: "Fashion", Icon: Shirt },
+  { id: "Food", Icon: UtensilsCrossed },
+  { id: "Tech", Icon: Laptop },
+  { id: "Beauty", Icon: Sparkles },
+  { id: "Sports", Icon: Flame },
+];
+
+const PACKS: { days: string; name: string; price: string; Icon: LucideIcon; placement: string }[] = [
+  { days: "7 DAYS", name: "Social Push", price: "From ₦75,000", Icon: Laptop, placement: "board" },
+  { days: "30 DAYS", name: "Full Reach", price: "From ₦250,000", Icon: Calendar, placement: "featured" },
+  { days: "SPONSORED", name: "Top Placement", price: "From ₦500,000", Icon: Star, placement: "feeds-hero" },
+];
+
+const PLACES: { id: string; label: string; Icon: LucideIcon }[] = [
+  { id: "feeds", label: "Media", Icon: Newspaper },
+  { id: "socials", label: "Socials", Icon: Users },
+  { id: "music", label: "Music", Icon: Music },
+  { id: "events", label: "Events", Icon: Calendar },
+  { id: "jobs", label: "Jobs", Icon: Briefcase },
+  { id: "market", label: "Market", Icon: Store },
+];
+
+const PLACE_PRICE: Record<string, string> = {
+  featured: "₦250,000",
+  square: "₦180,000",
+  "feeds-hero": "₦500,000",
+  "feeds-strip": "₦180,000",
+  board: "₦75,000",
+  story: "₦320,000",
+  chat: "₦200,000",
+  "chat-pin": "₦400,000",
+  cinema: "₦220,000",
+  "article-leader": "₦160,000",
+  "article-mid": "₦140,000",
+};
 
 function thumbOf(a: Campaign) {
-  const yt = a.video ? youtubeId(a.video) || a.video : "";
-  if (a.image) return a.image;
-  if (yt && /^[\w-]{11}$/.test(yt)) return `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`;
-  return "";
+  return a.image || "";
 }
 
-function openAd(a: Campaign, onView: (id: string) => void) {
-  onView(a.id);
-  if (a.link) window.open(a.link, "_blank", "noopener,noreferrer");
+function placeLabel(p: string) {
+  if (p === "feeds-hero" || p === "feeds-strip" || p === "article-leader" || p === "article-mid" || p === "story") return "Media";
+  if (p === "chat" || p === "chat-pin" || p === "board") return "Socials";
+  if (p === "cinema") return "Events";
+  if (p === "featured" || p === "square") return "Discovery";
+  return "Kilode";
 }
 
-function Meta({ a }: { a: Campaign }) {
-  const left = daysLeft(a.expiresAt, a.days);
-  return (
-    <div className="mt-1 flex items-center gap-2 text-[10px] text-muted">
-      <span className="inline-flex items-center gap-0.5">
-        <Eye className="size-3" /> {fmtCount(a.views ?? 0)} views
-      </span>
-      <span className="inline-flex items-center gap-0.5">
-        <Clock className="size-3" /> {left ? `${left}d left` : `${a.days ?? 7}d`}
-      </span>
-    </div>
-  );
+function matchesFilter(a: Campaign, f: (typeof FILTERS)[number]) {
+  if (f === "All") return true;
+  if (f === "Premium") return a.placement === "featured" || a.placement === "square" || a.placement === "feeds-hero";
+  if (f === "30 Days") return (a.days ?? 0) >= 30;
+  if (f === "7 Days") return (a.days ?? 0) === 7 || (a.days ?? 0) === 14;
+  return a.placement === "featured" || a.placement === "feeds-hero" || a.placement === "chat-pin";
 }
 
-function HeroAd({ a, onView }: { a: Campaign; onView: (id: string) => void }) {
-  const thumb = thumbOf(a);
-  return (
-    <button type="button" className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-2.5 text-left" onClick={() => openAd(a, onView)}>
-      {thumb ? (
-        <img src={thumb} alt="" className="h-[72px] w-[104px] shrink-0 rounded-xl object-cover" />
-      ) : (
-        <span className="grid h-[72px] w-[104px] shrink-0 place-items-center rounded-xl bg-panel-3 text-[10px] text-muted">AD</span>
-      )}
-      <span className="min-w-0 flex-1">
-        <span className="inline-block rounded-full border border-[#86efac]/50 px-1.5 py-px text-[8px] font-bold tracking-wide text-[#86efac]">PREMIUM</span>
-        <span className="mt-1 block truncate text-[15px] font-extrabold leading-tight">{a.name}</span>
-        {a.note ? <span className="mt-0.5 block truncate text-[12px] text-muted">{a.note}</span> : null}
-        <Meta a={a} />
-      </span>
-      <ChevronRight className="size-4 shrink-0 text-muted" />
-    </button>
-  );
-}
-
-function GridAd({ a, onView }: { a: Campaign; onView: (id: string) => void }) {
-  const thumb = thumbOf(a);
-  return (
-    <button type="button" className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-1.5 text-left" onClick={() => openAd(a, onView)}>
-      {thumb ? (
-        <img src={thumb} alt="" className="aspect-[16/10] w-full rounded-xl object-cover" />
-      ) : (
-        <span className="grid aspect-[16/10] w-full place-items-center rounded-xl bg-panel-3 text-[10px] text-muted">AD</span>
-      )}
-      <span className="flex items-start gap-1 px-0.5 pt-1.5">
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[12px] font-extrabold leading-tight">{a.name}</span>
-          {a.note ? <span className="mt-0.5 block truncate text-[10px] text-muted">{a.note}</span> : null}
-        </span>
-        <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-muted" />
-      </span>
-      <span className="px-0.5 pb-1">
-        <Meta a={a} />
-      </span>
-    </button>
-  );
-}
-
-function YourSlot({ onCreate }: { onCreate: () => void }) {
-  return (
-    <div className="flex min-h-[168px] flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-2 py-3 text-center">
-      <div className="text-[13px] font-bold">Your ad here</div>
-      <p className="mt-1 text-[11px] text-muted">Reach thousands on Kilode.</p>
-      <button type="button" className="mt-3 rounded-full border border-[#e6c56a] px-3 py-1 text-[12px] font-extrabold text-[#e6c56a]" onClick={onCreate}>
-        Place ad
-      </button>
-    </div>
-  );
-}
-
-function matches(a: Campaign, q: string) {
-  if (!q) return true;
-  const blob = `${a.name} ${a.note || ""} ${a.status} ${a.placement} ${a.coin || ""}`.toLowerCase();
-  return blob.includes(q);
+function matchesPlace(a: Campaign, place: string) {
+  if (!place) return true;
+  const label = placeLabel(a.placement).toLowerCase();
+  if (place === "feeds") return label === "media" || label === "discovery";
+  if (place === "socials") return label === "socials";
+  if (place === "events") return label === "events";
+  if (place === "music") return /music|spotify|audiomack/i.test(`${a.name} ${a.note}`);
+  if (place === "jobs") return /job|hire/i.test(`${a.name} ${a.note}`);
+  if (place === "market") return /shop|market|deal|jumia/i.test(`${a.name} ${a.note}`);
+  return true;
 }
 
 export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreate: () => void; onView: (id: string) => void }) {
-  const [shown, setShown] = useState<Record<number, number>>({ 30: 8, 14: 6, 7: 6, 1: 6 });
-  const [pageSize, setPageSize] = useState(8);
-  const [vert, setVert] = useState<string>("All");
   const [q, setQ] = useState("");
-  const [seeFeatured, setSeeFeatured] = useState(false);
-  const needle = q.trim().toLowerCase();
-  const liveAll = ads.filter((a) => a.status === "approved");
-  const live = (vert === "All" ? liveAll : liveAll.filter((a) => adVertical(a.name, a.note) === vert)).filter((a) => matches(a, needle));
-  const mine = ads.filter((a) => a.status !== "approved").filter((a) => matches(a, needle));
-  const buckets: { days: number; label: string }[] = [
-    { days: 30, label: "30-day ads" },
-    { days: 14, label: "14-day ads" },
-    { days: 7, label: "7-day ads" },
-    { days: 1, label: "1-day ads" },
-  ];
-  const featuredPool = [
-    ...live.filter((a) => a.placement === "featured" || a.placement === "square"),
-    ...live.filter((a) => a.placement !== "featured" && a.placement !== "square"),
-  ];
-  const hero = featuredPool[0];
-  const featured = featuredPool.slice(1);
-  const featuredShown = seeFeatured ? featured : featured.slice(0, 3);
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
+  const [cat, setCat] = useState("All");
+  const [place, setPlace] = useState("");
+  const [more, setMore] = useState(false);
 
-  useEffect(() => {
-    void listAdCatalog()
-      .then((c) => {
-        setPageSize(c.pageSize);
-        setShown({ 30: c.pageSize, 14: c.pageSize, 7: c.pageSize, 1: c.pageSize });
-      })
-      .catch(() => undefined);
-  }, []);
+  const live = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return ads.filter((a) => {
+      if (a.status !== "approved") return false;
+      if (cat !== "All" && adVertical(a.name, a.note) !== cat) return false;
+      if (!matchesFilter(a, filter)) return false;
+      if (!matchesPlace(a, place)) return false;
+      if (!needle) return true;
+      return `${a.name} ${a.note} ${a.placement}`.toLowerCase().includes(needle);
+    });
+  }, [ads, q, filter, cat, place]);
+
+  const mine = ads.filter((a) => a.status !== "approved" && a.status !== "rejected");
+  const premium = (more ? live : live.slice(0, 4));
+  const hero = premium[0];
+  const side = premium[1];
+
+  function open(a: Campaign) {
+    onView(a.id);
+    if (a.link) window.open(a.link, "_blank", "noopener,noreferrer");
+  }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-3 dock-pad">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-[22px] font-extrabold tracking-tight">Ads · by duration</h1>
-          <button type="button" className="btn-yellow shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-extrabold text-black" onClick={onCreate}>
-            Place ad
-          </button>
+    <div className="fm-page">
+      <div className="fm-head">
+        <span className="fm-mark"><Megaphone className="size-5" /></span>
+        <div className="min-w-0 flex-1">
+          <div className="fm-kicker">ADS MARKETPLACE</div>
+          <h1 className="fm-title">Reach people across Kilode</h1>
+          <p className="fm-sub">Create, publish and track campaigns across Media, Socials, Music, Events, Jobs and more.</p>
         </div>
+        <button type="button" className="fm-cta" onClick={onCreate}>+ Place an Ad</button>
+      </div>
 
-        <label className="mt-3 flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-2">
-          <Search className="size-4 shrink-0 text-muted" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search ads — brand, yours, pending..."
-            className="min-w-0 flex-1 bg-transparent text-[13px] outline-none"
-            aria-label="Search ads"
-          />
-        </label>
+      <label className="fm-search">
+        <Search className="size-4 shrink-0" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search campaigns, brands, categories..." aria-label="Search campaigns" />
+      </label>
 
-        <div className="lane-rail mt-3">
-          {AD_VERTICALS.map((v) => (
-            <button key={v} type="button" className={`lane-chip ${vert === v ? "on" : ""}`} onClick={() => setVert(v)}>
-              {v}
+      <div className="fm-pills">
+        {FILTERS.map((f) => (
+          <button key={f} type="button" className={filter === f ? "on" : ""} onClick={() => setFilter(f)}>{f}</button>
+        ))}
+      </div>
+
+      <div className="fm-cats">
+        <button type="button" className={cat === "All" ? "on" : ""} onClick={() => setCat("All")} aria-label="All categories">
+          <Sparkles className="size-4" />
+          <span>All</span>
+        </button>
+        {CATS.map((c) => (
+          <button key={c.id} type="button" className={cat === c.id ? "on" : ""} onClick={() => setCat(c.id)}>
+            <c.Icon className="size-4" />
+            <span>{c.id}</span>
+          </button>
+        ))}
+      </div>
+
+      <section className="fm-sec">
+        <div className="fm-sec-h">
+          <div>
+            <h2>PREMIUM PLACEMENTS</h2>
+            <p>High visibility. Real engagement. Maximum reach.</p>
+          </div>
+          {live.length > 2 ? <button type="button" className="fm-link" onClick={() => setMore((v) => !v)}>{more ? "Show less" : "See all →"}</button> : null}
+        </div>
+        {hero ? (
+          <div className="fm-prem">
+            {[hero, side].filter(Boolean).map((a) => a ? (
+              <article key={a.id} className="fm-prem-card">
+                <div className="fm-shot">
+                  {thumbOf(a) ? <img src={thumbOf(a)} alt="" /> : <span className="fm-shot-fallback">{a.name}</span>}
+                  <em>PREMIUM</em>
+                </div>
+                <h3>{a.name}</h3>
+                <p>{placeLabel(a.placement)}{a.note ? ` · ${a.note}` : ""}</p>
+                <div className="fm-row">
+                  <b style={{ color: ACCENT }}>From {PLACE_PRICE[a.placement] || "₦75,000"}</b>
+                  <button type="button" className="fm-ghost" onClick={() => open(a)}>View placement →</button>
+                </div>
+              </article>
+            ) : null)}
+          </div>
+        ) : (
+          <button type="button" className="fm-empty" onClick={onCreate}>
+            No live placement in this filter. Place an ad and it shows here after it is approved.
+          </button>
+        )}
+        {more && live.length > 2 ? (
+          <div className="fm-prem mt">
+            {live.slice(2).map((a) => (
+              <article key={a.id} className="fm-prem-card">
+                <div className="fm-shot">
+                  {thumbOf(a) ? <img src={thumbOf(a)} alt="" /> : <span className="fm-shot-fallback">{a.name}</span>}
+                  <em>LIVE</em>
+                </div>
+                <h3>{a.name}</h3>
+                <p>{fmtCount(a.views ?? 0)} views · {a.days ?? 7}d</p>
+                <button type="button" className="fm-ghost" onClick={() => open(a)}>View placement →</button>
+              </article>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      <section className="fm-sec">
+        <div className="fm-sec-h"><h2>POPULAR CAMPAIGNS</h2></div>
+        <div className="fm-packs">
+          {PACKS.map((p) => (
+            <article key={p.days} className="fm-pack">
+              <span className="fm-pack-ico"><p.Icon className="size-4" /></span>
+              <div>
+                <b>{p.days}</b>
+                <span>{p.name}</span>
+              </div>
+              <strong>{p.price}</strong>
+              <button type="button" className="fm-ghost" onClick={onCreate}>View →</button>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="fm-sec">
+        <h2 className="fm-sec-title">BY PLACEMENT</h2>
+        <div className="fm-places">
+          {PLACES.map((p) => (
+            <button key={p.id} type="button" className={place === p.id ? "on" : ""} onClick={() => setPlace((cur) => (cur === p.id ? "" : p.id))}>
+              <p.Icon className="size-4" />
+              <span>{p.label}</span>
             </button>
           ))}
         </div>
+      </section>
 
-        <div className="mt-4 mb-2 flex items-center justify-between">
-          <div className="text-[11px] font-extrabold tracking-[0.14em] text-[#86efac]">PREMIUM ADS</div>
-          <a href="/advertise" className="shrink-0 text-[13px] font-semibold text-fg">
-            Rent
-          </a>
+      <section className="fm-sec">
+        <div className="fm-sec-h">
+          <div>
+            <h2>YOUR CAMPAIGNS</h2>
+            <p>Track performance and manage your ads.</p>
+          </div>
+          <button type="button" className="fm-link" onClick={onCreate}>See all →</button>
         </div>
-        {hero ? <HeroAd a={hero} onView={onView} /> : <YourSlot onCreate={onCreate} />}
-
-        <AdReserve id="ads_leader" className="mt-3" minH="min-h-[64px]" />
-
-        {featured.length ? (
-          <section className="mt-4">
-            <div className="mb-2 flex items-center justify-between">
-              <div className="text-[11px] font-extrabold tracking-[0.14em] text-[#86efac]">FEATURED ADS</div>
-              {featured.length > 3 ? (
-                <button type="button" className="text-[12px] font-semibold text-muted" onClick={() => setSeeFeatured((v) => !v)}>
-                  {seeFeatured ? "Show less" : "See all →"}
-                </button>
-              ) : null}
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {featuredShown.map((a) => (
-                <GridAd key={a.id} a={a} onView={onView} />
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {buckets.map(({ days, label }) => {
-          const pack = live.filter((a) => adDayBucket(a.days) === days);
-          if (!pack.length && days !== 30) return null;
-          const n = shown[days] ?? pageSize;
-          const slice = pack.slice(0, n);
-          return (
-            <section key={days} className="mt-4">
-              <div className="mb-2 text-[11px] font-extrabold tracking-[0.14em] text-[#86efac]">{label.toUpperCase()}</div>
-              <div className="grid grid-cols-3 gap-2">
-                {slice.map((a) => (
-                  <GridAd key={a.id} a={a} onView={onView} />
-                ))}
-                {days === 30 ? <YourSlot onCreate={onCreate} /> : null}
+        {mine.length ? mine.map((a) => (
+          <article key={a.id} className="fm-yours">
+            {thumbOf(a) ? <img src={thumbOf(a)} alt="" /> : <span className="fm-yours-ph">AD</span>}
+            <div className="min-w-0 flex-1">
+              <div className="fm-yours-top">
+                <em>{a.status === "paid" ? "PAID" : "REVIEW"}</em>
+                <b>{a.name}</b>
               </div>
-              {n < pack.length ? (
-                <button
-                  type="button"
-                  className="mx-auto mt-3 block rounded-full border border-white/15 px-4 py-1.5 text-[11px] font-bold"
-                  onClick={() => setShown((s) => ({ ...s, [days]: n + pageSize }))}
-                >
-                  More
-                </button>
-              ) : null}
-            </section>
-          );
-        })}
-
-        {mine.length ? (
-          <section className="mt-5">
-            <div className="mb-2 text-[11px] font-extrabold tracking-[0.14em] text-muted">YOUR QUEUE</div>
-            {mine.map((a) => (
-              <div key={a.id} className="mb-1.5 rounded-xl border border-white/10 px-3 py-2 text-[12px]">
-                <span className="font-bold">{a.name}</span>
-                <span className="text-muted"> · {a.status} · {a.days ?? 7}d</span>
-              </div>
-            ))}
-          </section>
-        ) : null}
-      </div>
+              <p>{placeLabel(a.placement)} · {a.days ?? 7} days</p>
+              <small><Eye className="size-3" /> {fmtCount(a.views ?? 0)} impressions</small>
+            </div>
+            <button type="button" className="fm-ghost" onClick={onCreate}>Analytics →</button>
+          </article>
+        )) : (
+          <button type="button" className="fm-empty" onClick={onCreate}>
+            You have no campaign in review. Place an ad to track it here.
+          </button>
+        )}
+      </section>
     </div>
   );
 }
