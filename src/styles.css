@@ -7801,14 +7801,12 @@ html[data-skin="ivory"] .kilode-name { color: #1b1d21; }
 .fm-yours-top em { border-radius: 999px; background: #16a34a; color: #04140a; font-size: 8px; font-style: normal; font-weight: 800; padding: 1px 5px; }
 .fm-yours small { display: inline-flex; align-items: center; gap: 3px; }
 .fm-empty { width: 100%; margin-top: 8px; padding: 16px; text-align: left; color: #c9d2cb; font-size: 12px; }
-.fm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (min-width: 720px) {
-  .fm-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .fm-page { max-width: 980px; }
-}
+.fm-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.fm-product b, .fm-recent-card b { font-size: 10px; }
+@media (min-width: 720px) { .fm-page { max-width: 980px; } }
 .fm-product { position: relative; padding: 8px; }
-.fm-product img, .fm-product .fm-ph { height: 92px; border-radius: 10px; background: #0c100e; }
-.fm-product b, .fm-recent-card b { font-size: 12px; }
+.fm-product img, .fm-product .fm-ph { height: 72px; border-radius: 10px; background: #0c100e; }
+.fm-product b, .fm-recent-card b { font-size: 10px; line-height: 1.15; }
 .fm-product strong, .fm-recent-card strong { display: block; color: #3dff9a; font-size: 13px; }
 .fm-heart, .fm-heart-abs { position: absolute; top: 12px; right: 12px; color: #f4f6f4; background: transparent; border: 0; }
 .fm-product-hit, .fm-comm-shot, .fm-recent-card { display: block; width: 100%; text-align: left; background: transparent; border: 0; color: inherit; }
