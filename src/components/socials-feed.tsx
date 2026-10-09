@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Briefcase, Headphones, ImagePlus, Lock, UsersRound, Video } from "lucide-react";
+import { Briefcase, Eye, Headphones, ImagePlus, Lock, TrendingUp, UsersRound, Video } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { uploadTakeMedia, readVideoSeconds, trimTakeVideo } from "@/lib/supabase";
 import { getPublicSite } from "@/lib/site-server";
@@ -2425,24 +2425,18 @@ function TakeCard({
                 </span>
                 {!ghost && take.verified ? <VerifiedMark /> : null}
                 {!ghost ? <span className="truncate text-[11px] text-muted">@{take.handle}</span> : null}
+                {!ghost && take.role ? <span className="take-role">{take.role}</span> : null}
                 <span className="shrink-0 text-[11px] text-muted">· {timeAgo(take.ts)}</span>
               </div>
-              {!ghost && take.role ? <div className="take-role">{take.role}</div> : null}
             </div>
-            {!ghost && !mine ? (
-              <button type="button" className={`take-follow ${following ? "on" : ""}`} onClick={onFollow}>
-                {following ? "Following" : followsYou ? "Follow back" : "Follow"}
-              </button>
-            ) : null}
             <button type="button" aria-label="More" className="take-more" onClick={() => setMore((v) => !v)}>···</button>
           </div>
           {more ? (
             <div className="take-more-menu">
+              {!mine ? <button type="button" onClick={() => { setMore(false); onFollow(); }}>{following ? "Following" : followsYou ? "Follow back" : "Follow"}</button> : null}
               <button type="button" onClick={() => { setMore(false); onQuote(); }}>Quote</button>
               <button type="button" onClick={() => { setMore(false); void navigator.clipboard?.writeText(`${window.location.origin}/?tab=socials&take=${encodeURIComponent(take.id)}`); }}>Copy link</button>
               <button type="button" onClick={() => { setMore(false); onReport(); }}>Report</button>
-              {hot ? <span>Trending</span> : null}
-              {typeof take.views === "number" && take.views > 0 ? <span>{take.views.toLocaleString()} seen</span> : null}
             </div>
           ) : null}
           {take.kind === "news" ? <div className="mt-1 text-[10px] font-semibold text-lime-2">News</div> : null}
@@ -2487,7 +2481,19 @@ function TakeCard({
               {typeof take.meta.video === "string" && take.meta.video.startsWith("http") ? (
                 <video src={take.meta.video} poster={typeof take.meta.image === "string" ? take.meta.image : undefined} controls playsInline className="mt-2 max-h-80 w-full rounded-[10px] bg-black" />
               ) : typeof take.meta.image === "string" && (take.meta.image.startsWith("http") || take.meta.image.startsWith("data:image/")) ? (
-                <img src={take.meta.image} alt={typeof take.meta.alt === "string" ? take.meta.alt : ""} referrerPolicy="no-referrer" className="take-photo" onClick={onPhoto} />
+                <div className="take-shot">
+                  <img src={take.meta.image} alt={typeof take.meta.alt === "string" ? take.meta.alt : ""} referrerPolicy="no-referrer" className="take-photo" onClick={onPhoto} />
+                  <div className="take-shot-meta">
+                    {(take.kind === "take" || take.kind === "news" || take.kind === "quote") ? (
+                      <>
+                        <button type="button" className={voteSide === "fact" ? "on" : ""} onClick={() => onVote("fact")}>FACT</button>
+                        <button type="button" className={voteSide === "cap" ? "on" : ""} onClick={() => onVote("cap")}>CAP</button>
+                      </>
+                    ) : null}
+                    <span><Eye className="size-3" /> {fmtSocial(take.views || 0)}</span>
+                    {hot ? <TrendingUp className="size-3" /> : null}
+                  </div>
+                </div>
               ) : null}
             </>
           )}
@@ -2535,7 +2541,7 @@ function TakeCard({
             </div>
           ) : null}
 
-          {(take.kind === "take" || take.kind === "news" || take.kind === "quote") ? (
+          {(take.kind === "take" || take.kind === "news" || take.kind === "quote") && !(typeof take.meta.image === "string" && take.meta.image) ? (
             <div className="soc-fact">
               <div>
                 <button type="button" className={voteSide === "fact" ? "on" : ""} onClick={() => onVote("fact")}>FACT {take.fact + take.cap > 0 ? `${fact}%` : ""}</button>

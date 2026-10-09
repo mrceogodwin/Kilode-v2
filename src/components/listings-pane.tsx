@@ -235,6 +235,15 @@ export function ListingsPane({ kind }: { kind: ListingKind }) {
   const [kept, setKept] = useState<string[]>([]);
   const [desk, setDesk] = useState<"board" | "apps" | "posted">("board");
   useEffect(() => { setApplying(false); }, [open?.id]);
+  useEffect(() => {
+    const id = sessionStorage.getItem("kilode-open-listing");
+    if (!id || !rows.length) return;
+    const row = rows.find((r) => r.id === id);
+    if (!row) return;
+    sessionStorage.removeItem("kilode-open-listing");
+    setOpen(row);
+    if (kind === "job") setApplying(true);
+  }, [rows, kind]);
   const [myApps, setMyApps] = useState<MyApp[]>([]);
   const [myRoles, setMyRoles] = useState<Listing[]>([]);
   const [myPeople, setMyPeople] = useState<MyApplicant[]>([]);

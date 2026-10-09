@@ -1690,3 +1690,49 @@ export const searchPeople = createServerFn({ method: "GET" })
       return [];
     }
   });
+
+export const listStories = createServerFn({ method: "GET" })
+  .middleware([optionalAuthMiddleware])
+  .handler(async ({ context }) => {
+    if (!context.userId) return { stories: [] as { id: string; handle: string; image: string; ts: number }[], locked: true };
+    const sql = await getSql();
+    try {
+      const rows = await sql<{ id: string; handle: string; image: string; ts: number }>`
+        select id, handle, image, ts from nf_stories where ts > ${Date.now() - 24 * 3600_000} order by ts desc limit 24`;
+      return { stories: rows, locked: false };
+    } catch {
+      return { stories: [] as { id: string; handle: string; image: string; ts: number }[], locked: false };
+    }
+  });
+
+export const postStory = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((image: string) => {
+    const v = String(image || "");
+    if (!v.startsWith("data:image/jpeg;base64,") || v.length > 180000) throw new Error("Use a smaller photo.");
+    return v;
+  })
+  .handler(async ({ data, context }) => {
+    const sql = await getSql();
+    const who = await sql<{ handle: string }>`select handle from nf_profiles where user_id = ${context.userId} limit 1`;
+    const handle = who[0]?.handle;
+    if (!handle) return { ok: false as const, reason: "Join Kilode first." };
+    const id = nid();
+    const ts = Date.now();
+    const write = () => sql`insert into nf_stories (id, user_id, handle, image, ts) values (${id}, ${context.userId}, ${handle}, ${data}, ${ts})`;
+    try {
+      await write();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/does not exist/i.test(msg)) return { ok: false as const, reason: "Story did not save." };
+      await sql`create table if not exists nf_stories (
+        id text primary key,
+        user_id text not null,
+        handle text not null,
+        image text not null,
+        ts bigint not null
+      )`;
+      await write();
+    }
+    return { ok: true as const, story: { id, handle, image: data, ts } };
+  });

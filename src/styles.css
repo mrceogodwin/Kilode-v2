@@ -7683,3 +7683,29 @@ html[data-skin="ivory"] {
 html[data-skin="ivory"] .kilode-shell { background: #f4f1ea !important; }
 html[data-skin="ivory"] .w-card, html[data-skin="ivory"] .eco-nav button { background: #fff; color: #1b1d21; border-color: #e4dfd4; }
 html[data-skin="ivory"] .kilode-name { color: #1b1d21; }
+
+.kilode-wordmark { height: 36px; width: auto; max-width: 168px; object-fit: contain; display: block; }
+.kilode-k, .kilode-name { display: none !important; }
+.kh-status img, .kh-status .kh-add { border: 1px solid #fff !important; }
+.story-view { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: rgba(12,12,14,.92); }
+.story-view img { max-width: min(393px, 92vw); max-height: 72vh; object-fit: contain; border-radius: 12px; }
+.story-view b { color: #fff; font-size: 13px; }
+.story-x { border: 1px solid rgba(255,255,255,.3); background: transparent; color: #fff; border-radius: 999px; padding: 4px 10px; font-size: 12px; }
+.take-role { display: inline !important; margin: 0 0 0 4px !important; font-size: 9px !important; font-weight: 400 !important; color: #8d8d88 !important; line-height: 1 !important; }
+.take-who { position: relative; }
+.take-more-menu { position: absolute !important; right: 0; top: 26px; z-index: 6; display: flex !important; flex-direction: column; gap: 0 !important; min-width: 128px; margin: 0 !important; padding: 4px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); background: #2a2c31; }
+.take-more-menu button { display: block; width: 100%; text-align: left; padding: 7px 8px; font-size: 12px; font-weight: 500; }
+.take-shot { position: relative; margin: 8px -10px 0; }
+.take-shot .take-photo { width: 100% !important; max-height: 340px !important; margin: 0 !important; border-radius: 0 !important; object-fit: cover !important; object-position: center !important; display: block; }
+.take-shot-meta { position: absolute; right: 8px; bottom: 8px; display: flex; align-items: center; gap: 6px; color: #fff; font-size: 10px; text-shadow: 0 1px 4px #000; }
+.take-shot-meta button { border: 0; background: transparent; color: #fff; font-size: 10px; font-weight: 700; }
+.take-shot-meta button.on { color: #f3c6c4; }
+.take-shot-meta span { display: inline-flex; align-items: center; gap: 3px; }
+.w-act { display: inline-flex; align-items: center; justify-content: center; margin-top: 4px; border: 1px solid #b92b27 !important; background: #b92b27 !important; color: #fff !important; border-radius: 999px; padding: 3px 8px; font-size: 10px; font-weight: 700; }
+.kh-news-tile { border: 1px solid rgba(255,255,255,.1); border-radius: 12px; background: #26282d; overflow: hidden; padding: 0; }
+.kh-news-tile > button { border: 0; background: transparent; color: inherit; text-align: left; padding: 0; width: 100%; }
+.kh-news-tile strong { padding: 0 6px; font-size: 11px; font-weight: 500; -webkit-line-clamp: 2; }
+.kh-news-tile footer { display: flex; gap: 6px; padding: 4px 6px 6px; }
+.kh-news-tile footer button { display: inline-flex; align-items: center; gap: 2px; border: 0; background: transparent; color: #c8c4bc; font-size: 10px; padding: 0; }
+.w-line { align-items: center; gap: 8px; }
+.w-line .w-act { margin-left: auto; margin-top: 0; }
