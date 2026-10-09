@@ -131,20 +131,22 @@ export function CommunitiesHub({ onHome }: { onHome: (roomId?: string) => void }
 
   return (
     <div className="fm-page">
-      <div className="fm-head">
-        <span className="fm-mark"><Users className="size-5" /></span>
-        <div className="min-w-0 flex-1">
-          <div className="fm-kicker">DISCOVER</div>
-          <h1 className="fm-title">Communities</h1>
-          <p className="fm-sub">Hubs by region. Tap a room to chat.</p>
+      <div className="fm-banner">
+        <div className="fm-head">
+          <span className="fm-mark"><Users className="size-5" /></span>
+          <div className="min-w-0 flex-1">
+            <div className="fm-kicker">DISCOVER COMMUNITIES</div>
+            <h1 className="fm-title">Discover Communities</h1>
+            <p className="fm-sub">Hubs by region. Tap a room to chat.</p>
+          </div>
+          <button type="button" className="fm-cta" onClick={() => setCreate((v) => !v)}>+ Create Community</button>
         </div>
-        <button type="button" className="fm-cta" onClick={() => setCreate((v) => !v)}>+ Create Community</button>
-      </div>
 
-      <label className="fm-search">
-        <Search className="size-4 shrink-0" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search communities, interests, regions..." aria-label="Search communities" />
-      </label>
+        <label className="fm-search">
+          <Search className="size-4 shrink-0" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search communities, interests, regions..." aria-label="Search communities" />
+        </label>
+      </div>
 
       {create ? (
         <form

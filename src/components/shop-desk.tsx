@@ -129,28 +129,30 @@ export function ShopDesk() {
 
   return (
     <div className="fm-page">
-      <div className="fm-head">
-        <span className="fm-mark"><ShoppingBag className="size-5" /></span>
-        <div className="min-w-0 flex-1">
-          <div className="fm-kicker">MARKETPLACE</div>
-          <h1 className="fm-title">Products for You</h1>
-          <p className="fm-sub">Discover and buy authentic products from trusted sellers on Kilode.</p>
+      <div className="fm-banner">
+        <div className="fm-head">
+          <span className="fm-mark"><ShoppingBag className="size-5" /></span>
+          <div className="min-w-0 flex-1">
+            <div className="fm-kicker">MARKETPLACE</div>
+            <h1 className="fm-title">Products for You</h1>
+            <p className="fm-sub">Discover and buy authentic products from trusted sellers on Kilode.</p>
+          </div>
+          <button type="button" className="fm-cta" onClick={sell}>+ Sell a Product</button>
         </div>
-        <button type="button" className="fm-cta" onClick={sell}>+ Sell a Product</button>
-      </div>
 
-      <label className="fm-search">
-        <Search className="size-4 shrink-0" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search products, sellers, categories..." aria-label="Search products" />
-      </label>
+        <label className="fm-search">
+          <Search className="size-4 shrink-0" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search products, sellers, categories..." aria-label="Search products" />
+        </label>
 
-      <div className="fm-pills fm-pills-ico">
-        {CATS.map((c) => (
-          <button key={c.id} type="button" className={cat === c.id ? "on" : ""} onClick={() => setCat(c.id)}>
-            <c.Icon className="size-3.5" />
-            {c.id}
-          </button>
-        ))}
+        <div className="fm-pills fm-pills-ico">
+          {CATS.map((c) => (
+            <button key={c.id} type="button" className={cat === c.id ? "on" : ""} onClick={() => setCat(c.id)}>
+              <c.Icon className="size-3.5" />
+              {c.id}
+            </button>
+          ))}
+        </div>
       </div>
 
       {form ? (

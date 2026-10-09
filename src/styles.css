@@ -7849,3 +7849,59 @@ html[data-skin="ivory"] .fm-search, html[data-skin="ivory"] .fm-prem-card, html[
 }
 html[data-skin="ivory"] .fm-search input, html[data-skin="ivory"] .fm-form input { color: #161616; }
 
+.fm-banner {
+  margin: -12px -12px 4px;
+  padding: 16px 14px 14px;
+  border-radius: 0 0 22px 22px;
+  background: linear-gradient(165deg, #2fbf62 0%, #1a8f45 42%, #0f6a32 100%);
+  color: #fff;
+}
+.fm-banner .fm-mark {
+  background: rgba(255,255,255,.16);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.28);
+}
+.fm-banner .fm-kicker { color: rgba(255,255,255,.78); }
+.fm-banner .fm-head { flex-wrap: wrap; align-items: center; }
+.fm-banner .fm-title, html[data-skin="ivory"] .fm-banner .fm-title { color: #fff; font-size: 22px; }
+.fm-banner .fm-cta { margin-left: auto; white-space: nowrap; }
+.fm-banner .fm-sub { color: rgba(255,255,255,.86); }
+.fm-banner .fm-cta {
+  background: #fff;
+  color: #0d5c2c;
+  box-shadow: 0 8px 16px rgba(0,0,0,.18);
+}
+.fm-banner .fm-search {
+  background: rgba(255,255,255,.16);
+  border-color: rgba(255,255,255,.28);
+  color: #fff;
+}
+.fm-banner .fm-search input, html[data-skin="ivory"] .fm-banner .fm-search input { color: #fff; }
+.fm-banner .fm-search input::placeholder { color: rgba(255,255,255,.72); }
+.fm-banner .fm-pills button, .fm-banner .fm-cats button, .fm-banner .fm-pills-ico button {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.22);
+  color: #fff;
+}
+.fm-banner .fm-pills button.on, .fm-banner .fm-cats button.on {
+  background: #fff;
+  color: #0d5c2c;
+  border-color: transparent;
+}
+.fm-pack { min-height: 168px; justify-content: space-between; }
+.fm-pack-days {
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: #3dff9a;
+}
+.fm-pack b { font-size: 14px; font-weight: 800; }
+.fm-pack strong { color: #3dff9a; font-size: 13px; }
+.kh-news strong, .kh-news-tile strong, .kh-news-tile button strong, .media-tile .media-title, .media-title {
+  font-size: 8px !important;
+  font-weight: 450 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.01em;
+}
+

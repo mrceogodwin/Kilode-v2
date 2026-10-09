@@ -1,4 +1,4 @@
-const CACHE = "kilode-shell-v3";
+const CACHE = "kilode-shell-v5";
 const SHELL = ["/", "/offline.html", "/site.webmanifest", "/favicon-32.png", "/apple-touch-icon.png", "/pwa-192.png", "/kilode-word.png"];
 
 self.addEventListener("install", (event) => {
@@ -40,20 +40,17 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (/\.(?:js|css|png|jpg|jpeg|svg|webp|woff2?|ico|webmanifest)$/.test(url.pathname)) {
+  if (/\.(?:js|css|png|jpg|jpeg|svg|webp|woff2?|ico|webmanifest)$/.test(url.pathname) || url.pathname === "/sw.js") {
     event.respondWith(
-      caches.match(req).then((hit) => {
-        const fresh = fetch(req)
-          .then((res) => {
-            if (res.ok) {
-              const copy = res.clone();
-              caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => undefined);
-            }
-            return res;
-          })
-          .catch(() => hit);
-        return hit || fresh;
-      }),
+      fetch(req)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => undefined);
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then((hit) => hit || new Response("Offline", { status: 503 }))),
     );
   }
 });

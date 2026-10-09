@@ -1404,7 +1404,7 @@ function QonvoAppInner() {
                 {videosMenuVisible ? (
                   <DrawerRow icon={Play} label="Videos" hint="Clips on Kilode" onClick={() => { setScreen("home"); setHomeTab("videos"); setMenuOpen(false); }} on={homeTab === "videos" && screen === "home"} />
                 ) : null}
-                <DrawerRow icon={Megaphone} label="Ads" hint="Ads marketplace" onClick={() => { setScreen("home"); setHomeTab("advert"); setMenuOpen(false); }} on={homeTab === "advert" && screen === "home"} />
+                <DrawerRow icon={Megaphone} label="Ads Marketplace" hint="Place a campaign" onClick={() => { setScreen("home"); setHomeTab("advert"); setMenuOpen(false); }} on={homeTab === "advert" && screen === "home"} />
                 <DrawerRow icon={Download} label="Downloads" hint="Kilode products · buy with email" onClick={() => { setScreen("home"); setHomeTab("downloads"); setMenuOpen(false); }} on={homeTab === "downloads" && screen === "home"} />
               </DrawerGroup>
 

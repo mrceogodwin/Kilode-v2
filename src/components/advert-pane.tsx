@@ -63,6 +63,21 @@ const PLACE_PRICE: Record<string, string> = {
   "article-mid": "₦140,000",
 };
 
+const SHOWCASE = [
+  {
+    name: "Media hero",
+    note: "Top of the news feed",
+    price: "₦500,000",
+    image: "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=900&q=70",
+  },
+  {
+    name: "Discovery card",
+    note: "Square beside stories",
+    price: "₦250,000",
+    image: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=900&q=70",
+  },
+];
+
 function thumbOf(a: Campaign) {
   return a.image || "";
 }
@@ -126,38 +141,40 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
 
   return (
     <div className="fm-page">
-      <div className="fm-head">
-        <span className="fm-mark"><Megaphone className="size-5" /></span>
-        <div className="min-w-0 flex-1">
-          <div className="fm-kicker">ADS MARKETPLACE</div>
-          <h1 className="fm-title">Reach people across Kilode</h1>
-          <p className="fm-sub">Create, publish and track campaigns across Media, Socials, Music, Events, Jobs and more.</p>
+      <div className="fm-banner">
+        <div className="fm-head">
+          <span className="fm-mark"><Megaphone className="size-5" /></span>
+          <div className="min-w-0 flex-1">
+            <div className="fm-kicker">ADS MARKETPLACE</div>
+            <h1 className="fm-title">Ads Marketplace</h1>
+            <p className="fm-sub">Create, publish and track campaigns across Media, Socials, Music, Events, Jobs and more.</p>
+          </div>
+          <button type="button" className="fm-cta" onClick={onCreate}>+ Place an Ad</button>
         </div>
-        <button type="button" className="fm-cta" onClick={onCreate}>+ Place an Ad</button>
-      </div>
 
-      <label className="fm-search">
-        <Search className="size-4 shrink-0" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search campaigns, brands, categories..." aria-label="Search campaigns" />
-      </label>
+        <label className="fm-search">
+          <Search className="size-4 shrink-0" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search campaigns, brands, categories..." aria-label="Search campaigns" />
+        </label>
 
-      <div className="fm-pills">
-        {FILTERS.map((f) => (
-          <button key={f} type="button" className={filter === f ? "on" : ""} onClick={() => setFilter(f)}>{f}</button>
-        ))}
-      </div>
+        <div className="fm-pills">
+          {FILTERS.map((f) => (
+            <button key={f} type="button" className={filter === f ? "on" : ""} onClick={() => setFilter(f)}>{f}</button>
+          ))}
+        </div>
 
-      <div className="fm-cats">
-        <button type="button" className={cat === "All" ? "on" : ""} onClick={() => setCat("All")} aria-label="All categories">
-          <Sparkles className="size-4" />
-          <span>All</span>
-        </button>
-        {CATS.map((c) => (
-          <button key={c.id} type="button" className={cat === c.id ? "on" : ""} onClick={() => setCat(c.id)}>
-            <c.Icon className="size-4" />
-            <span>{c.id}</span>
+        <div className="fm-cats">
+          <button type="button" className={cat === "All" ? "on" : ""} onClick={() => setCat("All")} aria-label="All categories">
+            <Sparkles className="size-4" />
+            <span>All</span>
           </button>
-        ))}
+          {CATS.map((c) => (
+            <button key={c.id} type="button" className={cat === c.id ? "on" : ""} onClick={() => setCat(c.id)}>
+              <c.Icon className="size-4" />
+              <span>{c.id}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <section className="fm-sec">
@@ -186,9 +203,22 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
             ) : null)}
           </div>
         ) : (
-          <button type="button" className="fm-empty" onClick={onCreate}>
-            No live placement in this filter. Place an ad and it shows here after it is approved.
-          </button>
+          <div className="fm-prem">
+            {SHOWCASE.map((a) => (
+              <article key={a.name} className="fm-prem-card">
+                <div className="fm-shot">
+                  <img src={a.image} alt="" />
+                  <em>PREMIUM</em>
+                </div>
+                <h3>{a.name}</h3>
+                <p>{a.note}</p>
+                <div className="fm-row">
+                  <b style={{ color: ACCENT }}>From {a.price}</b>
+                  <button type="button" className="fm-ghost" onClick={onCreate}>View placement →</button>
+                </div>
+              </article>
+            ))}
+          </div>
         )}
         {more && live.length > 2 ? (
           <div className="fm-prem mt">
@@ -212,13 +242,11 @@ export function AdvertPane({ ads, onCreate, onView }: { ads: Campaign[]; onCreat
         <div className="fm-packs">
           {PACKS.map((p) => (
             <article key={p.days} className="fm-pack">
-              <span className="fm-pack-ico"><p.Icon className="size-4" /></span>
-              <div>
-                <b>{p.days}</b>
-                <span>{p.name}</span>
-              </div>
+              <em className="fm-pack-days">{p.days}</em>
+              <span className="fm-pack-ico"><p.Icon className="size-5" /></span>
+              <b>{p.name}</b>
               <strong>{p.price}</strong>
-              <button type="button" className="fm-ghost" onClick={onCreate}>View →</button>
+              <button type="button" className="fm-ghost" onClick={onCreate}>Start campaign →</button>
             </article>
           ))}
         </div>
