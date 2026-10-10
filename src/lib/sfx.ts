@@ -27,7 +27,7 @@ export function kilodeSound(kind: "tick" | "sent" | "sheet" | "ask") {
     osc.type = "square";
     osc.frequency.setValueAtTime(1760, t);
     osc.frequency.exponentialRampToValueAtTime(880, t + 0.045);
-    gain.gain.setValueAtTime(0.035, t);
+    gain.gain.setValueAtTime(0.012, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
     osc.start(t);
     osc.stop(t + 0.055);

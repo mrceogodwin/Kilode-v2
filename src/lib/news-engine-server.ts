@@ -369,7 +369,7 @@ function humanizeDeterministic(item: RssItem, sourceName: string): {
         ? "Straight talk for people who build and ship in Naija."
         : category === "Culture"
           ? "Culture desk — clear, not spammy."
-          : "Kilode desk note — what matters for readers here.";
+          : "Kilode Media note — what matters for readers here.";
   const body = [
     lead,
     "",

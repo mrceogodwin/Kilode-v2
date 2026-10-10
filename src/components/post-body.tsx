@@ -8,7 +8,7 @@ export function PostBody({
   body: string;
   className?: string;
 }) {
-  const html = postBodyToSafeHtml(body);
+  const html = postBodyToSafeHtml(body).replace(/Kilode\s+desk/gi, "Kilode Media");
   if (!html) return null;
   return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 }

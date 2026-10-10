@@ -489,8 +489,21 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
     };
   }, [takes, followTakes, trendTakes, tagTakes]);
   useEffect(() => {
-    const open = () => setSheet(true);
+    const open = (ev: Event) => {
+      setSheet(true);
+      try { sessionStorage.removeItem("kilode-compose"); } catch { /* ignore */ }
+      const media = (ev as CustomEvent<{ media?: string }>).detail?.media;
+      if (media === "photo" || media === "video") {
+        window.setTimeout(() => document.getElementById(media === "photo" ? "kilode-shot" : "kilode-clip")?.click(), 180);
+      }
+    };
     window.addEventListener("kilode:compose", open);
+    let queued = "";
+    try {
+      queued = sessionStorage.getItem("kilode-compose") || "";
+      if (queued) sessionStorage.removeItem("kilode-compose");
+    } catch { /* ignore */ }
+    if (queued) window.setTimeout(() => open(new CustomEvent("kilode:compose", { detail: queued === "text" ? {} : { media: queued } })), 80);
     return () => window.removeEventListener("kilode:compose", open);
   }, []);
   useEffect(() => {
@@ -1470,8 +1483,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
           <label className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-full border border-line text-muted" aria-label="Add photo">
             <ImagePlus className="size-3.5" />
             <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,.jpg,.jpeg,.png,.webp"
+              id="kilode-shot"
               className="sr-only"
               disabled={mediaBusy}
               onChange={(e) => {
@@ -1492,8 +1504,7 @@ export function SocialsFeed({ authed, account = "member", me = "", face = "", la
           <label className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-full border border-line text-muted" aria-label="Add video">
             <Video className="size-3.5" />
             <input
-              type="file"
-              accept="video/mp4,video/webm,video/quicktime"
+              id="kilode-clip"
               className="sr-only"
               disabled={mediaBusy}
               onChange={(e) => {

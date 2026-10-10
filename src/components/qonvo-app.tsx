@@ -16,6 +16,8 @@ import {
   Hash,
   Heart,
   HelpCircle,
+  Image as ImageIcon,
+  Video,
   Home,
   Layers,
   LayoutDashboard,
@@ -61,6 +63,7 @@ import { canKind, canCreateMenu, createLabelFor } from "@/lib/permissions";
 import { disconnectFellow, listConnects, listLive, listStories, listTakes, postStory, replyConnect, suggestFollows, toggleFollow, type ConnectRow } from "@/lib/takes-server";
 import { listInbox, sendDm } from "@/lib/social-server";
 import { unlockSound, pingMessage } from "@/lib/ping";
+import { kilodeSound } from "@/lib/sfx";
 import { useRealtimeInbox } from "@/lib/use-realtime";
 import { MUSIC_GENRES, MUSIC_RAILS, VIDEO_CATALOG, VIDEO_SECTIONS } from "@/lib/qonvo-seed";
 import { useQonvo } from "@/lib/use-qonvo";
@@ -273,6 +276,15 @@ function QonvoAppInner() {
     setHomeTabNow(tab);
     if (tab === "feeds" || tab === "socials") setKeptTabs((m) => (m[tab] ? m : { ...m, [tab]: true }));
   });
+  useEffect(() => {
+    const onClick = (e: Event) => {
+      const node = e.target instanceof Element ? e.target : null;
+      if (!node?.closest("button, a, [role='button']")) return;
+      kilodeSound("tick");
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
   useEffect(() => {
     if (!signedIn) {
       setDmCount(0);
@@ -511,6 +523,8 @@ function QonvoAppInner() {
     const apply = () => {
       document.documentElement.style.setProperty("--chrome-bottom", `${Math.round(el.getBoundingClientRect().bottom) + 6}px`);
       document.documentElement.style.setProperty("--chrome-h", `${Math.round(el.getBoundingClientRect().height)}px`);
+      const bar = el.querySelector(".kilode-header-capsule");
+      if (bar) document.documentElement.style.setProperty("--chrome-bar", `${Math.round(bar.getBoundingClientRect().bottom)}px`);
     };
     apply();
     const ro = new ResizeObserver(apply);
@@ -818,6 +832,7 @@ function QonvoAppInner() {
               ) : null}
               {keptTabs.socials ? (
                 <div className={homeTab === "socials" ? "soc-desk min-h-0 flex-1 overflow-y-auto overscroll-contain dock-pad" : "hidden"}>
+                  <SocialStatus authed={store.authed || !!session.user} />
                   <SocialsFeed lane={socialLane} authed={store.authed || !!session.user} account={store.kind} me={store.handle} face={store.face} onOpenPeople={() => setSocialLane("people")} onOpenFeed={() => setSocialLane("posts")} />
                   <aside className="soc-side">
                     <div className="soc-side-card">
@@ -2170,8 +2185,8 @@ function RepostModal({
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   return (
-    <div className="fixed inset-0 z-50 grid place-items-end bg-black/50 p-3 sm:place-items-center" onClick={onClose}>
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-line bg-panel p-4" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/55 px-3 pb-[calc(132px+env(safe-area-inset-bottom))] sm:items-center sm:pb-6" onClick={onClose}>
+      <div className="repost-sheet w-full max-w-md overflow-y-auto rounded-2xl border border-line bg-panel p-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-2 text-lime-2">
           <Repeat2 className="size-4" />
           <span className="text-[11px] font-bold tracking-[0.14em]">REPOST</span>
@@ -2533,12 +2548,12 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
             <span className="ml-auto inline-flex items-center gap-1 text-[12px] text-muted"><Eye className="size-3.5" /> {fmtCount(post.views ?? 0)}</span>
             <button type="button" aria-label="Save" onClick={() => store.savePostMark(post.id)}><Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} /></button>
           </div>
-          <h1 className="mt-2 text-[28px] font-extrabold leading-[1.05]">{post.title}</h1>
           <div className="mt-3 flex items-center gap-2 text-[12px]">
             <AvatarImg handle={post.author} size={32} />
-            <HandleLink handle={post.author} className="font-extrabold uppercase" />
+            {/kilodedesk/i.test(post.author || "") ? <span className="font-extrabold">Kilode Media</span> : <HandleLink handle={post.author} className="font-extrabold uppercase" />}
             <span className="text-muted">· {timeAgo(post.ts)} · {mins} min read</span>
           </div>
+          <h1 className="story-title">{post.title}</h1>
               {mine ? (
                 <button
                   type="button"
@@ -2598,6 +2613,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
             {post.link && /^https?:\/\//i.test(post.link) ? (
               <a className="story-source" href={post.link} target="_blank" rel="noopener noreferrer">Read the original: {post.link.replace(/^https?:\/\//, "").split("/")[0]}</a>
             ) : null}
+          <div className="read-tools">
           <div className="story-actions">
             {[
               { icon: Eye, n: post.views ?? 0, label: "Views" },
@@ -2614,8 +2630,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
               </span>
             ))}
           </div>
-        </div>
-        <div className="share-row mt-3">
+        <div className="share-row">
           <ShareIco label="Like" onClick={() => store.likePost(post.id)}>
             <Heart className={`size-3.5 ${likes ? "fill-lime-2 text-lime-2" : ""}`} />
           </ShareIco>
@@ -2669,6 +2684,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
           </ShareIco>
         </div>
         {socialNote ? <p className="mt-2 text-[12px] font-semibold text-lime-2">{socialNote}</p> : null}
+        </div>
         <div className="read-nav">
           <button type="button" disabled={!prevStory} onClick={() => prevStory && store.setOpenPost(prevStory.id)}>Previous</button>
           <button type="button" onClick={() => document.getElementById("story-comments")?.scrollIntoView({ behavior: "smooth" })}>Comments</button>
@@ -2710,15 +2726,16 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
           return (
             <div className="mt-4">
               <div className="mb-1 text-[10px] font-bold tracking-[0.16em] text-muted">{related.length ? `MORE IN ${post.category || "GENERAL"}` : "MORE STORIES"}</div>
-              {list.map((p) => (
-                <button key={p.id} type="button" className="flex w-full items-center gap-2 border-t border-line py-2 text-left" onClick={() => store.setOpenPost(p.id)}>
-                  {p.image ? <img src={p.image} alt="" className="size-10 rounded object-cover" /> : <span className="size-10 rounded bg-panel-3" />}
-                  <span className="min-w-0">
-                    <span className="line-clamp-2 text-[12px] font-semibold">{p.title}</span>
-                    <span className="block text-[10px] text-muted">{p.author}</span>
-                  </span>
-                </button>
-              ))}
+            <div className="read-ticker" aria-label="More stories">
+              <div className="read-ticker-track">
+                {[...list, ...list].map((p, i) => (
+                  <button key={`${p.id}-${i}`} type="button" onClick={() => store.setOpenPost(p.id)}>
+                    {p.image ? <img src={p.image} alt="" /> : null}
+                    <span>{p.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
             </div>
           );
         })()}
@@ -2822,6 +2839,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
           <AdReserve id="article_box" minH="min-h-[120px]" />
           <AdReserve id="article_video" minH="min-h-[120px]" />
         </div>
+      </div>
     </article>
   );
 }
@@ -3327,6 +3345,107 @@ function HomeRail({ title, icon, empty, rows, onAll }: { title: string; icon: Re
   );
 }
 
+function deskName(name?: string) {
+  return /kilode\s*desk/i.test(name || "") ? "Kilode Media" : (name || "Kilode");
+}
+
+function SocialStatus({ authed }: { authed: boolean }) {
+  const [stories, setStories] = useState<{ id: string; handle: string; image: string; ts: number }[]>([]);
+  const [on, setOn] = useState<{ id: string; handle: string; image: string; ts: number } | null>(null);
+  const [text, setText] = useState("");
+  const [views, setViews] = useState<Record<string, number>>({});
+  const file = useRef<HTMLInputElement>(null);
+  function load() {
+    void listStories().then((r) => setStories(r.stories || [])).catch(() => setStories([]));
+  }
+  useEffect(() => {
+    load();
+    try { setViews(JSON.parse(localStorage.getItem("kilode-story-views") || "{}")); } catch { /* ignore */ }
+  }, []);
+  function openStory(s: { id: string; handle: string; image: string; ts: number }) {
+    if (!authed) { window.location.href = "/login?mode=up"; return; }
+    setViews((cur) => {
+      const next = { ...cur, [s.id]: (cur[s.id] || 0) + 1 };
+      localStorage.setItem("kilode-story-views", JSON.stringify(next));
+      return next;
+    });
+    setOn(s);
+  }
+  function sendPhoto(photo: File) {
+    if (!authed) { window.location.href = "/login?mode=up"; return; }
+    const img = new Image();
+    const url = URL.createObjectURL(photo);
+    img.onload = () => {
+      const max = 720;
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      canvas.getContext("2d")?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      let shot = canvas.toDataURL("image/jpeg", 0.72);
+      if (shot.length > 170000) shot = canvas.toDataURL("image/jpeg", 0.5);
+      void postStory({ data: shot }).then((r) => { if (r.ok) load(); }).catch(() => undefined);
+    };
+    img.src = url;
+  }
+  function sendText() {
+    const line = text.trim();
+    if (line.length < 1) return;
+    if (!authed) { window.location.href = "/login?mode=up"; return; }
+    const canvas = document.createElement("canvas");
+    canvas.width = 720;
+    canvas.height = 900;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#102418";
+    ctx.fillRect(0, 0, 720, 900);
+    ctx.fillStyle = "#f4f6f4";
+    ctx.font = "700 42px sans-serif";
+    const words = line.split(/\s+/);
+    let y = 360;
+    let row = "";
+    for (const w of words) {
+      const trial = row ? `${row} ${w}` : w;
+      if (ctx.measureText(trial).width > 620) {
+        ctx.fillText(row, 48, y);
+        y += 56;
+        row = w;
+      } else row = trial;
+    }
+    if (row) ctx.fillText(row, 48, y);
+    const shot = canvas.toDataURL("image/jpeg", 0.8);
+    void postStory({ data: shot }).then((r) => { if (r.ok) { setText(""); load(); } }).catch(() => undefined);
+  }
+  const people = stories.filter((s, i, all) => all.findIndex((x) => x.handle.toLowerCase() === s.handle.toLowerCase()) === i);
+  return (
+    <div className="soc-status">
+      <input ref={file} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) sendPhoto(f); }} />
+      <button type="button" onClick={() => file.current?.click()}>
+        <span className="kh-add">+</span>
+        Photo
+      </button>
+      <form onSubmit={(e) => { e.preventDefault(); sendText(); }}>
+        <input value={text} maxLength={80} placeholder="Text status" aria-label="Text status" onChange={(e) => setText(e.target.value)} />
+      </form>
+      {people.map((s) => (
+        <button key={s.id} type="button" onClick={() => openStory(s)}>
+          <AvatarImg handle={s.handle} size={46} />
+          {s.handle.slice(0, 8)}
+          <em>{views[s.id] || 0} views</em>
+        </button>
+      ))}
+      {on ? (
+        <div className="story-view" role="dialog">
+          <button type="button" className="story-x" onClick={() => setOn(null)}>Close</button>
+          <img src={on.image} alt="" />
+          <b>@{on.handle} · {views[on.id] || 1} views</b>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof useQonvo>; q?: string; onDesk: (d: MarketDesk) => void; onLeave: (where: "trending" | "music" | "cinema" | "events" | "jobs" | "ads" | "chat" | "socials" | "market" | "rent" | "sports" | "tech" | "downloads" | "tv" | "community" | "space" | "crypto" | "forex" | "weather") => void }) {
   void onDesk;
   const [shown, setShown] = useState(20);
@@ -3341,16 +3460,10 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
   const [stalls, setStalls] = useState<{ id: string; title: string; city: string; image?: string }[]>([]);
   const [lets, setLets] = useState<{ id: string; title: string; city: string; image?: string }[]>([]);
   const [people, setPeople] = useState<{ id: string; handle: string; role: string; mutuals: number; photo?: string }[]>([]);
-  const [stories, setStories] = useState<{ id: string; handle: string; image: string; ts: number }[]>([]);
-  const [storyOn, setStoryOn] = useState<{ id: string; handle: string; image: string; ts: number } | null>(null);
+  const [spot, setSpot] = useState(0);
   const [followed, setFollowed] = useState<Record<string, boolean>>({});
-  const storyFile = useRef<HTMLInputElement>(null);
-  function loadStories() {
-    void listStories().then((r) => setStories(r.stories || [])).catch(() => setStories([]));
-  }
   useEffect(() => {
     void suggestFollows().then((rows) => setPeople(Array.isArray(rows) ? rows : [])).catch(() => setPeople([]));
-    loadStories();
   }, []);
   useEffect(() => {
     void listEvents().then((r) => setShows(r.events.slice(0, 6))).catch(() => setShows([]));
@@ -3407,22 +3520,16 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
       return score(b) - score(a);
     })
     .filter((p) => lane !== "following" || (follows ? follows.includes((p.author || "").toLowerCase()) : false));
-  const hero = live.find((p) => p.image) || live[0];
+  const pictured = live.filter((p) => p.image);
+  const hero = pictured[spot % Math.max(pictured.length, 1)] || live[0];
+  useEffect(() => {
+    if (pictured.length < 2) return;
+    const id = window.setInterval(() => setSpot((n) => n + 1), 4200);
+    return () => window.clearInterval(id);
+  }, [pictured.length]);
   const cards = live.filter((p) => !!p?.id).slice(0, shown);
   function tap() {
-    try {
-      const ctx = new AudioContext();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = "sine";
-      o.frequency.value = 740;
-      g.gain.value = 0.02;
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.start();
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
-      o.stop(ctx.currentTime + 0.05);
-    } catch { /* sound is optional */ }
+    /* click sound is global */
   }
   function needMember() {
     if (store.authed) return true;
@@ -3435,23 +3542,12 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
     try { sessionStorage.setItem("kilode-open-listing", id); } catch { /* ignore */ }
     onLeave(where);
   }
-  function addStory(file: File) {
+  function openCompose(media?: "photo" | "video") {
+    tap();
     if (!needMember()) return;
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const max = 720;
-      const scale = Math.min(1, max / Math.max(img.width, img.height));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(img.width * scale));
-      canvas.height = Math.max(1, Math.round(img.height * scale));
-      canvas.getContext("2d")?.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(url);
-      let shot = canvas.toDataURL("image/jpeg", 0.72);
-      if (shot.length > 170000) shot = canvas.toDataURL("image/jpeg", 0.5);
-      void postStory({ data: shot }).then((r) => { if (r.ok) loadStories(); }).catch(() => undefined);
-    };
-    img.src = url;
+    try { sessionStorage.setItem("kilode-compose", media || "text"); } catch { /* ignore */ }
+    onLeave("socials");
+    window.setTimeout(() => window.dispatchEvent(new CustomEvent("kilode:compose", { detail: media ? { media } : {} })), 360);
   }
   if (open) {
 
@@ -3507,36 +3603,19 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
             <button key={label} type="button" onClick={() => { tap(); go(); }}><Icon className="size-4" />{label}</button>
           ))}
         </div>
-        <button type="button" className="kh-mind" onClick={() => { tap(); window.dispatchEvent(new Event("kilode:compose")); }}>
-          <AvatarImg handle={store.handle || "me"} face={store.face} size={28} />
-          <span>What’s on your mind?</span>
-        </button>
-        <div className="kh-status">
-          <input ref={storyFile} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) addStory(f); }} />
-          <button type="button" onClick={() => { tap(); if (!needMember()) return; storyFile.current?.click(); }}>
-            <span className="kh-add">+</span>
-            Create
+        <div className="kh-mind">
+          <button type="button" className="kh-mind-go" onClick={() => openCompose()}>
+            <AvatarImg handle={store.handle || "me"} face={store.face} size={28} />
+            <span>What’s on your mind?</span>
           </button>
-          {stories.filter((s, i, all) => all.findIndex((x) => x.handle.toLowerCase() === s.handle.toLowerCase()) === i).map((s) => (
-            <button key={s.id} type="button" onClick={() => { tap(); if (!needMember()) return; setStoryOn(s); }}>
-              <AvatarImg handle={s.handle} size={46} />
-              {s.handle.slice(0, 8)}
-              <em>{timeAgo(s.ts)}</em>
-            </button>
-          ))}
+          <button type="button" aria-label="Add photo" onClick={() => openCompose("photo")}><ImageIcon className="size-4" /></button>
+          <button type="button" aria-label="Add video" onClick={() => openCompose("video")}><Video className="size-4" /></button>
         </div>
-        {storyOn ? (
-          <div className="story-view" role="dialog">
-            <button type="button" className="story-x" onClick={() => setStoryOn(null)}>Close</button>
-            <img src={storyOn.image} alt="" />
-            <b>@{storyOn.handle}</b>
-          </div>
-        ) : null}
         <section className="w-card">
           <header><Newspaper className="size-3.5" /> Media <span>Top stories</span><button type="button" onClick={() => { tap(); onLeave("trending"); }}>See all</button></header>
           <div className="w-media">
             {hero ? (
-              <button type="button" className="w-feature" onClick={() => { tap(); store.setOpenPost(hero.id); }}>
+              <button type="button" className="w-feature" key={hero.id} onClick={() => { tap(); store.setOpenPost(hero.id); }}>
                 {hero.image ? <img src={hero.image} alt="" referrerPolicy="no-referrer" /> : null}
                 <b>{hero.category || "Story"}</b>
                 <strong>{hero.title}</strong>
@@ -3557,7 +3636,7 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
           <article className="w-card kh-post">
             <header>
               <AvatarImg handle={cards[0].author} size={32} />
-              <span><b>{cards[0].author || "Kilode"}</b><em>@{cards[0].author || "kilode"} · {timeAgo(cards[0].ts)}</em></span>
+              <span><b>{deskName(cards[0].author)}</b><em>@{deskName(cards[0].author)} · {timeAgo(cards[0].ts)}</em></span>
               <i>{cards[0].category || "Post"}</i>
             </header>
             <button type="button" className="kh-body" onClick={() => { tap(); store.setOpenPost(cards[0].id); }}>
@@ -3646,6 +3725,46 @@ function FeedPane({ store, q = "", onDesk, onLeave }: { store: ReturnType<typeof
             ))}
           </section>
         ) : null}
+        <section className="w-card">
+          <header><Megaphone className="size-3.5" /> Ads <span>Placement</span><button type="button" onClick={() => { tap(); onLeave("ads"); }}>See all</button></header>
+          {store.campaigns.filter((a) => a.status === "approved").slice(0, 1).map((a) => (
+            <button key={a.id} type="button" className="w-event" onClick={() => { tap(); onLeave("ads"); }}>
+              {a.image ? <img src={a.image} alt="" referrerPolicy="no-referrer" /> : <span />}
+              <span><strong>{a.name}</strong><em>{a.note || "Sponsored on Kilode"}</em></span>
+            </button>
+          ))}
+          {store.campaigns.filter((a) => a.status === "approved").length === 0 ? (
+            <button type="button" className="w-line" onClick={() => { tap(); onLeave("ads"); }}>Place an ad<em>Media, Socials, Music</em></button>
+          ) : null}
+        </section>
+        <section className="w-card">
+          <header><Flame className="size-3.5" /> Trending <span>Most read</span></header>
+          <div className="w-media">
+            {(() => {
+              const hot = [...live].sort((a, b) => (b.views ?? 0) - (a.views ?? 0)).filter((p) => p.id !== hero?.id);
+              const lead = hot[0];
+              if (!lead) return <p className="home-empty">Nothing else is moving.</p>;
+              return (
+                <>
+                  <button type="button" className="w-feature" onClick={() => { tap(); store.setOpenPost(lead.id); }}>
+                    {lead.image ? <img src={lead.image} alt="" referrerPolicy="no-referrer" /> : null}
+                    <b>{lead.category || "Trending"}</b>
+                    <strong>{lead.title}</strong>
+                    <em>{fmtCount(lead.views ?? 0)} views</em>
+                  </button>
+                  <div>
+                    {hot.slice(1, 3).map((p) => (
+                      <button key={p.id} type="button" onClick={() => { tap(); store.setOpenPost(p.id); }}>
+                        {p.image ? <img src={p.image} alt="" referrerPolicy="no-referrer" /> : null}
+                        <span><b>{p.category || "Story"}</b><strong>{p.title}</strong></span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </section>
         <div className="kh-news">
           {cards.slice(1, shown).map((p) => (
             <article key={p.id} className="kh-news-tile">
