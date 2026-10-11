@@ -144,7 +144,7 @@ export function SocialFirst({
   return (
     <div className="sf">
       <header className="sf-bar">
-        <img src="/kilode-wordmark.png" alt="Kilode" className="sf-logo" />
+        <img src="/kilode-logo.png" alt="Kilode" className="sf-logo" />
         <div className="sf-tools">
           <button type="button" aria-label="Likes" onClick={onLikes}><Heart /></button>
           <button type="button" aria-label="Messages" onClick={onSend}><Send /></button>
@@ -200,17 +200,12 @@ export function SocialFirst({
                   {photo ? (
                     <div className="sf-shot">
                       <img src={photo} alt="" />
-                      <div className="sf-cap">
-                        {tags.length > 0 ? <div className="sf-tags">{tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
-                        <p>{t.body}</p>
-                      </div>
                     </div>
-                  ) : (
-                    <div className="sf-copy">
-                      {tags.length > 0 ? <div className="sf-tags dark">{tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
-                      <p>{t.body}</p>
-                    </div>
-                  )}
+                  ) : null}
+                  <div className="sf-copy">
+                    {tags.length > 0 ? <div className="sf-tags dark">{tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
+                    {t.body ? <p>{t.body}</p> : null}
+                  </div>
                   <div className="sf-acts">
                     <button type="button" onClick={() => like(t.id)}><ThumbsUp /> {t.likes || 0}</button>
                     <button type="button"><MessageCircle /> {t.comments || 0}</button>
