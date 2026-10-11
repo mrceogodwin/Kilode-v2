@@ -8344,7 +8344,7 @@ html[data-skin="ivory"] .kilode-shell[data-sf="1"] .dock,
 html[data-skin="night"] .kilode-shell[data-sf="1"] .dock {
   display: none !important;
 }
-.kilode-shell[data-sf="1"] aside { display: none !important; }
+.kilode-shell[data-sf="1"] .home-frame > aside { display: none !important; }
 .kilode-shell[data-sf="1"] .home-frame {
   display: flex !important;
   flex-direction: column !important;
@@ -8369,12 +8369,20 @@ html[data-skin="night"] .kilode-shell[data-sf="1"] .dock {
 }
 .sf-bar {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
+  gap: 10px;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 14px 4px;
   background: #fff;
 }
-.sf-tabs { display: flex; align-items: flex-end; gap: 16px; }
+.sf-logo {
+  height: 28px;
+  width: auto;
+  max-width: 132px;
+  object-fit: contain;
+  filter: brightness(0);
+}
+.sf-tabs { display: flex; align-items: flex-end; gap: 18px; padding: 4px 16px 0; }
 .sf-tabs button {
   position: relative;
   border: 0;
@@ -8449,8 +8457,8 @@ html[data-skin="night"] .kilode-shell[data-sf="1"] .dock {
 .sf-stories::-webkit-scrollbar { display: none; }
 .sf-story {
   display: flex;
-  width: 52px;
-  flex: 1 0 52px;
+  width: 64px;
+  flex: 0 0 64px;
   flex-direction: column;
   align-items: center;
   gap: 5px;
@@ -8460,6 +8468,7 @@ html[data-skin="night"] .kilode-shell[data-sf="1"] .dock {
   font-size: 11px;
   font-weight: 600;
   padding: 0;
+  text-decoration: none;
 }
 .sf-ring {
   display: grid;
@@ -8504,13 +8513,83 @@ html[data-skin="night"] .kilode-shell[data-sf="1"] .dock {
   font-style: normal;
   font-weight: 700;
 }
+.sf-post header strong a { color: inherit; text-decoration: none; }
+.sf-post header em { color: #9a9a9a; font-size: 11px; font-style: normal; }
 .sf-post {
   display: flex;
-  min-height: 0;
-  flex: 1;
   flex-direction: column;
+  border-bottom: 8px solid #f6f6f6;
 }
-.sf-shot { position: relative; min-height: 220px; flex: 1; background: #ececec; }
+.sf-shot { position: relative; height: 280px; background: #ececec; }
+.sf-copy { padding: 4px 14px 8px; }
+.sf-copy p { margin: 8px 0 0; font-size: 16px; font-weight: 650; letter-spacing: -0.03em; line-height: 1.35; }
+.sf-tags.dark span { background: #141414; color: #fff; }
+.sf-acts span { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 650; }
+.sf-acts svg { width: 16px; height: 16px; }
+.sf-more {
+  margin: 12px auto 20px;
+  height: 32px;
+  border: 1px solid #141414;
+  border-radius: 999px;
+  background: #fff;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.sf-cuts { display: flex; gap: 8px; overflow-x: auto; padding: 8px 14px 10px; }
+.sf-cuts button {
+  flex: 0 0 auto;
+  height: 28px;
+  border: 1px solid #e6e6e6;
+  border-radius: 999px;
+  background: #fff;
+  padding: 0 12px;
+  color: #666;
+  font-size: 12px;
+  font-weight: 700;
+}
+.sf-cuts button.on { border-color: #141414; background: #141414; color: #fff; }
+.sf-feature { display: grid; grid-template-columns: 1.35fr 0.85fr; gap: 6px; padding: 0 12px; }
+.sf-lead, .sf-feature > div button, .sf-mosaic button {
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  background: #f3f3f3;
+  color: #fff;
+  text-align: left;
+  padding: 0;
+}
+.sf-lead { min-height: 168px; border-radius: 12px; }
+.sf-lead img, .sf-feature > div img, .sf-mosaic img, .sf-lead span, .sf-feature > div span, .sf-mosaic span {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sf-lead b, .sf-lead strong, .sf-lead em, .sf-feature > div strong, .sf-mosaic strong {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin: 8px 8px 0;
+  text-shadow: 0 1px 6px #000;
+}
+.sf-lead strong, .sf-feature > div strong, .sf-mosaic strong {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sf-lead b { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; }
+.sf-lead em { font-size: 9px; font-style: normal; margin-bottom: 8px; }
+.sf-feature > div { display: flex; flex-direction: column; gap: 6px; }
+.sf-feature > div button { min-height: 80px; flex: 1; border-radius: 12px; }
+.sf-mosaic { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 8px 12px 16px; }
+.sf-mosaic button { height: 112px; border-radius: 10px; }
+.sf-me img { width: 32px; height: 32px; border-radius: 8px; object-fit: cover; }
 .sf-shot > img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .sf-cap {
   position: absolute;
@@ -8690,5 +8769,47 @@ html[data-skin="night"] .kilode-shell[data-sf="1"] .dock {
   border-radius: 99px;
 }
 .sf-me svg { width: 32px; height: 32px; }
+
+html .kilode-shell[data-sf="1"] .menu-sheet,
+html[data-skin="night"] .kilode-shell[data-sf="1"] .menu-sheet,
+html[data-skin="ivory"] .kilode-shell[data-sf="1"] .menu-sheet {
+  display: flex !important;
+  background: #fff !important;
+  color: #141414 !important;
+  border-right: 1px solid #eee !important;
+}
+html .kilode-shell[data-sf="1"] .app-drawer.menu-drawer {
+  top: calc(env(safe-area-inset-top, 0px) + 56px) !important;
+  bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+}
+html .kilode-shell[data-sf="1"] .menu-drawer .menu-head {
+  margin: 12px !important;
+  padding: 14px 12px !important;
+  border-radius: 18px !important;
+  border: 1px solid #141414 !important;
+  background: linear-gradient(180deg, #fff, #f4f4f4) !important;
+  color: #141414 !important;
+  box-shadow: inset 0 1px 0 #fff, 0 7px 0 #141414, 0 14px 18px rgba(0, 0, 0, 0.12) !important;
+}
+html .kilode-shell[data-sf="1"] .menu-head,
+html .kilode-shell[data-sf="1"] .menu-head *,
+html .kilode-shell[data-sf="1"] .menu-row,
+html .kilode-shell[data-sf="1"] .menu-row * {
+  color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .menu-role {
+  background: #fff !important;
+  border: 1px solid #141414;
+}
+html .kilode-shell[data-sf="1"] .menu-ico {
+  background: #fff !important;
+  color: #141414 !important;
+  border-color: #e4e4e4 !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row.on {
+  background: #f6f6f6 !important;
+  border-color: #141414 !important;
+}
+
 
 

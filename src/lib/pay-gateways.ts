@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
 import { authMiddleware } from "@/lib/auth/middleware";
@@ -302,6 +301,7 @@ export const startCheckout = createServerFn({ method: "POST" })
         reason: provider === "paystack" ? "Paystack is not set up yet." : provider === "flutterwave" ? "Flutterwave is not set up yet." : "Crypto checkout is not set up yet.",
       };
     }
+    const { randomBytes } = await import("node:crypto");
     const reference = `kld_${randomBytes(9).toString("hex")}`;
     const email = await payerEmail(context.userId, String(data.email || ""));
     const sql = await ensure();
@@ -511,7 +511,7 @@ export async function markCheckoutFromWebhook(provider: PayProvider, reference: 
 
 export async function handlePaystackWebhook(raw: string, signature: string) {
   const secret = await secretOf("paystack_secret");
-  if (!secret || !safeEqual(signature || "", paystackSignature(secret, raw))) return new Response("bad signature", { status: 401 });
+  if (!secret || !safeEqual(signature || "", await paystackSignature(secret, raw))) return new Response("bad signature", { status: 401 });
   let reference = "";
   try {
     const body = JSON.parse(raw) as { event?: string; data?: { reference?: string } };
@@ -543,7 +543,7 @@ export async function handleFlutterwaveWebhook(raw: string, verifHash: string) {
 export async function handleNowPaymentsWebhook(raw: string, signature: string) {
   const secret = await secretOf("nowpayments_ipn");
   if (!secret) return new Response("ipn secret not set", { status: 503 });
-  if (!safeEqual(signature || "", nowpaymentsSignature(secret, raw))) return new Response("bad signature", { status: 401 });
+  if (!safeEqual(signature || "", await nowpaymentsSignature(secret, raw))) return new Response("bad signature", { status: 401 });
   let reference = "";
   let status = "";
   let paidUsd = 0;

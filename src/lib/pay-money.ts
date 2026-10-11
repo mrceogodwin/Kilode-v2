@@ -1,5 +1,3 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
-
 export const CARD_PROVIDERS = ["paystack", "flutterwave"] as const;
 export type CardProvider = (typeof CARD_PROVIDERS)[number];
 export const PAY_PROVIDERS = ["paystack", "flutterwave", "nowpayments"] as const;
@@ -27,8 +25,14 @@ export function koboFromNgn(ngn: number) {
   return Math.round(ngn) * 100;
 }
 
+/** Loaded only when a webhook verifies a signature. Never a top-level import — that crashes the browser bundle. */
+async function hmacSha512(secret: string, payload: string) {
+  const { createHmac } = await import("node:crypto");
+  return createHmac("sha512", secret).update(payload).digest("hex");
+}
+
 export function paystackSignature(secret: string, rawBody: string) {
-  return createHmac("sha512", secret).update(rawBody).digest("hex");
+  return hmacSha512(secret, rawBody);
 }
 
 function sortJson(value: unknown): unknown {
@@ -46,17 +50,17 @@ function sortJson(value: unknown): unknown {
 export function nowpaymentsSignature(secret: string, rawBody: string) {
   try {
     const sorted = sortJson(JSON.parse(rawBody) as unknown);
-    return createHmac("sha512", secret).update(JSON.stringify(sorted)).digest("hex");
+    return hmacSha512(secret, JSON.stringify(sorted));
   } catch {
-    return "";
+    return Promise.resolve("");
   }
 }
 
 export function safeEqual(a: string, b: string) {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  if (left.length !== right.length || left.length === 0) return false;
-  return timingSafeEqual(left, right);
+  if (a.length !== b.length || a.length === 0) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 export function cleanReceiptEmail(raw: string) {

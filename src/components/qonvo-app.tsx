@@ -273,10 +273,36 @@ function QonvoAppInner() {
   const [feedQ, setFeedQ] = useState("");
   const [socialLane, setSocialLane] = useState<"people" | "posts">("posts");
   const [keptTabs, setKeptTabs] = useState<Record<string, true>>({ feeds: true });
+  const [placed, setPlaced] = useState(false);
   const setHomeTab = (tab: "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials") => startTransition(() => {
     setHomeTabNow(tab);
     if (tab === "feeds" || tab === "socials") setKeptTabs((m) => (m[tab] ? m : { ...m, [tab]: true }));
   });
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("kilode-place");
+      if (raw) {
+        const p = JSON.parse(raw) as { screen?: string; tab?: string };
+        const tabs = ["chat", "feeds", "advert", "music", "videos", "cinema", "watch", "downloads", "socials"];
+        const screens = new Set(MENU.map(([id]) => id));
+        if (p.tab && tabs.includes(p.tab)) {
+          setHomeTabNow(p.tab as typeof homeTab);
+          if (p.tab === "socials") setKeptTabs((m) => ({ ...m, socials: true }));
+        }
+        if (p.screen && screens.has(p.screen as MenuId)) {
+          setScreenNow(p.screen as MenuId);
+          if (p.screen === "search" || p.screen === "dashboard" || p.screen === "create") {
+            setKeptScreens((m) => ({ ...m, [p.screen as string]: true }));
+          }
+        }
+      }
+    } catch { /* ignore */ }
+    setPlaced(true);
+  }, []);
+  useEffect(() => {
+    if (!placed) return;
+    try { localStorage.setItem("kilode-place", JSON.stringify({ screen, tab: homeTab })); } catch { /* ignore */ }
+  }, [placed, screen, homeTab]);
   useEffect(() => {
     const onClick = (e: Event) => {
       const node = e.target instanceof Element ? e.target : null;
@@ -413,9 +439,6 @@ function QonvoAppInner() {
     if (tab === "socials" || tab === "chat" || tab === "music" || tab === "cinema" || tab === "advert" || tab === "feeds") {
       setScreen("home");
       setHomeTab(tab as typeof homeTab);
-    } else if (!open && signedIn) {
-      setScreen("home");
-      setHomeTab("socials");
     }
     if (open === "inbox" || open === "jobs" || open === "market" || open === "rent" || open === "bookmarks" || open === "tv" || open === "pricing" || open === "notifications" || open === "trending") {
       setScreen(open === "tv" ? "tv" : open);
@@ -427,7 +450,7 @@ function QonvoAppInner() {
     params.delete("open");
     const next = params.toString();
     window.history.replaceState({}, "", `${window.location.pathname}${next ? `?${next}` : ""}${window.location.hash}`);
-  }, [session.isPending, signedIn]);
+  }, [session.isPending]);
 
   useEffect(() => {
     void listRoomOverlay()
@@ -804,7 +827,38 @@ function QonvoAppInner() {
               ) : null}
               {keptTabs.feeds ? (
                 <div className={homeTab === "feeds" && !marketDesk ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "hidden"}>
+                  {store.openPost ? (
+                    <FeedPane
+                      store={store}
+                      q={feedQ}
+                      onDesk={setMarketDesk}
+                      onLeave={(where) => {
+                        if (where === "trending") setScreen("trending");
+                        else if (where === "music") setHomeTab("music");
+                        else if (where === "cinema" || where === "events") setHomeTab("cinema");
+                        else if (where === "jobs") setScreen("jobs");
+                        else if (where === "ads") setHomeTab("advert");
+                        else if (where === "chat") setHomeTab("chat");
+                        else if (where === "socials") setHomeTab("socials");
+                        else if (where === "market") setScreen("market");
+                        else if (where === "rent") setScreen("rent");
+                        else if (where === "sports") setMarketDesk("sports");
+                        else if (where === "tech") setMarketDesk("tech");
+                        else if (where === "downloads") setHomeTab("downloads");
+                        else if (where === "tv") setScreen("tv");
+                        else if (where === "community") setScreen("community");
+                        else if (where === "space") setScreen("dashboard");
+                        else if (where === "crypto") { setScreen("home"); setHomeTab("feeds"); setMarketDesk("crypto"); }
+                        else if (where === "forex") { setScreen("home"); setHomeTab("feeds"); setMarketDesk("forex"); }
+                        else if (where === "weather") { setScreen("home"); setHomeTab("feeds"); setMarketDesk("weather"); }
+                      }}
+                    />
+                  ) : (
                   <SocialFirst
+                    me={store.handle || ""}
+                    face={store.face}
+                    authed={store.authed || !!session.user}
+                    news={store.posts}
                     onLikes={() => {
                       setMenuOpen(false);
                       if (!signedIn) {
@@ -840,7 +894,11 @@ function QonvoAppInner() {
                       }
                       setScreen("dashboard");
                     }}
+                    onMenu={() => setMenuOpen(true)}
+                    onOpenNews={(id) => store.setOpenPost(id)}
+                    onNeedAuth={() => { window.location.href = "/login?mode=up"; }}
                   />
+                  )}
                 </div>
               ) : null}
               {keptTabs.socials ? (

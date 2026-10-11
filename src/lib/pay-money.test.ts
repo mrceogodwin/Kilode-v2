@@ -10,11 +10,11 @@ describe("pay money", () => {
     assert.equal(ngnFromUsd(40, 10), 0);
   });
 
-  it("checks a Paystack signature and rejects a mismatch", () => {
+  it("checks a Paystack signature and rejects a mismatch", async () => {
     const raw = JSON.stringify({ event: "charge.success" });
-    const sig = paystackSignature("sk_test_secret", raw);
-    assert.equal(safeEqual(sig, paystackSignature("sk_test_secret", raw)), true);
-    assert.equal(safeEqual(sig, paystackSignature("sk_test_other", raw)), false);
+    const sig = await paystackSignature("sk_test_secret", raw);
+    assert.equal(safeEqual(sig, await paystackSignature("sk_test_secret", raw)), true);
+    assert.equal(safeEqual(sig, await paystackSignature("sk_test_other", raw)), false);
     assert.equal(safeEqual("", ""), false);
   });
 

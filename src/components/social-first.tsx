@@ -1,201 +1,284 @@
-import { useState } from "react";
-import { Heart, Home, MessageCircle, Plus, Search, Send, ThumbsDown, ThumbsUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Eye, Heart, Home, Menu, MessageCircle, Plus, Search, Send, ThumbsUp } from "lucide-react";
+import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
+import { likeTake, listStories, listTakes, type FellowRow, type TakeRow } from "@/lib/takes-server";
 
-type Story = { name: string; ring: string; src?: string; art?: "you" | "tate" | "mike" };
-type Post = {
-  id: string;
-  name: string;
-  face: string;
-  ring: string;
-  photo: string;
-  score: string;
-  tags: string[];
-  caption: string;
-  up: number;
-  down: number;
-  comments: number;
-  when: string;
-  liked: string;
-  others: string;
-};
+type News = { id: string; title: string; image?: string; category?: string; ts: number; views?: number; status?: string };
 
-const STORIES: Story[] = [
-  { name: "You", ring: "#f0b429", art: "you" },
-  { name: "Nina", ring: "#e7b0c4", src: "/sf/nina.jpg" },
-  { name: "Tate", ring: "#cbb6ea", art: "tate" },
-  { name: "Mike", ring: "#e4d2b0", art: "mike" },
-  { name: "Roy", ring: "#d5d5d5", src: "/sf/roy.jpg" },
-  { name: "Nate", ring: "#b7d7c6", src: "/sf/nate.jpg" },
-];
+const RINGS = ["#e25b4a", "#f0b429", "#7a4db8", "#1f8f4e", "#3a6ea5", "#111111"];
 
-const POSTS: Post[] = [
-  {
-    id: "jane",
-    name: "Jane Cooper",
-    face: "/sf/jane.jpg",
-    ring: "#e25b4a",
-    photo: "/sf/hero.jpg",
-    score: "4.8",
-    tags: ["#Photos", "#Lightroom"],
-    caption: "Creating culinary magic in my kitchen!",
-    up: 1672,
-    down: 232,
-    comments: 324,
-    when: "1 Day Ago",
-    liked: "timur.kzb",
-    others: "651",
-  },
-];
+function ringOf(name: string) {
+  let n = 0;
+  for (const c of name) n += c.charCodeAt(0);
+  return RINGS[n % RINGS.length];
+}
+
+function tagsOf(body: string) {
+  return [...body.matchAll(/#([A-Za-z0-9_]{2,24})/g)].slice(0, 3).map((m) => `#${m[1]}`);
+}
+
+function shotOf(meta: TakeRow["meta"]) {
+  const img = meta?.image;
+  return typeof img === "string" && (img.startsWith("http") || img.startsWith("data:image/")) ? img : "";
+}
 
 export function SocialFirst({
+  me,
+  face,
+  authed,
+  news,
   onLikes,
   onSend,
   onCreate,
   onMe,
+  onMenu,
+  onOpenNews,
+  onNeedAuth,
 }: {
+  me: string;
+  face?: string;
+  authed: boolean;
+  news: News[];
   onLikes: () => void;
   onSend: () => void;
   onCreate: () => void;
   onMe: () => void;
+  onMenu: () => void;
+  onOpenNews: (id: string) => void;
+  onNeedAuth: () => void;
 }) {
-  const [lane, setLane] = useState<"feed" | "reels">("feed");
+  const [lane, setLane] = useState<"feed" | "media">("feed");
   const [find, setFind] = useState(false);
   const [q, setQ] = useState("");
-  const [vote, setVote] = useState<Record<string, "up" | "down" | "">>({});
+  const [takes, setTakes] = useState<TakeRow[]>([]);
+  const [next, setNext] = useState(0);
+  const [people, setPeople] = useState<FellowRow[]>([]);
+  const [faces, setFaces] = useState<Record<string, string>>({});
+  const [stories, setStories] = useState<{ id: string; handle: string; image: string; ts: number }[]>([]);
+  const [moreBusy, setMoreBusy] = useState(false);
+  const [cut, setCut] = useState("trending");
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("kilode-sf-lane") === "media") setLane("media");
+    } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem("kilode-sf-lane", lane); } catch { /* ignore */ }
+  }, [lane]);
+
+  useEffect(() => {
+    let dead = false;
+    void listTakes()
+      .then((r) => {
+        if (dead) return;
+        setTakes(r.takes || []);
+        setNext(r.next || 0);
+        setPeople(r.fellows || []);
+        setFaces(r.faces || {});
+      })
+      .catch(() => undefined);
+    void listStories()
+      .then((r) => { if (!dead) setStories(r.stories || []); })
+      .catch(() => undefined);
+    return () => { dead = true; };
+  }, []);
+
   const needle = q.trim().toLowerCase();
-  const posts = POSTS.filter((p) => !needle || `${p.name} ${p.caption} ${p.tags.join(" ")}`.toLowerCase().includes(needle));
+  const posts = takes.filter((t) => !needle || `${t.name} ${t.handle} ${t.body}`.toLowerCase().includes(needle));
+  const storyPeople = (() => {
+    const seen = new Set<string>();
+    const rows: { key: string; name: string; face: string; href?: string }[] = [];
+    if (me) rows.push({ key: "you", name: "You", face: avatarUrl(me, face) });
+    for (const s of stories) {
+      const h = s.handle.toLowerCase();
+      if (seen.has(h)) continue;
+      seen.add(h);
+      rows.push({ key: s.id, name: s.handle.slice(0, 8), face: s.image || avatarUrl(s.handle), href: `/u/${encodeURIComponent(s.handle)}` });
+    }
+    for (const p of people) {
+      const h = p.handle.toLowerCase();
+      if (seen.has(h) || h === me.toLowerCase()) continue;
+      seen.add(h);
+      rows.push({ key: p.id, name: p.handle.slice(0, 8), face: faces[h] || p.photo || avatarUrl(p.handle), href: `/u/${encodeURIComponent(p.handle)}` });
+      if (rows.length >= 16) break;
+    }
+    return rows;
+  })();
+
+  const liveNews = news.filter((p) => p?.id && p.status !== "draft");
+  const cats = [...new Set(liveNews.map((p) => p.category || "News"))].slice(0, 6);
+  const media = [...liveNews]
+    .filter((p) => cut === "trending" || cut === "latest" || (p.category || "News") === cut)
+    .filter((p) => !needle || `${p.title} ${p.category || ""}`.toLowerCase().includes(needle))
+    .sort((a, b) => (cut === "latest" ? b.ts - a.ts : (b.views ?? 0) - (a.views ?? 0)));
+  const lead = media[0];
+  const side = media.slice(1, 3);
+  const rest = media.slice(3);
+
+  function more() {
+    if (!next || moreBusy) return;
+    setMoreBusy(true);
+    void listTakes({ data: { before: next } })
+      .then((r) => {
+        setTakes((cur) => {
+          const ids = new Set(cur.map((t) => t.id));
+          return [...cur, ...(r.takes || []).filter((t) => !ids.has(t.id))];
+        });
+        setNext(r.next || 0);
+      })
+      .catch(() => undefined)
+      .finally(() => setMoreBusy(false));
+  }
+
+  function like(id: string) {
+    if (!authed) { onNeedAuth(); return; }
+    void likeTake({ data: { id } })
+      .then((r) => {
+        if (!r.ok) return;
+        setTakes((cur) => cur.map((t) => (t.id === id ? { ...t, likes: r.likes } : t)));
+      })
+      .catch(() => onNeedAuth());
+  }
 
   return (
     <div className="sf">
       <header className="sf-bar">
-        <div className="sf-tabs">
-          <button type="button" className={lane === "feed" ? "on" : ""} onClick={() => setLane("feed")}>
-            Feed
-          </button>
-          <button type="button" className={lane === "reels" ? "on" : ""} onClick={() => setLane("reels")}>
-            Reels
-          </button>
-        </div>
+        <img src="/kilode-wordmark.png" alt="Kilode" className="sf-logo" />
         <div className="sf-tools">
-          <button type="button" aria-label="Likes" onClick={onLikes}>
-            <Heart />
-          </button>
-          <button type="button" aria-label="Send" onClick={onSend}>
-            <Send />
-          </button>
+          <button type="button" aria-label="Likes" onClick={onLikes}><Heart /></button>
+          <button type="button" aria-label="Messages" onClick={onSend}><Send /></button>
+          <button type="button" aria-label="Menu" onClick={onMenu}><Menu /></button>
         </div>
       </header>
+      <div className="sf-tabs">
+        <button type="button" className={lane === "feed" ? "on" : ""} onClick={() => setLane("feed")}>Feed</button>
+        <button type="button" className={lane === "media" ? "on" : ""} onClick={() => setLane("media")}>Media</button>
+      </div>
       {find ? (
         <label className="sf-find">
           <Search />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" aria-label="Search" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={lane === "media" ? "Search stories" : "Search people, posts"} aria-label="Search" />
         </label>
       ) : null}
       <div className="sf-scroll">
         {lane === "feed" ? (
           <>
-            <div className="sf-stories">
-              {STORIES.map((s) => (
-                <button key={s.name} type="button" className="sf-story">
-                  <span className="sf-ring" style={{ boxShadow: `0 0 0 2px #fff, 0 0 0 4px ${s.ring}` }}>
-                    {s.src ? <img src={s.src} alt="" /> : <Art who={s.art || "you"} />}
-                  </span>
-                  {s.name}
+            {storyPeople.length > 0 ? (
+              <div className="sf-stories">
+                {storyPeople.map((s) => {
+                  const inner = (
+                    <>
+                      <span className="sf-ring" style={{ boxShadow: `0 0 0 2px #fff, 0 0 0 4px ${ringOf(s.name)}` }}>
+                        <img src={s.face} alt="" />
+                      </span>
+                      {s.name}
+                    </>
+                  );
+                  return s.href ? (
+                    <a key={s.key} className="sf-story" href={s.href}>{inner}</a>
+                  ) : (
+                    <button key={s.key} type="button" className="sf-story">{inner}</button>
+                  );
+                })}
+              </div>
+            ) : null}
+            {posts.length === 0 ? <p className="sf-empty">No member posts yet.</p> : null}
+            {posts.map((t) => {
+              const photo = shotOf(t.meta);
+              const tags = tagsOf(t.body);
+              const who = faces[t.handle.toLowerCase()] || avatarUrl(t.handle);
+              return (
+                <article key={t.id} className="sf-post">
+                  <header>
+                    <a className="sf-mini" href={`/u/${encodeURIComponent(t.handle)}`} style={{ boxShadow: `0 0 0 2px ${ringOf(t.handle)}` }}>
+                      <img src={who} alt="" />
+                    </a>
+                    <strong><a href={`/u/${encodeURIComponent(t.handle)}`}>{t.name || t.handle}</a></strong>
+                    <em>@{t.handle}</em>
+                  </header>
+                  {photo ? (
+                    <div className="sf-shot">
+                      <img src={photo} alt="" />
+                      <div className="sf-cap">
+                        {tags.length > 0 ? <div className="sf-tags">{tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
+                        <p>{t.body}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="sf-copy">
+                      {tags.length > 0 ? <div className="sf-tags dark">{tags.map((tag) => <span key={tag}>{tag}</span>)}</div> : null}
+                      <p>{t.body}</p>
+                    </div>
+                  )}
+                  <div className="sf-acts">
+                    <button type="button" onClick={() => like(t.id)}><ThumbsUp /> {t.likes || 0}</button>
+                    <button type="button"><MessageCircle /> {t.comments || 0}</button>
+                    <span><Eye /> {t.views || 0}</span>
+                    <em>{timeAgo(t.ts)}</em>
+                  </div>
+                  {(t.likes || 0) > 0 ? (
+                    <div className="sf-liked">
+                      <span className="sf-piles"><img src={who} alt="" /></span>
+                      <p><b>{t.likes}</b> {t.likes === 1 ? "like" : "likes"}</p>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+            {next ? <button type="button" className="sf-more" onClick={more}>{moreBusy ? "Loading" : "Load more"}</button> : null}
+          </>
+        ) : (
+          <div className="sf-media">
+            <div className="sf-cuts">
+              {(["trending", "latest", ...cats] as string[]).map((id) => (
+                <button key={id} type="button" className={cut === id ? "on" : ""} onClick={() => setCut(id)}>
+                  {id === "trending" ? "Trending" : id === "latest" ? "Latest" : id}
                 </button>
               ))}
             </div>
-            {posts.length === 0 ? <p className="sf-empty">Nothing for that.</p> : null}
-            {posts.map((p) => (
-              <article key={p.id} className="sf-post">
-                <header>
-                  <span className="sf-mini" style={{ boxShadow: `0 0 0 2px ${p.ring}` }}>
-                    <img src={p.face} alt="" />
-                  </span>
-                  <strong>{p.name}</strong>
-                  <span className="sf-score">
-                    {Array.from({ length: 4 }, (_, i) => (
-                      <Star key={i} />
-                    ))}
-                    <em>{p.score}</em>
-                  </span>
-                </header>
-                <div className="sf-shot">
-                  <img src={p.photo} alt="" />
-                  <div className="sf-cap">
-                    <div className="sf-tags">
-                      {p.tags.map((t) => (
-                        <span key={t}>{t}</span>
-                      ))}
-                    </div>
-                    <p>{p.caption}</p>
-                  </div>
+            {media.length === 0 ? <p className="sf-empty">No stories in this cut.</p> : null}
+            {lead ? (
+              <div className="sf-feature">
+                <button type="button" className="sf-lead" onClick={() => onOpenNews(lead.id)}>
+                  {lead.image ? <img src={lead.image} alt="" /> : <span />}
+                  <b>{lead.category || "News"}</b>
+                  <strong>{lead.title}</strong>
+                  <em>{lead.views ?? 0} views</em>
+                </button>
+                <div>
+                  {side.map((p) => (
+                    <button key={p.id} type="button" onClick={() => onOpenNews(p.id)}>
+                      {p.image ? <img src={p.image} alt="" /> : <span />}
+                      <strong>{p.title}</strong>
+                    </button>
+                  ))}
                 </div>
-                <div className="sf-acts">
-                  <button type="button" className={vote[p.id] === "up" ? "on" : ""} onClick={() => setVote((m) => ({ ...m, [p.id]: m[p.id] === "up" ? "" : "up" }))}>
-                    <ThumbsUp /> {p.up + (vote[p.id] === "up" ? 1 : 0)}
-                  </button>
-                  <button type="button" className={vote[p.id] === "down" ? "on" : ""} onClick={() => setVote((m) => ({ ...m, [p.id]: m[p.id] === "down" ? "" : "down" }))}>
-                    <ThumbsDown /> {p.down + (vote[p.id] === "down" ? 1 : 0)}
-                  </button>
-                  <button type="button">
-                    <MessageCircle /> {p.comments}
-                  </button>
-                  <em>{p.when}</em>
-                </div>
-                <div className="sf-liked">
-                  <span className="sf-piles">
-                    <img src="/sf/like1.jpg" alt="" />
-                    <img src="/sf/like2.jpg" alt="" />
-                  </span>
-                  <p>
-                    Liked by <b>{p.liked}</b> and {p.others} others
-                  </p>
-                  <button type="button" aria-label="More">
-                    ···
-                  </button>
-                </div>
-              </article>
-            ))}
-          </>
-        ) : (
-          <div className="sf-reels">
-            <article>
-              <img src="/sf/hero.jpg" alt="" />
-              <div>
-                <b>Jane Cooper</b>
-                <span>Creating culinary magic in my kitchen!</span>
               </div>
-            </article>
+            ) : null}
+            {rest.length > 0 ? (
+              <div className="sf-mosaic">
+                {rest.map((p) => (
+                  <button key={p.id} type="button" onClick={() => onOpenNews(p.id)}>
+                    {p.image ? <img src={p.image} alt="" /> : <span />}
+                    <strong>{p.title}</strong>
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
         )}
       </div>
       <nav className="sf-dock">
-        <button type="button" className={lane === "feed" ? "on" : ""} aria-label="Home" onClick={() => setLane("feed")}>
-          <Home />
-        </button>
-        <button type="button" className={find ? "on" : ""} aria-label="Search" onClick={() => setFind((v) => !v)}>
-          <Search />
-        </button>
-        <button type="button" className="sf-plus" aria-label="Create" onClick={onCreate}>
-          <Plus />
-          <i>NEW</i>
-        </button>
-        <button type="button" className={lane === "reels" ? "on" : ""} aria-label="Reels" onClick={() => setLane("reels")}>
-          <Orbit />
-        </button>
+        <button type="button" className={lane === "feed" ? "on" : ""} aria-label="Home" onClick={() => setLane("feed")}><Home /></button>
+        <button type="button" className={find ? "on" : ""} aria-label="Search" onClick={() => setFind((v) => !v)}><Search /></button>
+        <button type="button" className="sf-plus" aria-label="Create" onClick={onCreate}><Plus /><i>NEW</i></button>
+        <button type="button" className={lane === "media" ? "on" : ""} aria-label="Media" onClick={() => setLane("media")}><Orbit /></button>
         <button type="button" className="sf-me" aria-label="Me" onClick={onMe}>
-          <Art who="you" />
+          <img src={avatarUrl(me || "me", face)} alt="" />
         </button>
       </nav>
     </div>
-  );
-}
-
-function Star() {
-  return (
-    <svg viewBox="0 0 20 20" aria-hidden>
-      <path d="M10 1.6 12.5 7l5.8.5-4.4 3.7 1.4 5.5L10 13.8 4.7 16.7 6.1 11.2 1.7 7.5 7.5 7z" />
-    </svg>
   );
 }
 
@@ -206,44 +289,6 @@ function Orbit() {
       <circle cx="12" cy="4.2" r="1.35" fill="currentColor" />
       <circle cx="18.6" cy="15.6" r="1.35" fill="currentColor" />
       <circle cx="5.4" cy="15.6" r="1.35" fill="currentColor" />
-    </svg>
-  );
-}
-
-function Art({ who }: { who: "you" | "tate" | "mike" }) {
-  if (who === "tate") {
-    return (
-      <svg viewBox="0 0 64 64" aria-hidden>
-        <rect width="64" height="64" rx="32" fill="#efe4ff" />
-        <circle cx="32" cy="30" r="12" fill="#f3d2c3" />
-        <path d="M16 34c1-16 14-22 16-22s15 6 16 22c-6 4-10 2-16 2s-10 2-16-2z" fill="#7a4db8" />
-        <circle cx="27.5" cy="30" r="1.3" fill="#2a1c16" />
-        <circle cx="36.5" cy="30" r="1.3" fill="#2a1c16" />
-        <path d="M28 35.5c1.6 1.4 6.4 1.4 8 0" fill="none" stroke="#c47a88" strokeWidth="1.2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (who === "mike") {
-    return (
-      <svg viewBox="0 0 64 64" aria-hidden>
-        <rect width="64" height="64" rx="32" fill="#f6e7cf" />
-        <circle cx="32" cy="31" r="12" fill="#f0c2a0" />
-        <path d="M18 28c2-14 26-16 30-4-4 2-8-2-15-1-6 1-11 2-15 5z" fill="#4a3428" />
-        <circle cx="27" cy="31" r="1.3" fill="#2a1c16" />
-        <circle cx="36" cy="31" r="1.3" fill="#2a1c16" />
-        <path d="M29 36h6" stroke="#c47a88" strokeWidth="1.2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 64 64" aria-hidden>
-      <rect width="64" height="64" fill="#f2c14d" />
-      <circle cx="32" cy="28" r="16" fill="#2a1810" />
-      <circle cx="32" cy="34" r="13" fill="#f6c7a4" />
-      <path d="M18 32c2-14 10-20 14-20s12 6 14 20c-6-4-10-3-14-3s-8-1-14 3z" fill="#2a1810" />
-      <circle cx="27" cy="34" r="1.3" fill="#2a1c16" />
-      <circle cx="37" cy="34" r="1.3" fill="#2a1c16" />
-      <path d="M28.5 39c1.6 1.6 5.4 1.6 7 0" fill="none" stroke="#c45b62" strokeWidth="1.3" strokeLinecap="round" />
     </svg>
   );
 }
