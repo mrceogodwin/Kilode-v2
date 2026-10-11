@@ -8327,3 +8327,368 @@ article.take-card .take-shot .take-photo {
 }
 html[data-skin="ivory"] .home-more { border-color: #111; color: #111; }
 
+/* Social-first home. White field. The old home stays in the code, this is the screen. */
+html .kilode-shell[data-sf="1"],
+html[data-skin="ivory"] .kilode-shell[data-sf="1"],
+html[data-skin="night"] .kilode-shell[data-sf="1"] {
+  background: #fff !important;
+  color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .kilode-chrome,
+html[data-skin="ivory"] .kilode-shell[data-sf="1"] .kilode-chrome,
+html[data-skin="night"] .kilode-shell[data-sf="1"] .kilode-chrome {
+  display: none !important;
+}
+html .kilode-shell[data-sf="1"] .dock,
+html[data-skin="ivory"] .kilode-shell[data-sf="1"] .dock,
+html[data-skin="night"] .kilode-shell[data-sf="1"] .dock {
+  display: none !important;
+}
+.kilode-shell[data-sf="1"] aside { display: none !important; }
+.kilode-shell[data-sf="1"] .home-frame {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: 1fr !important;
+}
+.kilode-shell[data-sf="1"] section {
+  align-items: center;
+  background: #fff !important;
+  color: #141414 !important;
+}
+
+.sf {
+  display: flex;
+  width: 100%;
+  max-width: 430px;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background: #fff;
+  color: #141414;
+  font-family: "Nunito", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+.sf-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
+  background: #fff;
+}
+.sf-tabs { display: flex; align-items: flex-end; gap: 16px; }
+.sf-tabs button {
+  position: relative;
+  border: 0;
+  background: transparent;
+  padding: 0 0 8px;
+  color: #c5c5c5;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.sf-tabs button.on { color: #141414; font-weight: 800; }
+.sf-tabs button.on::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 99px;
+  background: #141414;
+  transform: translateX(-50%);
+}
+.sf-tools { display: flex; align-items: center; gap: 14px; padding-bottom: 6px; }
+.sf-tools button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  color: #141414;
+  padding: 0;
+}
+.sf-tools svg { width: 22px; height: 22px; stroke-width: 1.7; }
+.sf-find {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 8px;
+  height: 40px;
+  border-radius: 14px;
+  background: #f4f4f4;
+  padding: 0 12px;
+  color: #8a8a8a;
+}
+.sf-find svg { width: 16px; height: 16px; }
+.sf-find input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: #141414;
+  font-size: 16px;
+  outline: none;
+}
+.sf-scroll {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+}
+.sf-stories {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 6px 12px 8px;
+}
+.sf-stories::-webkit-scrollbar { display: none; }
+.sf-story {
+  display: flex;
+  width: 52px;
+  flex: 1 0 52px;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: #9a9a9a;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0;
+}
+.sf-ring {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #fff;
+}
+.sf-ring img, .sf-ring svg { width: 50px; height: 50px; object-fit: cover; }
+.sf-empty { margin: 24px 16px; color: #8a8a8a; font-size: 14px; }
+.sf-post header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 8px;
+}
+.sf-mini {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 99px;
+}
+.sf-mini img { width: 32px; height: 32px; object-fit: cover; }
+.sf-post header strong {
+  min-width: 0;
+  flex: 1;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.sf-score { display: inline-flex; align-items: center; gap: 2px; }
+.sf-score svg { width: 12px; height: 12px; fill: #f5b301; }
+.sf-score em {
+  margin-left: 4px;
+  color: #141414;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+.sf-post {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.sf-shot { position: relative; min-height: 220px; flex: 1; background: #ececec; }
+.sf-shot > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sf-cap {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 36px 16px 14px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.08) 70%, transparent);
+  color: #fff;
+}
+.sf-tags { display: flex; gap: 6px; }
+.sf-tags span {
+  border-radius: 999px;
+  background: #fff;
+  color: #141414;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.sf-cap p {
+  max-width: 16em;
+  margin: 8px 0 0;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+.sf-acts {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px 8px;
+  color: #8d8d8d;
+}
+.sf-acts button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: #8d8d8d;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+.sf-acts svg { width: 16px; height: 16px; stroke-width: 1.8; }
+.sf-acts button.on { color: #141414; }
+.sf-acts em {
+  margin-left: auto;
+  color: #9a9a9a;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 650;
+}
+.sf-liked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 12px 18px;
+  border-radius: 16px;
+  background: #171717;
+  color: #fff;
+  padding: 8px 8px 8px 10px;
+}
+.sf-piles { display: flex; }
+.sf-piles img {
+  width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  object-fit: cover;
+  border: 1.5px solid #171717;
+}
+.sf-piles img + img { margin-left: -8px; }
+.sf-liked p {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.sf-liked b { font-weight: 800; }
+.sf-liked > button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  border-radius: 99px;
+  background: transparent;
+  color: #fff;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+.sf-reels { padding: 8px 16px 20px; }
+.sf-reels article {
+  position: relative;
+  overflow: hidden;
+  height: min(68dvh, 560px);
+  border-radius: 18px;
+  background: #111;
+}
+.sf-reels img { width: 100%; height: 100%; object-fit: cover; }
+.sf-reels div {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 28px 14px 14px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+  color: #fff;
+}
+.sf-reels b { font-size: 16px; }
+.sf-reels span { font-size: 13px; }
+.sf-dock {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: calc(62px + env(safe-area-inset-bottom, 0px));
+  padding: 0 8px env(safe-area-inset-bottom, 0px);
+  background: #fff;
+  border-top: 1px solid #f0f0f0;
+}
+.sf-dock > button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #141414;
+  padding: 0;
+}
+.sf-dock svg { width: 24px; height: 24px; stroke-width: 1.7; }
+.sf-dock > button.on svg { fill: #141414; stroke: #141414; }
+.sf-dock > button.on.sf-me svg,
+.sf-plus svg,
+.sf-dock > button[aria-label="Search"] svg,
+.sf-dock > button[aria-label="Reels"] svg { fill: none; }
+.sf-dock > button.on[aria-label="Reels"] svg { fill: none; stroke: #141414; }
+.sf-plus {
+  position: relative;
+  width: 76px !important;
+  height: 38px !important;
+  border-radius: 999px !important;
+  background: #111 !important;
+  color: #fff !important;
+}
+.sf-plus svg { width: 22px; height: 22px; stroke-width: 2.4; color: #fff; }
+.sf-plus i {
+  position: absolute;
+  top: -8px;
+  right: -2px;
+  border-radius: 999px;
+  background: #f5c518;
+  color: #141414;
+  padding: 2px 5px;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+.sf-me {
+  overflow: hidden;
+  border-radius: 99px;
+}
+.sf-me svg { width: 32px; height: 32px; }
+
+

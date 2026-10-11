@@ -103,6 +103,7 @@ import { DESKS, MarketsDesk, type MarketDesk } from "@/components/markets-desk";
 import { listListings } from "@/lib/listings-server";
 import { listEvents, type EEvent } from "@/lib/events-server";
 import { SocialsFeed, openSocialFellows, readBag, shareNewsToSocials, writeBag } from "@/components/socials-feed";
+import { SocialFirst } from "@/components/social-first";
 
 const EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🙏", "💯", "🎉", "😢", "😮", "😎", "❤️", "🇳🇬", "👀", "🤔", "💭"];
 
@@ -707,7 +708,7 @@ function QonvoAppInner() {
   }
 
   return (
-    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg" data-paper={(screen === "home" && homeTab === "feeds" && !marketDesk) || screen === "dashboard" || screen === "search" ? "1" : "0"} data-pin={screen === "dashboard" ? "space" : "free"} data-home={screen === "home" && homeTab === "feeds" && !marketDesk ? "1" : "0"}>
+    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg" data-sf={screen === "home" && homeTab === "feeds" && !marketDesk ? "1" : "0"} data-paper={(screen === "home" && homeTab === "feeds" && !marketDesk) || screen === "dashboard" || screen === "search" ? "1" : "0"} data-pin={screen === "dashboard" ? "space" : "free"} data-home={screen === "home" && homeTab === "feeds" && !marketDesk ? "1" : "0"}>
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule soc-head">
           <div className="flex min-h-12 min-w-0 items-center gap-2 px-2.5 py-2">
@@ -792,7 +793,7 @@ function QonvoAppInner() {
       </header>
 
       <div className={screen === "home" ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "hidden"} aria-hidden={screen !== "home"}>
-          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[210px_minmax(0,1fr)_180px]">
+          <div className="home-frame grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[210px_minmax(0,1fr)_180px]">
             <aside className="hidden min-h-0 overflow-hidden border-r border-white/5 bg-panel md:flex md:flex-col">
               <RoomList query={query} setQuery={setQuery} listed={listed} roomId={store.roomId} onOpen={goHome} />
             </aside>
@@ -803,29 +804,41 @@ function QonvoAppInner() {
               ) : null}
               {keptTabs.feeds ? (
                 <div className={homeTab === "feeds" && !marketDesk ? "flex min-h-0 flex-1 flex-col overflow-hidden" : "hidden"}>
-                  <FeedPane
-                    store={store}
-                    q={feedQ}
-                    onDesk={setMarketDesk}
-                    onLeave={(where) => {
-                      if (where === "trending") setScreen("trending");
-                      else if (where === "music") setHomeTab("music");
-                      else if (where === "cinema" || where === "events") setHomeTab("cinema");
-                      else if (where === "jobs") setScreen("jobs");
-                      else if (where === "ads") setHomeTab("advert");
-                      else if (where === "chat") setHomeTab("chat");
-                      else if (where === "socials") setHomeTab("socials");
-                      else if (where === "market") setScreen("market");
-                      else if (where === "rent") setScreen("rent");
-                      else if (where === "sports") setMarketDesk("sports");
-                      else if (where === "tech") setMarketDesk("tech");
-                      else if (where === "downloads") setHomeTab("downloads");
-                      else if (where === "tv") setScreen("tv");
-                      else if (where === "community") setScreen("community");
-                      else if (where === "space") setScreen("dashboard");
-                      else if (where === "crypto") { setScreen("home"); setHomeTab("feeds"); setMarketDesk("crypto"); }
-                      else if (where === "forex") { setScreen("home"); setHomeTab("feeds"); setMarketDesk("forex"); }
-                      else if (where === "weather") { setScreen("home"); setHomeTab("feeds"); setMarketDesk("weather"); }
+                  <SocialFirst
+                    onLikes={() => {
+                      setMenuOpen(false);
+                      if (!signedIn) {
+                        window.location.href = "/login?mode=up";
+                        return;
+                      }
+                      setScreen("notifications");
+                    }}
+                    onSend={() => {
+                      setMenuOpen(false);
+                      if (!signedIn) {
+                        window.location.href = "/login";
+                        return;
+                      }
+                      setScreen("inbox");
+                    }}
+                    onCreate={() => {
+                      setMenuOpen(false);
+                      if (session.isPending) return;
+                      if (!signedIn) {
+                        window.location.href = "/login?mode=up";
+                        return;
+                      }
+                      openRoleCreate();
+                      setScreen("create");
+                    }}
+                    onMe={() => {
+                      setMenuOpen(false);
+                      if (session.isPending) return;
+                      if (!signedIn || !store.handle) {
+                        window.location.href = "/login";
+                        return;
+                      }
+                      setScreen("dashboard");
                     }}
                   />
                 </div>
