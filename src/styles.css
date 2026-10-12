@@ -9744,3 +9744,146 @@ html .kilode-shell[data-sf="1"] .sf-plus i {
 html .kilode-shell[data-sf="1"] .sf-scroll {
   padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important;
 }
+
+/* Header: smaller logo, tools locked right, no collision */
+html .kilode-shell[data-sf="1"] .sf-bar {
+  min-height: 52px !important;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 10px 6px !important;
+  gap: 6px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-left {
+  flex: 0 1 auto !important;
+  max-width: 52% !important;
+  gap: 4px !important;
+  overflow: hidden !important;
+}
+html .kilode-shell[data-sf="1"] .sf-logo {
+  height: 26px !important;
+  max-width: 118px !important;
+  width: auto !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools {
+  margin-left: auto !important;
+  gap: 2px !important;
+  flex: 0 0 auto !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools button {
+  width: 32px !important;
+  height: 32px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools button.sf-ava {
+  width: 28px !important;
+  height: 28px !important;
+}
+
+/* Media carousel before grids */
+html .kilode-shell[data-sf="1"] .sf-carousel {
+  display: flex !important;
+  gap: 10px !important;
+  overflow-x: auto !important;
+  scroll-snap-type: x mandatory !important;
+  padding: 4px 2px 12px !important;
+  margin: 0 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-slide {
+  position: relative !important;
+  flex: 0 0 86% !important;
+  width: 86% !important;
+  height: 168px !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  scroll-snap-align: start !important;
+  border: 0 !important;
+  padding: 0 !important;
+  background: #111 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-slide img,
+html .kilode-shell[data-sf="1"] .sf-slide > span {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+html .kilode-shell[data-sf="1"] .sf-slide b,
+html .kilode-shell[data-sf="1"] .sf-slide strong {
+  position: absolute !important;
+  left: 12px !important;
+  right: 12px !important;
+  z-index: 2 !important;
+  color: #fff !important;
+  text-align: left !important;
+}
+html .kilode-shell[data-sf="1"] .sf-slide b {
+  top: 10px !important;
+  font-size: 10px !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: #f5c518 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-slide strong {
+  bottom: 12px !important;
+  font-size: 14px !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-slide::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: 55% !important;
+  background: linear-gradient(to top, rgba(0,0,0,.78), transparent) !important;
+  z-index: 1 !important;
+}
+
+/* Menu drawer is not all white */
+html .kilode-shell[data-sf="1"] .menu-sheet,
+html .menu-sheet {
+  background: #0a0a0a !important;
+  color: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .menu-head,
+html .menu-head {
+  background: #0a0a0a !important;
+  color: #fff !important;
+}
+html .menu-hero-card,
+html .kilode-shell[data-sf="1"] .menu-hero-card {
+  background: #161616 !important;
+  color: #fff !important;
+  border-color: #2a2a2a !important;
+}
+html .menu-press,
+html .kilode-shell[data-sf="1"] .menu-press,
+html .kilode-shell[data-sf="1"] .menu-press span,
+html .kilode-shell[data-sf="1"] .menu-press div {
+  background: #222 !important;
+  color: #fff !important;
+  border-color: #2a2a2a !important;
+}
+html .kilode-shell[data-sf="1"] .menu-press svg,
+html .menu-press svg {
+  stroke: #fff !important;
+  color: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row {
+  background: #141414 !important;
+  color: #fff !important;
+  border-color: #2a2a2a !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row span,
+html .kilode-shell[data-sf="1"] .menu-row svg {
+  color: #fff !important;
+  stroke: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row.on {
+  background: #fff !important;
+  color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row.on span,
+html .kilode-shell[data-sf="1"] .menu-row.on svg {
+  color: #141414 !important;
+  stroke: #141414 !important;
+}

@@ -411,6 +411,17 @@ export function SocialFirst({
           </>
         ) : (
           <div className="sf-media">
+            {media.length > 0 ? (
+              <div className="sf-carousel" aria-label="Featured">
+                {media.slice(0, 6).map((p) => (
+                  <button key={p.id} type="button" className="sf-slide" onClick={() => onOpenNews(p.id)}>
+                    {p.image ? <img src={p.image} alt="" /> : <span />}
+                    <b>{p.category || "News"}</b>
+                    <strong>{p.title}</strong>
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <div className="sf-cuts">
               {(["trending", "latest", ...cats] as string[]).map((id) => (
                 <button key={id} type="button" className={cut === id ? "on" : ""} onClick={() => setCut(id)}>
