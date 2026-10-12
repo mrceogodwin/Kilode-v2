@@ -10044,3 +10044,111 @@ html .kilode-shell[data-sf="1"][data-home="0"] .dock .on::after {
   border-radius: 3px !important;
   background: #f5c518 !important;
 }
+
+/* Flagship Chat, Music, Communities, Activity */
+html .kilode-shell[data-sf="1"] .chat-scroll,
+html .kilode-shell[data-sf="1"] .mh-scroll,
+html .kilode-shell[data-sf="1"] .fm-page,
+html .kilode-shell[data-sf="1"] .act-hero,
+html .kilode-shell[data-sf="1"] section:has(.act-hero) {
+  background: #f4f4f2 !important;
+  color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .chat-scroll {
+  padding: 12px 12px 100px !important;
+}
+html .kilode-shell[data-sf="1"] .chat-scroll > div,
+html .kilode-shell[data-sf="1"] .chat-row,
+html .kilode-shell[data-sf="1"] .chat-msg {
+  background: #fff !important;
+  color: #141414 !important;
+  border-radius: 16px !important;
+}
+html .kilode-shell[data-sf="1"] .mh-scroll {
+  padding: 12px 12px 100px !important;
+}
+html .kilode-shell[data-sf="1"] .mh-profile,
+html .kilode-shell[data-sf="1"] .mh-song,
+html .kilode-shell[data-sf="1"] .mh-card,
+html .kilode-shell[data-sf="1"] .mh-row,
+html .kilode-shell[data-sf="1"] .mh-list > * {
+  background: #fff !important;
+  color: #141414 !important;
+  border: 1px solid #e6e6e4 !important;
+  border-radius: 16px !important;
+}
+html .kilode-shell[data-sf="1"] .mh-kicker,
+html .kilode-shell[data-sf="1"] .mh-h,
+html .kilode-shell[data-sf="1"] .mh-song b,
+html .kilode-shell[data-sf="1"] .mh-song strong {
+  color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .mh-play,
+html .kilode-shell[data-sf="1"] .fm-cta {
+  background: #f5c518 !important;
+  color: #141414 !important;
+  border-radius: 12px !important;
+  font-weight: 750 !important;
+}
+html .kilode-shell[data-sf="1"] .mh-ghost {
+  background: #0a0a0a !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+}
+html .kilode-shell[data-sf="1"] .fm-page {
+  padding: 12px 12px 100px !important;
+}
+html .kilode-shell[data-sf="1"] .fm-banner,
+html .kilode-shell[data-sf="1"] .fm-card,
+html .kilode-shell[data-sf="1"] .fm-sec,
+html .kilode-shell[data-sf="1"] .fm-form {
+  background: #fff !important;
+  color: #141414 !important;
+  border: 1px solid #e6e6e4 !important;
+  border-radius: 16px !important;
+}
+html .kilode-shell[data-sf="1"] .fm-title,
+html .kilode-shell[data-sf="1"] .fm-kicker,
+html .kilode-shell[data-sf="1"] .fm-sub,
+html .kilode-shell[data-sf="1"] .fm-card b,
+html .kilode-shell[data-sf="1"] .fm-card strong {
+  color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .fm-search input {
+  background: #fff !important;
+  color: #141414 !important;
+  border: 1px solid #e6e6e4 !important;
+  border-radius: 12px !important;
+}
+html .kilode-shell[data-sf="1"] .act-hero {
+  margin: 12px !important;
+  padding: 16px !important;
+  border-radius: 16px !important;
+  background: #0a0a0a !important;
+  color: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .act-hero h2,
+html .kilode-shell[data-sf="1"] .act-hero p,
+html .kilode-shell[data-sf="1"] .act-hero .act-kicker {
+  color: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .act-hero .act-kicker {
+  color: #f5c518 !important;
+}
+html .kilode-shell[data-sf="1"] .act-metric,
+html .kilode-shell[data-sf="1"] .act-note {
+  background: #fff !important;
+  color: #141414 !important;
+  border: 1px solid #e6e6e4 !important;
+  border-radius: 14px !important;
+}
+html .kilode-shell[data-sf="1"] .act-metric b,
+html .kilode-shell[data-sf="1"] .act-note strong {
+  color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .act-refresh {
+  background: #f5c518 !important;
+  color: #141414 !important;
+  border-radius: 999px !important;
+  font-weight: 750 !important;
+}
