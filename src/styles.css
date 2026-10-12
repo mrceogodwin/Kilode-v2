@@ -9193,6 +9193,177 @@ html .kilode-shell[data-sf="0"] .pane-in {
   box-sizing: border-box !important;
 }
 
+/* Feed card: inset photo, role, fact/cap, header lane icons */
+html .kilode-shell[data-sf="1"] .sf-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-logo {
+  height: 32px !important;
+  max-width: 128px !important;
+  flex: 0 1 auto !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools {
+  gap: 2px !important;
+  padding: 0 !important;
+  flex: 0 0 auto !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools button {
+  width: 34px !important;
+  height: 34px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools button.on,
+html .kilode-shell[data-sf="1"] .sf-tools button.on svg {
+  color: #f5c518 !important;
+  stroke: #f5c518 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools button.on {
+  position: relative !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools button.on::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 8px !important;
+  right: 8px !important;
+  bottom: 2px !important;
+  height: 2px !important;
+  border-radius: 2px !important;
+  background: #f5c518 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tabs { display: none !important; }
+html .kilode-shell[data-sf="1"] .sf-note {
+  margin: 0 !important;
+  padding: 6px 16px !important;
+  background: #0a0a0a !important;
+  color: #f5c518 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-who {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  gap: 1px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-who strong {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  font-size: 14px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-who strong a {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+html .kilode-shell[data-sf="1"] .sf-role {
+  color: #6b6b6b !important;
+  font-size: 11px !important;
+  font-style: normal !important;
+  font-weight: 650 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-hot {
+  width: 14px !important;
+  height: 14px !important;
+  flex: 0 0 14px !important;
+  color: #f5c518 !important;
+  stroke: #f5c518 !important;
+  fill: none !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dot {
+  flex: 0 0 32px !important;
+  width: 32px !important;
+  height: 32px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #141414 !important;
+  background: transparent !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dot svg {
+  width: 18px !important;
+  height: 18px !important;
+  color: #141414 !important;
+  stroke: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-pop {
+  position: absolute !important;
+  top: 42px !important;
+  right: 10px !important;
+  z-index: 6 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 132px !important;
+  padding: 6px !important;
+  border-radius: 12px !important;
+  background: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-pop button,
+html .kilode-shell[data-sf="1"] .sf-pop a {
+  display: block !important;
+  width: 100% !important;
+  padding: 8px 10px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  text-align: left !important;
+  text-decoration: none !important;
+}
+html .kilode-shell[data-sf="1"] .sf-shot {
+  width: auto !important;
+  margin: 0 12px 2px !important;
+  height: 236px !important;
+  min-height: 236px !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+}
+html .kilode-shell[data-sf="1"] .sf-judge {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  padding: 2px 14px 12px !important;
+  box-sizing: border-box !important;
+}
+html .kilode-shell[data-sf="1"] .sf-judge button {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  border: 1px solid #e4e4e4 !important;
+  background: #fff !important;
+  color: #141414 !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-judge button.on {
+  background: #141414 !important;
+  color: #fff !important;
+  border-color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-judge button.on b { color: #fff !important; }
+html .kilode-shell[data-sf="1"] .sf-judge button svg {
+  width: 14px !important;
+  height: 14px !important;
+  stroke: currentColor !important;
+  color: inherit !important;
+}
+html .kilode-shell[data-sf="1"] .sf-judge button[aria-label="Share"] {
+  margin-left: auto !important;
+  width: 32px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+}
+
+
 
 
 

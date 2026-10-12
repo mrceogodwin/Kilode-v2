@@ -1,4 +1,4 @@
-const CACHE = "kilode-shell-v11";
+const CACHE = "kilode-shell-v12";
 const SHELL = ["/", "/offline.html", "/site.webmanifest", "/favicon-32.png", "/apple-touch-icon.png", "/pwa-192.png", "/kilode-word.png"];
 
 self.addEventListener("install", (event) => {

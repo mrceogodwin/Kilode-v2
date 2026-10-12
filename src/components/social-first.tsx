@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Eye, Heart, Home, Menu, MessageCircle, Plus, Search, Send, ThumbsUp } from "lucide-react";
+import { Eye, Flame, Heart, Home, LayoutGrid, Menu, MessageCircle, MoreHorizontal, Newspaper, Plus, Search, Send, Share2, ThumbsUp } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { likeTake, listStories, listTakes, type FellowRow, type TakeRow } from "@/lib/takes-server";
+import { likeTake, listStories, listTakes, voteTake, type FellowRow, type TakeRow } from "@/lib/takes-server";
 
 type News = { id: string; title: string; image?: string; category?: string; ts: number; views?: number; status?: string };
 
@@ -20,6 +20,20 @@ function tagsOf(body: string) {
 function shotOf(meta: TakeRow["meta"]) {
   const img = meta?.image;
   return typeof img === "string" && (img.startsWith("http") || img.startsWith("data:image/")) ? img : "";
+}
+
+function roleLabel(role: string) {
+  const raw = (role || "member").replace(/_/g, " ").trim();
+  if (!raw) return "Member";
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function heatOf(t: TakeRow) {
+  return (t.likes || 0) * 3 + (t.reposts || 0) * 4 + (t.comments || 0) * 2 + (t.fact || 0) + (t.cap || 0);
+}
+
+function takeUrl(id: string) {
+  return `${window.location.origin}/?tab=feeds&take=${encodeURIComponent(id)}`;
 }
 
 export function SocialFirst({
@@ -57,11 +71,29 @@ export function SocialFirst({
   const [stories, setStories] = useState<{ id: string; handle: string; image: string; ts: number }[]>([]);
   const [moreBusy, setMoreBusy] = useState(false);
   const [cut, setCut] = useState("trending");
+  const [voted, setVoted] = useState<Record<string, "" | "fact" | "cap">>({});
+  const [moreId, setMoreId] = useState("");
+  const [note, setNote] = useState("");
 
   useEffect(() => {
     try {
+      const place = JSON.parse(localStorage.getItem("kilode-place") || "null") as { tab?: string } | null;
+      if (place?.tab === "socials") {
+        localStorage.setItem("kilode-sf-lane", "feed");
+        return;
+      }
       if (localStorage.getItem("kilode-sf-lane") === "media") setLane("media");
     } catch { /* ignore */ }
+  }, []);
+  useEffect(() => {
+    const feed = () => setLane("feed");
+    const media = () => setLane("media");
+    window.addEventListener("kilode:sf-feed", feed);
+    window.addEventListener("kilode:sf-media", media);
+    return () => {
+      window.removeEventListener("kilode:sf-feed", feed);
+      window.removeEventListener("kilode:sf-media", media);
+    };
   }, []);
   useEffect(() => {
     try { localStorage.setItem("kilode-sf-lane", lane); } catch { /* ignore */ }
@@ -83,6 +115,19 @@ export function SocialFirst({
       .catch(() => undefined);
     return () => { dead = true; };
   }, []);
+
+  useEffect(() => {
+    if (!note) return;
+    const id = window.setTimeout(() => setNote(""), 1600);
+    return () => window.clearTimeout(id);
+  }, [note]);
+
+  useEffect(() => {
+    if (!takes.length || typeof window === "undefined") return;
+    const id = new URLSearchParams(window.location.search).get("take");
+    if (!id) return;
+    document.querySelector(`[data-take="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "center" });
+  }, [takes]);
 
   const needle = q.trim().toLowerCase();
   const posts = takes.filter((t) => !needle || `${t.name} ${t.handle} ${t.body}`.toLowerCase().includes(needle));
@@ -141,20 +186,64 @@ export function SocialFirst({
       .catch(() => onNeedAuth());
   }
 
+  function vote(id: string, side: "fact" | "cap") {
+    if (!authed) { onNeedAuth(); return; }
+    const prev = voted[id] || "";
+    if (prev === side) return;
+    const apply = (from: "" | "fact" | "cap", to: "" | "fact" | "cap") => {
+      setTakes((cur) => cur.map((t) => {
+        if (t.id !== id) return t;
+        let fact = t.fact || 0;
+        let cap = t.cap || 0;
+        if (from === "fact") fact = Math.max(0, fact - 1);
+        if (from === "cap") cap = Math.max(0, cap - 1);
+        if (to === "fact") fact += 1;
+        if (to === "cap") cap += 1;
+        return { ...t, fact, cap };
+      }));
+    };
+    setVoted((m) => ({ ...m, [id]: side }));
+    apply(prev, side);
+    void voteTake({ data: { id, side } })
+      .then((r) => {
+        if (r.ok) return;
+        setVoted((m) => ({ ...m, [id]: prev }));
+        apply(side, prev);
+      })
+      .catch(() => {
+        setVoted((m) => ({ ...m, [id]: prev }));
+        apply(side, prev);
+        onNeedAuth();
+      });
+  }
+
+  async function share(t: TakeRow) {
+    const url = takeUrl(t.id);
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share({ title: t.name || "Kilode", text: (t.body || "").slice(0, 140), url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setNote("Link copied");
+    } catch { /* dismissed */ }
+  }
+
+  const hottest = posts.reduce((n, t) => Math.max(n, heatOf(t)), 0);
+
   return (
     <div className="sf">
       <header className="sf-bar">
         <img src="/kilode-logo.png" alt="Kilode" className="sf-logo" />
         <div className="sf-tools">
+          <button type="button" aria-label="Feed" className={lane === "feed" ? "on" : ""} onClick={() => setLane("feed")}><Newspaper /></button>
+          <button type="button" aria-label="Media" className={lane === "media" ? "on" : ""} onClick={() => setLane("media")}><LayoutGrid /></button>
           <button type="button" aria-label="Likes" onClick={onLikes}><Heart /></button>
           <button type="button" aria-label="Messages" onClick={onSend}><Send /></button>
           <button type="button" aria-label="Menu" onClick={onMenu}><Menu /></button>
         </div>
       </header>
-      <div className="sf-tabs">
-        <button type="button" className={lane === "feed" ? "on" : ""} onClick={() => setLane("feed")}>Feed</button>
-        <button type="button" className={lane === "media" ? "on" : ""} onClick={() => setLane("media")}>Media</button>
-      </div>
+      {note ? <p className="sf-note">{note}</p> : null}
       {find ? (
         <label className="sf-find">
           <Search />
@@ -188,14 +277,33 @@ export function SocialFirst({
               const photo = shotOf(t.meta);
               const tags = tagsOf(t.body);
               const who = faces[t.handle.toLowerCase()] || avatarUrl(t.handle);
+              const hot = (() => {
+                const h = heatOf(t);
+                return h >= 6 || (h >= 3 && h === hottest);
+              })();
               return (
-                <article key={t.id} className="sf-post">
+                <article key={t.id} className="sf-post" data-take={t.id}>
                   <header>
                     <a className="sf-mini" href={`/u/${encodeURIComponent(t.handle)}`} style={{ boxShadow: `0 0 0 2px ${ringOf(t.handle)}` }}>
                       <img src={who} alt="" />
                     </a>
-                    <strong><a href={`/u/${encodeURIComponent(t.handle)}`}>{t.name || t.handle}</a></strong>
-                    <em>@{t.handle}</em>
+                    <div className="sf-who">
+                      <strong>
+                        <a href={`/u/${encodeURIComponent(t.handle)}`}>{t.name || t.handle}</a>
+                        {hot ? <Flame className="sf-hot" aria-label="Trending" /> : null}
+                      </strong>
+                      <em className="sf-role">{roleLabel(t.role)}</em>
+                    </div>
+                    <button type="button" className="sf-dot" aria-label="More" aria-expanded={moreId === t.id} onClick={() => setMoreId((id) => (id === t.id ? "" : t.id))}>
+                      <MoreHorizontal />
+                    </button>
+                    {moreId === t.id ? (
+                      <div className="sf-pop">
+                        <button type="button" onClick={() => { setMoreId(""); void share(t); }}>Share</button>
+                        <button type="button" onClick={() => { setMoreId(""); void navigator.clipboard?.writeText(takeUrl(t.id)); setNote("Link copied"); }}>Copy link</button>
+                        <a href={`/u/${encodeURIComponent(t.handle)}`}>Profile</a>
+                      </div>
+                    ) : null}
                   </header>
                   {photo ? (
                     <div className="sf-shot">
@@ -211,6 +319,11 @@ export function SocialFirst({
                     <button type="button"><MessageCircle /> {t.comments || 0}</button>
                     <span><Eye /> {t.views || 0}</span>
                     <em>{timeAgo(t.ts)}</em>
+                  </div>
+                  <div className="sf-judge">
+                    <button type="button" className={voted[t.id] === "fact" ? "on" : ""} onClick={() => vote(t.id, "fact")}>Fact <b>{t.fact || 0}</b></button>
+                    <button type="button" className={voted[t.id] === "cap" ? "on" : ""} onClick={() => vote(t.id, "cap")}>Cap <b>{t.cap || 0}</b></button>
+                    <button type="button" aria-label="Share" onClick={() => void share(t)}><Share2 /></button>
                   </div>
                   {(t.likes || 0) > 0 ? (
                     <div className="sf-liked">

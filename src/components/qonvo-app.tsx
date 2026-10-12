@@ -275,8 +275,13 @@ function QonvoAppInner() {
   const [keptTabs, setKeptTabs] = useState<Record<string, true>>({ feeds: true });
   const [placed, setPlaced] = useState(false);
   const setHomeTab = (tab: "chat" | "feeds" | "advert" | "music" | "videos" | "cinema" | "watch" | "downloads" | "socials") => startTransition(() => {
-    setHomeTabNow(tab);
-    if (tab === "feeds" || tab === "socials") setKeptTabs((m) => (m[tab] ? m : { ...m, [tab]: true }));
+    const next = tab === "socials" ? "feeds" : tab;
+    if (tab === "socials") {
+      try { localStorage.setItem("kilode-sf-lane", "feed"); } catch { /* ignore */ }
+      window.dispatchEvent(new Event("kilode:sf-feed"));
+    }
+    setHomeTabNow(next);
+    if (next === "feeds") setKeptTabs((m) => (m.feeds ? m : { ...m, feeds: true }));
   });
   useEffect(() => {
     try {
@@ -286,8 +291,12 @@ function QonvoAppInner() {
         const tabs = ["chat", "feeds", "advert", "music", "videos", "cinema", "watch", "downloads", "socials"];
         const screens = new Set(MENU.map(([id]) => id));
         if (p.tab && tabs.includes(p.tab)) {
-          setHomeTabNow(p.tab as typeof homeTab);
-          if (p.tab === "socials") setKeptTabs((m) => ({ ...m, socials: true }));
+          const tab = p.tab === "socials" ? "feeds" : p.tab;
+          if (p.tab === "socials") {
+            try { localStorage.setItem("kilode-sf-lane", "feed"); } catch { /* ignore */ }
+          }
+          setHomeTabNow(tab as typeof homeTab);
+          if (tab === "feeds") setKeptTabs((m) => ({ ...m, feeds: true }));
         }
         if (p.screen && screens.has(p.screen as MenuId)) {
           setScreenNow(p.screen as MenuId);
@@ -1477,10 +1486,10 @@ function QonvoAppInner() {
 
               <DrawerGroup label="Kilode">
                 <DrawerRow icon={Briefcase} label="Jobs" hint="Roles and applications" onClick={() => { setScreen("jobs"); setMenuOpen(false); }} on={screen === "jobs"} />
-                <DrawerRow icon={Newspaper} label="Media" hint="News and stories" onClick={() => { store.setOpenPost(null); setMarketDesk(null); setScreen("home"); setHomeTab("feeds"); setMenuOpen(false); }} on={homeTab === "feeds" && screen === "home" && !marketDesk} />
+                <DrawerRow icon={Newspaper} label="Media" hint="News and stories" onClick={() => { store.setOpenPost(null); setMarketDesk(null); try { localStorage.setItem("kilode-sf-lane", "media"); } catch { /* ignore */ } window.dispatchEvent(new Event("kilode:sf-media")); setScreen("home"); setHomeTab("feeds"); setMenuOpen(false); }} on={homeTab === "feeds" && screen === "home" && !marketDesk} />
                 <DrawerRow icon={MessageSquare} label="Chat" hint="Live rooms · topics & places" onClick={() => { setScreen("home"); setHomeTab("chat"); setMenuOpen(false); }} on={homeTab === "chat" && screen === "home"} />
                 <DrawerRow icon={Radio} label="Music" hint="Opens the artist's platform" onClick={() => { setScreen("home"); setHomeTab("music"); setMenuOpen(false); }} on={homeTab === "music" && screen === "home"} />
-                <DrawerRow icon={UsersRound} label="Socials" hint="Feed, people, and conversation" onClick={() => { if (!signedIn) { window.location.href = "/login?mode=up"; return; } setSocialLane("posts"); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); setMenuOpen(false); }} on={homeTab === "socials" && screen === "home"} />
+                <DrawerRow icon={UsersRound} label="Socials" hint="Member feed" onClick={() => { if (!signedIn) { window.location.href = "/login?mode=up"; return; } setSocialLane("posts"); setScreen("home"); setHomeTab("socials"); setMarketDesk(null); setMenuOpen(false); }} on={false} />
                 <DrawerRow icon={Users} label="Communities" hint="Hubs by region" onClick={() => { setScreen("community"); setMenuOpen(false); }} on={screen === "community"} />
                 <DrawerRow icon={Activity} label="Activity" hint="All, Discover, Trending" onClick={() => { if (!signedIn) { window.location.href = "/login?mode=up"; return; } setScreen("search"); setMenuOpen(false); }} on={screen === "search"} />
                 <DrawerRow icon={Layers} label="My Space" hint="Your posts, jobs, listings" onClick={() => { if (!signedIn) { window.location.href = "/login?mode=up"; return; } setScreen("dashboard"); setMenuOpen(false); }} on={screen === "dashboard"} />
