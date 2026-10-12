@@ -9947,3 +9947,100 @@ html .kilode-shell[data-sf="1"][data-home="0"] select {
   color: #141414 !important;
   border-color: #e4e4e4 !important;
 }
+
+/* Flagship My Space + Create — same black/gold/white skin */
+html .kilode-shell[data-sf="1"] .space-page,
+html .kilode-shell[data-sf="1"] .create-page {
+  background: #f4f4f2 !important;
+  color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .space-page .me-hero,
+html .kilode-shell[data-sf="1"] .space-page .staff-power,
+html .kilode-shell[data-sf="1"] .space-page section,
+html .kilode-shell[data-sf="1"] .create-page .raised,
+html .kilode-shell[data-sf="1"] .create-page form,
+html .kilode-shell[data-sf="1"] .create-page .border {
+  background: #fff !important;
+  color: #141414 !important;
+  border-color: #e6e6e4 !important;
+  border-radius: 16px !important;
+}
+html .kilode-shell[data-sf="1"] .space-page .me-hero p,
+html .kilode-shell[data-sf="1"] .space-page .me-hero [class*="text-fg"],
+html .kilode-shell[data-sf="1"] .space-page .me-hero .hero-copy,
+html .kilode-shell[data-sf="1"] .create-page h2,
+html .kilode-shell[data-sf="1"] .create-page label,
+html .kilode-shell[data-sf="1"] .create-page input,
+html .kilode-shell[data-sf="1"] .create-page textarea,
+html .kilode-shell[data-sf="1"] .create-page select {
+  color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .space-page .text-muted,
+html .kilode-shell[data-sf="1"] .create-page .text-muted {
+  color: #5c5c5c !important;
+}
+html .kilode-shell[data-sf="1"] .space-page .me-chip {
+  background: #fff !important;
+  color: #141414 !important;
+  border: 1px solid #e6e6e4 !important;
+  border-radius: 999px !important;
+}
+html .kilode-shell[data-sf="1"] .space-page .me-chip span,
+html .kilode-shell[data-sf="1"] .space-page .me-chip svg {
+  color: #141414 !important;
+  stroke: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .space-page .kind-pill,
+html .kilode-shell[data-sf="1"] .space-page .staff-pill {
+  background: #0a0a0a !important;
+  color: #fff !important;
+  border-color: #0a0a0a !important;
+}
+html .kilode-shell[data-sf="1"] .space-page .btn-3d,
+html .kilode-shell[data-sf="1"] .space-page .btn-join,
+html .kilode-shell[data-sf="1"] .create-page .btn-join,
+html .kilode-shell[data-sf="1"] .create-page button[type="submit"] {
+  background: #0a0a0a !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+}
+html .kilode-shell[data-sf="1"] .space-page .btn-join,
+html .kilode-shell[data-sf="1"] .create-page .btn-join {
+  background: #f5c518 !important;
+  color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"] .create-page input,
+html .kilode-shell[data-sf="1"] .create-page textarea,
+html .kilode-shell[data-sf="1"] .create-page select {
+  background: #fff !important;
+  border: 1px solid #e6e6e4 !important;
+  border-radius: 12px !important;
+  padding: 10px 12px !important;
+}
+html .kilode-shell[data-sf="1"] .create-page .raised button.on,
+html .kilode-shell[data-sf="1"] .create-page .btn-join {
+  background: #0a0a0a !important;
+  color: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .create-page .btn-join {
+  background: #f5c518 !important;
+  color: #141414 !important;
+}
+
+/* Premium dock on every non-home screen */
+html .kilode-shell[data-sf="1"][data-home="0"] .dock {
+  height: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+  padding: 6px 8px env(safe-area-inset-bottom, 0px) !important;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.28) !important;
+}
+html .kilode-shell[data-sf="1"][data-home="0"] .dock button.on::after,
+html .kilode-shell[data-sf="1"][data-home="0"] .dock .on::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 12px !important;
+  right: 12px !important;
+  bottom: 2px !important;
+  height: 3px !important;
+  border-radius: 3px !important;
+  background: #f5c518 !important;
+}

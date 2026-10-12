@@ -698,7 +698,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
 
   if (pane === "ads" && canAds) {
     return (
-      <div className="pb-8">
+      <div className="create-page pb-8">
         <div className="mx-auto max-w-2xl px-5 pt-5">
           <h2 className="text-xl font-bold tracking-tight">Create · Ads</h2>
           <p className="mt-1 text-sm text-muted">
@@ -753,7 +753,7 @@ function Create({ store, onForum }: { store: Store; onForum?: () => void }) {
     : createSheetTitle(ak).replace("Create · ", "") + " — primary action for your account.";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-5 pb-8">
+    <div className="create-page mx-auto max-w-2xl space-y-4 p-5 pb-8">
       <div>
         <h2 className="text-xl font-bold tracking-tight">
           {sheetTitle} <Tip text={`${kindLabel}. ${sheetSub}`} />
