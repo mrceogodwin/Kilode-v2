@@ -9663,3 +9663,84 @@ html .menu-press svg {
 
 
 
+
+/* Premium header and dock. Logo sits flush left with the menu. */
+html .kilode-shell[data-sf="1"] .sf-bar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  min-height: 64px !important;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 14px 10px !important;
+  background: #0a0a0a !important;
+}
+html .kilode-shell[data-sf="1"] .sf-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+}
+html .kilode-shell[data-sf="1"] .sf-logo {
+  height: 40px !important;
+  max-width: 168px !important;
+  width: auto !important;
+  object-fit: contain !important;
+  object-position: left center !important;
+  filter: none !important;
+  margin: 0 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-menu {
+  width: 36px !important;
+  height: 36px !important;
+  flex: 0 0 36px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools {
+  gap: 4px !important;
+  flex: 0 0 auto !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools button {
+  width: 36px !important;
+  height: 36px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock {
+  height: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+  padding: 8px 12px env(safe-area-inset-bottom, 0px) !important;
+  background: #0a0a0a !important;
+  border-top: 1px solid #1c1c1c !important;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.28) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock > button {
+  width: 48px !important;
+  height: 48px !important;
+  position: relative !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock > button.on::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 14px !important;
+  right: 14px !important;
+  bottom: 4px !important;
+  height: 3px !important;
+  border-radius: 3px !important;
+  background: #f5c518 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-plus {
+  width: 64px !important;
+  height: 44px !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-plus i {
+  top: -6px !important;
+  right: -4px !important;
+  background: #f5c518 !important;
+  color: #141414 !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+}
+html .kilode-shell[data-sf="1"] .sf-scroll {
+  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important;
+}

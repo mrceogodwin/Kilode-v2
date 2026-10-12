@@ -23,7 +23,7 @@ function shotOf(meta: TakeRow["meta"]) {
 }
 
 function roleLabel(role: string) {
-  const raw = (role || "member").replace(/_/g, " ").trim();
+  const raw = (role || "member").replace(/_/g, " ").replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "").trim();
   if (!raw) return "Member";
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
@@ -266,8 +266,10 @@ export function SocialFirst({
   return (
     <div className="sf">
       <header className="sf-bar">
-        <button type="button" className="sf-menu" aria-label="Menu" onClick={onMenu}><Menu /></button>
-        <img src="/kilode-logo.png" alt="Kilode" className="sf-logo" />
+        <div className="sf-left">
+          <button type="button" className="sf-menu" aria-label="Menu" onClick={onMenu}><Menu /></button>
+          <img src="/kilode-logo.png" alt="Kilode" className="sf-logo" />
+        </div>
         <div className="sf-tools">
           <button type="button" aria-label="Feed" className={lane === "feed" ? "on" : ""} onClick={() => setLane("feed")}><Newspaper /></button>
           <button type="button" aria-label="Media" className={lane === "media" ? "on" : ""} onClick={() => setLane("media")}><LayoutGrid /></button>
