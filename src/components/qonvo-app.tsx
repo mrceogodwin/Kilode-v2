@@ -740,7 +740,7 @@ function QonvoAppInner() {
   }
 
   return (
-    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg" data-sf={screen === "home" && homeTab === "feeds" && !marketDesk ? "1" : "0"} data-paper={(screen === "home" && homeTab === "feeds" && !marketDesk) || screen === "dashboard" || screen === "search" ? "1" : "0"} data-pin={screen === "dashboard" ? "space" : "free"} data-home={screen === "home" && homeTab === "feeds" && !marketDesk ? "1" : "0"}>
+    <div className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg" data-sf="1" data-paper={(screen === "home" && homeTab === "feeds" && !marketDesk) || screen === "dashboard" || screen === "search" ? "1" : "0"} data-pin={screen === "dashboard" ? "space" : "free"} data-home={screen === "home" && homeTab === "feeds" && !marketDesk ? "1" : "0"}>
       <header className="kilode-chrome z-20 shrink-0">
         <div className="kilode-header-capsule soc-head">
           <div className="flex min-h-12 min-w-0 items-center gap-2 px-2.5 py-2">
@@ -748,7 +748,7 @@ function QonvoAppInner() {
               <Menu className="size-4" />
             </button>
             <button type="button" className="shrink-0" aria-label="Kilode home" onClick={() => goHome()}>
-              <KilodeMark />
+              <img src="/kilode-logo.png" alt="Kilode" className="sf-chrome-logo" />
             </button>
             <div className="ml-auto flex shrink-0 items-center gap-1.5">
               <button

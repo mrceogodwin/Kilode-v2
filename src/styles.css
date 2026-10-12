@@ -8334,14 +8334,14 @@ html[data-skin="night"] .kilode-shell[data-sf="1"] {
   background: #fff !important;
   color: #141414 !important;
 }
-html .kilode-shell[data-sf="1"] .kilode-chrome,
-html[data-skin="ivory"] .kilode-shell[data-sf="1"] .kilode-chrome,
-html[data-skin="night"] .kilode-shell[data-sf="1"] .kilode-chrome {
+html .kilode-shell[data-home="1"] .kilode-chrome,
+html[data-skin="ivory"] .kilode-shell[data-home="1"] .kilode-chrome,
+html[data-skin="night"] .kilode-shell[data-home="1"] .kilode-chrome {
   display: none !important;
 }
-html .kilode-shell[data-sf="1"] .dock,
-html[data-skin="ivory"] .kilode-shell[data-sf="1"] .dock,
-html[data-skin="night"] .kilode-shell[data-sf="1"] .dock {
+html .kilode-shell[data-home="1"] .dock,
+html[data-skin="ivory"] .kilode-shell[data-home="1"] .dock,
+html[data-skin="night"] .kilode-shell[data-home="1"] .dock {
   display: none !important;
 }
 .kilode-shell[data-sf="1"] .home-frame > aside { display: none !important; }
@@ -9886,4 +9886,64 @@ html .kilode-shell[data-sf="1"] .menu-row.on span,
 html .kilode-shell[data-sf="1"] .menu-row.on svg {
   color: #141414 !important;
   stroke: #141414 !important;
+}
+
+/* Shared black chrome on every screen that is not the social-first home */
+html .kilode-shell[data-sf="1"][data-home="0"] .kilode-chrome {
+  display: flex !important;
+  background: #0a0a0a !important;
+  color: #fff !important;
+  border-bottom: 1px solid #1c1c1c !important;
+  min-height: 52px !important;
+}
+html .kilode-shell[data-sf="1"][data-home="0"] .kilode-header-capsule {
+  background: #0a0a0a !important;
+}
+html .kilode-shell[data-sf="1"] .sf-chrome-logo {
+  height: 26px !important;
+  width: auto !important;
+  max-width: 118px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+html .kilode-shell[data-sf="1"][data-home="0"] .soc-ico,
+html .kilode-shell[data-sf="1"][data-home="0"] .hdr-ico {
+  color: #fff !important;
+  background: transparent !important;
+}
+html .kilode-shell[data-sf="1"][data-home="0"] .dock {
+  display: flex !important;
+  background: #0a0a0a !important;
+  color: #fff !important;
+  border-top: 1px solid #1c1c1c !important;
+  height: calc(68px + env(safe-area-inset-bottom, 0px)) !important;
+}
+html .kilode-shell[data-sf="1"][data-home="0"] .app-tab {
+  color: rgba(255,255,255,.72) !important;
+}
+html .kilode-shell[data-sf="1"][data-home="0"] .app-tab.on {
+  color: #f5c518 !important;
+}
+
+/* My Space and Create sit on the same white field, black text, gold actions */
+html .kilode-shell[data-sf="1"][data-home="0"] .me-hero,
+html .kilode-shell[data-sf="1"][data-home="0"] .me-title {
+  color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"][data-home="0"] section,
+html .kilode-shell[data-sf="1"][data-home="0"] .pane-in {
+  background: #fff !important;
+  color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"][data-home="0"] .btn-join {
+  background: #141414 !important;
+  color: #fff !important;
+  border-color: #141414 !important;
+}
+html .kilode-shell[data-sf="1"][data-home="0"] input,
+html .kilode-shell[data-sf="1"][data-home="0"] textarea,
+html .kilode-shell[data-sf="1"][data-home="0"] select {
+  background: #f6f6f6 !important;
+  color: #141414 !important;
+  border-color: #e4e4e4 !important;
 }
