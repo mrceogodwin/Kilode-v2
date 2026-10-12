@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Eye, Flame, Heart, Home, LayoutGrid, Menu, MessageCircle, MoreHorizontal, Newspaper, Plus, Search, Send, Share2, ThumbsUp } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { likeTake, listStories, listTakes, voteTake, type FellowRow, type TakeRow } from "@/lib/takes-server";
+import { likeTake, listStories, listTakes, saveTake, toggleFollow, voteTake, type FellowRow, type TakeRow } from "@/lib/takes-server";
 
 type News = { id: string; title: string; image?: string; category?: string; ts: number; views?: number; status?: string };
 
@@ -74,6 +74,9 @@ export function SocialFirst({
   const [voted, setVoted] = useState<Record<string, "" | "fact" | "cap">>({});
   const [moreId, setMoreId] = useState("");
   const [note, setNote] = useState("");
+  const [draft, setDraft] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [followed, setFollowed] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     try {
@@ -133,19 +136,17 @@ export function SocialFirst({
   const posts = takes.filter((t) => !needle || `${t.name} ${t.handle} ${t.body}`.toLowerCase().includes(needle));
   const storyPeople = (() => {
     const seen = new Set<string>();
-    const rows: { key: string; name: string; face: string; href?: string }[] = [];
-    if (me) rows.push({ key: "you", name: "You", face: avatarUrl(me, face) });
+    const rows: { key: string; name: string; face: string; href: string }[] = [];
     for (const s of stories) {
-      const h = s.handle.toLowerCase();
-      if (seen.has(h)) continue;
+      const h = (s.handle || "").toLowerCase();
+      if (!h || seen.has(h) || !s.image) continue;
       seen.add(h);
-      rows.push({ key: s.id, name: s.handle.slice(0, 8), face: s.image || avatarUrl(s.handle), href: `/u/${encodeURIComponent(s.handle)}` });
-    }
-    for (const p of people) {
-      const h = p.handle.toLowerCase();
-      if (seen.has(h) || h === me.toLowerCase()) continue;
-      seen.add(h);
-      rows.push({ key: p.id, name: p.handle.slice(0, 8), face: faces[h] || p.photo || avatarUrl(p.handle), href: `/u/${encodeURIComponent(p.handle)}` });
+      rows.push({
+        key: s.id,
+        name: s.handle.slice(0, 10),
+        face: s.image,
+        href: `/u/${encodeURIComponent(s.handle)}`,
+      });
       if (rows.length >= 16) break;
     }
     return rows;
@@ -229,20 +230,64 @@ export function SocialFirst({
     } catch { /* dismissed */ }
   }
 
+  function publish(e: FormEvent) {
+    e.preventDefault();
+    const body = draft.trim();
+    if (!authed) { onNeedAuth(); return; }
+    if (body.length < 1 || posting) return;
+    setPosting(true);
+    void saveTake({ data: { body, kind: "take" } })
+      .then((r) => {
+        if (!r.ok) { setNote(r.reason || "Could not post."); return; }
+        setDraft("");
+        setNote("Posted");
+        return listTakes().then((fresh) => {
+          setTakes(fresh.takes || []);
+          setNext(fresh.next || 0);
+          setPeople(fresh.fellows || []);
+          setFaces(fresh.faces || {});
+        });
+      })
+      .catch(() => onNeedAuth())
+      .finally(() => setPosting(false));
+  }
+
+  function addPerson(p: FellowRow) {
+    if (!authed) { onNeedAuth(); return; }
+    void toggleFollow({ data: { id: p.id, handle: p.handle } })
+      .then((r) => { if (r.ok) setFollowed((m) => ({ ...m, [p.handle]: r.on })); })
+      .catch(() => onNeedAuth());
+  }
+
   const hottest = posts.reduce((n, t) => Math.max(n, heatOf(t)), 0);
+  const ticks = liveNews.map((p) => p.title).filter(Boolean).slice(0, 12);
+  const know = people.filter((p) => p.handle && p.handle.toLowerCase() !== me.toLowerCase()).slice(0, 8);
 
   return (
     <div className="sf">
       <header className="sf-bar">
+        <button type="button" className="sf-menu" aria-label="Menu" onClick={onMenu}><Menu /></button>
         <img src="/kilode-logo.png" alt="Kilode" className="sf-logo" />
         <div className="sf-tools">
           <button type="button" aria-label="Feed" className={lane === "feed" ? "on" : ""} onClick={() => setLane("feed")}><Newspaper /></button>
           <button type="button" aria-label="Media" className={lane === "media" ? "on" : ""} onClick={() => setLane("media")}><LayoutGrid /></button>
           <button type="button" aria-label="Likes" onClick={onLikes}><Heart /></button>
           <button type="button" aria-label="Messages" onClick={onSend}><Send /></button>
-          <button type="button" aria-label="Menu" onClick={onMenu}><Menu /></button>
+          <button type="button" className="sf-ava" aria-label="Profile" onClick={onMe}>
+            <img src={avatarUrl(me || "me", face)} alt="" />
+          </button>
         </div>
       </header>
+      {ticks.length > 0 ? (
+        <div className="sf-tick" aria-label="Trending">
+          <b>Trending</b>
+          <div className="sf-tick-mask">
+            <div className="sf-tick-track">
+              {[...ticks, ...ticks].map((title, i) => <span key={`${title}-${i}`}>{title}</span>)}
+            </div>
+          </div>
+        </div>
+      ) : null}
       {note ? <p className="sf-note">{note}</p> : null}
       {find ? (
         <label className="sf-find">
@@ -271,6 +316,35 @@ export function SocialFirst({
                   );
                 })}
               </div>
+            ) : null}
+            <form className="sf-box" onSubmit={publish}>
+              <img src={avatarUrl(me || "me", face)} alt="" />
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onFocus={() => { if (!authed) onNeedAuth(); }}
+                maxLength={280}
+                placeholder="What's happening?"
+                aria-label="Create a post"
+              />
+              <button type="submit" disabled={posting || draft.trim().length < 1}>{posting ? "…" : "Post"}</button>
+            </form>
+            {know.length > 0 ? (
+              <section className="sf-know" aria-label="People you may know">
+                <b>People you may know</b>
+                <div>
+                  {know.map((p) => (
+                    <article key={p.id || p.handle}>
+                      <a href={`/u/${encodeURIComponent(p.handle)}`}>
+                        <img src={faces[p.handle.toLowerCase()] || p.photo || avatarUrl(p.handle)} alt="" />
+                        <strong>{p.name || p.handle}</strong>
+                        <em>{roleLabel(p.role)}</em>
+                      </a>
+                      <button type="button" onClick={() => addPerson(p)}>{followed[p.handle] ? "Added" : "Add"}</button>
+                    </article>
+                  ))}
+                </div>
+              </section>
             ) : null}
             {posts.length === 0 ? <p className="sf-empty">No member posts yet.</p> : null}
             {posts.map((t) => {
@@ -326,10 +400,7 @@ export function SocialFirst({
                     <button type="button" aria-label="Share" onClick={() => void share(t)}><Share2 /></button>
                   </div>
                   {(t.likes || 0) > 0 ? (
-                    <div className="sf-liked">
-                      <span className="sf-piles"><img src={who} alt="" /></span>
-                      <p><b>{t.likes}</b> {t.likes === 1 ? "like" : "likes"}</p>
-                    </div>
+                    <p className="sf-liked"><b>{t.likes}</b> {t.likes === 1 ? "like" : "likes"}</p>
                   ) : null}
                 </article>
               );
@@ -380,7 +451,10 @@ export function SocialFirst({
       <nav className="sf-dock">
         <button type="button" className={lane === "feed" ? "on" : ""} aria-label="Home" onClick={() => setLane("feed")}><Home /></button>
         <button type="button" className={find ? "on" : ""} aria-label="Search" onClick={() => setFind((v) => !v)}><Search /></button>
-        <button type="button" className="sf-plus" aria-label="Create" onClick={onCreate}><Plus /><i>NEW</i></button>
+        <button type="button" className="sf-plus" aria-label="Create" onClick={() => {
+          if (!authed) { onNeedAuth(); return; }
+          document.querySelector<HTMLInputElement>(".sf-box input")?.focus();
+        }}><Plus /><i>NEW</i></button>
         <button type="button" className={lane === "media" ? "on" : ""} aria-label="Media" onClick={() => setLane("media")}><Orbit /></button>
         <button type="button" className="sf-me" aria-label="Me" onClick={onMe}>
           <img src={avatarUrl(me || "me", face)} alt="" />

@@ -2607,7 +2607,7 @@ function ArticleRead({ post, store, onRepost }: { post: import("@/lib/qonvo-data
   return (
     <article
       ref={scroller}
-      className={`read-size-${size} min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto dock-pad`}
+      className={`read-page read-size-${size} min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto dock-pad`}
       onScroll={(e) => {
         const el = e.currentTarget;
         const max = el.scrollHeight - el.clientHeight;

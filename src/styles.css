@@ -9363,6 +9363,302 @@ html .kilode-shell[data-sf="1"] .sf-judge button[aria-label="Share"] {
   justify-content: center !important;
 }
 
+/* Menu left, avatar right, ticker, composer, light likes, light drawer, readable story */
+html .kilode-shell[data-sf="1"] .sf {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+html .kilode-shell[data-sf="1"] .sf-bar {
+  gap: 6px !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-menu {
+  display: grid !important;
+  width: 34px !important;
+  height: 34px !important;
+  flex: 0 0 34px !important;
+  place-items: center !important;
+  color: #fff !important;
+  background: transparent !important;
+}
+html .kilode-shell[data-sf="1"] .sf-menu svg {
+  width: 22px !important;
+  height: 22px !important;
+  stroke: #fff !important;
+  color: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .sf-logo {
+  height: 30px !important;
+  max-width: 112px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools button.sf-ava {
+  width: 30px !important;
+  height: 30px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border-radius: 9px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-ava img {
+  width: 30px !important;
+  height: 30px !important;
+  object-fit: cover !important;
+  border-radius: 9px !important;
+  border: 1px solid #fff !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tick {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  background: #0a0a0a !important;
+  color: #fff !important;
+  overflow: hidden !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tick b {
+  flex: 0 0 auto !important;
+  color: #f5c518 !important;
+  font-size: 10px !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tick-mask {
+  min-width: 0 !important;
+  flex: 1 !important;
+  overflow: hidden !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tick-track {
+  display: flex !important;
+  gap: 28px !important;
+  width: max-content !important;
+  animation: kilode-tick 36s linear infinite !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tick-track span {
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  white-space: nowrap !important;
+}
+html .kilode-shell[data-sf="1"] .sf-box {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 0 12px !important;
+  padding: 8px !important;
+  border: 1px solid #e6e6e6 !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .sf-box img {
+  width: 36px !important;
+  height: 36px !important;
+  flex: 0 0 36px !important;
+  border-radius: 99px !important;
+  object-fit: cover !important;
+}
+html .kilode-shell[data-sf="1"] .sf-box input {
+  min-width: 0 !important;
+  flex: 1 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #141414 !important;
+  font-size: 14px !important;
+  outline: none !important;
+}
+html .kilode-shell[data-sf="1"] .sf-box button {
+  height: 32px !important;
+  padding: 0 12px !important;
+  border-radius: 999px !important;
+  background: #141414 !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-box button:disabled {
+  opacity: 0.4 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-know {
+  margin: 0 0 14px !important;
+  padding: 10px !important;
+  border: 1px solid #e6e6e6 !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .sf-know > b {
+  display: block !important;
+  margin-bottom: 8px !important;
+  color: #141414 !important;
+  font-size: 13px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-know > div {
+  display: flex !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+}
+html .kilode-shell[data-sf="1"] .sf-know article {
+  flex: 0 0 112px !important;
+  width: 112px !important;
+  padding: 8px !important;
+  border: 1px solid #eee !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  text-align: center !important;
+}
+html .kilode-shell[data-sf="1"] .sf-know a {
+  display: block !important;
+  color: #141414 !important;
+  text-decoration: none !important;
+}
+html .kilode-shell[data-sf="1"] .sf-know img {
+  width: 48px !important;
+  height: 48px !important;
+  margin: 0 auto 6px !important;
+  border-radius: 99px !important;
+  object-fit: cover !important;
+}
+html .kilode-shell[data-sf="1"] .sf-know strong,
+html .kilode-shell[data-sf="1"] .sf-know em {
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+html .kilode-shell[data-sf="1"] .sf-know strong { font-size: 12px !important; color: #141414 !important; }
+html .kilode-shell[data-sf="1"] .sf-know em {
+  color: #777 !important;
+  font-size: 10px !important;
+  font-style: normal !important;
+}
+html .kilode-shell[data-sf="1"] .sf-know button {
+  margin-top: 6px !important;
+  height: 26px !important;
+  width: 100% !important;
+  border-radius: 999px !important;
+  background: #141414 !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-liked {
+  display: block !important;
+  margin: 0 14px 12px !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #666 !important;
+  font-size: 13px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-liked b { color: #141414 !important; }
+
+html .kilode-shell[data-sf="1"] section.pane-in,
+html .kilode-shell[data-sf="1"] section {
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+html .kilode-shell[data-sf="1"] section.pane-in > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  align-self: stretch !important;
+}
+html .read-page {
+  width: 100% !important;
+  max-width: 100% !important;
+  align-self: stretch !important;
+  background: #fff !important;
+  color: #141414 !important;
+}
+html .read-page .mx-auto {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 12px 16px 28px !important;
+  box-sizing: border-box !important;
+}
+html .read-page .story-hero {
+  display: block !important;
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 220px !important;
+  max-height: 220px !important;
+  object-fit: cover !important;
+  border-radius: 14px !important;
+}
+html .read-page .story-title,
+html .read-page .story-read,
+html .read-page .read-tools,
+html .read-page .read-nav,
+html .read-page p,
+html .read-page h1 {
+  position: relative !important;
+  inset: auto !important;
+  opacity: 1 !important;
+  max-width: 100% !important;
+  color: #141414 !important;
+}
+html .read-page .story-title {
+  font-size: 22px !important;
+  line-height: 1.25 !important;
+  margin: 12px 0 0 !important;
+}
+html .read-page .read-tools,
+html .read-page .read-ticker {
+  background: #fff !important;
+  color: #141414 !important;
+  border: 1px solid #e6e6e6 !important;
+  box-shadow: none !important;
+}
+html .read-page .read-nav button,
+html .read-page .read-report button,
+html .read-page .read-report input {
+  background: #fff !important;
+  color: #141414 !important;
+  border-color: #ddd !important;
+}
+html .read-page .read-ticker-track {
+  animation: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex-wrap: wrap !important;
+}
+html .read-page .share-row { max-width: 100% !important; }
+
+html .menu-hero-card,
+html:not([data-skin="ivory"]) .menu-hero-card,
+html[data-skin="ivory"] .menu-hero-card,
+html .kilode-shell[data-sf="1"] .menu-hero-card {
+  background: #fff !important;
+  color: #141414 !important;
+  border: 1px solid #ececec !important;
+  box-shadow: none !important;
+}
+html .menu-press,
+html .menu-drawer .menu-hero-card .menu-press,
+html .kilode-shell[data-sf="1"] .menu-press,
+html[data-skin="ivory"] .kilode-shell[data-sf="1"] .menu-press,
+html:not([data-skin="ivory"]) .menu-press {
+  background: #f4f4f4 !important;
+  color: #141414 !important;
+  border: 1px solid #e6e6e6 !important;
+}
+html .kilode-shell[data-sf="1"] .menu-press span,
+html .kilode-shell[data-sf="1"] .menu-press svg,
+html .kilode-shell[data-sf="1"] .menu-press div,
+html[data-skin="ivory"] .kilode-shell[data-sf="1"] .menu-press span,
+html[data-skin="ivory"] .kilode-shell[data-sf="1"] .menu-press svg,
+html .menu-press span,
+html .menu-press div {
+  color: #141414 !important;
+  background: transparent !important;
+}
+html .kilode-shell[data-sf="1"] .menu-press svg,
+html .menu-press svg {
+  stroke: #141414 !important;
+}
+
+
 
 
 
