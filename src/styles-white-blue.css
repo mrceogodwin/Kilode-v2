@@ -183,6 +183,24 @@ html .kilode-shell[data-sf="1"] .sf-dock > button svg {
   width: 20px !important;
   height: 20px !important;
 }
+html .kilode-shell[data-sf="1"] .sf-dock-lab {
+  font-size: var(--k-fs-nav) !important;
+  font-weight: 650 !important;
+  line-height: 1 !important;
+  letter-spacing: 0.02em !important;
+  color: inherit !important;
+}
+html .kilode-shell[data-sf="1"] .sf-me {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 2px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-me img {
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 999px !important;
+}
 html .kilode-shell[data-sf="1"] .sf-dock > button.on {
   color: var(--k-blue) !important;
 }
