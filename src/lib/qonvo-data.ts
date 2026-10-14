@@ -6,7 +6,6 @@ export type Room = {
 };
 
 export const ROOMS: Room[] = [
-  // Curated public map (~12). Super can add more via nf_rooms; pause/rename overrides apply.
   { id: "lounge", name: "Kilode Lounge", region: "Featured", online: 0 },
   { id: "hot", name: "Hot Topics", region: "Featured", online: 0 },
   { id: "ng", name: "Naija Pulse", region: "Featured", online: 0 },
@@ -42,7 +41,6 @@ export const ACCOUNT_KINDS = [
   { id: "brand", label: "Brand / business", hint: "Company page and ads" },
 ] as const;
 
-/** Deduped kinds for UI pickers — never render the same id twice. */
 export function uniqueAccountKinds() {
   const seen = new Set<string>();
   return ACCOUNT_KINDS.filter((k) => {
@@ -75,7 +73,6 @@ export const LANG_CHOICES = [
   { id: "ha", label: "Hausa" },
 ] as const;
 
-/** Topics shown once, after Join, matched to the account type they already picked. */
 export const KIND_INTERESTS: Record<AccountKind, string[]> = {
   member: ["News", "Sports", "Music", "Chat", "Jobs", "Market"],
   writer: ["Politics", "Tech", "Sports", "Entertainment", "Business"],
@@ -116,13 +113,23 @@ export function faceFor(handle: string, face?: string | null) {
   return "";
 }
 
+/** Relative time. Prefer short forms; avoid raw calendar dates until > 8 weeks. */
 export function timeAgo(ts: number) {
-  const s = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  const n = Number(ts);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  // Accept seconds or ms
+  const ms = n < 1e12 ? n * 1000 : n;
+  const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
   if (s < 45) return "just now";
   if (s < 3600) return `${Math.floor(s / 60)}m`;
   if (s < 86400) return `${Math.floor(s / 3600)}h`;
   if (s < 604800) return `${Math.floor(s / 86400)}d`;
-  return new Date(ts).toLocaleDateString();
+  if (s < 4838400) return `${Math.floor(s / 604800)}w`; // up to ~8 weeks
+  try {
+    return new Date(ms).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  } catch {
+    return new Date(ms).toLocaleDateString();
+  }
 }
 
 export function asAccountKind(v: string | null | undefined): AccountKind {
@@ -151,7 +158,6 @@ export const KIND_PURPOSE: Record<AccountKind, string> = {
   renter: "List spaces with a contact link. No in-app renting.",
   brand: "Company page plus ads. Staff approve ads after payment.",
 };
-
 
 export const COMMUNITIES = [
   { id: "featured", name: "Featured rooms", region: "Featured" },
@@ -224,104 +230,6 @@ export type Post = {
 
 export const POST_CATS = ["General", "News", "Naija", "Tech", "Sports", "Business", "Culture", "Opinion", "Music", "Comedy", "Politics", "Lifestyle", "Education", "Health", "Travel", "Fashion", "Food", "Jobs"];
 
-export const AD_VERTICALS = [
-  "All",
-  "Telecom",
-  "Banking",
-  "Fintech",
-  "Fashion",
-  "Food",
-  "Music",
-  "Nollywood",
-  "Sports",
-  "Jobs",
-  "Education",
-  "Health",
-  "Auto",
-  "Real estate",
-  "Travel",
-  "Beauty",
-  "Religion",
-  "Politics",
-  "NGO",
-  "Tech",
-  "Retail",
-  "Logistics",
-  "Agriculture",
-  "Energy",
-  "Insurance",
-  "Betting",
-  "Events",
-  "Nightlife",
-  "Comedy",
-  "Podcast",
-  "Church",
-  "Mosque",
-  "School",
-  "Hospital",
-  "Pharmacy",
-  "Hotels",
-  "Airlines",
-  "Fuel",
-  "Cement",
-  "Brewery",
-  "Soft drinks",
-  "Phones",
-  "Gadgets",
-  "Furniture",
-  "Construction",
-  "Legal",
-  "Media",
-  "Government",
-  "Startup",
-  "Other",
-] as const;
-
-export function adVertical(name: string, note?: string) {
-  const t = `${name} ${note ?? ""}`.toLowerCase();
-  const hits: [string, string[]][] = [
-    ["Telecom", ["mtn", "glo", "airtel", "9mobile", "data"]],
-    ["Fintech", ["paystack", "opay", "palmpay", "flutterwave", "kuda", "cowry"]],
-    ["Banking", ["bank", "gtb", "gtbank", "access", "uba", "zenith"]],
-    ["Fashion", ["ankara", "adire", "fashion"]],
-    ["Food", ["food", "chicken", "jollof", "indomie"]],
-    ["Music", ["spotify", "audiomack", "boomplay", "afrobeats"]],
-    ["Nollywood", ["nollywood", "film", "movie", "trailer"]],
-    ["Sports", ["sport", "bet", "football", "bet9ja"]],
-    ["Retail", ["jumia", "konga", "shop", "shoprite"]],
-    ["Jobs", ["job", "hiring", "vacancy"]],
-    ["Real estate", ["rent", "house", "apartment", "land"]],
-    ["Travel", ["flight", "airline", "hotel", "ibom"]],
-    ["Health", ["hospital", "pharma", "clinic", "reddington"]],
-    ["Auto", ["car", "toyota", "motor", "infinix wait"]],
-    ["Education", ["school", "university", "course", "unilag"]],
-    ["Energy", ["fuel", "diesel", "solar", "total"]],
-    ["Brewery", ["beer", "star", "guinness", "hero"]],
-    ["Soft drinks", ["coke", "coca-cola", "fanta", "pepsi", "malt"]],
-    ["Phones", ["tecno", "infinix", "samsung", "iphone"]],
-    ["Gadgets", ["gadget", "spark", "laptop"]],
-    ["Cement", ["cement", "dangote", "ibeto"]],
-    ["Insurance", ["insurance", "wapic"]],
-    ["Logistics", ["logistics", "transit", "bolt", "uber"]],
-    ["Agriculture", ["farm", "crowdy", "agro"]],
-    ["Hotels", ["hotel", "short-let"]],
-    ["Airlines", ["air", "aero", "ibom air"]],
-    ["Fuel", ["fuel", "petrol", "totalenergies"]],
-    ["Furniture", ["furniture", "sofa"]],
-    ["Nightlife", ["club", "quilox", "night"]],
-    ["Events", ["event", "wedding"]],
-    ["Media", ["dstv", "tv", "radio"]],
-    ["Church", ["church", "rccg", "pastor"]],
-    ["Hospital", ["hospital", "reddington"]],
-    ["School", ["school", "unilag"]],
-    ["Betting", ["bet9ja", "bet", "sporty"]],
-  ];
-  for (const [v, keys] of hits) {
-    if (keys.some((k) => t.includes(k))) return v;
-  }
-  return "Other";
-}
-
 export function safeHttpUrl(raw: string): string | undefined {
   const v = raw.trim();
   if (!v) return undefined;
@@ -365,57 +273,6 @@ export function fmtCount(n: number) {
   return String(n);
 }
 
-export type Team = { id: string; name: string; members: string[] };
-export type AdKind = "image" | "video" | "image-text" | "video-text" | "text";
-
-export const AD_KINDS: { id: AdKind; label: string }[] = [
-  { id: "image", label: "Image" },
-  { id: "video", label: "Video" },
-  { id: "image-text", label: "Image + text" },
-  { id: "video-text", label: "Video + text" },
-  { id: "text", label: "Text + link" },
-];
-
-export const CHAT_TTLS = [
-  { hours: 1, label: "1 hour" },
-  { hours: 6, label: "6 hours" },
-  { hours: 12, label: "12 hours" },
-  { hours: 24, label: "1 day" },
-  { hours: 48, label: "2 days" },
-  { hours: 72, label: "3 days" },
-  { hours: 168, label: "7 days" },
-  { hours: 336, label: "14 days" },
-  { hours: 720, label: "30 days" },
-  { hours: 0, label: "Never (keep)" },
-] as const;
-
-export function chatTtlLabel(hours: number) {
-  return CHAT_TTLS.find((t) => t.hours === hours)?.label ?? `${hours} hours`;
-}
-
-export const AD_PLACEMENTS = [
-  { id: "board", label: "Ads grid tile", usd: 40, hint: "3-column tile on the Ads tab. Title, thumb, link." },
-  { id: "featured", label: "Ads featured slider", usd: 150, hint: "Rotates at the top of Ads so the campaign is never buried." },
-  { id: "square", label: "Ads square", usd: 90, hint: "Square tile near the top of the Ads tab." },
-  { id: "chat", label: "Chat stream", usd: 250, hint: "Scrolls with live chat every few messages." },
-  { id: "chat-pin", label: "Pinned in chat", usd: 800, hint: "Stays at the top of Chat until it expires." },
-  { id: "feeds-strip", label: "Feeds strip", usd: 180, hint: "Flat banner under the category row on Feeds." },
-  { id: "story", label: "Story portrait", usd: 400, hint: "Tall 9:16 creative on every story page." },
-  { id: "article-leader", label: "Article long banner", usd: 220, hint: "Wide banner under the story." },
-  { id: "article-mid", label: "Inside article", usd: 150, hint: "Sits between the story and comments." },
-  { id: "cinema", label: "Cinema banner", usd: 300, hint: "Shows on the Cinema tab while a title plays." },
-  { id: "feeds-hero", label: "Feeds hero slider", usd: 1200, hint: "Expensive. 16:9 image or video that rotates in the Feeds hero with posts, Google, and company banners." },
-] as const;
-
-export type AdPlacement = (typeof AD_PLACEMENTS)[number]["id"];
-
-export function isAdPlacement(v: string): v is AdPlacement {
-  return AD_PLACEMENTS.some((p) => p.id === v);
-}
-
-export const AD_DAYS = [1, 7, 14, 30] as const;
-export type AdDays = (typeof AD_DAYS)[number];
-
 export function daysLeft(expiresAt?: number, fallbackDays?: number) {
   if (expiresAt && expiresAt > Date.now()) return Math.max(1, Math.ceil((expiresAt - Date.now()) / 86_400_000));
   if (expiresAt && expiresAt <= Date.now()) return 0;
@@ -433,225 +290,4 @@ export function timeLeftLabel(expiresAt?: number) {
   if (days > 0) return `${days}d ${hours}h left`;
   if (hours > 0) return `${hours}h ${mins}m left`;
   return `${mins}m left`;
-}
-
-export function adDayBucket(days?: number) {
-  const d = Number(days ?? 7);
-  if (d <= 1) return 1;
-  if (d <= 7) return 7;
-  if (d <= 14) return 14;
-  return 30;
-}
-
-export const AD_SIZES: Record<AdPlacement, { label: string; hint: string }> = {
-  board: { label: "1080 × 720", hint: "Landscape tile. JPG/PNG, max 2MB." },
-  featured: { label: "1200 × 628", hint: "Wide featured slide. JPG/PNG, max 2MB." },
-  square: { label: "1080 × 1080", hint: "Square. JPG/PNG, max 2MB." },
-  chat: { label: "1200 × 400", hint: "Wide banner in chat. JPG/PNG, max 2MB." },
-  "chat-pin": { label: "1200 × 240", hint: "Slim pin strip. JPG/PNG, max 2MB." },
-  "feeds-strip": { label: "1200 × 120", hint: "Flat strip. Keep it short. JPG/PNG, max 2MB." },
-  story: { label: "1080 × 1920", hint: "9:16 portrait. JPG/PNG or YouTube, max 2MB image." },
-  "article-leader": { label: "728 × 90", hint: "Long banner. JPG/PNG, max 2MB." },
-  "article-mid": { label: "600 × 300", hint: "In-story box. JPG/PNG, max 2MB." },
-  cinema: { label: "1280 × 220", hint: "Cinema strip. JPG/PNG, max 2MB." },
-  "feeds-hero": { label: "1280 × 720", hint: "16:9. Image or YouTube. Premium Kilode placement." },
-};
-
-export type Campaign = {
-  id: string;
-  name: string;
-  note: string;
-  ts: number;
-  status: "pending" | "paid" | "approved" | "rejected" | "paused" | "ended";
-  placement: AdPlacement | "sidebar" | "hero";
-  txHash?: string;
-  amount?: string;
-  coin?: string;
-  link?: string;
-  image?: string;
-  video?: string;
-  kind?: AdKind;
-  views?: number;
-  days?: number;
-  expiresAt?: number;
-};
-
-export const AD_COINS = [
-  { id: "btc", label: "Bitcoin", ticker: "BTC" },
-  { id: "eth", label: "Ethereum", ticker: "ETH" },
-  { id: "usdc", label: "USDC", ticker: "USDC" },
-  { id: "usdt", label: "USDT", ticker: "USDT" },
-  { id: "sol", label: "Solana", ticker: "SOL" },
-  { id: "bnb", label: "BNB", ticker: "BNB" },
-  { id: "ltc", label: "Litecoin", ticker: "LTC" },
-  { id: "trx", label: "Tron TRC-20", ticker: "TRX" },
-] as const;
-
-export type Join = { name: string; ts: number; room?: string };
-export type Note = { id: string; text: string; ts: number; href?: string; seen?: number };
-
-export const PREFIX = "qonvo.v6.";
-
-export function loadJson<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(PREFIX + key);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw) as T;
-    // One-time salvage: drop null holes / objects missing string id (corrupt prior writes).
-    if (Array.isArray(parsed) && Array.isArray(fallback)) {
-      const idKeys = new Set(["posts", "tracks", "teams", "ads", "pins", "notes", "joins"]);
-      const cleaned = (parsed as unknown[]).filter((x) => {
-        if (x == null) return false;
-        if (!idKeys.has(key)) return true;
-        return typeof (x as { id?: unknown }).id === "string" || typeof (x as { name?: unknown }).name === "string";
-      });
-      if (cleaned.length !== (parsed as unknown[]).length) {
-        try {
-          localStorage.setItem(PREFIX + key, JSON.stringify(cleaned));
-        } catch {
-          /* quota */
-        }
-        return cleaned as T;
-      }
-    }
-    return parsed;
-  } catch {
-    try {
-      localStorage.removeItem(PREFIX + key);
-    } catch {
-      /* ignore */
-    }
-    return fallback;
-  }
-}
-
-export function saveJson(key: string, value: unknown) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(PREFIX + key, JSON.stringify(value));
-  } catch {
-    /* quota */
-  }
-}
-
-export function clearAll() {
-  if (typeof window === "undefined") return;
-  const drop: string[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (k && k.startsWith(PREFIX)) drop.push(k);
-  }
-  drop.forEach((k) => localStorage.removeItem(k));
-}
-
-export function allRoomMessages(): ChatMsg[] {
-  const out: ChatMsg[] = [];
-  for (const room of ROOMS) {
-    out.push(...loadJson<ChatMsg[]>(`msgs.${room.id}`, []));
-  }
-  return out;
-}
-
-export function roomName(id: string) {
-  if (id.startsWith("tm-")) return "Team chat";
-  if (id.startsWith("cin-")) return "Cinema";
-  return ROOMS.find((r) => r.id === id)?.name ?? id;
-}
-
-export function handleColor(name: string) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 33 + name.charCodeAt(i)) >>> 0;
-  return `hsl(${h % 360} 62% 64%)`;
-}
-
-export const TERMS = `Kilode Terms of Use
-
-By creating an account or using post, music, video, cinema, ads, jobs, marketplace, or rent tools you agree:
-
-1. You pick one account type at register. You cannot switch it yourself. Kilode may adjust it if needed.
-2. You are responsible for what you publish. Do not post illegal content, scams, hate, or anyone’s private data.
-3. Music is link-only (YouTube, Audiomack, SoundCloud, Spotify, Boomplay, Apple). We do not host audio files.
-4. Movies are YouTube URLs submitted by Cinema Posters, then approved. We do not host video files.
-5. Ads, jobs, marketplace, and rent listings may be refused. Crypto tx hashes are a record until staff checks them.
-6. Send crypto only to addresses shown in Kilode after you tap Copy. Verify the first and last 6 characters. Wrong network = lost funds. Kilode never DMs a wallet.
-7. Handles and public posts can be seen by others. This is not a bank or a lawyer.
-8. We may hide, reject, or remove content and accounts that break these rules.
-9. The service is provided as-is. Community chat is not professional advice.
-
-Last updated September 2026.
-
-Privacy
-We do not ask for a public email. Login uses a private username. Do not put real addresses or ID numbers in chat. Cookies keep you signed in. We do not sell your handle list.
-
-Developer
-Kilode is built with @Builtbystacks. Telegram: https://t.me/Builtbystacks`;
-
-export function timeLabel(ts: number) {
-  const diff = Date.now() - ts;
-  if (diff < 45_000) return "just now";
-  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m`;
-  if (diff < 86400_000) return `${Math.floor(diff / 3600_000)}h`;
-  return new Date(ts).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-}
-
-export type MusicTrack = {
-  id: string;
-  title: string;
-  artist: string;
-  url: string;
-  platform: string;
-  embed?: string;
-  cover?: string;
-  genre?: string;
-  album?: string;
-  note?: string;
-  tags?: string;
-  author: string;
-  ts: number;
-  views?: number;
-};
-
-const MUSIC_HOSTS = [
-  "open.spotify.com",
-  "spotify.com",
-  "soundcloud.com",
-  "audiomack.com",
-  "music.apple.com",
-  "boomplay.com",
-  "deezer.com",
-];
-
-export function parseMusicUrl(raw: string): { url: string; platform: string; embed?: string } | undefined {
-  const url = safeHttpUrl(raw);
-  if (!url) return undefined;
-  let host = "";
-  try {
-    host = new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return undefined;
-  }
-  if (host.includes("youtu")) return undefined;
-  if (!MUSIC_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))) return undefined;
-
-  if (host.includes("spotify")) {
-    const path = new URL(url).pathname.replace(/^\/intl-[^/]+/, "");
-    return { url, platform: "Spotify", embed: `https://open.spotify.com/embed${path}` };
-  }
-  if (host.includes("soundcloud")) {
-    return { url, platform: "SoundCloud", embed: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&color=%231f8a5b&auto_play=false` };
-  }
-  if (host.includes("audiomack")) {
-    const path = new URL(url).pathname;
-    return { url, platform: "Audiomack", embed: `https://audiomack.com/embed${path}` };
-  }
-  if (host.includes("apple")) {
-    return { url, platform: "Apple Music", embed: url.replace("music.apple.com", "embed.music.apple.com") };
-  }
-  if (host.includes("boomplay")) return { url, platform: "Boomplay" };
-  if (host.includes("deezer")) {
-    const id = url.match(/track\/(\d+)/)?.[1];
-    return { url, platform: "Deezer", embed: id ? `https://widget.deezer.com/widget/dark/track/${id}` : undefined };
-  }
-  return { url, platform: host };
 }
