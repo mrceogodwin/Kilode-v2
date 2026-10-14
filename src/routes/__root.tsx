@@ -4,6 +4,7 @@ import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { seoHead } from "@/lib/seo";
 import appCss from "../styles.css?url";
 import whiteBlueCss from "../styles-white-blue.css?url";
+import tickFixCss from "../styles-tick-fix.css?url";
 import { OfflineToast } from "@/components/offline-toast";
 
 const base = seoHead({ path: "/" });
@@ -29,7 +30,7 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Kilode" },
-      { name: "theme-color", content: "#FFFFFF" },
+      { name: "theme-color", content: "#1877F2" },
       ...base.meta,
     ],
     links: [
@@ -45,6 +46,7 @@ export const Route = createRootRoute({
       },
       { rel: "stylesheet", href: appCss },
       { rel: "stylesheet", href: whiteBlueCss },
+      { rel: "stylesheet", href: tickFixCss },
       ...base.links,
     ],
     scripts: base.scripts,
