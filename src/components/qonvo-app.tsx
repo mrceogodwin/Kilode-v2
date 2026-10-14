@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } 
 import {
   X, Volume2, VolumeX, ChevronLeft, Home, Briefcase, Store, Clapperboard, Users, User,
   Plus, Megaphone, Search, Bell, Inbox, Settings, HelpCircle, Hash, Tv, Building2,
-  Bookmark, Music, Calendar, Download, Shield, Info, BadgeDollarSign,
+  Bookmark, Music, Calendar, Shield, Info, CircleDollarSign,
 } from "lucide-react";
 import { PublicSiteProvider } from "@/components/site-chrome";
 import type { PublicSite } from "@/lib/site-server";
@@ -139,7 +139,6 @@ function Shell() {
   };
 
   const close = () => setMenuOpen(false);
-
   const needAuth = ["dashboard", "create", "inbox", "notifications", "profile", "settings", "bookmarks"];
 
   const openPane = (key: string) => {
@@ -150,7 +149,7 @@ function Shell() {
     go(id);
   };
 
-  const row = (icon: ReactNode, label: string, onClick: () => void, extra?: CSSProperties): ReactNode => (
+  const row = (icon: ReactNode, label: string, onClick: () => void): ReactNode => (
     <button
       type="button"
       onClick={onClick}
@@ -168,7 +167,6 @@ function Shell() {
         fontWeight: 600,
         fontSize: 13,
         textAlign: "left",
-        ...extra,
       }}
     >
       <span style={{ width: 28, height: 28, borderRadius: 8, background: "#F7F9FC", display: "grid", placeItems: "center", color: "#1877F2", flexShrink: 0 }}>
@@ -229,10 +227,7 @@ function Shell() {
 
       {menuOpen ? (
         <div className="fixed inset-0 z-[80] flex" style={{ background: "rgba(0,0,0,0.45)" }}>
-          <aside
-            className="flex h-full w-[min(340px,92vw)] flex-col overflow-hidden bg-white shadow-xl"
-            style={{ borderRight: "1px solid #E7ECF2" }}
-          >
+          <aside className="flex h-full w-[min(340px,92vw)] flex-col overflow-hidden bg-white shadow-xl" style={{ borderRight: "1px solid #E7ECF2" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid #E7ECF2" }}>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: "#172033" }}>Kilode</div>
@@ -268,13 +263,11 @@ function Shell() {
               {row(<Search size={15} />, "Search", () => openPane("search"))}
 
               {section("More")}
-              {row(<BadgeDollarSign size={15} />, "Pricing", () => openPane("pricing"))}
+              {row(<CircleDollarSign size={15} />, "Pricing", () => openPane("pricing"))}
               {row(<Info size={15} />, "How Kilode works", () => openPane("how"))}
               {row(<HelpCircle size={15} />, "Help & FAQ", () => openPane("help"))}
               {row(<Settings size={15} />, "Settings", () => openPane("settings"))}
-              {signedIn
-                ? row(<Shield size={15} />, "Staff desk", () => { close(); window.location.href = STAFF_PATH; })
-                : null}
+              {signedIn ? row(<Shield size={15} />, "Staff desk", () => { close(); window.location.href = STAFF_PATH; }) : null}
 
               <button
                 type="button"
@@ -299,37 +292,13 @@ function Shell() {
                   {sfxOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
                   Sounds
                 </span>
-                <span
-                  style={{
-                    borderRadius: 999,
-                    padding: "4px 12px",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    background: sfxOn ? "#1877F2" : "#E7ECF2",
-                    color: sfxOn ? "#fff" : "#64748B",
-                  }}
-                >
+                <span style={{ borderRadius: 999, padding: "4px 12px", fontSize: 11, fontWeight: 700, background: sfxOn ? "#1877F2" : "#E7ECF2", color: sfxOn ? "#fff" : "#64748B" }}>
                   {sfxOn ? "On" : "Off"}
                 </span>
               </button>
 
               {!signedIn ? (
-                <button
-                  type="button"
-                  onClick={() => goLogin("up")}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    marginTop: 10,
-                    padding: "12px 14px",
-                    border: 0,
-                    borderRadius: 12,
-                    background: "#1877F2",
-                    color: "#fff",
-                    fontWeight: 700,
-                    fontSize: 14,
-                  }}
-                >
+                <button type="button" onClick={() => goLogin("up")} style={{ display: "block", width: "100%", marginTop: 10, padding: "12px 14px", border: 0, borderRadius: 12, background: "#1877F2", color: "#fff", fontWeight: 700, fontSize: 14 }}>
                   Join Kilode
                 </button>
               ) : null}
