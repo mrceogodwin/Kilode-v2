@@ -1,4 +1,7 @@
-/* Kilode v2 white + social blue — Stages 1–7 design system */
+/* Kilode v2 — full design system per redesign protocol
+   White + #1877F2 | tiny typography | motion tokens | Cinema atmosphere
+   Not surface-only: type scale, press, dock, reduced-motion, dividers */
+
 :root, html {
   --color-bg: #FFFFFF !important;
   --color-panel: #FFFFFF !important;
@@ -30,7 +33,19 @@
   --k-radius-sm: 8px;
   --k-radius-lg: 16px;
   --k-press: 120ms;
+  --k-fast: 160ms;
   --k-motion: 220ms;
+  --k-route: 280ms;
+  --k-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --k-fs-nav: 9px;
+  --k-fs-caption: 10px;
+  --k-fs-meta: 11px;
+  --k-fs-label: 12px;
+  --k-fs-body: 14px;
+  --k-fs-title: 16px;
+  --k-fs-display: 18px;
+  --k-lh-tight: 1.25;
+  --k-lh-body: 1.5;
   --k-cinema-bg: #0B0D12;
   --k-cinema-panel: #12151C;
   --k-cinema-line: rgba(255,255,255,0.08);
@@ -43,6 +58,8 @@
 html, body, #app {
   background: var(--k-bg) !important;
   color: var(--k-text) !important;
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  -webkit-font-smoothing: antialiased;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -50,14 +67,17 @@ html, body, #app {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
 button:not(:disabled):active,
 [role="button"]:not(:disabled):active,
+.app-tab:active,
+.sf-dock > button:active,
 .k-press:active {
   transform: scale(0.97);
-  transition: transform var(--k-press) ease;
+  transition: transform var(--k-press) var(--k-ease);
 }
 
 html .kilode-shell {
@@ -101,9 +121,7 @@ html .kilode-shell[data-sf="1"] .sf-tools {
   align-items: center !important;
   gap: 2px !important;
 }
-html .kilode-shell[data-sf="1"] .sf-tools button,
-html .kilode-shell[data-sf="1"][data-home="0"] .soc-ico,
-html .kilode-shell[data-sf="1"][data-home="0"] .hdr-ico {
+html .kilode-shell[data-sf="1"] .sf-tools button {
   color: var(--k-text) !important;
   background: transparent !important;
   width: 36px !important;
@@ -130,25 +148,52 @@ html .kilode-shell .dock {
   box-shadow: 0 -4px 16px rgba(23, 32, 51, 0.06) !important;
   height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
   padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  display: flex !important;
+  align-items: stretch !important;
 }
-html .kilode-shell[data-sf="1"] .sf-dock > button,
-html .kilode-shell .dock button {
+html .kilode-shell .dock .app-tab {
+  font-size: var(--k-fs-nav) !important;
+  font-weight: 650 !important;
+  letter-spacing: 0.02em !important;
   color: var(--k-text-3) !important;
-  position: relative !important;
+  gap: 3px !important;
 }
-html .kilode-shell[data-sf="1"] .sf-dock > button.on,
-html .kilode-shell .dock button.on {
+html .kilode-shell .dock .app-tab.on {
   color: var(--k-blue) !important;
 }
-html .kilode-shell[data-sf="1"] .sf-dock > button.on::after,
-html .kilode-shell[data-sf="1"][data-home="0"] .dock button.on::after {
+html .kilode-shell .dock .dock-liquid {
+  background: var(--k-blue-soft) !important;
+  border-radius: 12px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock > button {
+  color: var(--k-text-3) !important;
+  position: relative !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  font-size: var(--k-fs-nav) !important;
+  font-weight: 650 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock > button svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock > button.on {
+  color: var(--k-blue) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock > button.on::after {
   content: "" !important;
   position: absolute !important;
-  left: 12px !important;
-  right: 12px !important;
-  bottom: 4px !important;
-  height: 3px !important;
-  border-radius: 3px !important;
+  left: 18px !important;
+  right: 18px !important;
+  bottom: 3px !important;
+  height: 2px !important;
+  border-radius: 2px !important;
   background: var(--k-blue) !important;
 }
 html .kilode-shell[data-sf="1"] .sf-plus {
@@ -156,113 +201,177 @@ html .kilode-shell[data-sf="1"] .sf-plus {
   color: #fff !important;
   border-radius: 14px !important;
   box-shadow: 0 4px 12px rgba(24, 119, 242, 0.28) !important;
+  max-width: 56px !important;
+  margin: 6px 4px !important;
 }
 html .kilode-shell[data-sf="1"] .sf-plus i {
-  background: #fff !important;
-  color: var(--k-blue) !important;
+  background: transparent !important;
+  color: #fff !important;
+  font-size: 8px !important;
+  font-style: normal !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
 }
+html .kilode-shell[data-sf="1"] .sf-plus::after { display: none !important; }
 
 html .kilode-shell[data-sf="1"] .sf { background: var(--k-surface-2) !important; }
-html .kilode-shell[data-sf="1"] .sf-scroll { padding: 10px 12px 110px !important; }
-html .kilode-shell[data-sf="1"] .sf-post,
-html .kilode-shell[data-sf="1"] .sf-box,
-html .kilode-shell[data-sf="1"] .sf-know,
-html .kilode-shell[data-sf="1"] .sf-feature,
-html .kilode-shell[data-sf="1"] .sf-mosaic button {
-  background: #fff !important;
-  color: var(--k-text) !important;
-  border: 1px solid var(--k-border) !important;
-  border-radius: var(--k-radius-lg) !important;
-  box-shadow: none !important;
-}
+html .kilode-shell[data-sf="1"] .sf-scroll { padding: 8px 0 110px !important; }
 html .kilode-shell[data-sf="1"] .sf-box {
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
-  padding: 10px 12px !important;
-  margin-bottom: 12px !important;
+  padding: 10px 14px !important;
+  margin: 0 12px 10px !important;
+  background: #fff !important;
+  border: 1px solid var(--k-border) !important;
+  border-radius: var(--k-radius-lg) !important;
 }
 html .kilode-shell[data-sf="1"] .sf-box input {
   flex: 1 !important;
   border: 0 !important;
   background: transparent !important;
   color: var(--k-text) !important;
-  font-size: 14px !important;
+  font-size: var(--k-fs-body) !important;
 }
 html .kilode-shell[data-sf="1"] .sf-box button[type="submit"] {
   background: var(--k-blue) !important;
   color: #fff !important;
   border: 0 !important;
   border-radius: 999px !important;
-  padding: 8px 14px !important;
-  font-size: 12px !important;
+  padding: 7px 14px !important;
+  font-size: var(--k-fs-label) !important;
   font-weight: 700 !important;
 }
-html .kilode-shell[data-sf="1"] .sf-tick {
+html .kilode-shell[data-sf="1"] .sf-post {
   background: #fff !important;
-  border-bottom: 1px solid var(--k-border) !important;
+  color: var(--k-text) !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--k-divider) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 12px 14px !important;
+  margin: 0 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-shot {
+  margin: 8px 0 !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+html .kilode-shell[data-sf="1"] .sf-copy p {
+  color: var(--k-text) !important;
+  font-size: var(--k-fs-body) !important;
+  line-height: var(--k-lh-body) !important;
+  margin: 6px 0 0 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-who strong {
+  font-size: var(--k-fs-label) !important;
+  font-weight: 700 !important;
+  color: var(--k-text) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-role {
   color: var(--k-text-2) !important;
+  font-size: var(--k-fs-caption) !important;
+  font-style: normal !important;
+  font-weight: 500 !important;
 }
-html .kilode-shell[data-sf="1"] .sf-tick b { color: var(--k-blue) !important; }
-html .kilode-shell[data-sf="1"] .sf-stories {
-  display: flex !important;
-  gap: 12px !important;
-  overflow-x: auto !important;
-  padding: 4px 2px 12px !important;
-}
-html .kilode-shell[data-sf="1"] .sf-story { color: var(--k-text-2) !important; font-size: 11px !important; }
-html .kilode-shell[data-sf="1"] .sf-post { padding: 12px !important; margin-bottom: 12px !important; }
-html .kilode-shell[data-sf="1"] .sf-shot { margin: 8px 0 !important; border-radius: 14px !important; overflow: hidden !important; }
-html .kilode-shell[data-sf="1"] .sf-copy p { color: var(--k-text) !important; font-size: 14px !important; line-height: 1.45 !important; }
 html .kilode-shell[data-sf="1"] .sf-acts,
-html .kilode-shell[data-sf="1"] .sf-liked { color: var(--k-text-2) !important; font-size: 12px !important; }
-html .kilode-shell[data-sf="1"] .sf-judge { display: flex !important; gap: 8px !important; margin-top: 8px !important; }
+html .kilode-shell[data-sf="1"] .sf-liked {
+  color: var(--k-text-2) !important;
+  font-size: var(--k-fs-meta) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-judge {
+  display: flex !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
 html .kilode-shell[data-sf="1"] .sf-judge button {
   border: 1px solid var(--k-border) !important;
   background: var(--k-surface-2) !important;
   color: var(--k-text) !important;
   border-radius: 999px !important;
-  font-size: 12px !important;
-  padding: 6px 12px !important;
+  font-size: var(--k-fs-meta) !important;
+  padding: 5px 10px !important;
+  font-weight: 600 !important;
 }
 html .kilode-shell[data-sf="1"] .sf-judge button.on {
   background: var(--k-blue-soft) !important;
   border-color: rgba(24, 119, 242, 0.35) !important;
   color: var(--k-blue) !important;
 }
-html .kilode-shell[data-sf="1"] .sf-role { color: var(--k-text-2) !important; font-size: 11px !important; }
-html .kilode-shell[data-sf="1"] .sf-hot { color: var(--k-blue) !important; stroke: var(--k-blue) !important; }
-html .kilode-shell[data-sf="1"] .sf-know b { color: var(--k-text) !important; font-size: 13px !important; }
+html .kilode-shell[data-sf="1"] .sf-hot {
+  color: var(--k-blue) !important;
+  stroke: var(--k-blue) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tick {
+  background: #fff !important;
+  border-bottom: 1px solid var(--k-border) !important;
+  color: var(--k-text-2) !important;
+  font-size: var(--k-fs-meta) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tick b {
+  color: var(--k-blue) !important;
+  font-size: var(--k-fs-caption) !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
+html .kilode-shell[data-sf="1"] .sf-stories {
+  display: flex !important;
+  gap: 12px !important;
+  overflow-x: auto !important;
+  padding: 8px 14px 10px !important;
+  background: #fff !important;
+  border-bottom: 1px solid var(--k-divider) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-story {
+  color: var(--k-text-2) !important;
+  font-size: var(--k-fs-caption) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-know {
+  margin: 10px 12px !important;
+  padding: 12px !important;
+  background: #fff !important;
+  border: 1px solid var(--k-border) !important;
+  border-radius: var(--k-radius-lg) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-know b {
+  color: var(--k-text) !important;
+  font-size: var(--k-fs-label) !important;
+}
 html .kilode-shell[data-sf="1"] .sf-know button {
   background: var(--k-blue) !important;
   color: #fff !important;
   border: 0 !important;
   border-radius: 999px !important;
-  font-size: 11px !important;
-  padding: 6px 12px !important;
+  font-size: var(--k-fs-caption) !important;
+  padding: 5px 11px !important;
+  font-weight: 700 !important;
 }
 html .kilode-shell[data-sf="1"] .sf-more {
   background: #fff !important;
   color: var(--k-blue) !important;
   border: 1px solid var(--k-border) !important;
   border-radius: 999px !important;
+  font-size: var(--k-fs-label) !important;
   font-weight: 700 !important;
+  margin: 12px auto !important;
+  display: block !important;
 }
 
 html .kilode-shell[data-sf="1"] .sf-cuts {
   display: flex !important;
   gap: 8px !important;
   overflow-x: auto !important;
-  padding: 4px 0 12px !important;
+  padding: 8px 14px 10px !important;
 }
 html .kilode-shell[data-sf="1"] .sf-cuts button {
   background: #fff !important;
   color: var(--k-text-2) !important;
   border: 1px solid var(--k-border) !important;
   border-radius: 999px !important;
-  font-size: 12px !important;
+  font-size: var(--k-fs-meta) !important;
   padding: 6px 12px !important;
   white-space: nowrap !important;
+  font-weight: 600 !important;
 }
 html .kilode-shell[data-sf="1"] .sf-cuts button.on {
   background: var(--k-blue) !important;
@@ -274,7 +383,7 @@ html .kilode-shell[data-sf="1"] .sf-carousel {
   gap: 10px !important;
   overflow-x: auto !important;
   scroll-snap-type: x mandatory !important;
-  padding-bottom: 12px !important;
+  padding: 0 14px 12px !important;
 }
 html .kilode-shell[data-sf="1"] .sf-slide {
   flex: 0 0 86% !important;
@@ -292,7 +401,7 @@ html .kilode-shell[data-sf="1"] .sf-slide b {
   left: 12px !important;
   top: 10px !important;
   z-index: 2 !important;
-  font-size: 10px !important;
+  font-size: var(--k-fs-caption) !important;
 }
 html .kilode-shell[data-sf="1"] .sf-slide strong {
   color: #fff !important;
@@ -301,32 +410,23 @@ html .kilode-shell[data-sf="1"] .sf-slide strong {
   right: 12px !important;
   bottom: 12px !important;
   z-index: 2 !important;
-  font-size: 14px !important;
+  font-size: var(--k-fs-body) !important;
   text-align: left !important;
+  line-height: var(--k-lh-tight) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-feature,
+html .kilode-shell[data-sf="1"] .sf-mosaic button {
+  background: #fff !important;
+  color: var(--k-text) !important;
+  border: 1px solid var(--k-border) !important;
+  border-radius: var(--k-radius) !important;
 }
 
 html .kilode-shell[data-sf="1"] .menu-sheet,
 html .menu-sheet { background: #FFFFFF !important; color: var(--k-text) !important; }
-html .kilode-shell[data-sf="1"] .menu-head,
-html .menu-head {
-  background: #FFFFFF !important;
-  color: var(--k-text) !important;
-  border-bottom: 1px solid var(--k-border) !important;
-}
 html .menu-hero-card,
-html .kilode-shell[data-sf="1"] .menu-hero-card {
+html .menu-press {
   background: var(--k-surface-2) !important;
-  color: var(--k-text) !important;
-  border-color: var(--k-border) !important;
-}
-html .menu-press,
-html .kilode-shell[data-sf="1"] .menu-press {
-  background: var(--k-surface-3) !important;
-  color: var(--k-text) !important;
-  border-color: var(--k-border) !important;
-}
-html .kilode-shell[data-sf="1"] .menu-row {
-  background: #fff !important;
   color: var(--k-text) !important;
   border-color: var(--k-border) !important;
 }
@@ -334,24 +434,27 @@ html .kilode-shell[data-sf="1"] .menu-row.on {
   background: var(--k-blue-soft) !important;
   color: var(--k-blue) !important;
 }
-html .kilode-shell[data-sf="1"] .menu-row.on span,
-html .kilode-shell[data-sf="1"] .menu-row.on svg {
-  color: var(--k-blue) !important;
-  stroke: var(--k-blue) !important;
+
+html .repost-sheet,
+html .kilode-shell .repost-sheet {
+  background: #fff !important;
+  color: var(--k-text) !important;
+  border: 1px solid var(--k-border) !important;
+  border-radius: 16px 16px 0 0 !important;
+  animation: kSheetUp var(--k-motion) var(--k-ease) both;
 }
+@keyframes kSheetUp {
+  from { transform: translateY(12px); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes kFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.k-fade-in { animation: kFade var(--k-motion) var(--k-ease) both; }
 
 html .kilode-shell[data-sf="1"] .space-page,
-html .kilode-shell[data-sf="1"] .create-page {
-  background: var(--k-surface-2) !important;
-  color: var(--k-text) !important;
-}
-html .kilode-shell[data-sf="1"] .space-page .btn-join,
-html .kilode-shell[data-sf="1"] .create-page .btn-join,
-html .kilode-shell[data-sf="1"] .create-page button[type="submit"] {
-  background: var(--k-blue) !important;
-  color: #fff !important;
-}
-
+html .kilode-shell[data-sf="1"] .create-page,
 html .kilode-shell[data-sf="1"] .chat-scroll,
 html .kilode-shell[data-sf="1"] .mh-scroll,
 html .kilode-shell[data-sf="1"] .fm-page {
@@ -360,7 +463,10 @@ html .kilode-shell[data-sf="1"] .fm-page {
 }
 html .kilode-shell[data-sf="1"] .mh-play,
 html .kilode-shell[data-sf="1"] .fm-cta,
-html .kilode-shell[data-sf="1"] .act-refresh {
+html .kilode-shell[data-sf="1"] .act-refresh,
+html .kilode-shell[data-sf="1"] .space-page .btn-join,
+html .kilode-shell[data-sf="1"] .create-page .btn-join,
+html .kilode-shell[data-sf="1"] .create-page button[type="submit"] {
   background: var(--k-blue) !important;
   color: #fff !important;
 }
@@ -368,35 +474,23 @@ html .kilode-shell[data-sf="1"] .act-hero {
   background: var(--k-blue) !important;
   color: #fff !important;
 }
-html .kilode-shell[data-sf="1"] .act-metric,
-html .kilode-shell[data-sf="1"] .act-note,
-html .kilode-shell[data-sf="1"] .mh-song,
-html .kilode-shell[data-sf="1"] .fm-card {
-  background: #fff !important;
-  color: var(--k-text) !important;
-  border: 1px solid var(--k-border) !important;
-  border-radius: 14px !important;
-}
 
 html .read-page,
-html .kilode-shell .read-page,
-html article.read-page {
+html .kilode-shell .read-page {
   background: #fff !important;
   color: var(--k-text) !important;
   padding: 16px !important;
 }
-html .read-page h1,
-html .read-page h2 { color: var(--k-text) !important; }
+html .read-page h1 {
+  font-size: 22px !important;
+  line-height: 1.25 !important;
+  font-weight: 800 !important;
+  color: var(--k-text) !important;
+}
 html .read-page p {
   color: var(--k-text) !important;
-  line-height: 1.6 !important;
+  line-height: 1.65 !important;
   font-size: 15px !important;
-}
-
-html body .login-page,
-html [class*="login"] {
-  background: #fff !important;
-  color: var(--k-text) !important;
 }
 
 html .kilode-shell .e-hero,
@@ -414,51 +508,35 @@ html .kilode-shell .glass-3d {
   color: #fff !important;
   border-color: var(--k-blue) !important;
   box-shadow: 0 2px 8px rgba(24, 119, 242, 0.22) !important;
+  font-size: var(--k-fs-label) !important;
+  font-weight: 700 !important;
 }
 .btn-3d {
   background: var(--k-surface-3) !important;
   color: var(--k-text) !important;
   border: 1px solid var(--k-border) !important;
   box-shadow: none !important;
-}
-.nav-pill.on {
-  background: var(--k-blue-soft) !important;
-  border-color: rgba(24, 119, 242, 0.28) !important;
-  color: var(--k-blue) !important;
+  font-size: var(--k-fs-meta) !important;
 }
 
-/* Cinema immersive */
 html .kilode-shell .cinema-live-card {
   background: var(--k-cinema-panel) !important;
   border: 1px solid var(--k-cinema-line) !important;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35) !important;
   color: #F4F6FB !important;
 }
-html .kilode-shell .group:hover img {
+html .kilode-shell .group img {
+  transition: transform var(--k-motion) var(--k-ease);
+}
+html .kilode-shell .group:hover img,
+html .kilode-shell .group:active img {
   transform: scale(1.03);
-  transition: transform 220ms ease;
 }
-html .kilode-shell .text-lime-2 {
-  color: var(--k-blue) !important;
-}
-html .kilode-shell .fill-lime-2 {
-  fill: var(--k-blue) !important;
-}
-html .kilode-shell .border-lime-2\/40,
-html .kilode-shell .border-lime-2\/50 {
-  border-color: rgba(24, 119, 242, 0.4) !important;
-}
+html .kilode-shell .text-lime-2 { color: var(--k-blue) !important; }
+html .kilode-shell .fill-lime-2 { fill: var(--k-blue) !important; }
 
-.k-fade-in {
-  animation: kFade 220ms ease both;
-}
-@keyframes kFade {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.k-title { font-size: 18px; font-weight: 750; letter-spacing: -0.02em; color: var(--k-text); }
-.k-section { font-size: 13px; font-weight: 700; color: var(--k-text); }
-.k-body { font-size: 14px; line-height: 1.45; color: var(--k-text); }
-.k-meta { font-size: 11px; color: var(--k-text-2); }
-.k-caption { font-size: 10px; color: var(--k-text-3); letter-spacing: 0.04em; }
+.k-title { font-size: var(--k-fs-display); font-weight: 750; letter-spacing: -0.02em; color: var(--k-text); }
+.k-section { font-size: var(--k-fs-label); font-weight: 700; color: var(--k-text); }
+.k-body { font-size: var(--k-fs-body); line-height: var(--k-lh-body); color: var(--k-text); }
+.k-meta { font-size: var(--k-fs-meta); color: var(--k-text-2); }
+.k-caption { font-size: var(--k-fs-caption); color: var(--k-text-3); letter-spacing: 0.04em; }
