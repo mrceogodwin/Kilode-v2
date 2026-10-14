@@ -1,11 +1,36 @@
 let on = true;
 let audio: AudioContext | null = null;
+let loaded = false;
 
+function readPref() {
+  if (loaded || typeof window === "undefined") return;
+  loaded = true;
+  try {
+    const v = localStorage.getItem("kilode-sfx");
+    if (v === "0") on = false;
+    if (v === "1") on = true;
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Optional interface sounds. Off by default only if user set kilode-sfx=0. */
 export function setSounds(next: boolean) {
   on = next;
+  try {
+    localStorage.setItem("kilode-sfx", next ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function soundsEnabled() {
+  readPref();
+  return on;
 }
 
 function tone() {
+  readPref();
   if (!on || typeof window === "undefined") return null;
   const AC = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AC) return null;
@@ -14,7 +39,7 @@ function tone() {
   return audio;
 }
 
-/** Kilode's own short click. Nothing is played when super admin turns sounds off. */
+/** Kilode's own short click. Nothing plays when sounds are off or before user gesture. */
 export function kilodeSound(kind: "tick" | "sent" | "sheet" | "ask") {
   const ac = tone();
   if (!ac) return;
