@@ -1,1 +1,103 @@
-PLACEHOLDER3
+/* ========== TRENDING TICKER — horizontal marquee (was wall of text) ========== */
+html .sf-tick,
+html .kilode-shell .sf-tick,
+html .kilode-shell[data-sf="1"] .sf-tick {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 6px 12px !important;
+  min-height: 32px !important;
+  overflow: hidden !important;
+  background: #fff !important;
+  border-bottom: 1px solid #E7ECF2 !important;
+}
+html .sf-tick-label {
+  flex: 0 0 auto !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  color: #1877F2 !important;
+  text-transform: uppercase !important;
+}
+html .sf-tick-track {
+  flex: 1 1 auto !important;
+  overflow: hidden !important;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent) !important;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent) !important;
+}
+html .sf-tick-marquee {
+  display: inline-block !important;
+  white-space: nowrap !important;
+  animation: sfTick 28s linear infinite !important;
+  font-size: 12px !important;
+  color: #334155 !important;
+}
+@keyframes sfTick {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ========== BLUE CHROME FALLBACK ========== */
+html .kilode-shell[data-sf="1"] .sf-top,
+html .kilode-shell[data-sf="1"] header.sf-top {
+  background: #1877F2 !important;
+  color: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock {
+  background: #1877F2 !important;
+  color: #fff !important;
+  border-top: none !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock button {
+  color: rgba(255,255,255,0.85) !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock button.on,
+html .kilode-shell[data-sf="1"] .sf-dock button[aria-current="true"] {
+  color: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock .sf-dock-lab {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-plus {
+  background: #fff !important;
+  color: #1877F2 !important;
+  border-radius: 16px !important;
+  width: 48px !important;
+  height: 48px !important;
+  margin-top: -12px !important;
+  box-shadow: 0 4px 12px rgba(24,119,242,0.35) !important;
+}
+
+/* ========== MEDIA LANE ========== */
+.sf-media-tick { overflow: hidden; padding: 8px 12px; border-bottom: 1px solid #E7ECF2; }
+.sf-carousel { display: flex; gap: 10px; overflow-x: auto; padding: 12px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+.sf-carousel::-webkit-scrollbar { display: none; }
+.sf-card { flex: 0 0 78%; scroll-snap-align: start; border-radius: 14px; overflow: hidden; background: #0f172a; color: #fff; position: relative; min-height: 160px; }
+.sf-card img { width: 100%; height: 160px; object-fit: cover; display: block; }
+.sf-card .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px; background: linear-gradient(transparent, rgba(0,0,0,0.75)); font-size: 13px; font-weight: 700; }
+.sf-segs { display: flex; gap: 8px; padding: 8px 12px; overflow-x: auto; }
+.sf-segs button { flex: 0 0 auto; border: 1px solid #E7ECF2; background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 600; color: #334155; }
+.sf-segs button.on { background: #1877F2; color: #fff; border-color: #1877F2; }
+.sf-role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
+.sf-role-card { border: 1px solid #E7ECF2; border-radius: 12px; padding: 12px; background: #fff; }
+.sf-news-list { padding: 0 12px 12px; }
+.sf-news-row { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #F1F5F9; align-items: center; }
+.sf-news-row img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; }
+.sf-ads-box { margin: 12px; padding: 12px; border: 1px dashed #CBD5E1; border-radius: 12px; background: #F8FAFC; text-align: center; font-size: 12px; color: #64748B; }
+
+/* PushStrip */
+.push-strip { padding: 8px 12px; }
+.push-card { border: 1px solid #E7ECF2; border-radius: 12px; padding: 12px; background: #fff; margin-bottom: 8px; }
+
+/* Find / acts */
+.sf-find { padding: 8px 12px; }
+.sf-find input { width: 100%; border: 1px solid #E7ECF2; border-radius: 999px; padding: 10px 14px; font-size: 14px; }
+.sf-acts { display: flex; gap: 8px; }
+.sf-acts button { background: #F1F5F9; border: 0; border-radius: 999px; padding: 6px 10px; font-size: 12px; color: #334155; }
+
+/* Dock safe area */
+.sf-dock { padding-bottom: max(8px, env(safe-area-inset-bottom)) !important; }
+.sf-empty { text-align: center !important; color: #94A3B8 !important; font-size: 13px !important; padding: 24px 16px !important; }
