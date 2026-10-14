@@ -1,6 +1,6 @@
-/* Kilode v2 — full design system per redesign protocol
-   White + #1877F2 | tiny typography | motion tokens | Cinema atmosphere
-   Not surface-only: type scale, press, dock, reduced-motion, dividers */
+/* Kilode v2 — design system
+   Content: white canvas. Chrome: BLUE header + BLUE bottom dock (#1877F2).
+   Type scale, motion, Cinema dark panel preserved. */
 
 :root, html {
   --color-bg: #FFFFFF !important;
@@ -29,6 +29,10 @@
   --k-blue: #1877F2;
   --k-blue-2: #145DBF;
   --k-blue-soft: rgba(24, 119, 242, 0.10);
+  --k-chrome: #1877F2;
+  --k-chrome-2: #145DBF;
+  --k-chrome-fg: #FFFFFF;
+  --k-chrome-muted: rgba(255, 255, 255, 0.72);
   --k-radius: 12px;
   --k-radius-sm: 8px;
   --k-radius-lg: 16px;
@@ -85,14 +89,15 @@ html .kilode-shell {
   color: var(--k-text) !important;
 }
 
+/* ========== BLUE HEADER ========== */
 html .kilode-shell[data-sf="1"] .sf-bar,
 html .kilode-shell[data-sf="1"][data-home="0"] .kilode-chrome,
 html .kilode-shell .kilode-chrome,
 html .kilode-shell .kilode-header-capsule {
-  background: #FFFFFF !important;
-  color: var(--k-text) !important;
-  border-bottom: 1px solid var(--k-border) !important;
-  box-shadow: none !important;
+  background: var(--k-chrome) !important;
+  color: var(--k-chrome-fg) !important;
+  border-bottom: none !important;
+  box-shadow: 0 2px 12px rgba(20, 93, 191, 0.22) !important;
   min-height: 52px !important;
   padding-top: max(6px, env(safe-area-inset-top, 0px)) !important;
 }
@@ -107,13 +112,13 @@ html .kilode-shell[data-sf="1"] .sf-chrome-logo {
   height: 26px !important;
   max-width: 118px !important;
   width: auto !important;
-  filter: none !important;
+  filter: brightness(0) invert(1) !important;
   object-fit: contain !important;
 }
 html .kilode-shell[data-sf="1"] .sf-menu {
   width: 36px !important;
   height: 36px !important;
-  color: var(--k-text) !important;
+  color: var(--k-chrome-fg) !important;
 }
 html .kilode-shell[data-sf="1"] .sf-tools {
   margin-left: auto !important;
@@ -122,30 +127,37 @@ html .kilode-shell[data-sf="1"] .sf-tools {
   gap: 2px !important;
 }
 html .kilode-shell[data-sf="1"] .sf-tools button {
-  color: var(--k-text) !important;
+  color: var(--k-chrome-muted) !important;
   background: transparent !important;
   width: 36px !important;
   height: 36px !important;
   border-radius: 10px !important;
 }
+html .kilode-shell[data-sf="1"] .sf-tools button svg {
+  color: inherit !important;
+  stroke: currentColor !important;
+}
 html .kilode-shell[data-sf="1"] .sf-tools button.on,
 html .kilode-shell[data-sf="1"] .sf-tools button.on svg {
-  color: var(--k-blue) !important;
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.18) !important;
 }
 html .kilode-shell[data-sf="1"] .sf-ava,
 html .kilode-shell[data-sf="1"] .sf-ava img {
   width: 28px !important;
   height: 28px !important;
   border-radius: 999px !important;
+  border: 2px solid rgba(255, 255, 255, 0.55) !important;
 }
 
+/* ========== BLUE BOTTOM DOCK ========== */
 html .kilode-shell[data-sf="1"] .sf-dock,
 html .kilode-shell[data-sf="1"][data-home="0"] .dock,
 html .kilode-shell .dock {
-  background: #FFFFFF !important;
-  color: var(--k-text) !important;
-  border-top: 1px solid var(--k-border) !important;
-  box-shadow: 0 -4px 16px rgba(23, 32, 51, 0.06) !important;
+  background: var(--k-chrome) !important;
+  color: var(--k-chrome-fg) !important;
+  border-top: none !important;
+  box-shadow: 0 -4px 18px rgba(20, 93, 191, 0.28) !important;
   height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
   padding-bottom: env(safe-area-inset-bottom, 0px) !important;
   display: flex !important;
@@ -155,18 +167,18 @@ html .kilode-shell .dock .app-tab {
   font-size: var(--k-fs-nav) !important;
   font-weight: 650 !important;
   letter-spacing: 0.02em !important;
-  color: var(--k-text-3) !important;
+  color: var(--k-chrome-muted) !important;
   gap: 3px !important;
 }
 html .kilode-shell .dock .app-tab.on {
-  color: var(--k-blue) !important;
+  color: #fff !important;
 }
 html .kilode-shell .dock .dock-liquid {
-  background: var(--k-blue-soft) !important;
+  background: rgba(255, 255, 255, 0.18) !important;
   border-radius: 12px !important;
 }
 html .kilode-shell[data-sf="1"] .sf-dock > button {
-  color: var(--k-text-3) !important;
+  color: var(--k-chrome-muted) !important;
   position: relative !important;
   flex: 1 !important;
   display: flex !important;
@@ -182,6 +194,8 @@ html .kilode-shell[data-sf="1"] .sf-dock > button {
 html .kilode-shell[data-sf="1"] .sf-dock > button svg {
   width: 20px !important;
   height: 20px !important;
+  color: inherit !important;
+  stroke: currentColor !important;
 }
 html .kilode-shell[data-sf="1"] .sf-dock-lab {
   font-size: var(--k-fs-nav) !important;
@@ -200,9 +214,10 @@ html .kilode-shell[data-sf="1"] .sf-me img {
   width: 22px !important;
   height: 22px !important;
   border-radius: 999px !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
 }
 html .kilode-shell[data-sf="1"] .sf-dock > button.on {
-  color: var(--k-blue) !important;
+  color: #fff !important;
 }
 html .kilode-shell[data-sf="1"] .sf-dock > button.on::after {
   content: "" !important;
@@ -212,19 +227,24 @@ html .kilode-shell[data-sf="1"] .sf-dock > button.on::after {
   bottom: 3px !important;
   height: 2px !important;
   border-radius: 2px !important;
-  background: var(--k-blue) !important;
+  background: #fff !important;
 }
+/* Plus on blue dock: white pill + blue mark */
 html .kilode-shell[data-sf="1"] .sf-plus {
-  background: var(--k-blue) !important;
-  color: #fff !important;
+  background: #fff !important;
+  color: var(--k-blue) !important;
   border-radius: 14px !important;
-  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.28) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
   max-width: 56px !important;
   margin: 6px 4px !important;
 }
+html .kilode-shell[data-sf="1"] .sf-plus svg {
+  color: var(--k-blue) !important;
+  stroke: var(--k-blue) !important;
+}
 html .kilode-shell[data-sf="1"] .sf-plus i {
   background: transparent !important;
-  color: #fff !important;
+  color: var(--k-blue) !important;
   font-size: 8px !important;
   font-style: normal !important;
   font-weight: 800 !important;
@@ -232,6 +252,7 @@ html .kilode-shell[data-sf="1"] .sf-plus i {
 }
 html .kilode-shell[data-sf="1"] .sf-plus::after { display: none !important; }
 
+/* Content stays white */
 html .kilode-shell[data-sf="1"] .sf { background: var(--k-surface-2) !important; }
 html .kilode-shell[data-sf="1"] .sf-scroll { padding: 8px 0 110px !important; }
 html .kilode-shell[data-sf="1"] .sf-box {
