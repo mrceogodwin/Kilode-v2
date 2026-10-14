@@ -48,6 +48,21 @@ const OPEN_MAP: Record<string, MenuId> = {
   leaderboard: "leaderboard",
   contact: "contact",
   tv: "tv",
+  watch: "tv",
+  feeds: "forum",
+  chat: "community",
+};
+
+const TAB_TO_KEY: Record<string, string> = {
+  feeds: "forum",
+  chat: "communities",
+  watch: "cinema",
+  cinema: "cinema",
+  music: "music",
+  jobs: "jobs",
+  market: "market",
+  ads: "ads",
+  me: "me",
 };
 
 function readOpenKey(): string {
@@ -65,7 +80,7 @@ function readOpen(): MenuId | null {
 }
 
 function screenTitle(id: MenuId, openKey: string) {
-  if (openKey === "cinema") return "Cinema";
+  if (openKey === "cinema" || openKey === "watch") return "Cinema";
   if (openKey === "music") return "Music";
   if (openKey === "tv") return "Kilode TV";
   const map: Partial<Record<MenuId, string>> = {
@@ -115,18 +130,6 @@ function Shell() {
   const [screen, setScreen] = useState<MenuId | null>(null);
   const [openKey, setOpenKey] = useState("");
 
-  useEffect(() => {
-    setSfxOn(soundsEnabled());
-    setScreen(readOpen());
-    setOpenKey(readOpenKey());
-    const onPop = () => {
-      setScreen(readOpen());
-      setOpenKey(readOpenKey());
-    };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
-
   const go = useCallback((id: MenuId | null, key?: string) => {
     setScreen(id);
     const k = key || (id ? Object.entries(OPEN_MAP).find(([, v]) => v === id)?.[0] || id : "");
@@ -139,6 +142,61 @@ function Shell() {
     } catch { /* ignore */ }
   }, []);
 
+  const goLogin = useCallback((mode: "in" | "up" = "up") => {
+    window.location.href = mode === "in" ? "/login?mode=in" : "/login?mode=up";
+  }, []);
+
+  const needAuth = ["dashboard", "create", "inbox", "notifications", "profile", "settings", "bookmarks"];
+
+  const openPane = useCallback(
+    (key: string) => {
+      setMenuOpen(false);
+      const id = OPEN_MAP[key];
+      if (!id) return;
+      if (!signedIn && needAuth.includes(id)) return goLogin("up");
+      go(id, key);
+    },
+    [signedIn, go, goLogin],
+  );
+
+  useEffect(() => {
+    setSfxOn(soundsEnabled());
+    setScreen(readOpen());
+    setOpenKey(readOpenKey());
+    const onPop = () => {
+      setScreen(readOpen());
+      setOpenKey(readOpenKey());
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // My Space / old shell bridge
+  useEffect(() => {
+    const onGoto = (ev: Event) => {
+      const d = (ev as CustomEvent).detail || {};
+      if (d.screen && typeof d.screen === "string") {
+        openPane(String(d.screen).toLowerCase());
+        return;
+      }
+      if (d.tab && typeof d.tab === "string") {
+        const key = TAB_TO_KEY[String(d.tab).toLowerCase()] || String(d.tab).toLowerCase();
+        if (key === "forum" || key === "feeds") {
+          go(null);
+          return;
+        }
+        openPane(key);
+      }
+    };
+    const onCreate = () => openPane("create");
+    window.addEventListener("kilode:goto", onGoto as EventListener);
+    window.addEventListener("kilode:create", onCreate);
+    return () => {
+      window.removeEventListener("kilode:goto", onGoto as EventListener);
+      window.removeEventListener("kilode:create", onCreate);
+    };
+  }, [openPane, go]);
+
   const toggleSfx = useCallback(() => {
     const next = !soundsEnabled();
     setSounds(next);
@@ -146,20 +204,7 @@ function Shell() {
     if (next) kilodeSound("tick");
   }, []);
 
-  const goLogin = (mode: "in" | "up" = "up") => {
-    window.location.href = mode === "in" ? "/login?mode=in" : "/login?mode=up";
-  };
-
   const close = () => setMenuOpen(false);
-  const needAuth = ["dashboard", "create", "inbox", "notifications", "profile", "settings", "bookmarks"];
-
-  const openPane = (key: string) => {
-    close();
-    const id = OPEN_MAP[key];
-    if (!id) return;
-    if (!signedIn && needAuth.includes(id)) return goLogin("up");
-    go(id, key);
-  };
 
   const row = (icon: ReactNode, label: string, onClick: () => void): ReactNode => (
     <button
@@ -194,7 +239,7 @@ function Shell() {
     </p>
   );
 
-  const immersive = openKey === "cinema";
+  const immersive = openKey === "cinema" || openKey === "watch";
 
   return (
     <div
@@ -230,7 +275,7 @@ function Shell() {
             {immersive ? (
               <CinemaPane />
             ) : (
-              <QonvoScreen id={screen} store={store} onHome={() => go(null)} onForum={() => go("forum")} />
+              <QonvoScreen id={screen} store={store} onHome={() => go(null)} onForum={() => go("forum", "forum")} />
             )}
           </div>
         </div>
