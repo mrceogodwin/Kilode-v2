@@ -1,7 +1,10 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { Briefcase, Clapperboard, Eye, Heart, Home, Menu, MessageCircle, Music, Plus, Search, Send, Share2, Store, ThumbsUp, Users, Megaphone, Building2, Calendar } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  Briefcase, Clapperboard, Eye, Hash, Home, Menu, MessageCircle, Music, Plus,
+  Search, Share2, Store, ThumbsUp, Users, Megaphone, Building2, Calendar,
+} from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { likeTake, listStories, listTakes, saveTake, voteTake, type FellowRow, type TakeRow } from "@/lib/takes-server";
+import { likeTake, listTakes, saveTake, voteTake, type FellowRow, type TakeRow } from "@/lib/takes-server";
 import { SitePulsePanel } from "@/components/pulse-panel";
 import { PushStrip } from "@/components/artist-push";
 
@@ -92,6 +95,9 @@ export function SocialFirst({
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [note, setNote] = useState("");
+  const [dockHidden, setDockHidden] = useState(false);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const lastY = useRef(0);
 
   useEffect(() => {
     let alive = true;
@@ -109,6 +115,21 @@ export function SocialFirst({
     })();
     return () => { alive = false; };
   }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const y = el.scrollTop;
+      const dy = y - lastY.current;
+      if (y < 24) setDockHidden(false);
+      else if (dy > 8) setDockHidden(true);
+      else if (dy < -8) setDockHidden(false);
+      lastY.current = y;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [lane]);
 
   const refresh = async () => {
     try {
@@ -153,26 +174,73 @@ export function SocialFirst({
   const tickText = trending.map((t) => (t.body || "").slice(0, 48)).filter(Boolean).join("  ·  ") || "Talk Nigeria. Live.";
   const know = people.filter((p) => p.handle && p.handle.toLowerCase() !== (me || "").toLowerCase()).slice(0, 8);
 
-  const open = (key: string) => {
-    if (onOpen) onOpen(key);
+  const open = (key: string) => { if (onOpen) onOpen(key); };
+
+  const create = () => {
+    if (!authed) return onNeedAuth();
+    onCreate();
+  };
+
+  const dockBtn: React.CSSProperties = {
+    background: "none",
+    border: 0,
+    color: "#fff",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 2,
+    fontSize: 10,
+    flex: 1,
+    padding: "4px 0",
   };
 
   return (
-    <div className="sf-root" data-sf="1" style={{ height: "100%", display: "flex", flexDirection: "column", background: "#fff", minHeight: 0 }}>
-      <header className="sf-top" style={{ background: "#1877F2", color: "#fff", padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-        <button type="button" onClick={onMenu} aria-label="Menu" style={{ background: "none", border: 0, color: "#fff", padding: 4 }}><Menu size={20} /></button>
+    <div className="sf-root" data-sf="1" style={{ height: "100%", display: "flex", flexDirection: "column", background: "#fff", minHeight: 0, position: "relative" }}>
+      {/* Header: menu · brand · forum · messages */}
+      <header className="sf-top" style={{ background: "#1877F2", color: "#fff", padding: "10px 12px", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+        <button type="button" onClick={onMenu} aria-label="Menu" style={{ background: "none", border: 0, color: "#fff", padding: 4 }}>
+          <Menu size={20} />
+        </button>
         <strong style={{ flex: 1, fontSize: 18, fontWeight: 800 }}>Kilode!</strong>
-        <button type="button" aria-label="Likes" onClick={onLikes} style={{ background: "none", border: 0, color: "#fff" }}><Heart size={18} /></button>
-        <button type="button" aria-label="Send" onClick={onSend} style={{ background: "none", border: 0, color: "#fff" }}><Send size={18} /></button>
+        <button
+          type="button"
+          aria-label="Search"
+          onClick={() => setFind((v) => !v)}
+          style={{ background: "none", border: 0, color: "#fff", padding: 6 }}
+        >
+          <Search size={18} />
+        </button>
+        <button
+          type="button"
+          aria-label="Forum chat"
+          onClick={() => open("communities")}
+          style={{ background: "none", border: 0, color: "#fff", padding: 6 }}
+        >
+          <Hash size={18} />
+        </button>
+        <button
+          type="button"
+          aria-label="Messages"
+          onClick={onSend}
+          style={{ background: "none", border: 0, color: "#fff", padding: 6 }}
+        >
+          <MessageCircle size={18} />
+        </button>
       </header>
 
       {find ? (
         <div className="sf-find" style={{ padding: "8px 12px", borderBottom: "1px solid #E7ECF2" }}>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search takes…" style={{ width: "100%", border: "1px solid #E7ECF2", borderRadius: 999, padding: "10px 14px", fontSize: 14 }} />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search takes…"
+            autoFocus
+            style={{ width: "100%", border: "1px solid #E7ECF2", borderRadius: 999, padding: "10px 14px", fontSize: 14 }}
+          />
         </div>
       ) : null}
 
-      <div style={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+      <div ref={scrollRef} style={{ flex: 1, overflow: "auto", minHeight: 0, paddingBottom: dockHidden ? 24 : 8 }}>
         {lane === "feed" ? (
           <>
             <div className="sf-tick" aria-label="Trending">
@@ -266,7 +334,6 @@ export function SocialFirst({
               ))}
             </div>
 
-            {/* Architecture hub widgets — tap opens full screen */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: 12 }}>
               {HUBS.map((h) => {
                 const Icon = h.icon;
@@ -294,21 +361,7 @@ export function SocialFirst({
               })}
             </div>
 
-            {/* Ad strip 1 */}
-            <button
-              type="button"
-              onClick={() => open("ads")}
-              style={{
-                display: "block",
-                width: "calc(100% - 24px)",
-                margin: "4px 12px 12px",
-                padding: "14px 16px",
-                borderRadius: 14,
-                border: "1px dashed rgba(24,119,242,0.35)",
-                background: "linear-gradient(135deg,#EFF6FF,#F8FAFC)",
-                textAlign: "left",
-              }}
-            >
+            <button type="button" onClick={() => open("ads")} style={{ display: "block", width: "calc(100% - 24px)", margin: "4px 12px 12px", padding: "14px 16px", borderRadius: 14, border: "1px dashed rgba(24,119,242,0.35)", background: "linear-gradient(135deg,#EFF6FF,#F8FAFC)", textAlign: "left" }}>
               <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: "#1877F2", textTransform: "uppercase" }}>Sponsored</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#172033", marginTop: 4 }}>Reach Naija audiences on Kilode</div>
               <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Place an ad · Feeds · Chat · Cinema</div>
@@ -326,21 +379,7 @@ export function SocialFirst({
               ) : null}
             </div>
 
-            {/* Ad strip 2 */}
-            <button
-              type="button"
-              onClick={() => open("ads")}
-              style={{
-                display: "block",
-                width: "calc(100% - 24px)",
-                margin: "0 12px 12px",
-                padding: "12px 14px",
-                borderRadius: 12,
-                border: "1px solid #E7ECF2",
-                background: "#fff",
-                textAlign: "left",
-              }}
-            >
+            <button type="button" onClick={() => open("ads")} style={{ display: "block", width: "calc(100% - 24px)", margin: "0 12px 12px", padding: "12px 14px", borderRadius: 12, border: "1px solid #E7ECF2", background: "#fff", textAlign: "left" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8" }}>AD · Kilode</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#172033", marginTop: 2 }}>Promote your brand between the stories people actually read.</div>
             </button>
@@ -358,24 +397,7 @@ export function SocialFirst({
               ))}
             </div>
 
-            {/* Ad strip 3 bottom */}
-            <button
-              type="button"
-              onClick={() => open("ads")}
-              style={{
-                display: "block",
-                width: "calc(100% - 24px)",
-                margin: "0 12px 16px",
-                padding: "16px",
-                borderRadius: 14,
-                border: 0,
-                background: "#1877F2",
-                color: "#fff",
-                textAlign: "center",
-                fontWeight: 700,
-                fontSize: 14,
-              }}
-            >
+            <button type="button" onClick={() => open("ads")} style={{ display: "block", width: "calc(100% - 24px)", margin: "0 12px 16px", padding: "16px", borderRadius: 14, border: 0, background: "#1877F2", color: "#fff", textAlign: "center", fontWeight: 700, fontSize: 14 }}>
               Place an ad on Kilode →
             </button>
 
@@ -386,12 +408,59 @@ export function SocialFirst({
         )}
       </div>
 
-      <nav className="sf-dock" aria-label="Primary" style={{ display: "flex", background: "#1877F2", color: "#fff", padding: "8px 0 max(8px, env(safe-area-inset-bottom))", justifyContent: "space-around", alignItems: "center", flexShrink: 0 }}>
-        <button type="button" className={lane === "feed" ? "on" : ""} aria-label="Home" onClick={() => setLane("feed")} style={{ background: "none", border: 0, color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, fontSize: 10 }}><Home size={20} /><span className="sf-dock-lab">Home</span></button>
-        <button type="button" className={find ? "on" : ""} aria-label="Search" onClick={() => setFind((v) => !v)} style={{ background: "none", border: 0, color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, fontSize: 10 }}><Search size={20} /><span className="sf-dock-lab">Search</span></button>
-        <button type="button" className="sf-plus" aria-label="Create" onClick={() => { if (!authed) { onNeedAuth(); return; } onCreate(); }} style={{ background: "#fff", color: "#1877F2", border: 0, borderRadius: 16, width: 48, height: 48, marginTop: -12, boxShadow: "0 4px 12px rgba(24,119,242,0.35)", display: "grid", placeItems: "center" }}><Plus size={22} /></button>
-        <button type="button" className={lane === "media" ? "on" : ""} aria-label="Media" onClick={() => setLane("media")} style={{ background: "none", border: 0, color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, fontSize: 10 }}><Orbit /><span className="sf-dock-lab">Media</span></button>
-        <button type="button" className="sf-me" aria-label="Me" onClick={onMe} style={{ background: "none", border: 0, color: "#fff", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, fontSize: 10 }}>
+      {/* Twitter-style floating + — always available; sits bottom-right when dock hides */}
+      <button
+        type="button"
+        aria-label="Create"
+        onClick={create}
+        style={{
+          position: "absolute",
+          right: 16,
+          bottom: dockHidden ? "max(20px, env(safe-area-inset-bottom))" : 72,
+          zIndex: 40,
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          border: 0,
+          background: "#1877F2",
+          color: "#fff",
+          boxShadow: "0 6px 20px rgba(24,119,242,0.45)",
+          display: "grid",
+          placeItems: "center",
+          transition: "bottom 0.22s ease, transform 0.22s ease",
+          transform: dockHidden ? "scale(1)" : "scale(0.92)",
+        }}
+      >
+        <Plus size={26} strokeWidth={2.5} />
+      </button>
+
+      {/* Bottom dock: Home · Media · Me — no Search (search lives in header) */}
+      <nav
+        className="sf-dock"
+        aria-label="Primary"
+        style={{
+          display: "flex",
+          background: "#1877F2",
+          color: "#fff",
+          padding: "8px 0 max(8px, env(safe-area-inset-bottom))",
+          justifyContent: "space-around",
+          alignItems: "center",
+          flexShrink: 0,
+          transform: dockHidden ? "translateY(110%)" : "translateY(0)",
+          transition: "transform 0.22s ease",
+          position: "relative",
+          zIndex: 30,
+        }}
+      >
+        <button type="button" className={lane === "feed" ? "on" : ""} aria-label="Home" onClick={() => setLane("feed")} style={dockBtn}>
+          <Home size={20} />
+          <span className="sf-dock-lab">Home</span>
+        </button>
+        <button type="button" className={lane === "media" ? "on" : ""} aria-label="Media" onClick={() => setLane("media")} style={dockBtn}>
+          <Orbit />
+          <span className="sf-dock-lab">Media</span>
+        </button>
+        <button type="button" className="sf-me" aria-label="Me" onClick={onMe} style={dockBtn}>
           <img src={avatarUrl(me || "me", face)} alt="" width={22} height={22} style={{ borderRadius: "50%" }} />
           <span className="sf-dock-lab">Me</span>
         </button>
