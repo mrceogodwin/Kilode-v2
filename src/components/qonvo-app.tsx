@@ -1,12 +1,53 @@
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
-import { X, Volume2, VolumeX } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { X, Volume2, VolumeX, ChevronLeft } from "lucide-react";
 import { PublicSiteProvider } from "@/components/site-chrome";
 import type { PublicSite } from "@/lib/site-server";
 import { SocialFirst } from "@/components/social-first";
+import { QonvoScreen } from "@/components/qonvo-screens";
 import { useQonvo } from "@/lib/use-qonvo";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { kilodeSound, setSounds, soundsEnabled } from "@/lib/sfx";
 import { STAFF_PATH } from "@/lib/staff-path";
+import type { MenuId } from "@/lib/qonvo-data";
+
+const OPEN_MAP: Record<string, MenuId> = {
+  jobs: "jobs",
+  market: "market",
+  rent: "rent",
+  me: "dashboard",
+  dashboard: "dashboard",
+  create: "create",
+  cinema: "tv",
+  music: "tv",
+  communities: "community",
+  community: "community",
+  notes: "notifications",
+  inbox: "inbox",
+  search: "search",
+  ads: "ads",
+  spaces: "spaces",
+  trending: "trending",
+  profile: "profile",
+  settings: "settings",
+  help: "help",
+  how: "how",
+  pricing: "pricing",
+  admin: "admin",
+  article: "forum",
+  news: "forum",
+};
+
+function readOpen(): MenuId | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const u = new URL(window.location.href);
+    const raw = (u.searchParams.get("open") || "").toLowerCase().trim();
+    if (!raw) return null;
+    return OPEN_MAP[raw] || null;
+  } catch {
+    return null;
+  }
+}
 
 export function QonvoApp({ initialSite }: { initialSite?: PublicSite } = {}) {
   return (
@@ -22,19 +63,29 @@ function Shell() {
   const signedIn = Boolean(session.user);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sfxOn, setSfxOn] = useState(true);
-  const [isStaff, setIsStaff] = useState(false);
+  const [screen, setScreen] = useState<MenuId | null>(null);
 
   useEffect(() => {
     setSfxOn(soundsEnabled());
+    setScreen(readOpen());
+    const onPop = () => setScreen(readOpen());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  useEffect(() => {
-    if (!signedIn) { setIsStaff(false); return; }
+  const go = useCallback((id: MenuId | null) => {
+    setScreen(id);
     try {
-      const flag = localStorage.getItem("kilode-staff-hint");
-      setIsStaff(flag === "1");
+      const u = new URL(window.location.href);
+      if (!id) {
+        u.searchParams.delete("open");
+      } else {
+        const key = Object.entries(OPEN_MAP).find(([, v]) => v === id)?.[0] || id;
+        u.searchParams.set("open", key);
+      }
+      window.history.pushState({}, "", u.toString());
     } catch { /* ignore */ }
-  }, [signedIn]);
+  }, []);
 
   const toggleSfx = useCallback(() => {
     const next = !soundsEnabled();
@@ -64,45 +115,79 @@ function Shell() {
     fontSize: 13,
   };
 
+  const openPane = (key: string) => {
+    close();
+    const id = OPEN_MAP[key];
+    if (!id) return;
+    if (!signedIn && ["dashboard", "create", "inbox", "notifications", "profile", "settings"].includes(id)) {
+      return goLogin("up");
+    }
+    go(id);
+  };
+
   return (
     <div
       className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg"
       data-sf="1"
-      data-home="1"
+      data-home={screen ? "0" : "1"}
       data-paper="1"
       style={{ height: "100dvh", maxHeight: "100dvh" }}
     >
-      <SocialFirst
-        me={store.handle || ""}
-        face={store.face}
-        authed={store.authed || signedIn}
-        news={store.posts}
-        onLikes={() => {
-          close();
-          if (!signedIn) return goLogin("up");
-          window.location.href = "/?open=notes";
-        }}
-        onSend={() => {
-          close();
-          if (!signedIn) return goLogin("in");
-          window.location.href = "/?open=inbox";
-        }}
-        onCreate={() => {
-          close();
-          if (!signedIn) return goLogin("up");
-          window.location.href = "/?open=create";
-        }}
-        onMe={() => {
-          close();
-          if (!signedIn) return goLogin("up");
-          window.location.href = "/?open=me";
-        }}
-        onMenu={() => setMenuOpen(true)}
-        onOpenNews={(id) => {
-          window.location.href = id ? `/?open=article&id=${encodeURIComponent(id)}` : "/?open=news";
-        }}
-        onNeedAuth={() => goLogin("up")}
-      />
+      {screen ? (
+        <div className="flex min-h-0 flex-1 flex-col" style={{ background: "#fff" }}>
+          <header
+            style={{
+              background: "#1877F2",
+              color: "#fff",
+              padding: "10px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexShrink: 0,
+            }}
+          >
+            <button
+              type="button"
+              aria-label="Back"
+              onClick={() => go(null)}
+              style={{ background: "none", border: 0, color: "#fff", padding: 4, display: "flex", alignItems: "center" }}
+            >
+              <ChevronLeft size={22} />
+            </button>
+            <strong style={{ flex: 1, fontSize: 16, fontWeight: 700, textTransform: "capitalize" }}>
+              {screen === "dashboard" ? "My Space" : screen === "tv" ? "Cinema" : screen}
+            </strong>
+            <button type="button" onClick={() => setMenuOpen(true)} style={{ background: "none", border: 0, color: "#fff", fontSize: 13, fontWeight: 600 }}>
+              Menu
+            </button>
+          </header>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <QonvoScreen
+              id={screen}
+              store={store}
+              onHome={() => go(null)}
+              onForum={() => go("forum")}
+            />
+          </div>
+        </div>
+      ) : (
+        <SocialFirst
+          me={store.handle || ""}
+          face={store.face}
+          authed={store.authed || signedIn}
+          news={store.posts}
+          onLikes={() => openPane("notes")}
+          onSend={() => openPane("inbox")}
+          onCreate={() => openPane("create")}
+          onMe={() => openPane("me")}
+          onMenu={() => setMenuOpen(true)}
+          onOpenNews={(id) => {
+            if (id) window.location.href = `/p/${encodeURIComponent(id)}`;
+            else openPane("news");
+          }}
+          onNeedAuth={() => goLogin("up")}
+        />
+      )}
 
       {menuOpen ? (
         <div className="fixed inset-0 z-[80] flex" style={{ background: "rgba(0,0,0,0.45)" }}>
@@ -117,25 +202,31 @@ function Shell() {
               </button>
             </div>
 
-            <button type="button" style={rowStyle} onClick={() => { close(); window.location.href = "/"; }}>
+            <button type="button" style={rowStyle} onClick={() => { close(); go(null); }}>
               Home feed
             </button>
-            <button type="button" style={rowStyle} onClick={() => { close(); window.location.href = "/?open=jobs"; }}>
+            <button type="button" style={rowStyle} onClick={() => openPane("jobs")}>
               Jobs
             </button>
-            <button type="button" style={rowStyle} onClick={() => { close(); window.location.href = "/?open=market"; }}>
+            <button type="button" style={rowStyle} onClick={() => openPane("market")}>
               Market
             </button>
-            <button type="button" style={rowStyle} onClick={() => { close(); window.location.href = "/?open=music"; }}>
-              Music
-            </button>
-            <button type="button" style={rowStyle} onClick={() => { close(); window.location.href = "/?open=cinema"; }}>
+            <button type="button" style={rowStyle} onClick={() => openPane("cinema")}>
               Cinema
             </button>
-            <button type="button" style={rowStyle} onClick={() => { close(); window.location.href = "/?open=communities"; }}>
+            <button type="button" style={rowStyle} onClick={() => openPane("communities")}>
               Communities
             </button>
-            {isStaff || signedIn ? (
+            <button type="button" style={rowStyle} onClick={() => openPane("me")}>
+              My Space
+            </button>
+            <button type="button" style={rowStyle} onClick={() => openPane("create")}>
+              Create
+            </button>
+            <button type="button" style={rowStyle} onClick={() => openPane("ads")}>
+              Ads
+            </button>
+            {signedIn ? (
               <button type="button" style={rowStyle} onClick={() => { close(); window.location.href = STAFF_PATH; }}>
                 Staff desk
               </button>
