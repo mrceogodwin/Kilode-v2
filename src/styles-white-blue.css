@@ -461,17 +461,59 @@ html .kilode-shell[data-sf="1"] .sf-mosaic button {
   border-radius: var(--k-radius) !important;
 }
 
+/* ========== MENU DRAWER: force white + blue selected ========== */
 html .kilode-shell[data-sf="1"] .menu-sheet,
-html .menu-sheet { background: #FFFFFF !important; color: var(--k-text) !important; }
-html .menu-hero-card,
-html .menu-press {
-  background: var(--k-surface-2) !important;
+html .menu-sheet,
+html .kilode-shell .menu-sheet {
+  background: #FFFFFF !important;
   color: var(--k-text) !important;
-  border-color: var(--k-border) !important;
 }
-html .kilode-shell[data-sf="1"] .menu-row.on {
+html .menu-hero-card,
+html .menu-press,
+html .kilode-shell .menu-hero-card,
+html .kilode-shell .menu-press {
+  background: #FFFFFF !important;
+  color: var(--k-text) !important;
+  border: 1px solid var(--k-border) !important;
+  box-shadow: none !important;
+}
+html .menu-sheet [class*="stat"],
+html .menu-sheet .menu-stats,
+html .menu-sheet .stat-card,
+html .menu-sheet .menu-press > div,
+html .kilode-shell .menu-sheet .bg-black,
+html .kilode-shell .menu-sheet .bg-neutral-900,
+html .kilode-shell .menu-sheet .bg-zinc-900,
+html .kilode-shell .menu-sheet .bg-gray-900 {
+  background: #F7F9FC !important;
+  color: var(--k-text) !important;
+  border: 1px solid var(--k-border) !important;
+}
+html .menu-row,
+html .kilode-shell .menu-row,
+html .menu-sheet button.menu-row,
+html .menu-sheet a.menu-row {
+  background: #FFFFFF !important;
+  color: var(--k-text) !important;
+  border: 1px solid var(--k-border) !important;
+  border-radius: 12px !important;
+}
+html .menu-row.on,
+html .kilode-shell[data-sf="1"] .menu-row.on,
+html .menu-sheet .menu-row.on {
   background: var(--k-blue-soft) !important;
   color: var(--k-blue) !important;
+  border-color: rgba(24, 119, 242, 0.35) !important;
+}
+html .menu-sheet .quick-actions button,
+html .menu-sheet .menu-quick button {
+  background: #FFFFFF !important;
+  color: var(--k-text) !important;
+  border: 1px solid var(--k-border) !important;
+}
+html .menu-sheet .text-white,
+html .menu-sheet .text-white\/80 {
+  color: var(--k-text) !important;
 }
 
 html .repost-sheet,
