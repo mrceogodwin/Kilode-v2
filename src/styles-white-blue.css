@@ -1,4 +1,4 @@
-/* Kilode v2 white + social blue — Stages 1–5 design system */
+/* Kilode v2 white + social blue — Stages 1–7 design system */
 :root, html {
   --color-bg: #FFFFFF !important;
   --color-panel: #FFFFFF !important;
@@ -31,6 +31,9 @@
   --k-radius-lg: 16px;
   --k-press: 120ms;
   --k-motion: 220ms;
+  --k-cinema-bg: #0B0D12;
+  --k-cinema-panel: #12151C;
+  --k-cinema-line: rgba(255,255,255,0.08);
   --report-bg: #FFFFFF;
   --report-fg: #172033;
   --report-muted: #64748B;
@@ -57,13 +60,11 @@ button:not(:disabled):active,
   transition: transform var(--k-press) ease;
 }
 
-/* Shell */
 html .kilode-shell {
   background: var(--k-bg) !important;
   color: var(--k-text) !important;
 }
 
-/* Header */
 html .kilode-shell[data-sf="1"] .sf-bar,
 html .kilode-shell[data-sf="1"][data-home="0"] .kilode-chrome,
 html .kilode-shell .kilode-chrome,
@@ -120,7 +121,6 @@ html .kilode-shell[data-sf="1"] .sf-ava img {
   border-radius: 999px !important;
 }
 
-/* Dock */
 html .kilode-shell[data-sf="1"] .sf-dock,
 html .kilode-shell[data-sf="1"][data-home="0"] .dock,
 html .kilode-shell .dock {
@@ -162,13 +162,8 @@ html .kilode-shell[data-sf="1"] .sf-plus i {
   color: var(--k-blue) !important;
 }
 
-/* Social feed */
-html .kilode-shell[data-sf="1"] .sf {
-  background: var(--k-surface-2) !important;
-}
-html .kilode-shell[data-sf="1"] .sf-scroll {
-  padding: 10px 12px 110px !important;
-}
+html .kilode-shell[data-sf="1"] .sf { background: var(--k-surface-2) !important; }
+html .kilode-shell[data-sf="1"] .sf-scroll { padding: 10px 12px 110px !important; }
 html .kilode-shell[data-sf="1"] .sf-post,
 html .kilode-shell[data-sf="1"] .sf-box,
 html .kilode-shell[data-sf="1"] .sf-know,
@@ -208,43 +203,20 @@ html .kilode-shell[data-sf="1"] .sf-tick {
   border-bottom: 1px solid var(--k-border) !important;
   color: var(--k-text-2) !important;
 }
-html .kilode-shell[data-sf="1"] .sf-tick b {
-  color: var(--k-blue) !important;
-}
+html .kilode-shell[data-sf="1"] .sf-tick b { color: var(--k-blue) !important; }
 html .kilode-shell[data-sf="1"] .sf-stories {
   display: flex !important;
   gap: 12px !important;
   overflow-x: auto !important;
   padding: 4px 2px 12px !important;
 }
-html .kilode-shell[data-sf="1"] .sf-story {
-  color: var(--k-text-2) !important;
-  font-size: 11px !important;
-}
-html .kilode-shell[data-sf="1"] .sf-post {
-  padding: 12px !important;
-  margin-bottom: 12px !important;
-}
-html .kilode-shell[data-sf="1"] .sf-shot {
-  margin: 8px 0 !important;
-  border-radius: 14px !important;
-  overflow: hidden !important;
-}
-html .kilode-shell[data-sf="1"] .sf-copy p {
-  color: var(--k-text) !important;
-  font-size: 14px !important;
-  line-height: 1.45 !important;
-}
+html .kilode-shell[data-sf="1"] .sf-story { color: var(--k-text-2) !important; font-size: 11px !important; }
+html .kilode-shell[data-sf="1"] .sf-post { padding: 12px !important; margin-bottom: 12px !important; }
+html .kilode-shell[data-sf="1"] .sf-shot { margin: 8px 0 !important; border-radius: 14px !important; overflow: hidden !important; }
+html .kilode-shell[data-sf="1"] .sf-copy p { color: var(--k-text) !important; font-size: 14px !important; line-height: 1.45 !important; }
 html .kilode-shell[data-sf="1"] .sf-acts,
-html .kilode-shell[data-sf="1"] .sf-liked {
-  color: var(--k-text-2) !important;
-  font-size: 12px !important;
-}
-html .kilode-shell[data-sf="1"] .sf-judge {
-  display: flex !important;
-  gap: 8px !important;
-  margin-top: 8px !important;
-}
+html .kilode-shell[data-sf="1"] .sf-liked { color: var(--k-text-2) !important; font-size: 12px !important; }
+html .kilode-shell[data-sf="1"] .sf-judge { display: flex !important; gap: 8px !important; margin-top: 8px !important; }
 html .kilode-shell[data-sf="1"] .sf-judge button {
   border: 1px solid var(--k-border) !important;
   background: var(--k-surface-2) !important;
@@ -258,18 +230,9 @@ html .kilode-shell[data-sf="1"] .sf-judge button.on {
   border-color: rgba(24, 119, 242, 0.35) !important;
   color: var(--k-blue) !important;
 }
-html .kilode-shell[data-sf="1"] .sf-role {
-  color: var(--k-text-2) !important;
-  font-size: 11px !important;
-}
-html .kilode-shell[data-sf="1"] .sf-hot {
-  color: var(--k-blue) !important;
-  stroke: var(--k-blue) !important;
-}
-html .kilode-shell[data-sf="1"] .sf-know b {
-  color: var(--k-text) !important;
-  font-size: 13px !important;
-}
+html .kilode-shell[data-sf="1"] .sf-role { color: var(--k-text-2) !important; font-size: 11px !important; }
+html .kilode-shell[data-sf="1"] .sf-hot { color: var(--k-blue) !important; stroke: var(--k-blue) !important; }
+html .kilode-shell[data-sf="1"] .sf-know b { color: var(--k-text) !important; font-size: 13px !important; }
 html .kilode-shell[data-sf="1"] .sf-know button {
   background: var(--k-blue) !important;
   color: #fff !important;
@@ -286,7 +249,6 @@ html .kilode-shell[data-sf="1"] .sf-more {
   font-weight: 700 !important;
 }
 
-/* Media lane */
 html .kilode-shell[data-sf="1"] .sf-cuts {
   display: flex !important;
   gap: 8px !important;
@@ -343,12 +305,8 @@ html .kilode-shell[data-sf="1"] .sf-slide strong {
   text-align: left !important;
 }
 
-/* Menu */
 html .kilode-shell[data-sf="1"] .menu-sheet,
-html .menu-sheet {
-  background: #FFFFFF !important;
-  color: var(--k-text) !important;
-}
+html .menu-sheet { background: #FFFFFF !important; color: var(--k-text) !important; }
 html .kilode-shell[data-sf="1"] .menu-head,
 html .menu-head {
   background: #FFFFFF !important;
@@ -382,7 +340,6 @@ html .kilode-shell[data-sf="1"] .menu-row.on svg {
   stroke: var(--k-blue) !important;
 }
 
-/* My Space + Create */
 html .kilode-shell[data-sf="1"] .space-page,
 html .kilode-shell[data-sf="1"] .create-page {
   background: var(--k-surface-2) !important;
@@ -395,7 +352,6 @@ html .kilode-shell[data-sf="1"] .create-page button[type="submit"] {
   color: #fff !important;
 }
 
-/* Chat / Music / Communities / Activity */
 html .kilode-shell[data-sf="1"] .chat-scroll,
 html .kilode-shell[data-sf="1"] .mh-scroll,
 html .kilode-shell[data-sf="1"] .fm-page {
@@ -422,7 +378,6 @@ html .kilode-shell[data-sf="1"] .fm-card {
   border-radius: 14px !important;
 }
 
-/* Article / read page */
 html .read-page,
 html .kilode-shell .read-page,
 html article.read-page {
@@ -431,23 +386,28 @@ html article.read-page {
   padding: 16px !important;
 }
 html .read-page h1,
-html .read-page h2 {
-  color: var(--k-text) !important;
-}
+html .read-page h2 { color: var(--k-text) !important; }
 html .read-page p {
   color: var(--k-text) !important;
   line-height: 1.6 !important;
   font-size: 15px !important;
 }
 
-/* Login */
 html body .login-page,
 html [class*="login"] {
   background: #fff !important;
   color: var(--k-text) !important;
 }
 
-/* Buttons */
+html .kilode-shell .e-hero,
+html .kilode-shell .raised,
+html .kilode-shell .glass-3d {
+  background: #fff !important;
+  border: 1px solid var(--k-border) !important;
+  box-shadow: none !important;
+  color: var(--k-text) !important;
+}
+
 .btn-join,
 .btn-yellow {
   background: var(--k-blue) !important;
@@ -467,11 +427,34 @@ html [class*="login"] {
   color: var(--k-blue) !important;
 }
 
-/* Cinema: keep dark atmosphere, blue actions */
-html .kilode-shell [class*="cin-"] .btn-join,
-html .kilode-shell .cinema-pane .btn-join {
-  background: var(--k-blue) !important;
-  color: #fff !important;
+/* Cinema immersive */
+html .kilode-shell .cinema-live-card {
+  background: var(--k-cinema-panel) !important;
+  border: 1px solid var(--k-cinema-line) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35) !important;
+  color: #F4F6FB !important;
+}
+html .kilode-shell .group:hover img {
+  transform: scale(1.03);
+  transition: transform 220ms ease;
+}
+html .kilode-shell .text-lime-2 {
+  color: var(--k-blue) !important;
+}
+html .kilode-shell .fill-lime-2 {
+  fill: var(--k-blue) !important;
+}
+html .kilode-shell .border-lime-2\/40,
+html .kilode-shell .border-lime-2\/50 {
+  border-color: rgba(24, 119, 242, 0.4) !important;
+}
+
+.k-fade-in {
+  animation: kFade 220ms ease both;
+}
+@keyframes kFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .k-title { font-size: 18px; font-weight: 750; letter-spacing: -0.02em; color: var(--k-text); }
