@@ -1,0 +1,256 @@
+/* Kilode v2 white + social blue — Stage 1 design system */
+:root, html {
+  --color-bg: #FFFFFF !important;
+  --color-panel: #FFFFFF !important;
+  --color-panel-2: #F7F9FC !important;
+  --color-panel-3: #F1F5F9 !important;
+  --color-fg: #172033 !important;
+  --color-muted: #64748B !important;
+  --color-lime: #1877F2 !important;
+  --color-lime-2: #145DBF !important;
+  --color-line: #E7ECF2 !important;
+  --color-danger: #DC2626 !important;
+  --color-yellow: #1877F2 !important;
+}
+
+/* ============================================================
+   KILODE V2 — WHITE + SOCIAL BLUE DESIGN SYSTEM
+   ============================================================ */
+
+:root {
+  --k-bg: #FFFFFF;
+  --k-surface: #FFFFFF;
+  --k-surface-2: #F7F9FC;
+  --k-surface-3: #F1F5F9;
+  --k-text: #172033;
+  --k-text-2: #64748B;
+  --k-text-3: #94A3B8;
+  --k-border: #E7ECF2;
+  --k-divider: #EEF1F5;
+  --k-blue: #1877F2;
+  --k-blue-2: #145DBF;
+  --k-blue-soft: rgba(24, 119, 242, 0.10);
+  --k-radius: 12px;
+  --k-radius-sm: 8px;
+  --k-radius-lg: 16px;
+  --k-press: 120ms;
+  --k-motion: 220ms;
+  --report-bg: #FFFFFF;
+  --report-fg: #172033;
+  --report-muted: #64748B;
+  --report-line: #E7ECF2;
+}
+
+html, body, #app {
+  background: var(--k-bg) !important;
+  color: var(--k-text) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+button:not(:disabled):active,
+[role="button"]:not(:disabled):active,
+.k-press:active {
+  transform: scale(0.97);
+  transition: transform var(--k-press) ease;
+}
+
+html .kilode-shell {
+  background: var(--k-bg) !important;
+  color: var(--k-text) !important;
+}
+
+html .kilode-shell[data-sf="1"] .sf-bar,
+html .kilode-shell[data-sf="1"][data-home="0"] .kilode-chrome,
+html .kilode-shell .kilode-chrome,
+html .kilode-shell .kilode-header-capsule {
+  background: #FFFFFF !important;
+  color: var(--k-text) !important;
+  border-bottom: 1px solid var(--k-border) !important;
+  box-shadow: none !important;
+  min-height: 52px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-logo,
+html .kilode-shell[data-sf="1"] .sf-chrome-logo {
+  height: 26px !important;
+  max-width: 118px !important;
+  width: auto !important;
+  filter: none !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools button,
+html .kilode-shell[data-sf="1"][data-home="0"] .soc-ico,
+html .kilode-shell[data-sf="1"][data-home="0"] .hdr-ico {
+  color: var(--k-text) !important;
+  background: transparent !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools button.on,
+html .kilode-shell[data-sf="1"] .sf-tools button.on svg {
+  color: var(--k-blue) !important;
+}
+
+html .kilode-shell[data-sf="1"] .sf-dock,
+html .kilode-shell[data-sf="1"][data-home="0"] .dock,
+html .kilode-shell .dock {
+  background: #FFFFFF !important;
+  color: var(--k-text) !important;
+  border-top: 1px solid var(--k-border) !important;
+  box-shadow: 0 -4px 16px rgba(23, 32, 51, 0.06) !important;
+  height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock > button,
+html .kilode-shell .dock button {
+  color: var(--k-text-3) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock > button.on,
+html .kilode-shell .dock button.on {
+  color: var(--k-blue) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock > button.on::after,
+html .kilode-shell[data-sf="1"][data-home="0"] .dock button.on::after {
+  background: var(--k-blue) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-plus {
+  background: var(--k-blue) !important;
+  color: #fff !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.28) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-plus i {
+  background: #fff !important;
+  color: var(--k-blue) !important;
+}
+
+html .kilode-shell[data-sf="1"] .sf {
+  background: var(--k-surface-2) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-post,
+html .kilode-shell[data-sf="1"] .sf-box,
+html .kilode-shell[data-sf="1"] .sf-know,
+html .kilode-shell[data-sf="1"] .sf-feature,
+html .kilode-shell[data-sf="1"] .sf-mosaic button {
+  background: #fff !important;
+  color: var(--k-text) !important;
+  border: 1px solid var(--k-border) !important;
+  border-radius: var(--k-radius-lg) !important;
+  box-shadow: none !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tick {
+  background: #fff !important;
+  border-bottom: 1px solid var(--k-border) !important;
+  color: var(--k-text-2) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tick b {
+  color: var(--k-blue) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-judge button {
+  border: 1px solid var(--k-border) !important;
+  background: var(--k-surface-2) !important;
+  color: var(--k-text) !important;
+  border-radius: 999px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-role {
+  color: var(--k-text-2) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-hot {
+  color: var(--k-blue) !important;
+  stroke: var(--k-blue) !important;
+}
+
+html .kilode-shell[data-sf="1"] .menu-sheet,
+html .menu-sheet {
+  background: #FFFFFF !important;
+  color: var(--k-text) !important;
+}
+html .kilode-shell[data-sf="1"] .menu-head,
+html .menu-head {
+  background: #FFFFFF !important;
+  color: var(--k-text) !important;
+  border-bottom: 1px solid var(--k-border) !important;
+}
+html .menu-hero-card,
+html .kilode-shell[data-sf="1"] .menu-hero-card {
+  background: var(--k-surface-2) !important;
+  color: var(--k-text) !important;
+  border-color: var(--k-border) !important;
+}
+html .menu-press,
+html .kilode-shell[data-sf="1"] .menu-press {
+  background: var(--k-surface-3) !important;
+  color: var(--k-text) !important;
+  border-color: var(--k-border) !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row {
+  background: #fff !important;
+  color: var(--k-text) !important;
+  border-color: var(--k-border) !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row.on {
+  background: var(--k-blue-soft) !important;
+  color: var(--k-blue) !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row.on span,
+html .kilode-shell[data-sf="1"] .menu-row.on svg {
+  color: var(--k-blue) !important;
+  stroke: var(--k-blue) !important;
+}
+
+html .kilode-shell[data-sf="1"] .space-page,
+html .kilode-shell[data-sf="1"] .create-page {
+  background: var(--k-surface-2) !important;
+  color: var(--k-text) !important;
+}
+html .kilode-shell[data-sf="1"] .space-page .btn-join,
+html .kilode-shell[data-sf="1"] .create-page .btn-join,
+html .kilode-shell[data-sf="1"] .create-page button[type="submit"] {
+  background: var(--k-blue) !important;
+  color: #fff !important;
+}
+
+html .kilode-shell[data-sf="1"] .chat-scroll,
+html .kilode-shell[data-sf="1"] .mh-scroll,
+html .kilode-shell[data-sf="1"] .fm-page {
+  background: var(--k-surface-2) !important;
+  color: var(--k-text) !important;
+}
+html .kilode-shell[data-sf="1"] .mh-play,
+html .kilode-shell[data-sf="1"] .fm-cta,
+html .kilode-shell[data-sf="1"] .act-refresh {
+  background: var(--k-blue) !important;
+  color: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .act-hero {
+  background: var(--k-blue) !important;
+  color: #fff !important;
+}
+
+.btn-join,
+.btn-yellow {
+  background: var(--k-blue) !important;
+  color: #fff !important;
+  border-color: var(--k-blue) !important;
+  box-shadow: 0 2px 8px rgba(24, 119, 242, 0.22) !important;
+}
+.btn-3d {
+  background: var(--k-surface-3) !important;
+  color: var(--k-text) !important;
+  border: 1px solid var(--k-border) !important;
+  box-shadow: none !important;
+}
+.nav-pill.on {
+  background: var(--k-blue-soft) !important;
+  border-color: rgba(24, 119, 242, 0.28) !important;
+  color: var(--k-blue) !important;
+}
+
+.k-title { font-size: 18px; font-weight: 750; letter-spacing: -0.02em; color: var(--k-text); }
+.k-section { font-size: 13px; font-weight: 700; color: var(--k-text); }
+.k-body { font-size: 14px; line-height: 1.45; color: var(--k-text); }
+.k-meta { font-size: 11px; color: var(--k-text-2); }
+.k-caption { font-size: 10px; color: var(--k-text-3); letter-spacing: 0.04em; }
