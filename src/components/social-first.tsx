@@ -38,6 +38,16 @@ function takeUrl(id: string) {
   return `${window.location.origin}/?tab=feeds&take=${encodeURIComponent(id)}`;
 }
 
+function asTakes(v: unknown): TakeRow[] {
+  if (Array.isArray(v)) return v as TakeRow[];
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    if (Array.isArray(o.takes)) return o.takes as TakeRow[];
+    if (Array.isArray(o.items)) return o.items as TakeRow[];
+  }
+  return [];
+}
+
 const ROLE_GRID = [
   { key: "artist", label: "Artists", color: "#7a4db8" },
   { key: "member", label: "Members", color: "#3a6ea5" },
@@ -77,26 +87,29 @@ export function SocialFirst({
   const [next, setNext] = useState(0);
   const [people, setPeople] = useState<FellowRow[]>([]);
   const [stories, setStories] = useState<{ id: string; handle: string; image: string; ts: number }[]>([]);
-  const [moreBusy, setMoreBusy] = useState(false);
   const [cut, setCut] = useState("trending");
   const [voted, setVoted] = useState<Record<string, "" | "fact" | "cap">>({});
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
-  const [followed, setFollowed] = useState<Record<string, boolean>>({});
   const [note, setNote] = useState("");
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const [t, s] = await Promise.all([
-          listTakes({ limit: 24 }),
+        const [raw, s] = await Promise.all([
+          listTakes({ data: {} } as any).catch(() => listTakes(undefined as any)),
           listStories().catch(() => [] as any),
         ]);
         if (!alive) return;
-        setTakes(t?.items || t || []);
-        setNext(t?.next || 0);
-        setStories(Array.isArray(s) ? s : s?.items || []);
+        const list = asTakes(raw);
+        setTakes(list);
+        const n = raw && typeof raw === "object" && "next" in (raw as object) ? Number((raw as any).next || 0) : 0;
+        setNext(n);
+        if (raw && typeof raw === "object" && Array.isArray((raw as any).fellows)) {
+          setPeople((raw as any).fellows);
+        }
+        setStories(Array.isArray(s) ? s : (s as any)?.items || []);
       } catch (e) {
         if (alive) setNote("Could not load feed");
       }
@@ -106,9 +119,9 @@ export function SocialFirst({
 
   const refresh = async () => {
     try {
-      const t = await listTakes({ limit: 24 });
-      setTakes(t?.items || t || []);
-      setNext(t?.next || 0);
+      const raw = await listTakes({ data: {} } as any).catch(() => listTakes(undefined as any));
+      setTakes(asTakes(raw));
+      if (raw && typeof raw === "object" && "next" in (raw as object)) setNext(Number((raw as any).next || 0));
     } catch { /* ignore */ }
   };
 
@@ -118,7 +131,7 @@ export function SocialFirst({
     if (!draft.trim() || posting) return;
     setPosting(true);
     try {
-      await saveTake({ body: draft.trim() });
+      await saveTake({ data: { body: draft.trim() } } as any);
       setDraft("");
       await refresh();
     } catch {
@@ -131,21 +144,21 @@ export function SocialFirst({
   const doVote = async (id: string, kind: "fact" | "cap") => {
     if (!authed) return onNeedAuth();
     setVoted((v) => ({ ...v, [id]: kind }));
-    try { await voteTake({ id, kind }); } catch { /* ignore */ }
+    try { await voteTake({ data: { id, kind } } as any); } catch { /* ignore */ }
   };
 
   const doLike = async (id: string) => {
     if (!authed) return onNeedAuth();
-    try { await likeTake({ id }); await refresh(); } catch { /* ignore */ }
+    try { await likeTake({ data: { id } } as any); await refresh(); } catch { /* ignore */ }
   };
 
-  const filtered = takes.filter((t) => {
+  const filtered = (Array.isArray(takes) ? takes : []).filter((t) => {
     if (!q.trim()) return true;
     const hay = `${t.handle || ""} ${t.body || ""}`.toLowerCase();
     return hay.includes(q.toLowerCase());
   });
 
-  const trending = [...takes].sort((a, b) => heatOf(b) - heatOf(a)).slice(0, 8);
+  const trending = [...(Array.isArray(takes) ? takes : [])].sort((a, b) => heatOf(b) - heatOf(a)).slice(0, 8);
   const tickText = trending.map((t) => (t.body || "").slice(0, 48)).filter(Boolean).join("  ·  ") || "Talk Nigeria. Live.";
 
   return (
@@ -184,7 +197,7 @@ export function SocialFirst({
               return (
                 <article key={t.id} style={{ padding: "14px 12px", borderBottom: "1px solid #F1F5F9" }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <img src={avatarUrl(t.handle || "u", t.face)} alt="" width={40} height={40} style={{ borderRadius: "50%", border: `2px solid ${ringOf(t.handle || "u")}` }} />
+                    <img src={avatarUrl(t.handle || "u", (t as any).face)} alt="" width={40} height={40} style={{ borderRadius: "50%", border: `2px solid ${ringOf(t.handle || "u")}` }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 14 }}>{t.handle || "anon"}</div>
                       <div style={{ fontSize: 12, color: "#64748B" }}>{roleLabel(t.role || "member")}</div>
