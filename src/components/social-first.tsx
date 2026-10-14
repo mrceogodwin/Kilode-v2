@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Eye, Flame, Heart, Home, LayoutGrid, Menu, MessageCircle, MoreHorizontal, Newspaper, Plus, Search, Send, Share2, ThumbsUp } from "lucide-react";
+import { Briefcase, Clapperboard, Eye, Heart, Home, Menu, MessageCircle, Music, Plus, Search, Send, Share2, Store, ThumbsUp, Users, Megaphone, Building2, Calendar } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { likeTake, listStories, listTakes, saveTake, toggleFollow, voteTake, type FellowRow, type TakeRow } from "@/lib/takes-server";
+import { likeTake, listStories, listTakes, saveTake, voteTake, type FellowRow, type TakeRow } from "@/lib/takes-server";
 import { SitePulsePanel } from "@/components/pulse-panel";
 import { PushStrip } from "@/components/artist-push";
 
@@ -13,10 +13,6 @@ function ringOf(name: string) {
   let n = 0;
   for (const c of name) n += c.charCodeAt(0);
   return RINGS[n % RINGS.length];
-}
-
-function tagsOf(body: string) {
-  return [...body.matchAll(/#([A-Za-z0-9_]{2,24})/g)].slice(0, 3).map((m) => `#${m[1]}`);
 }
 
 function shotOf(meta: TakeRow["meta"]) {
@@ -48,12 +44,16 @@ function asTakes(v: unknown): TakeRow[] {
   return [];
 }
 
-const ROLE_GRID = [
-  { key: "artist", label: "Artists", color: "#7a4db8" },
-  { key: "member", label: "Members", color: "#3a6ea5" },
-  { key: "advertiser", label: "Advertisers", color: "#f0b429" },
-  { key: "job", label: "Job posters", color: "#1f8f4e" },
-];
+const HUBS = [
+  { key: "cinema", label: "Cinema", sub: "Watch & vote", icon: Clapperboard, color: "#7a4db8" },
+  { key: "jobs", label: "Jobs", sub: "Hire · Apply", icon: Briefcase, color: "#1f8f4e" },
+  { key: "market", label: "Market", sub: "Shop local", icon: Store, color: "#e25b4a" },
+  { key: "music", label: "Music", sub: "Artists live", icon: Music, color: "#f0b429" },
+  { key: "communities", label: "Rooms", sub: "Chat live", icon: Users, color: "#3a6ea5" },
+  { key: "ads", label: "Ads", sub: "Promote", icon: Megaphone, color: "#1877F2" },
+  { key: "rent", label: "Rent", sub: "Spaces", icon: Building2, color: "#0ea5e9" },
+  { key: "spaces", label: "Events", sub: "Happenings", icon: Calendar, color: "#db2777" },
+] as const;
 
 export function SocialFirst({
   me,
@@ -66,6 +66,7 @@ export function SocialFirst({
   onMe,
   onMenu,
   onOpenNews,
+  onOpen,
   onNeedAuth,
 }: {
   me: string;
@@ -78,15 +79,14 @@ export function SocialFirst({
   onMe: () => void;
   onMenu: () => void;
   onOpenNews: (id?: string) => void;
+  onOpen?: (key: string) => void;
   onNeedAuth: () => void;
 }) {
   const [lane, setLane] = useState<"feed" | "media">("feed");
   const [find, setFind] = useState(false);
   const [q, setQ] = useState("");
   const [takes, setTakes] = useState<TakeRow[]>([]);
-  const [next, setNext] = useState(0);
   const [people, setPeople] = useState<FellowRow[]>([]);
-  const [stories, setStories] = useState<{ id: string; handle: string; image: string; ts: number }[]>([]);
   const [cut, setCut] = useState("trending");
   const [voted, setVoted] = useState<Record<string, "" | "fact" | "cap">>({});
   const [draft, setDraft] = useState("");
@@ -97,20 +97,13 @@ export function SocialFirst({
     let alive = true;
     (async () => {
       try {
-        const [raw, s] = await Promise.all([
-          listTakes({ data: {} } as any).catch(() => listTakes(undefined as any)),
-          listStories().catch(() => [] as any),
-        ]);
+        const raw = await listTakes({ data: {} } as any).catch(() => listTakes(undefined as any));
         if (!alive) return;
-        const list = asTakes(raw);
-        setTakes(list);
-        const n = raw && typeof raw === "object" && "next" in (raw as object) ? Number((raw as any).next || 0) : 0;
-        setNext(n);
+        setTakes(asTakes(raw));
         if (raw && typeof raw === "object" && Array.isArray((raw as any).fellows)) {
           setPeople((raw as any).fellows);
         }
-        setStories(Array.isArray(s) ? s : (s as any)?.items || []);
-      } catch (e) {
+      } catch {
         if (alive) setNote("Could not load feed");
       }
     })();
@@ -121,7 +114,6 @@ export function SocialFirst({
     try {
       const raw = await listTakes({ data: {} } as any).catch(() => listTakes(undefined as any));
       setTakes(asTakes(raw));
-      if (raw && typeof raw === "object" && "next" in (raw as object)) setNext(Number((raw as any).next || 0));
     } catch { /* ignore */ }
   };
 
@@ -154,12 +146,16 @@ export function SocialFirst({
 
   const filtered = (Array.isArray(takes) ? takes : []).filter((t) => {
     if (!q.trim()) return true;
-    const hay = `${t.handle || ""} ${t.body || ""}`.toLowerCase();
-    return hay.includes(q.toLowerCase());
+    return `${t.handle || ""} ${t.body || ""}`.toLowerCase().includes(q.toLowerCase());
   });
 
   const trending = [...(Array.isArray(takes) ? takes : [])].sort((a, b) => heatOf(b) - heatOf(a)).slice(0, 8);
   const tickText = trending.map((t) => (t.body || "").slice(0, 48)).filter(Boolean).join("  ·  ") || "Talk Nigeria. Live.";
+  const know = people.filter((p) => p.handle && p.handle.toLowerCase() !== (me || "").toLowerCase()).slice(0, 8);
+
+  const open = (key: string) => {
+    if (onOpen) onOpen(key);
+  };
 
   return (
     <div className="sf-root" data-sf="1" style={{ height: "100%", display: "flex", flexDirection: "column", background: "#fff", minHeight: 0 }}>
@@ -191,6 +187,21 @@ export function SocialFirst({
             </form>
 
             <PushStrip />
+
+            {know.length > 0 ? (
+              <section style={{ margin: "10px 12px", padding: 12, background: "#fff", border: "1px solid #E7ECF2", borderRadius: 16 }}>
+                <b style={{ fontSize: 13, color: "#172033" }}>People you may know</b>
+                <div style={{ display: "flex", gap: 10, overflowX: "auto", marginTop: 10, paddingBottom: 4 }}>
+                  {know.map((p) => (
+                    <div key={p.id || p.handle} style={{ flex: "0 0 110px", textAlign: "center" }}>
+                      <img src={p.photo || avatarUrl(p.handle)} alt="" width={56} height={56} style={{ borderRadius: "50%", objectFit: "cover" }} />
+                      <div style={{ fontSize: 12, fontWeight: 700, marginTop: 6 }}>{(p.name || p.handle).slice(0, 12)}</div>
+                      <div style={{ fontSize: 10, color: "#64748B" }}>{roleLabel(p.role)}</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             {filtered.map((t) => {
               const img = shotOf(t.meta);
@@ -224,37 +235,121 @@ export function SocialFirst({
           </>
         ) : (
           <>
-            <div className="sf-media-tick" aria-label="Media ticker">
-              <div className="sf-tick-marquee" style={{ animation: "sfTick 24s linear infinite" }}>{tickText} · {tickText}</div>
+            <div className="sf-media-tick" aria-label="Media ticker" style={{ overflow: "hidden", padding: "8px 12px", borderBottom: "1px solid #E7ECF2" }}>
+              <div className="sf-tick-marquee" style={{ whiteSpace: "nowrap", animation: "sfTick 24s linear infinite", fontSize: 12, color: "#334155" }}>{tickText} · {tickText}</div>
             </div>
-            <div className="sf-segs" role="tablist" aria-label="Media segments">
-              {["trending", "news", "cinema", "music", "jobs"].map((s) => (
-                <button key={s} type="button" className={cut === s ? "on" : ""} onClick={() => setCut(s)}>{s}</button>
+
+            <div className="sf-segs" role="tablist" aria-label="Media segments" style={{ display: "flex", gap: 8, padding: "8px 12px", overflowX: "auto" }}>
+              {["trending", "news", "cinema", "music", "jobs", "market"].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className={cut === s ? "on" : ""}
+                  onClick={() => {
+                    setCut(s);
+                    if (s === "cinema" || s === "jobs" || s === "market" || s === "music") open(s);
+                  }}
+                  style={{
+                    flex: "0 0 auto",
+                    border: cut === s ? "1px solid #1877F2" : "1px solid #E7ECF2",
+                    background: cut === s ? "#1877F2" : "#fff",
+                    color: cut === s ? "#fff" : "#334155",
+                    borderRadius: 999,
+                    padding: "6px 12px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {s}
+                </button>
               ))}
             </div>
-            <div className="sf-carousel" aria-label="Featured stories">
-              {(news || []).slice(0, 6).map((n) => (
-                <div key={n.id} className="sf-card" onClick={() => onOpenNews(n.id)} role="button" tabIndex={0}>
-                  {n.image ? <img src={n.image} alt="" /> : <div style={{ height: 160, background: "#1e293b" }} />}
-                  <div className="cap">{n.title}</div>
+
+            {/* Architecture hub widgets — tap opens full screen */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: 12 }}>
+              {HUBS.map((h) => {
+                const Icon = h.icon;
+                return (
+                  <button
+                    key={h.key}
+                    type="button"
+                    onClick={() => open(h.key)}
+                    style={{
+                      textAlign: "left",
+                      border: "1px solid #E7ECF2",
+                      borderRadius: 14,
+                      padding: 12,
+                      background: "#fff",
+                      boxShadow: "0 1px 0 rgba(24,119,242,0.06)",
+                    }}
+                  >
+                    <span style={{ width: 32, height: 32, borderRadius: 10, background: `${h.color}18`, color: h.color, display: "grid", placeItems: "center" }}>
+                      <Icon size={16} />
+                    </span>
+                    <div style={{ fontWeight: 700, fontSize: 13, marginTop: 8, color: "#172033" }}>{h.label}</div>
+                    <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{h.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Ad strip 1 */}
+            <button
+              type="button"
+              onClick={() => open("ads")}
+              style={{
+                display: "block",
+                width: "calc(100% - 24px)",
+                margin: "4px 12px 12px",
+                padding: "14px 16px",
+                borderRadius: 14,
+                border: "1px dashed rgba(24,119,242,0.35)",
+                background: "linear-gradient(135deg,#EFF6FF,#F8FAFC)",
+                textAlign: "left",
+              }}
+            >
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: "#1877F2", textTransform: "uppercase" }}>Sponsored</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#172033", marginTop: 4 }}>Reach Naija audiences on Kilode</div>
+              <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Place an ad · Feeds · Chat · Cinema</div>
+            </button>
+
+            <div className="sf-carousel" aria-label="Featured stories" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "0 12px 12px", scrollSnapType: "x mandatory" }}>
+              {(news || []).slice(0, 8).map((n) => (
+                <div key={n.id} className="sf-card" onClick={() => onOpenNews(n.id)} role="button" tabIndex={0} style={{ flex: "0 0 78%", scrollSnapAlign: "start", borderRadius: 14, overflow: "hidden", background: "#0f172a", color: "#fff", position: "relative", minHeight: 160 }}>
+                  {n.image ? <img src={n.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} /> : <div style={{ height: 160, background: "#1e293b" }} />}
+                  <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: 12, background: "linear-gradient(transparent, rgba(0,0,0,0.75))", fontSize: 13, fontWeight: 700 }}>{n.title}</div>
                 </div>
               ))}
               {!(news || []).length ? (
-                <div className="sf-card"><div className="cap">Featured stories loading…</div></div>
+                <div className="sf-card" style={{ flex: "0 0 78%", minHeight: 120, borderRadius: 14, background: "#F1F5F9", display: "grid", placeItems: "center", color: "#64748B", fontSize: 13 }}>Featured stories loading…</div>
               ) : null}
             </div>
-            <div className="sf-role-grid">
-              {ROLE_GRID.map((r) => (
-                <div key={r.key} className="sf-role-card">
-                  <div style={{ fontWeight: 700, fontSize: 13, color: r.color }}>{r.label}</div>
-                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>Discover · Follow</div>
-                </div>
-              ))}
-            </div>
-            <div className="sf-news-list">
-              {(news || []).slice(0, 10).map((n) => (
-                <div key={n.id} className="sf-news-row" onClick={() => onOpenNews(n.id)} role="button" tabIndex={0}>
-                  <img src={n.image || avatarUrl(n.id)} alt="" />
+
+            {/* Ad strip 2 */}
+            <button
+              type="button"
+              onClick={() => open("ads")}
+              style={{
+                display: "block",
+                width: "calc(100% - 24px)",
+                margin: "0 12px 12px",
+                padding: "12px 14px",
+                borderRadius: 12,
+                border: "1px solid #E7ECF2",
+                background: "#fff",
+                textAlign: "left",
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8" }}>AD · Kilode</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#172033", marginTop: 2 }}>Promote your brand between the stories people actually read.</div>
+            </button>
+
+            <div className="sf-news-list" style={{ padding: "0 12px 12px" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#172033", marginBottom: 8 }}>Latest news</div>
+              {(news || []).slice(0, 12).map((n) => (
+                <div key={n.id} className="sf-news-row" onClick={() => onOpenNews(n.id)} role="button" tabIndex={0} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: "1px solid #F1F5F9", alignItems: "center" }}>
+                  <img src={n.image || avatarUrl(n.id)} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 13, lineHeight: 1.35 }}>{n.title}</div>
                     <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>{n.category || "News"} · {timeAgo(n.ts)}</div>
@@ -262,7 +357,28 @@ export function SocialFirst({
                 </div>
               ))}
             </div>
-            <div className="sf-ads-box">Sponsored · Reach Naija audiences on Kilode</div>
+
+            {/* Ad strip 3 bottom */}
+            <button
+              type="button"
+              onClick={() => open("ads")}
+              style={{
+                display: "block",
+                width: "calc(100% - 24px)",
+                margin: "0 12px 16px",
+                padding: "16px",
+                borderRadius: 14,
+                border: 0,
+                background: "#1877F2",
+                color: "#fff",
+                textAlign: "center",
+                fontWeight: 700,
+                fontSize: 14,
+              }}
+            >
+              Place an ad on Kilode →
+            </button>
+
             <div style={{ padding: 12 }}>
               <SitePulsePanel />
             </div>
