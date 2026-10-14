@@ -8,6 +8,7 @@ import { PublicSiteProvider } from "@/components/site-chrome";
 import type { PublicSite } from "@/lib/site-server";
 import { SocialFirst } from "@/components/social-first";
 import { QonvoScreen } from "@/components/qonvo-screens";
+import { CinemaPane } from "@/components/cinema-pane";
 import { useQonvo } from "@/lib/use-qonvo";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { kilodeSound, setSounds, soundsEnabled } from "@/lib/sfx";
@@ -49,17 +50,24 @@ const OPEN_MAP: Record<string, MenuId> = {
   tv: "tv",
 };
 
-function readOpen(): MenuId | null {
-  if (typeof window === "undefined") return null;
+function readOpenKey(): string {
+  if (typeof window === "undefined") return "";
   try {
-    const raw = (new URL(window.location.href).searchParams.get("open") || "").toLowerCase().trim();
-    return raw ? OPEN_MAP[raw] || null : null;
+    return (new URL(window.location.href).searchParams.get("open") || "").toLowerCase().trim();
   } catch {
-    return null;
+    return "";
   }
 }
 
-function screenTitle(id: MenuId) {
+function readOpen(): MenuId | null {
+  const raw = readOpenKey();
+  return raw ? OPEN_MAP[raw] || null : null;
+}
+
+function screenTitle(id: MenuId, openKey: string) {
+  if (openKey === "cinema") return "Cinema";
+  if (openKey === "music") return "Music";
+  if (openKey === "tv") return "Kilode TV";
   const map: Partial<Record<MenuId, string>> = {
     dashboard: "My Space",
     tv: "Cinema & TV",
@@ -105,24 +113,28 @@ function Shell() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sfxOn, setSfxOn] = useState(true);
   const [screen, setScreen] = useState<MenuId | null>(null);
+  const [openKey, setOpenKey] = useState("");
 
   useEffect(() => {
     setSfxOn(soundsEnabled());
     setScreen(readOpen());
-    const onPop = () => setScreen(readOpen());
+    setOpenKey(readOpenKey());
+    const onPop = () => {
+      setScreen(readOpen());
+      setOpenKey(readOpenKey());
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  const go = useCallback((id: MenuId | null) => {
+  const go = useCallback((id: MenuId | null, key?: string) => {
     setScreen(id);
+    const k = key || (id ? Object.entries(OPEN_MAP).find(([, v]) => v === id)?.[0] || id : "");
+    setOpenKey(id ? k : "");
     try {
       const u = new URL(window.location.href);
       if (!id) u.searchParams.delete("open");
-      else {
-        const key = Object.entries(OPEN_MAP).find(([, v]) => v === id)?.[0] || id;
-        u.searchParams.set("open", key);
-      }
+      else u.searchParams.set("open", k);
       window.history.pushState({}, "", u.toString());
     } catch { /* ignore */ }
   }, []);
@@ -146,7 +158,7 @@ function Shell() {
     const id = OPEN_MAP[key];
     if (!id) return;
     if (!signedIn && needAuth.includes(id)) return goLogin("up");
-    go(id);
+    go(id, key);
   };
 
   const row = (icon: ReactNode, label: string, onClick: () => void): ReactNode => (
@@ -182,6 +194,8 @@ function Shell() {
     </p>
   );
 
+  const immersive = openKey === "cinema";
+
   return (
     <div
       className="kilode-shell relative flex min-h-0 flex-col overflow-hidden bg-bg text-fg"
@@ -191,18 +205,33 @@ function Shell() {
       style={{ height: "100dvh", maxHeight: "100dvh" }}
     >
       {screen ? (
-        <div className="flex min-h-0 flex-1 flex-col" style={{ background: "#fff" }}>
-          <header style={{ background: "#1877F2", color: "#fff", padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        <div className="flex min-h-0 flex-1 flex-col" style={{ background: immersive ? "#0B0D12" : "#fff" }}>
+          <header
+            style={{
+              background: immersive ? "#0B0D12" : "#1877F2",
+              color: "#fff",
+              padding: "10px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexShrink: 0,
+              borderBottom: immersive ? "1px solid rgba(255,255,255,0.08)" : "none",
+            }}
+          >
             <button type="button" aria-label="Back" onClick={() => go(null)} style={{ background: "none", border: 0, color: "#fff", padding: 4, display: "flex" }}>
               <ChevronLeft size={22} />
             </button>
-            <strong style={{ flex: 1, fontSize: 16, fontWeight: 700 }}>{screenTitle(screen)}</strong>
+            <strong style={{ flex: 1, fontSize: 16, fontWeight: 700 }}>{screenTitle(screen, openKey)}</strong>
             <button type="button" onClick={() => setMenuOpen(true)} style={{ background: "none", border: 0, color: "#fff", fontSize: 13, fontWeight: 600 }}>
               Menu
             </button>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <QonvoScreen id={screen} store={store} onHome={() => go(null)} onForum={() => go("forum")} />
+            {immersive ? (
+              <CinemaPane />
+            ) : (
+              <QonvoScreen id={screen} store={store} onHome={() => go(null)} onForum={() => go("forum")} />
+            )}
           </div>
         </div>
       ) : (
@@ -242,7 +271,7 @@ function Shell() {
               {section("Discover")}
               {row(<Home size={15} />, "Home feed", () => { close(); go(null); })}
               {row(<Hash size={15} />, "Trending", () => openPane("trending"))}
-              {row(<Clapperboard size={15} />, "Cinema & TV", () => openPane("cinema"))}
+              {row(<Clapperboard size={15} />, "Cinema", () => openPane("cinema"))}
               {row(<Music size={15} />, "Music", () => openPane("music"))}
               {row(<Users size={15} />, "Communities", () => openPane("communities"))}
               {row(<Tv size={15} />, "Kilode TV", () => openPane("tv"))}
