@@ -1,6 +1,7 @@
 /* Kilode v2 — design system
    Content: white canvas. Chrome: BLUE header + BLUE bottom dock (#1877F2).
-   Type scale, motion, Cinema dark panel preserved. */
+   MUST beat the black-force block at end of styles.css (same selectors, loads after).
+*/
 
 :root, html {
   --color-bg: #FFFFFF !important;
@@ -89,9 +90,10 @@ html .kilode-shell {
   color: var(--k-text) !important;
 }
 
-/* ========== BLUE HEADER ========== */
+/* ========== BLUE HEADER (all screens) ========== */
 html .kilode-shell[data-sf="1"] .sf-bar,
 html .kilode-shell[data-sf="1"][data-home="0"] .kilode-chrome,
+html .kilode-shell[data-sf="1"][data-home="0"] .kilode-header-capsule,
 html .kilode-shell .kilode-chrome,
 html .kilode-shell .kilode-header-capsule {
   background: var(--k-chrome) !important;
@@ -100,6 +102,7 @@ html .kilode-shell .kilode-header-capsule {
   box-shadow: 0 2px 12px rgba(20, 93, 191, 0.22) !important;
   min-height: 52px !important;
   padding-top: max(6px, env(safe-area-inset-top, 0px)) !important;
+  display: flex !important;
 }
 html .kilode-shell[data-sf="1"] .sf-left {
   display: flex !important;
@@ -107,13 +110,18 @@ html .kilode-shell[data-sf="1"] .sf-left {
   gap: 8px !important;
   min-width: 0 !important;
 }
+/* Logo: no invert square — use white logo treatment carefully */
 html .kilode-shell[data-sf="1"] .sf-logo,
 html .kilode-shell[data-sf="1"] .sf-chrome-logo {
   height: 26px !important;
   max-width: 118px !important;
   width: auto !important;
-  filter: brightness(0) invert(1) !important;
   object-fit: contain !important;
+  display: block !important;
+  /* Prefer mix-blend or drop-shadow over invert to avoid white box */
+  filter: brightness(0) invert(1) drop-shadow(0 0 0 transparent) !important;
+  background: transparent !important;
+  mix-blend-mode: normal !important;
 }
 html .kilode-shell[data-sf="1"] .sf-menu {
   width: 36px !important;
@@ -126,7 +134,9 @@ html .kilode-shell[data-sf="1"] .sf-tools {
   align-items: center !important;
   gap: 2px !important;
 }
-html .kilode-shell[data-sf="1"] .sf-tools button {
+html .kilode-shell[data-sf="1"] .sf-tools button,
+html .kilode-shell[data-sf="1"][data-home="0"] .soc-ico,
+html .kilode-shell[data-sf="1"][data-home="0"] .hdr-ico {
   color: var(--k-chrome-muted) !important;
   background: transparent !important;
   width: 36px !important;
@@ -150,7 +160,7 @@ html .kilode-shell[data-sf="1"] .sf-ava img {
   border: 2px solid rgba(255, 255, 255, 0.55) !important;
 }
 
-/* ========== BLUE BOTTOM DOCK ========== */
+/* ========== BLUE BOTTOM DOCK (all screens) ========== */
 html .kilode-shell[data-sf="1"] .sf-dock,
 html .kilode-shell[data-sf="1"][data-home="0"] .dock,
 html .kilode-shell .dock {
@@ -163,19 +173,17 @@ html .kilode-shell .dock {
   display: flex !important;
   align-items: stretch !important;
 }
-html .kilode-shell .dock .app-tab {
+html .kilode-shell .dock .app-tab,
+html .kilode-shell[data-sf="1"][data-home="0"] .app-tab {
   font-size: var(--k-fs-nav) !important;
   font-weight: 650 !important;
   letter-spacing: 0.02em !important;
   color: var(--k-chrome-muted) !important;
   gap: 3px !important;
 }
-html .kilode-shell .dock .app-tab.on {
+html .kilode-shell .dock .app-tab.on,
+html .kilode-shell[data-sf="1"][data-home="0"] .app-tab.on {
   color: #fff !important;
-}
-html .kilode-shell .dock .dock-liquid {
-  background: rgba(255, 255, 255, 0.18) !important;
-  border-radius: 12px !important;
 }
 html .kilode-shell[data-sf="1"] .sf-dock > button {
   color: var(--k-chrome-muted) !important;
@@ -251,7 +259,7 @@ html .kilode-shell[data-sf="1"] .sf-plus i {
 }
 html .kilode-shell[data-sf="1"] .sf-plus::after { display: none !important; }
 
-/* Content stays white */
+/* ========== CONTENT ========== */
 html .kilode-shell[data-sf="1"] .sf { background: var(--k-surface-2) !important; }
 html .kilode-shell[data-sf="1"] .sf-scroll { padding: 8px 0 110px !important; }
 html .kilode-shell[data-sf="1"] .sf-box {
@@ -394,7 +402,6 @@ html .kilode-shell[data-sf="1"] .sf-more {
   margin: 12px auto !important;
   display: block !important;
 }
-
 html .kilode-shell[data-sf="1"] .sf-cuts {
   display: flex !important;
   gap: 8px !important;
@@ -460,66 +467,76 @@ html .kilode-shell[data-sf="1"] .sf-mosaic button {
   border-radius: var(--k-radius) !important;
 }
 
-/* ========== MENU DRAWER: force ALL white (kill black rows) ========== */
+/* ========== MENU: BEAT styles.css BLACK FORCE (exact selectors) ========== */
 html .menu-sheet,
-html [class*="menu-sheet"],
-html .kilode-shell .menu-sheet,
-html .kilode-shell [class*="menu"] {
+html .menu-sheet {
   background: #FFFFFF !important;
   color: #172033 !important;
+  border-right: 1px solid #E7ECF2 !important;
+  box-shadow: 16px 0 48px rgba(0, 0, 0, 0.12) !important;
 }
-html .menu-sheet *,
-html [class*="menu-sheet"] * {
-  --tw-bg-opacity: 1;
-}
-html .menu-sheet .bg-black,
-html .menu-sheet .bg-neutral-900,
-html .menu-sheet .bg-zinc-900,
-html .menu-sheet .bg-gray-900,
-html .menu-sheet .bg-neutral-950,
-html .menu-sheet .bg-zinc-950,
-html .menu-sheet [class*="bg-black"],
-html .menu-sheet [class*="bg-neutral-9"],
-html .menu-sheet [class*="bg-zinc-9"],
-html .menu-sheet [class*="bg-gray-9"],
-html .menu-sheet [style*="background: rgb(0"],
-html .menu-sheet [style*="background-color: rgb(0"],
-html .menu-sheet [style*="background: #0"],
-html .menu-sheet [style*="background-color: #0"] {
-  background: #F7F9FC !important;
-  background-color: #F7F9FC !important;
-  color: #172033 !important;
-  border-color: #E7ECF2 !important;
-}
-html .menu-sheet button,
-html .menu-sheet a,
-html .menu-sheet [role="button"],
-html .menu-sheet .menu-row,
-html .menu-sheet [class*="row"] {
+html .kilode-shell[data-sf="1"] .menu-head,
+html .menu-head {
   background: #FFFFFF !important;
-  background-color: #FFFFFF !important;
   color: #172033 !important;
-  border: 1px solid #E7ECF2 !important;
-  border-radius: 12px !important;
-}
-html .menu-sheet button.on,
-html .menu-sheet a.on,
-html .menu-sheet [aria-current="page"],
-html .menu-sheet .menu-row.on {
-  background: rgba(24, 119, 242, 0.10) !important;
-  color: #1877F2 !important;
-  border-color: rgba(24, 119, 242, 0.35) !important;
-}
-html .menu-sheet .text-white,
-html .menu-sheet [class*="text-white"] {
-  color: #172033 !important;
+  border-bottom: 1px solid #E7ECF2 !important;
 }
 html .menu-hero-card,
-html .menu-press {
+html .kilode-shell[data-sf="1"] .menu-hero-card {
   background: #FFFFFF !important;
   color: #172033 !important;
   border: 1px solid #E7ECF2 !important;
   box-shadow: none !important;
+}
+html .menu-press,
+html .kilode-shell[data-sf="1"] .menu-press,
+html .kilode-shell[data-sf="1"] .menu-press span,
+html .kilode-shell[data-sf="1"] .menu-press div {
+  background: #F7F9FC !important;
+  color: #172033 !important;
+  border: 1px solid #E7ECF2 !important;
+}
+html .kilode-shell[data-sf="1"] .menu-press svg,
+html .menu-press svg {
+  stroke: #172033 !important;
+  color: #172033 !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row {
+  background: #FFFFFF !important;
+  color: #172033 !important;
+  border: 1px solid #E7ECF2 !important;
+  border-radius: 12px !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row span,
+html .kilode-shell[data-sf="1"] .menu-row svg {
+  color: #172033 !important;
+  stroke: #172033 !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row.on {
+  background: rgba(24, 119, 242, 0.10) !important;
+  color: #1877F2 !important;
+  border-color: rgba(24, 119, 242, 0.35) !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row.on span,
+html .kilode-shell[data-sf="1"] .menu-row.on svg {
+  color: #1877F2 !important;
+  stroke: #1877F2 !important;
+}
+html .menu-stage,
+html .kilode-shell[data-sf="1"] .menu-stage {
+  background: #FFFFFF !important;
+  border-top: 1px solid #E7ECF2 !important;
+  color: #172033 !important;
+}
+html .menu-ico,
+html .kilode-shell[data-sf="1"] .menu-ico {
+  background: #F7F9FC !important;
+  color: #172033 !important;
+  border: 1px solid #E7ECF2 !important;
+}
+html .menu-role,
+html .kilode-shell[data-sf="1"] .menu-role {
+  color: #64748B !important;
 }
 
 html .repost-sheet,
