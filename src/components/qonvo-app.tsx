@@ -1,5 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
-import { X, Volume2, VolumeX, ChevronLeft } from "lucide-react";
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  X, Volume2, VolumeX, ChevronLeft, Home, Briefcase, Store, Clapperboard, Users, User,
+  Plus, Megaphone, Search, Bell, Inbox, Settings, HelpCircle, Hash, Tv, Building2,
+  Bookmark, Music, Calendar, Download, Shield, Info, BadgeDollarSign,
+} from "lucide-react";
 import { PublicSiteProvider } from "@/components/site-chrome";
 import type { PublicSite } from "@/lib/site-server";
 import { SocialFirst } from "@/components/social-first";
@@ -22,6 +26,7 @@ const OPEN_MAP: Record<string, MenuId> = {
   communities: "community",
   community: "community",
   notes: "notifications",
+  notifications: "notifications",
   inbox: "inbox",
   search: "search",
   ads: "ads",
@@ -35,18 +40,54 @@ const OPEN_MAP: Record<string, MenuId> = {
   admin: "admin",
   article: "forum",
   news: "forum",
+  forum: "forum",
+  bookmarks: "bookmarks",
+  teams: "teams",
+  badges: "badges",
+  leaderboard: "leaderboard",
+  contact: "contact",
+  tv: "tv",
 };
 
 function readOpen(): MenuId | null {
   if (typeof window === "undefined") return null;
   try {
-    const u = new URL(window.location.href);
-    const raw = (u.searchParams.get("open") || "").toLowerCase().trim();
-    if (!raw) return null;
-    return OPEN_MAP[raw] || null;
+    const raw = (new URL(window.location.href).searchParams.get("open") || "").toLowerCase().trim();
+    return raw ? OPEN_MAP[raw] || null : null;
   } catch {
     return null;
   }
+}
+
+function screenTitle(id: MenuId) {
+  const map: Partial<Record<MenuId, string>> = {
+    dashboard: "My Space",
+    tv: "Cinema & TV",
+    community: "Communities",
+    jobs: "Jobs",
+    market: "Marketplace",
+    rent: "Rent",
+    create: "Create",
+    ads: "Ads",
+    notifications: "Notifications",
+    inbox: "Messages",
+    search: "Search",
+    profile: "Edit profile",
+    settings: "Settings",
+    help: "Help",
+    how: "How Kilode works",
+    pricing: "Pricing",
+    forum: "Feeds",
+    trending: "Trending",
+    spaces: "Spaces",
+    bookmarks: "Bookmarks",
+    teams: "Teams",
+    badges: "Badges",
+    leaderboard: "Leaderboard",
+    contact: "Contact",
+    admin: "Admin",
+  };
+  return map[id] || id;
 }
 
 export function QonvoApp({ initialSite }: { initialSite?: PublicSite } = {}) {
@@ -77,9 +118,8 @@ function Shell() {
     setScreen(id);
     try {
       const u = new URL(window.location.href);
-      if (!id) {
-        u.searchParams.delete("open");
-      } else {
+      if (!id) u.searchParams.delete("open");
+      else {
         const key = Object.entries(OPEN_MAP).find(([, v]) => v === id)?.[0] || id;
         u.searchParams.set("open", key);
       }
@@ -100,30 +140,49 @@ function Shell() {
 
   const close = () => setMenuOpen(false);
 
-  const rowStyle: CSSProperties = {
-    display: "flex",
-    width: "100%",
-    alignItems: "center",
-    gap: 10,
-    padding: "12px 14px",
-    margin: "4px 0",
-    border: "1px solid #E7ECF2",
-    borderRadius: 12,
-    background: "#fff",
-    color: "#172033",
-    fontWeight: 600,
-    fontSize: 13,
-  };
+  const needAuth = ["dashboard", "create", "inbox", "notifications", "profile", "settings", "bookmarks"];
 
   const openPane = (key: string) => {
     close();
     const id = OPEN_MAP[key];
     if (!id) return;
-    if (!signedIn && ["dashboard", "create", "inbox", "notifications", "profile", "settings"].includes(id)) {
-      return goLogin("up");
-    }
+    if (!signedIn && needAuth.includes(id)) return goLogin("up");
     go(id);
   };
+
+  const row = (icon: ReactNode, label: string, onClick: () => void, extra?: CSSProperties): ReactNode => (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: "flex",
+        width: "100%",
+        alignItems: "center",
+        gap: 12,
+        padding: "11px 12px",
+        margin: "3px 0",
+        border: "1px solid #E7ECF2",
+        borderRadius: 12,
+        background: "#fff",
+        color: "#172033",
+        fontWeight: 600,
+        fontSize: 13,
+        textAlign: "left",
+        ...extra,
+      }}
+    >
+      <span style={{ width: 28, height: 28, borderRadius: 8, background: "#F7F9FC", display: "grid", placeItems: "center", color: "#1877F2", flexShrink: 0 }}>
+        {icon}
+      </span>
+      <span style={{ flex: 1 }}>{label}</span>
+    </button>
+  );
+
+  const section = (title: string) => (
+    <p style={{ margin: "14px 4px 6px", fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", color: "#94A3B8", textTransform: "uppercase" }}>
+      {title}
+    </p>
+  );
 
   return (
     <div
@@ -135,39 +194,17 @@ function Shell() {
     >
       {screen ? (
         <div className="flex min-h-0 flex-1 flex-col" style={{ background: "#fff" }}>
-          <header
-            style={{
-              background: "#1877F2",
-              color: "#fff",
-              padding: "10px 12px",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              flexShrink: 0,
-            }}
-          >
-            <button
-              type="button"
-              aria-label="Back"
-              onClick={() => go(null)}
-              style={{ background: "none", border: 0, color: "#fff", padding: 4, display: "flex", alignItems: "center" }}
-            >
+          <header style={{ background: "#1877F2", color: "#fff", padding: "10px 12px", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <button type="button" aria-label="Back" onClick={() => go(null)} style={{ background: "none", border: 0, color: "#fff", padding: 4, display: "flex" }}>
               <ChevronLeft size={22} />
             </button>
-            <strong style={{ flex: 1, fontSize: 16, fontWeight: 700, textTransform: "capitalize" }}>
-              {screen === "dashboard" ? "My Space" : screen === "tv" ? "Cinema" : screen}
-            </strong>
+            <strong style={{ flex: 1, fontSize: 16, fontWeight: 700 }}>{screenTitle(screen)}</strong>
             <button type="button" onClick={() => setMenuOpen(true)} style={{ background: "none", border: 0, color: "#fff", fontSize: 13, fontWeight: 600 }}>
               Menu
             </button>
           </header>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <QonvoScreen
-              id={screen}
-              store={store}
-              onHome={() => go(null)}
-              onForum={() => go("forum")}
-            />
+            <QonvoScreen id={screen} store={store} onHome={() => go(null)} onForum={() => go("forum")} />
           </div>
         </div>
       ) : (
@@ -180,11 +217,12 @@ function Shell() {
           onSend={() => openPane("inbox")}
           onCreate={() => openPane("create")}
           onMe={() => openPane("me")}
-          onMenu={() => setMenuOpen(true)}
+          onMenu={() => { kilodeSound("sheet"); setMenuOpen(true); }}
           onOpenNews={(id) => {
             if (id) window.location.href = `/p/${encodeURIComponent(id)}`;
             else openPane("news");
           }}
+          onOpen={(key) => openPane(key)}
           onNeedAuth={() => goLogin("up")}
         />
       )}
@@ -192,68 +230,112 @@ function Shell() {
       {menuOpen ? (
         <div className="fixed inset-0 z-[80] flex" style={{ background: "rgba(0,0,0,0.45)" }}>
           <aside
-            className="flex h-full w-[min(320px,88vw)] flex-col overflow-y-auto bg-white p-4 shadow-xl"
+            className="flex h-full w-[min(340px,92vw)] flex-col overflow-hidden bg-white shadow-xl"
             style={{ borderRight: "1px solid #E7ECF2" }}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-bold text-[#172033]">Menu</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid #E7ECF2" }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "#172033" }}>Kilode</div>
+                <div style={{ fontSize: 11, color: "#64748B" }}>{signedIn ? `@${store.handle || "you"}` : "Guest"}</div>
+              </div>
               <button type="button" aria-label="Close" onClick={close} style={{ background: "none", border: 0, padding: 8 }}>
                 <X size={18} color="#172033" />
               </button>
             </div>
 
-            <button type="button" style={rowStyle} onClick={() => { close(); go(null); }}>
-              Home feed
-            </button>
-            <button type="button" style={rowStyle} onClick={() => openPane("jobs")}>
-              Jobs
-            </button>
-            <button type="button" style={rowStyle} onClick={() => openPane("market")}>
-              Market
-            </button>
-            <button type="button" style={rowStyle} onClick={() => openPane("cinema")}>
-              Cinema
-            </button>
-            <button type="button" style={rowStyle} onClick={() => openPane("communities")}>
-              Communities
-            </button>
-            <button type="button" style={rowStyle} onClick={() => openPane("me")}>
-              My Space
-            </button>
-            <button type="button" style={rowStyle} onClick={() => openPane("create")}>
-              Create
-            </button>
-            <button type="button" style={rowStyle} onClick={() => openPane("ads")}>
-              Ads
-            </button>
-            {signedIn ? (
-              <button type="button" style={rowStyle} onClick={() => { close(); window.location.href = STAFF_PATH; }}>
-                Staff desk
-              </button>
-            ) : null}
+            <div className="min-h-0 flex-1 overflow-y-auto" style={{ padding: "8px 10px 24px" }}>
+              {section("Discover")}
+              {row(<Home size={15} />, "Home feed", () => { close(); go(null); })}
+              {row(<Hash size={15} />, "Trending", () => openPane("trending"))}
+              {row(<Clapperboard size={15} />, "Cinema & TV", () => openPane("cinema"))}
+              {row(<Music size={15} />, "Music", () => openPane("music"))}
+              {row(<Users size={15} />, "Communities", () => openPane("communities"))}
+              {row(<Tv size={15} />, "Kilode TV", () => openPane("tv"))}
 
-            <button type="button" style={rowStyle} onClick={toggleSfx}>
-              {sfxOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
-              <span>{sfxOn ? "Sounds On" : "Sounds Off"}</span>
-            </button>
+              {section("Opportunity")}
+              {row(<Briefcase size={15} />, "Jobs", () => openPane("jobs"))}
+              {row(<Store size={15} />, "Marketplace", () => openPane("market"))}
+              {row(<Building2 size={15} />, "Rent / Spaces", () => openPane("rent"))}
+              {row(<Megaphone size={15} />, "Advertise", () => openPane("ads"))}
+              {row(<Calendar size={15} />, "Spaces & events", () => openPane("spaces"))}
 
-            {!signedIn ? (
+              {section("You")}
+              {row(<User size={15} />, "My Space", () => openPane("me"))}
+              {row(<Plus size={15} />, "Create", () => openPane("create"))}
+              {row(<Bell size={15} />, "Notifications", () => openPane("notes"))}
+              {row(<Inbox size={15} />, "Messages", () => openPane("inbox"))}
+              {row(<Bookmark size={15} />, "Bookmarks", () => openPane("bookmarks"))}
+              {row(<Search size={15} />, "Search", () => openPane("search"))}
+
+              {section("More")}
+              {row(<BadgeDollarSign size={15} />, "Pricing", () => openPane("pricing"))}
+              {row(<Info size={15} />, "How Kilode works", () => openPane("how"))}
+              {row(<HelpCircle size={15} />, "Help & FAQ", () => openPane("help"))}
+              {row(<Settings size={15} />, "Settings", () => openPane("settings"))}
+              {signedIn
+                ? row(<Shield size={15} />, "Staff desk", () => { close(); window.location.href = STAFF_PATH; })
+                : null}
+
               <button
                 type="button"
-                style={{ ...rowStyle, border: 0, background: "#1877F2", color: "#fff", fontWeight: 700, marginTop: 8 }}
-                onClick={() => goLogin("up")}
+                onClick={toggleSfx}
+                style={{
+                  display: "flex",
+                  width: "100%",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  padding: "12px 14px",
+                  margin: "12px 0 4px",
+                  border: "1px solid #E7ECF2",
+                  borderRadius: 12,
+                  background: "#F7F9FC",
+                  color: "#172033",
+                  fontWeight: 600,
+                  fontSize: 13,
+                }}
               >
-                Join Kilode
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  {sfxOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                  Sounds
+                </span>
+                <span
+                  style={{
+                    borderRadius: 999,
+                    padding: "4px 12px",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    background: sfxOn ? "#1877F2" : "#E7ECF2",
+                    color: sfxOn ? "#fff" : "#64748B",
+                  }}
+                >
+                  {sfxOn ? "On" : "Off"}
+                </span>
               </button>
-            ) : null}
+
+              {!signedIn ? (
+                <button
+                  type="button"
+                  onClick={() => goLogin("up")}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    marginTop: 10,
+                    padding: "12px 14px",
+                    border: 0,
+                    borderRadius: 12,
+                    background: "#1877F2",
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: 14,
+                  }}
+                >
+                  Join Kilode
+                </button>
+              ) : null}
+            </div>
           </aside>
-          <button
-            type="button"
-            className="min-h-0 flex-1"
-            style={{ background: "rgba(0,0,0,0.45)", border: 0 }}
-            aria-label="Close menu"
-            onClick={close}
-          />
+          <button type="button" className="min-h-0 flex-1" style={{ background: "transparent", border: 0 }} aria-label="Close menu" onClick={close} />
         </div>
       ) : null}
     </div>
