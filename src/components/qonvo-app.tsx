@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Menu, X, Volume2, VolumeX } from "lucide-react";
+import { X, Volume2, VolumeX } from "lucide-react";
 import { PublicSiteProvider } from "@/components/site-chrome";
 import type { PublicSite } from "@/lib/site-server";
 import { SocialFirst } from "@/components/social-first";
@@ -35,6 +35,21 @@ function Shell() {
 
   const goLogin = (mode: "in" | "up" = "up") => {
     window.location.href = mode === "in" ? "/login?mode=in" : "/login?mode=up";
+  };
+
+  const rowStyle: React.CSSProperties = {
+    display: "flex",
+    width: "100%",
+    alignItems: "center",
+    gap: 10,
+    padding: "12px 14px",
+    margin: "4px 0",
+    border: "1px solid #E7ECF2",
+    borderRadius: 12,
+    background: "#fff",
+    color: "#172033",
+    fontWeight: 600,
+    fontSize: 13,
   };
 
   return (
@@ -86,7 +101,10 @@ function Shell() {
             className="menu-sheet flex h-full min-h-0 w-[min(360px,92vw)] flex-col overflow-hidden"
             style={{ background: "#fff", color: "#172033", borderRight: "1px solid #E7ECF2" }}
           >
-            <div className="menu-head flex items-center justify-between gap-2 border-b border-[#E7ECF2] px-3 py-3">
+            <div
+              className="menu-head flex items-center justify-between gap-2"
+              style={{ borderBottom: "1px solid #E7ECF2", padding: "12px 14px" }}
+            >
               <strong style={{ fontSize: 14 }}>Menu</strong>
               <button
                 type="button"
@@ -98,32 +116,48 @@ function Shell() {
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-2">
-              <div className="menu-sound-row">
-                <span className="inline-flex items-center gap-2">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" style={{ padding: "8px 10px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  padding: "12px 14px",
+                  margin: "4px 0 10px",
+                  background: "#F7F9FC",
+                  border: "1px solid #E7ECF2",
+                  borderRadius: 12,
+                }}
+              >
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600 }}>
                   {sfxOn ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
                   Sounds
                 </span>
-                <button type="button" className={sfxOn ? "" : "off"} onClick={toggleSfx} aria-pressed={sfxOn}>
+                <button
+                  type="button"
+                  onClick={toggleSfx}
+                  aria-pressed={sfxOn}
+                  style={{
+                    border: 0,
+                    borderRadius: 999,
+                    padding: "6px 14px",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    background: sfxOn ? "#1877F2" : "#E7ECF2",
+                    color: sfxOn ? "#fff" : "#64748B",
+                  }}
+                >
                   {sfxOn ? "On" : "Off"}
                 </button>
               </div>
 
-              <button
-                type="button"
-                className="menu-row"
-                style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, padding: "12px 14px", margin: "4px 0", border: "1px solid #E7ECF2", borderRadius: 12, background: "#fff", color: "#172033", fontWeight: 600, fontSize: 13 }}
-                onClick={() => {
-                  setMenuOpen(false);
-                  window.location.href = "/";
-                }}
-              >
+              <button type="button" style={rowStyle} onClick={() => { setMenuOpen(false); window.location.href = "/"; }}>
                 Home
               </button>
               <button
                 type="button"
-                className="menu-row"
-                style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, padding: "12px 14px", margin: "4px 0", border: "1px solid #E7ECF2", borderRadius: 12, background: "#fff", color: "#172033", fontWeight: 600, fontSize: 13 }}
+                style={rowStyle}
                 onClick={() => {
                   setMenuOpen(false);
                   if (!signedIn) return goLogin("up");
@@ -132,21 +166,12 @@ function Shell() {
               >
                 My Space
               </button>
-              <button
-                type="button"
-                className="menu-row"
-                style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, padding: "12px 14px", margin: "4px 0", border: "1px solid #E7ECF2", borderRadius: 12, background: "#fff", color: "#172033", fontWeight: 600, fontSize: 13 }}
-                onClick={() => {
-                  setMenuOpen(false);
-                  window.location.href = "/?tab=cinema";
-                }}
-              >
+              <button type="button" style={rowStyle} onClick={() => { setMenuOpen(false); window.location.href = "/?tab=cinema"; }}>
                 Cinema
               </button>
               <button
                 type="button"
-                className="menu-row"
-                style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, padding: "12px 14px", margin: "4px 0", border: "1px solid #E7ECF2", borderRadius: 12, background: "#fff", color: "#172033", fontWeight: 600, fontSize: 13 }}
+                style={rowStyle}
                 onClick={() => {
                   setMenuOpen(false);
                   window.location.href = signedIn ? "/?open=create" : "/login?mode=up";
@@ -157,8 +182,7 @@ function Shell() {
               {!signedIn ? (
                 <button
                   type="button"
-                  className="menu-row"
-                  style={{ display: "flex", width: "100%", alignItems: "center", gap: 10, padding: "12px 14px", margin: "8px 0", border: 0, borderRadius: 12, background: "#1877F2", color: "#fff", fontWeight: 700, fontSize: 13 }}
+                  style={{ ...rowStyle, border: 0, background: "#1877F2", color: "#fff", fontWeight: 700, marginTop: 8 }}
                   onClick={() => goLogin("up")}
                 >
                   Join Kilode
