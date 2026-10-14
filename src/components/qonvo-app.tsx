@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { X, Volume2, VolumeX } from "lucide-react";
 import { PublicSiteProvider } from "@/components/site-chrome";
 import type { PublicSite } from "@/lib/site-server";
@@ -37,7 +37,7 @@ function Shell() {
     window.location.href = mode === "in" ? "/login?mode=in" : "/login?mode=up";
   };
 
-  const rowStyle: React.CSSProperties = {
+  const rowStyle: CSSProperties = {
     display: "flex",
     width: "100%",
     alignItems: "center",
