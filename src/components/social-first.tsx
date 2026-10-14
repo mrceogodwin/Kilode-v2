@@ -33,7 +33,6 @@ function heatOf(t: TakeRow) {
   return (t.likes || 0) * 3 + (t.reposts || 0) * 4 + (t.comments || 0) * 2 + (t.fact || 0) + (t.cap || 0);
 }
 
-
 const ROLE_GRID = [
   { id: "artist", label: "Artists", match: (r: string) => /artist/i.test(r) },
   { id: "member", label: "Members", match: (r: string) => !r || /member/i.test(r) },
@@ -173,12 +172,12 @@ export function SocialFirst({
     setMoreBusy(true);
     void listTakes({ data: { before: next } })
       .then((r) => {
-        setTakes((cur) => {
-          const ids = new Set(cur.map((t) => t.id));
-          return [...cur, ...(r.takes || []).filter((t) => !ids.has(t.id))];
-        });
-        setNext(r.next || 0);
-      })
+      setTakes((cur) => {
+        const ids = new Set(cur.map((t) => t.id));
+        return [...cur, ...(r.takes || []).filter((t) => !ids.has(t.id))];
+      });
+      setNext(r.next || 0);
+    })
       .catch(() => undefined)
       .finally(() => setMoreBusy(false));
   }
@@ -519,6 +518,31 @@ export function SocialFirst({
           </div>
         )}
       </div>
+
+      <nav className="sf-dock" aria-label="Primary">
+        <button type="button" className={lane === "feed" ? "on" : ""} aria-label="Home" onClick={() => setLane("feed")}><Home /><span className="sf-dock-lab">Home</span></button>
+        <button type="button" className={find ? "on" : ""} aria-label="Search" onClick={() => setFind((v) => !v)}><Search /><span className="sf-dock-lab">Search</span></button>
+        <button type="button" className="sf-plus" aria-label="Create" onClick={() => {
+          if (!authed) { onNeedAuth(); return; }
+          onCreate();
+        }}><Plus /></button>
+        <button type="button" className={lane === "media" ? "on" : ""} aria-label="Media" onClick={() => setLane("media")}><Orbit /><span className="sf-dock-lab">Media</span></button>
+        <button type="button" className="sf-me" aria-label="Me" onClick={onMe}>
+          <img src={avatarUrl(me || "me", face)} alt="" />
+          <span className="sf-dock-lab">Me</span>
+        </button>
+      </nav>
     </div>
+  );
+}
+
+function Orbit() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden>
+      <circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="12" cy="4.2" r="1.35" fill="currentColor" />
+      <circle cx="18.6" cy="15.6" r="1.35" fill="currentColor" />
+      <circle cx="5.4" cy="15.6" r="1.35" fill="currentColor" />
+    </svg>
   );
 }
