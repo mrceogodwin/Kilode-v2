@@ -1,34 +1,52 @@
 # Kilode v2 — Implementation Tracker
 
 **Target:** https://kilode-v2.vercel.app/  
-**Repo:** mrceogodwin/Kilode-v2 (`main`)  
-**Design:** White + social blue (#1877F2); Cinema keeps a dark immersive panel  
-**Rule:** Preserve engine, routes, APIs, auth, ads, playback
+**Repo:** mrceogodwin/Kilode-v2  
+**Protocol sources:** white+blue UI redesign + native experience engineering + mandatory stages
+
+## Honest status (read this)
+
+Earlier passes over-indexed on **white surfaces + blue buttons**. That is only part of the brief.
+
+The full docs also require:
+- Tiny refined **typography scale** (nav/meta/body/title)
+- **Motion system** (press 80–160ms, transitions 180–280ms, reduced-motion)
+- Premium **dock** with labels + safe-area
+- **Not** turning every block into a heavy rounded card (dividers OK)
+- **Cinema** as immersive world (dark panel, poster motion, optional sound) — not a blue paint job
+- Optional **sound** with preference, never on load
+- Preserve engine, ads, auth, playback
+- Stage verification on the **live** app, not “CSS written”
 
 ## Stage checklist
 
 | Stage | Name | Status |
 |------|------|--------|
 | 0 | Audit | VERIFIED COMPLETE |
-| 1 | Design system | IMPLEMENTED — VERIFICATION PENDING |
-| 2 | Shell + navigation | IMPLEMENTED — VERIFICATION PENDING |
-| 3 | Home + discovery | IMPLEMENTED — VERIFICATION PENDING |
-| 4 | Social + communities | IMPLEMENTED — VERIFICATION PENDING |
-| 5 | Media + articles | IMPLEMENTED — VERIFICATION PENDING |
-| 6 | Ecosystem (jobs/market/events/listings) | IMPLEMENTED — VERIFICATION PENDING |
-| 7 | Immersive Cinema | IMPLEMENTED — VERIFICATION PENDING |
-| 8 | Native-app motion | NOT STARTED |
-| 9 | Remaining pages | NOT STARTED |
+| 1 | Design system (tokens + type + motion vars) | IN PROGRESS — type/motion tokens added this pass |
+| 2 | Shell + navigation + dock labels | IN PROGRESS |
+| 3 | Home / discovery density | IN PROGRESS |
+| 4 | Social feed (dividers, compact type) | IN PROGRESS |
+| 5 | Media + article reading comfort | IN PROGRESS |
+| 6 | Ecosystem modules | IN PROGRESS (surface pass only so far) |
+| 7 | Immersive Cinema | IN PROGRESS (dark panel + hover; sound wiring next) |
+| 8 | Native motion / sheets / continuity | IN PROGRESS (sheet animation + press; route continuity TBD) |
+| 9 | Remaining routes | NOT STARTED |
 | 10 | Performance / a11y | NOT STARTED |
 | 11 | Regression | NOT STARTED |
 | 12 | Ship checks | NOT STARTED |
 
-## Stages 6–7 notes
+## This pass
 
-- Ecosystem cards (`.raised`, `.e-hero`, glass panels) forced to white surfaces with blue primary actions.
-- Cinema live chat/quiz card uses dark panel (`--k-cinema-panel`) with blue accents replacing old green lime markers.
-- Poster hover scale retained (220ms); real YouTube playback/vote/rate/quiz handlers untouched.
-- SW cache `kilode-shell-v19`.
+- CSS: full type scale (`--k-fs-*`), motion tokens, press feedback, dock tab type, feed **dividers** instead of oversized cards, sheet rise animation, article body 15px/1.65
+- `sfx.ts`: persist `kilode-sfx` preference; `soundsEnabled()`
+- Engine still untouched for posts/cinema/vote/ads
 
-## Next
-Stage 8 motion (sheets, route continuity), Stage 9 edge routes, then QA + production verify.
+## Still required by the docs (next)
+
+1. Wire `kilodeSound('tick')` on Cinema poster select (optional, after gesture)
+2. Sound on/off control in settings UI
+3. Explicit dock labels under sf-dock icons in JSX
+4. Route transition continuity for kept tabs
+5. Per-screen visual QA at 375/390 against protocol
+6. Mark stages VERIFIED COMPLETE only after live checks
