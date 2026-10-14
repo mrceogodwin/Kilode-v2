@@ -3,16 +3,17 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { seoHead } from "@/lib/seo";
 import appCss from "../styles.css?url";
+import whiteBlueCss from "../styles-white-blue.css?url";
 import { OfflineToast } from "@/components/offline-toast";
 
 const base = seoHead({ path: "/" });
 
 function Boot({ title, body, action }: { title: string; body: string; action?: React.ReactNode }) {
   return (
-    <div className="grid min-h-svh place-items-center bg-[#0a0a0a] p-6 text-[#f4f4f5]">
+    <div className="grid min-h-svh place-items-center bg-white p-6 text-[#172033]">
       <div className="max-w-sm text-center">
         <p className="mt-1 text-sm font-semibold">{title}</p>
-        <p className="mt-2 text-sm text-white/50">{body}</p>
+        <p className="mt-2 text-sm text-[#64748B]">{body}</p>
         {action}
       </div>
     </div>
@@ -26,8 +27,9 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Kilode" },
+      { name: "theme-color", content: "#FFFFFF" },
       ...base.meta,
     ],
     links: [
@@ -42,26 +44,27 @@ export const Route = createRootRoute({
         href: "https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Syne:wght@700;800&display=swap",
       },
       { rel: "stylesheet", href: appCss },
+      { rel: "stylesheet", href: whiteBlueCss },
       ...base.links,
     ],
     scripts: base.scripts,
     styles: [
       {
-        children: "html,body{background:#050706;color:#f4f6f5;margin:0;min-height:100%;min-height:-webkit-fill-available}",
+        children: "html,body{background:#FFFFFF;color:#172033;margin:0;min-height:100%;min-height:-webkit-fill-available}",
       },
     ],
   }),
-  pendingComponent: () => <Boot title="Opening the room" body="One second…" />,
+  pendingComponent: () => <Boot title="Opening Kilode" body="One second…" />,
   errorComponent: ({ error, reset }) => (
     <Boot
       title="Kilode hit a snag"
       body={(error as { message?: string })?.message || "Reload and try again."}
       action={
         <div className="mt-4 flex justify-center gap-2">
-          <button type="button" className="rounded-lg border border-white/15 px-3 py-2 text-sm" onClick={() => reset()}>
+          <button type="button" className="rounded-lg border border-[#E7ECF2] px-3 py-2 text-sm text-[#172033]" onClick={() => reset()}>
             Try again
           </button>
-          <a href="/" className="rounded-lg border border-white/15 px-3 py-2 text-sm">
+          <a href="/" className="rounded-lg border border-[#E7ECF2] px-3 py-2 text-sm text-[#172033]">
             Home
           </a>
         </div>
@@ -78,7 +81,7 @@ export const Route = createRootRoute({
           }}
         />
       </head>
-      <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh" }}>
+      <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh", background: "#FFFFFF", color: "#172033" }}>
         <PreviewHostBridge />
         <OfflineToast />
         <AuthProvider>
