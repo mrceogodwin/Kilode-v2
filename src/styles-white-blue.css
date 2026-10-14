@@ -229,7 +229,6 @@ html .kilode-shell[data-sf="1"] .sf-dock > button.on::after {
   border-radius: 2px !important;
   background: #fff !important;
 }
-/* Plus on blue dock: white pill + blue mark */
 html .kilode-shell[data-sf="1"] .sf-plus {
   background: #fff !important;
   color: var(--k-blue) !important;
@@ -461,59 +460,66 @@ html .kilode-shell[data-sf="1"] .sf-mosaic button {
   border-radius: var(--k-radius) !important;
 }
 
-/* ========== MENU DRAWER: force white + blue selected ========== */
-html .kilode-shell[data-sf="1"] .menu-sheet,
+/* ========== MENU DRAWER: force ALL white (kill black rows) ========== */
 html .menu-sheet,
-html .kilode-shell .menu-sheet {
+html [class*="menu-sheet"],
+html .kilode-shell .menu-sheet,
+html .kilode-shell [class*="menu"] {
   background: #FFFFFF !important;
-  color: var(--k-text) !important;
+  color: #172033 !important;
 }
-html .menu-hero-card,
-html .menu-press,
-html .kilode-shell .menu-hero-card,
-html .kilode-shell .menu-press {
-  background: #FFFFFF !important;
-  color: var(--k-text) !important;
-  border: 1px solid var(--k-border) !important;
-  box-shadow: none !important;
+html .menu-sheet *,
+html [class*="menu-sheet"] * {
+  --tw-bg-opacity: 1;
 }
-html .menu-sheet [class*="stat"],
-html .menu-sheet .menu-stats,
-html .menu-sheet .stat-card,
-html .menu-sheet .menu-press > div,
-html .kilode-shell .menu-sheet .bg-black,
-html .kilode-shell .menu-sheet .bg-neutral-900,
-html .kilode-shell .menu-sheet .bg-zinc-900,
-html .kilode-shell .menu-sheet .bg-gray-900 {
+html .menu-sheet .bg-black,
+html .menu-sheet .bg-neutral-900,
+html .menu-sheet .bg-zinc-900,
+html .menu-sheet .bg-gray-900,
+html .menu-sheet .bg-neutral-950,
+html .menu-sheet .bg-zinc-950,
+html .menu-sheet [class*="bg-black"],
+html .menu-sheet [class*="bg-neutral-9"],
+html .menu-sheet [class*="bg-zinc-9"],
+html .menu-sheet [class*="bg-gray-9"],
+html .menu-sheet [style*="background: rgb(0"],
+html .menu-sheet [style*="background-color: rgb(0"],
+html .menu-sheet [style*="background: #0"],
+html .menu-sheet [style*="background-color: #0"] {
   background: #F7F9FC !important;
-  color: var(--k-text) !important;
-  border: 1px solid var(--k-border) !important;
+  background-color: #F7F9FC !important;
+  color: #172033 !important;
+  border-color: #E7ECF2 !important;
 }
-html .menu-row,
-html .kilode-shell .menu-row,
-html .menu-sheet button.menu-row,
-html .menu-sheet a.menu-row {
+html .menu-sheet button,
+html .menu-sheet a,
+html .menu-sheet [role="button"],
+html .menu-sheet .menu-row,
+html .menu-sheet [class*="row"] {
   background: #FFFFFF !important;
-  color: var(--k-text) !important;
-  border: 1px solid var(--k-border) !important;
+  background-color: #FFFFFF !important;
+  color: #172033 !important;
+  border: 1px solid #E7ECF2 !important;
   border-radius: 12px !important;
 }
-html .menu-row.on,
-html .kilode-shell[data-sf="1"] .menu-row.on,
+html .menu-sheet button.on,
+html .menu-sheet a.on,
+html .menu-sheet [aria-current="page"],
 html .menu-sheet .menu-row.on {
-  background: var(--k-blue-soft) !important;
-  color: var(--k-blue) !important;
+  background: rgba(24, 119, 242, 0.10) !important;
+  color: #1877F2 !important;
   border-color: rgba(24, 119, 242, 0.35) !important;
 }
-html .menu-sheet .quick-actions button,
-html .menu-sheet .menu-quick button {
-  background: #FFFFFF !important;
-  color: var(--k-text) !important;
-  border: 1px solid var(--k-border) !important;
-}
 html .menu-sheet .text-white,
-html .menu-sheet .text-white\/80 {
-  color: var(--k-text) !important;
+html .menu-sheet [class*="text-white"] {
+  color: #172033 !important;
+}
+html .menu-hero-card,
+html .menu-press {
+  background: #FFFFFF !important;
+  color: #172033 !important;
+  border: 1px solid #E7ECF2 !important;
+  box-shadow: none !important;
 }
 
 html .repost-sheet,
