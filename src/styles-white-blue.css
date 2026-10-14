@@ -1,1 +1,300 @@
-PLACEHOLDER
+/* Kilode v2 — design system
+   Content: white canvas. Chrome: BLUE header + BLUE bottom dock (#1877F2).
+   MUST beat the black-force block at end of styles.css (same selectors, loads after).
+*/
+
+:root, html {
+  --color-bg: #FFFFFF !important;
+  --color-panel: #FFFFFF !important;
+  --color-panel-2: #F7F9FC !important;
+  --color-panel-3: #F1F5F9 !important;
+  --color-fg: #172033 !important;
+  --color-muted: #64748B !important;
+  --color-lime: #1877F2 !important;
+  --color-lime-2: #145DBF !important;
+  --color-line: #E7ECF2 !important;
+  --color-danger: #DC2626 !important;
+  --color-yellow: #1877F2 !important;
+}
+
+:root {
+  --k-bg: #FFFFFF;
+  --k-surface: #FFFFFF;
+  --k-surface-2: #F7F9FC;
+  --k-surface-3: #F1F5F9;
+  --k-text: #172033;
+  --k-text-2: #64748B;
+  --k-text-3: #94A3B8;
+  --k-border: #E7ECF2;
+  --k-divider: #EEF1F5;
+  --k-blue: #1877F2;
+  --k-blue-2: #145DBF;
+  --k-blue-soft: rgba(24, 119, 242, 0.10);
+  --k-chrome: #1877F2;
+  --k-chrome-2: #145DBF;
+  --k-chrome-fg: #FFFFFF;
+  --k-chrome-muted: rgba(255, 255, 255, 0.72);
+  --k-radius: 12px;
+  --k-radius-sm: 8px;
+  --k-radius-lg: 16px;
+  --k-press: 120ms;
+  --k-fast: 160ms;
+  --k-motion: 220ms;
+  --k-route: 280ms;
+  --k-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --k-fs-nav: 9px;
+  --k-fs-caption: 10px;
+  --k-fs-meta: 11px;
+  --k-fs-label: 12px;
+  --k-fs-body: 14px;
+  --k-fs-title: 16px;
+  --k-fs-display: 18px;
+  --k-lh-tight: 1.25;
+  --k-lh-body: 1.5;
+  --k-cinema-bg: #0B0D12;
+  --k-cinema-panel: #12151C;
+  --k-cinema-line: rgba(255,255,255,0.08);
+  --report-bg: #FFFFFF;
+  --report-fg: #172033;
+  --report-muted: #64748B;
+  --report-line: #E7ECF2;
+}
+
+html, body, #app {
+  background: var(--k-bg) !important;
+  color: var(--k-text) !important;
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+button:not(:disabled):active,
+[role="button"]:not(:disabled):active,
+.app-tab:active,
+.sf-dock > button:active,
+.k-press:active {
+  transform: scale(0.97);
+  transition: transform var(--k-press) var(--k-ease);
+}
+
+html .kilode-shell {
+  background: var(--k-bg) !important;
+  color: var(--k-text) !important;
+}
+
+/* BLUE HEADER */
+html .kilode-shell[data-sf="1"] .sf-bar,
+html .kilode-shell[data-sf="1"][data-home="0"] .kilode-chrome,
+html .kilode-shell[data-sf="1"][data-home="0"] .kilode-header-capsule,
+html .kilode-shell .kilode-chrome,
+html .kilode-shell .kilode-header-capsule {
+  background: var(--k-chrome) !important;
+  color: var(--k-chrome-fg) !important;
+  border-bottom: none !important;
+  box-shadow: 0 2px 12px rgba(20, 93, 191, 0.22) !important;
+  min-height: 52px !important;
+  padding-top: max(6px, env(safe-area-inset-top, 0px)) !important;
+  display: flex !important;
+}
+html .kilode-shell[data-sf="1"] .sf-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-logo,
+html .kilode-shell[data-sf="1"] .sf-chrome-logo {
+  height: 26px !important;
+  max-width: 118px !important;
+  width: auto !important;
+  object-fit: contain !important;
+  display: block !important;
+  filter: brightness(0) invert(1) drop-shadow(0 0 0 transparent) !important;
+  background: transparent !important;
+}
+html .kilode-shell[data-sf="1"] .sf-menu {
+  width: 36px !important;
+  height: 36px !important;
+  color: var(--k-chrome-fg) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools {
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools button,
+html .kilode-shell[data-sf="1"][data-home="0"] .soc-ico,
+html .kilode-shell[data-sf="1"][data-home="0"] .hdr-ico {
+  color: var(--k-chrome-muted) !important;
+  background: transparent !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tools button.on {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+}
+html .kilode-shell[data-sf="1"] .sf-ava,
+html .kilode-shell[data-sf="1"] .sf-ava img {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 999px !important;
+  border: 2px solid rgba(255, 255, 255, 0.55) !important;
+}
+
+/* BLUE DOCK */
+html .kilode-shell[data-sf="1"] .sf-dock,
+html .kilode-shell[data-sf="1"][data-home="0"] .dock,
+html .kilode-shell .dock {
+  background: var(--k-chrome) !important;
+  color: var(--k-chrome-fg) !important;
+  border-top: none !important;
+  box-shadow: 0 -4px 18px rgba(20, 93, 191, 0.28) !important;
+  height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  display: flex !important;
+}
+html .kilode-shell .dock .app-tab {
+  font-size: var(--k-fs-nav) !important;
+  font-weight: 650 !important;
+  color: var(--k-chrome-muted) !important;
+}
+html .kilode-shell .dock .app-tab.on {
+  color: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock > button {
+  color: var(--k-chrome-muted) !important;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  font-size: var(--k-fs-nav) !important;
+  font-weight: 650 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock > button.on {
+  color: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .sf-dock > button.on::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 18px !important;
+  right: 18px !important;
+  bottom: 3px !important;
+  height: 2px !important;
+  border-radius: 2px !important;
+  background: #fff !important;
+}
+html .kilode-shell[data-sf="1"] .sf-plus {
+  background: #fff !important;
+  color: var(--k-blue) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18) !important;
+}
+
+/* CONTENT */
+html .kilode-shell[data-sf="1"] .sf { background: var(--k-surface-2) !important; }
+html .kilode-shell[data-sf="1"] .sf-post {
+  background: #fff !important;
+  color: var(--k-text) !important;
+  border-bottom: 1px solid var(--k-divider) !important;
+  padding: 12px 14px !important;
+}
+html .kilode-shell[data-sf="1"] .sf-tick {
+  background: #fff !important;
+  border-bottom: 1px solid var(--k-border) !important;
+  color: var(--k-text-2) !important;
+}
+
+/* MENU WHITE */
+html .menu-sheet {
+  background: #FFFFFF !important;
+  color: #172033 !important;
+  border-right: 1px solid #E7ECF2 !important;
+}
+html .menu-head {
+  background: #FFFFFF !important;
+  color: #172033 !important;
+  border-bottom: 1px solid #E7ECF2 !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row {
+  background: #FFFFFF !important;
+  color: #172033 !important;
+  border: 1px solid #E7ECF2 !important;
+  border-radius: 12px !important;
+}
+html .kilode-shell[data-sf="1"] .menu-row.on {
+  background: rgba(24, 119, 242, 0.10) !important;
+  color: #1877F2 !important;
+}
+
+html .kilode-shell[data-sf="1"] .space-page,
+html .kilode-shell[data-sf="1"] .create-page,
+html .kilode-shell[data-sf="1"] .fm-page {
+  background: var(--k-surface-2) !important;
+  color: var(--k-text) !important;
+}
+html .kilode-shell[data-sf="1"] .fm-cta,
+html .kilode-shell[data-sf="1"] .btn-join,
+html .kilode-shell[data-sf="1"] .create-page button[type="submit"] {
+  background: var(--k-blue) !important;
+  color: #fff !important;
+}
+
+@keyframes kSheetUp {
+  from { transform: translateY(12px); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes kFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.k-fade-in { animation: kFade var(--k-motion) var(--k-ease) both; }
+
+/* JOBS / MARKET white-blue boards */
+html .kilode-shell[data-sf="1"] .max-w-3xl .bg-black,
+html .kilode-shell[data-sf="1"] .max-w-3xl .bg-neutral-900,
+html .kilode-shell[data-sf="1"] .max-w-3xl .bg-zinc-900,
+html .kilode-shell[data-sf="1"] .max-w-3xl .bg-slate-900 {
+  background: #fff !important;
+  color: var(--k-text) !important;
+  border: 1px solid var(--k-border) !important;
+}
+html .kilode-shell[data-sf="1"] .max-w-3xl .text-white {
+  color: var(--k-text) !important;
+}
+html .kilode-shell[data-sf="1"] .max-w-3xl .text-white\/50,
+html .kilode-shell[data-sf="1"] .max-w-3xl .text-white\/60,
+html .kilode-shell[data-sf="1"] .max-w-3xl .text-white\/70,
+html .kilode-shell[data-sf="1"] .max-w-3xl .text-white\/80 {
+  color: var(--k-text-2) !important;
+}
+html .kilode-shell[data-sf="1"] .max-w-3xl .bg-white\/10,
+html .kilode-shell[data-sf="1"] .max-w-3xl .bg-white\/5 {
+  background: var(--k-surface-2) !important;
+}
+html .kilode-shell[data-sf="1"] .max-w-3xl .text-lime-2 {
+  color: var(--k-blue) !important;
+}
+html .kilode-shell[data-sf="1"] .max-w-3xl .bg-lime-2,
+html .kilode-shell[data-sf="1"] .max-w-3xl .bg-lime-2\/15 {
+  background: rgba(24, 119, 242, 0.12) !important;
+  color: var(--k-blue) !important;
+}
+html .kilode-shell[data-sf="1"] .max-w-3xl .btn-join {
+  background: var(--k-blue) !important;
+  color: #fff !important;
+}
