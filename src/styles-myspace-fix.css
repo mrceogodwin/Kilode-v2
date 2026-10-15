@@ -85,22 +85,53 @@ html .kilode-shell[data-sf="1"] .space-page .staff-go:hover,
   color: #fff !important;
 }
 
-/* Quick tiles under My Space */
-html .kilode-shell[data-sf="1"] .space-page .me-quick,
-.me-quick {
+/* Circular shortcut tiles — Friends / Follows / Saved / Spaces / Groups / Market / Messages */
+html .kilode-shell[data-sf="1"] .space-page .me-shortcuts,
+.me-shortcuts {
   display: grid !important;
   grid-template-columns: repeat(4, 1fr) !important;
-  gap: 10px !important;
+  gap: 12px 8px !important;
+  margin-bottom: 16px !important;
 }
 
-html .kilode-shell[data-sf="1"] .space-page .me-quick button,
-.me-quick button {
+html .kilode-shell[data-sf="1"] .space-page .me-shortcuts .me-chip,
+.me-shortcuts .me-chip {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  color: #172033 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+html .kilode-shell[data-sf="1"] .space-page .me-shortcuts .me-chip svg,
+.me-shortcuts .me-chip svg {
+  width: 52px !important;
+  height: 52px !important;
+  padding: 14px !important;
+  border-radius: 999px !important;
   background: #fff !important;
   border: 1px solid #E7ECF2 !important;
-  border-radius: 999px !important;
-  padding: 14px 6px !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
   color: #172033 !important;
-  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04) !important;
+}
+
+html .kilode-shell[data-sf="1"] .space-page .me-shortcuts .me-chip:active svg,
+.me-shortcuts .me-chip:active svg {
+  transform: scale(0.96);
+}
+
+/* 7th tile wraps to second row — center remaining */
+html .kilode-shell[data-sf="1"] .space-page .me-shortcuts .me-chip:nth-child(5),
+html .kilode-shell[data-sf="1"] .space-page .me-shortcuts .me-chip:nth-child(6),
+html .kilode-shell[data-sf="1"] .space-page .me-shortcuts .me-chip:nth-child(7) {
+  /* natural grid flow */
 }
 
 /* 5-tab dock with raised center + */
@@ -193,4 +224,9 @@ html .kilode-shell[data-sf="1"] .sf-hdr-pill .sf-badge {
   place-items: center !important;
   padding: 0 4px !important;
   border: 2px solid #1877F2 !important;
+}
+
+/* Space page beige canvas like reference */
+html .kilode-shell[data-sf="1"] .space-page {
+  background: #F3F0EA !important;
 }
