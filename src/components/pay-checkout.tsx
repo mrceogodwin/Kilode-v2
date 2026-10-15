@@ -4,6 +4,13 @@ import type { PayProvider } from "@/lib/pay-money";
 
 type PayKind = "ad" | "event" | "verify" | "job" | "market" | "rent" | "cinema" | "push";
 
+function providerLabel(provider: PayProvider) {
+  if (provider === "paystack") return "Paystack";
+  if (provider === "flutterwave") return "Flutterwave";
+  if (provider === "bachs") return "Bachs";
+  return "Crypto";
+}
+
 export function GatewayPay({
   provider,
   kind,
@@ -28,9 +35,10 @@ export function GatewayPay({
   const [ngn, setNgn] = useState(0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const label = provider === "paystack" ? "Paystack" : provider === "flutterwave" ? "Flutterwave" : "Crypto";
+  const label = providerLabel(provider);
   const quote = usd > 0 && rate > 0 ? usd * rate : 0;
-  const priceLabel = provider === "nowpayments" ? `$${usd} in crypto` : `₦${quote.toLocaleString("en-NG")}`;
+  const priceLabel =
+    provider === "nowpayments" ? `$${usd} in crypto` : provider === "bachs" ? `$${usd} · ₦${quote.toLocaleString("en-NG")}` : `₦${quote.toLocaleString("en-NG")}`;
 
   async function check(reference: string, quiet = false) {
     const r = await confirmCheckout({ data: { reference } });
@@ -131,23 +139,33 @@ export function DeskPayBox({
   useEffect(() => {
     void listPayMethods()
       .then((m) => {
-        const shown: PayProvider[] = ["paystack", "flutterwave"];
-        if (m.cryptoEnabled) shown.push("nowpayments");
+        const shown: PayProvider[] = [];
+        if (m.paystack) shown.push("paystack");
+        if (m.flutterwave) shown.push("flutterwave");
+        if ((m as { bachs?: boolean }).bachs) shown.push("bachs");
+        if (m.nowpayments) shown.push("nowpayments");
+        if (!shown.length) {
+          shown.push("paystack", "flutterwave");
+        }
         setMethods(shown);
-        setPayWith((cur) => (shown.includes(cur) ? cur : "paystack"));
+        setPayWith((cur) => (shown.includes(cur) ? cur : shown[0]));
         setRate(m.ngnPerUsd);
-        setReady({ paystack: m.paystack, flutterwave: m.flutterwave, nowpayments: m.nowpayments });
+        setReady({
+          paystack: m.paystack,
+          flutterwave: m.flutterwave,
+          nowpayments: m.nowpayments,
+          bachs: Boolean((m as { bachs?: boolean }).bachs),
+        });
       })
       .catch(() => undefined);
   }, []);
-  const label = (id: PayProvider) => (id === "nowpayments" ? "Crypto" : id === "paystack" ? "Paystack" : "Flutterwave");
   return (
     <div className="space-y-2 rounded-xl border border-[#e6c56a]/35 bg-black/30 p-3">
       <p className="text-[12px] leading-snug">This desk is paid. Pay and it goes live. Staff do not have to approve a paid listing. They can still take a scam down.</p>
       <div className="flex flex-wrap gap-1">
         {methods.map((id) => (
           <button key={id} type="button" onClick={() => setPayWith(id)} className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${payWith === id ? "btn-3d" : "border border-line text-muted"}`}>
-            {label(id)}
+            {providerLabel(id)}
           </button>
         ))}
       </div>
