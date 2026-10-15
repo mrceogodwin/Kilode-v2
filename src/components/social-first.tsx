@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
-  Activity, Bell, Briefcase, Clapperboard, Eye, FileText, Hash, Home, Image as ImageIcon, Layers,
-  Menu, MessageCircle, Music, Plus, Search, Share2, Store, ThumbsUp, Users, Megaphone, Building2, Calendar, X, Zap,
+  Activity, Bell, Briefcase, Clapperboard, Eye, FileText, Layers,
+  Menu, MessageCircle, Music, Plus, Share2, Store, ThumbsUp, Users, Megaphone, Building2, Calendar, X, Zap, Image as ImageIcon,
 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import { likeTake, listTakes, listTakeReplies, replyTake, saveTake, voteTake, type FellowRow, type TakeRow } from "@/lib/takes-server";
@@ -11,6 +11,10 @@ import { PushStrip } from "@/components/artist-push";
 type News = { id: string; title: string; image?: string; category?: string; ts: number; views?: number; status?: string };
 
 const RINGS = ["#e25b4a", "#f0b429", "#7a4db8", "#1f8f4e", "#3a6ea5", "#111111"];
+function faceOf(handle: string, faces: Record<string, string>, face?: string) {
+  const h = (handle || "").toLowerCase();
+  return faces[h] || face || avatarUrl(handle);
+}
 function ringOf(name: string) {
   let n = 0;
   for (const c of name) n += c.charCodeAt(0);
@@ -60,9 +64,10 @@ export function SocialFirst({
   onOpenNews: (id?: string) => void; onOpen?: (key: string) => void; onNeedAuth: () => void;
 }) {
   const [lane, setLane] = useState<"feed" | "media">("feed");
-  const [q, setQ] = useState("");
   const [takes, setTakes] = useState<TakeRow[]>([]);
   const [people, setPeople] = useState<FellowRow[]>([]);
+  const [faces, setFaces] = useState<Record<string, string>>({});
+  const [live, setLive] = useState<string[]>([]);
   const [cut, setCut] = useState("trending");
   const [voted, setVoted] = useState<Record<string, "" | "fact" | "cap">>({});
   const [draft, setDraft] = useState("");
@@ -98,7 +103,12 @@ export function SocialFirst({
         }
         if (!alive) return;
         setTakes(asTakes(raw));
-        if (raw && typeof raw === "object" && Array.isArray((raw as any).fellows)) setPeople((raw as any).fellows);
+        if (raw && typeof raw === "object") {
+          const o = raw as any;
+          if (Array.isArray(o.fellows)) setPeople(o.fellows);
+          if (o.faces && typeof o.faces === "object") setFaces(o.faces as Record<string, string>);
+          if (Array.isArray(o.live)) setLive(o.live.map((x: any) => String(x).toLowerCase()));
+        }
       } catch {
         if (alive) setNote("Could not load feed — pull to retry");
       }
@@ -132,6 +142,12 @@ export function SocialFirst({
       let raw: unknown = null;
       try { raw = await listTakes({ data: {} } as any); } catch { raw = await listTakes(); }
       setTakes(asTakes(raw));
+      if (raw && typeof raw === "object") {
+        const o = raw as any;
+        if (Array.isArray(o.fellows)) setPeople(o.fellows);
+        if (o.faces && typeof o.faces === "object") setFaces(o.faces);
+        if (Array.isArray(o.live)) setLive(o.live.map((x: any) => String(x).toLowerCase()));
+      }
     } catch { /* ignore */ }
   };
 
@@ -193,11 +209,8 @@ export function SocialFirst({
     try { await likeTake({ data: { id } } as any); await refresh(); } catch { /* ignore */ }
   };
 
-  const filtered = (Array.isArray(takes) ? takes : []).filter((t) => {
-    if (!q.trim()) return true;
-    return `${t.handle || ""} ${t.body || ""}`.toLowerCase().includes(q.toLowerCase());
-  });
-  const trending = [...(Array.isArray(takes) ? takes : [])].sort((a, b) => heatOf(b) - heatOf(a)).slice(0, 8);
+  const filtered = Array.isArray(takes) ? takes : [];
+  const trending = [...filtered].sort((a, b) => heatOf(b) - heatOf(a)).slice(0, 8);
   const tickText = trending.map((t) => (t.body || "").slice(0, 48)).filter(Boolean).join("  ·  ") || "Talk Nigeria. Live.";
   const know = people.filter((p) => p.handle && p.handle.toLowerCase() !== (me || "").toLowerCase()).slice(0, 8);
   const open = (key: string) => { if (onOpen) onOpen(key); };
@@ -228,6 +241,25 @@ export function SocialFirst({
               <span className="sf-tick-label">TRENDING</span>
               <div className="sf-tick-track"><div className="sf-tick-marquee">{tickText} · {tickText}</div></div>
             </div>
+
+            {(know.length > 0 || live.length > 0) ? (
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "12px 14px 8px", borderBottom: "1px solid #F1F5F9" }}>
+                <button type="button" onClick={create} style={{ flex: "0 0 auto", background: "none", border: 0, textAlign: "center", width: 64 }}>
+                  <span style={{ width: 52, height: 52, borderRadius: "50%", border: "2px dashed #1877F2", display: "grid", placeItems: "center", margin: "0 auto", color: "#1877F2" }}><Plus size={20} /></span>
+                  <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600 }}>Your story</div>
+                </button>
+                {(know.length ? know : people).slice(0, 12).map((p) => {
+                  const on = live.includes((p.handle || "").toLowerCase());
+                  return (
+                    <a key={p.id || p.handle} href={`/u/${encodeURIComponent(p.handle)}`} style={{ flex: "0 0 auto", textAlign: "center", width: 64, textDecoration: "none", color: "inherit" }}>
+                      <img src={p.photo || faceOf(p.handle, faces)} alt="" width={52} height={52} style={{ borderRadius: "50%", objectFit: "cover", border: on ? "2.5px solid #1877F2" : `2px solid ${ringOf(p.handle)}`, display: "block", margin: "0 auto" }} />
+                      <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(p.name || p.handle).slice(0, 10)}</div>
+                    </a>
+                  );
+                })}
+              </div>
+            ) : null}
+
             <form onSubmit={onPost} style={{ padding: 12, borderBottom: "1px solid #F1F5F9" }}>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <img src={avatarUrl(me || "guest", face)} alt="" width={36} height={36} style={{ borderRadius: "50%" }} />
@@ -249,11 +281,11 @@ export function SocialFirst({
                 <b style={{ fontSize: 13, color: "#172033" }}>People you may know</b>
                 <div style={{ display: "flex", gap: 10, overflowX: "auto", marginTop: 10 }}>
                   {know.map((p) => (
-                    <div key={p.id || p.handle} style={{ flex: "0 0 110px", textAlign: "center" }}>
-                      <img src={p.photo || avatarUrl(p.handle)} alt="" width={56} height={56} style={{ borderRadius: "50%", objectFit: "cover" }} />
+                    <a key={p.id || p.handle} href={`/u/${encodeURIComponent(p.handle)}`} style={{ flex: "0 0 110px", textAlign: "center", textDecoration: "none", color: "inherit" }}>
+                      <img src={p.photo || faceOf(p.handle, faces)} alt="" width={56} height={56} style={{ borderRadius: "50%", objectFit: "cover" }} />
                       <div style={{ fontSize: 12, fontWeight: 700, marginTop: 6 }}>{(p.name || p.handle).slice(0, 12)}</div>
                       <div style={{ fontSize: 10, color: "#64748B" }}>{roleLabel(p.role)}</div>
-                    </div>
+                    </a>
                   ))}
                 </div>
               </section>
@@ -263,7 +295,7 @@ export function SocialFirst({
               return (
                 <article key={t.id} style={{ padding: "14px 12px", borderBottom: "1px solid #F1F5F9" }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <img src={avatarUrl(t.handle || "u", (t as any).face)} alt="" width={40} height={40} style={{ borderRadius: "50%", border: `2px solid ${ringOf(t.handle || "u")}` }} />
+                    <img src={faceOf(t.handle || "u", faces, (t as any).face)} alt="" width={40} height={40} style={{ borderRadius: "50%", border: `2px solid ${ringOf(t.handle || "u")}` }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 14 }}>{t.handle || "anon"}</div>
                       <div style={{ fontSize: 12, color: "#64748B" }}>{roleLabel(t.role || "member")}</div>
@@ -314,7 +346,7 @@ export function SocialFirst({
               })}
             </div>
             <button type="button" onClick={() => open("ads")} style={{ display: "block", width: "calc(100% - 24px)", margin: "4px 12px 12px", padding: "14px 16px", borderRadius: 14, border: "1px dashed rgba(24,119,242,0.35)", background: "linear-gradient(135deg,#EFF6FF,#F8FAFC)", textAlign: "left" }}>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: "#1877F2", textTransform: "uppercase" }}>Sponsored</div>
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: "#1877F2" }}>SPONSORED</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#172033", marginTop: 4 }}>Reach Naija audiences on Kilode</div>
             </button>
             <div className="sf-news-list">
