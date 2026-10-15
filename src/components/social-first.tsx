@@ -11,6 +11,7 @@ import {
 } from "@/lib/takes-server";
 import { SitePulsePanel } from "@/components/pulse-panel";
 import { PushStrip } from "@/components/artist-push";
+import { HomeMediaLane } from "@/components/home-media-lane";
 
 type News = { id: string; title: string; image?: string; category?: string; ts: number; views?: number; status?: string };
 
@@ -496,25 +497,12 @@ export function SocialFirst({
             {note ? <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "#111", color: "#fff", padding: "8px 14px", borderRadius: 999, fontSize: 12, zIndex: 60 }}>{note}</div> : null}
           </>
         ) : (
-          <>
-            <div style={{ padding: 16 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 800 }}>Home</h2>
-              <p style={{ color: "#64748B", fontSize: 13 }}>News, hubs, and media. Open Socials for the feed.</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
-                {HUBS.map((h) => {
-                  const Icon = h.icon;
-                  return (
-                    <button key={h.key} type="button" onClick={() => open(h.key)} style={{ textAlign: "left", border: "1px solid #E7ECF2", borderRadius: 16, padding: 12, background: "#fff" }}>
-                      <span style={{ display: "inline-grid", placeItems: "center", width: 32, height: 32, borderRadius: 10, background: h.color + "22", color: h.color }}><Icon size={16} /></span>
-                      <div style={{ fontWeight: 800, marginTop: 6 }}>{h.label}</div>
-                      <div style={{ fontSize: 11, color: "#64748B" }}>{h.sub}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div style={{ padding: "0 12px 24px" }}><SitePulsePanel /></div>
-          </>
+          <HomeMediaLane
+            news={news}
+            tickText={tickText}
+            onOpen={onOpen}
+            onOpenNews={onOpenNews}
+          />
         )}
       </div>
 
