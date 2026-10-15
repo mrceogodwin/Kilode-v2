@@ -132,17 +132,30 @@ export function SocialFirst({
     let alive = true;
     (async () => {
       try {
-        const raw = await listTakes({ data: {} } as any).catch(() => listTakes(undefined as any));
+        let raw: unknown = null;
+        try {
+          raw = await listTakes({ data: {} } as any);
+        } catch {
+          try {
+            raw = await listTakes();
+          } catch {
+            raw = await listTakes(undefined as any);
+          }
+        }
         if (!alive) return;
-        setTakes(asTakes(raw));
+        const list = asTakes(raw);
+        setTakes(list);
         if (raw && typeof raw === "object" && Array.isArray((raw as any).fellows)) {
           setPeople((raw as any).fellows);
         }
+        if (!list.length) setNote("");
       } catch {
-        if (alive) setNote("Could not load feed");
+        if (alive) setNote("Could not load feed — pull to retry");
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -162,9 +175,16 @@ export function SocialFirst({
 
   const refresh = async () => {
     try {
-      const raw = await listTakes({ data: {} } as any).catch(() => listTakes(undefined as any));
+      let raw: unknown = null;
+      try {
+        raw = await listTakes({ data: {} } as any);
+      } catch {
+        raw = await listTakes();
+      }
       setTakes(asTakes(raw));
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   };
 
   const onPost = async (e: FormEvent) => {
@@ -186,12 +206,21 @@ export function SocialFirst({
   const doVote = async (id: string, kind: "fact" | "cap") => {
     if (!authed) return onNeedAuth();
     setVoted((v) => ({ ...v, [id]: kind }));
-    try { await voteTake({ data: { id, kind } } as any); } catch { /* ignore */ }
+    try {
+      await voteTake({ data: { id, kind } } as any);
+    } catch {
+      /* ignore */
+    }
   };
 
   const doLike = async (id: string) => {
     if (!authed) return onNeedAuth();
-    try { await likeTake({ data: { id } } as any); await refresh(); } catch { /* ignore */ }
+    try {
+      await likeTake({ data: { id } } as any);
+      await refresh();
+    } catch {
+      /* ignore */
+    }
   };
 
   const filtered = (Array.isArray(takes) ? takes : []).filter((t) => {
@@ -203,7 +232,9 @@ export function SocialFirst({
   const tickText = trending.map((t) => (t.body || "").slice(0, 48)).filter(Boolean).join("  ·  ") || "Talk Nigeria. Live.";
   const know = people.filter((p) => p.handle && p.handle.toLowerCase() !== (me || "").toLowerCase()).slice(0, 8);
 
-  const open = (key: string) => { if (onOpen) onOpen(key); };
+  const open = (key: string) => {
+    if (onOpen) onOpen(key);
+  };
 
   const create = () => {
     if (!authed) return onNeedAuth();
@@ -225,7 +256,7 @@ export function SocialFirst({
   };
 
   return (
-    <div className="sf-root" data-sf="1" style={{ height: "100%", display: "flex", flexDirection: "column", background: "#fff", minHeight: 0, position: "relative" }}>
+    <div className="sf-root" data-sf="1" data-dock="v31" style={{ height: "100%", display: "flex", flexDirection: "column", background: "#fff", minHeight: 0, position: "relative" }}>
       <header
         className="sf-top"
         style={{
@@ -271,13 +302,19 @@ export function SocialFirst({
           <>
             <div className="sf-tick" aria-label="Trending">
               <span className="sf-tick-label">TRENDING</span>
-              <div className="sf-tick-track"><div className="sf-tick-marquee">{tickText} · {tickText}</div></div>
+              <div className="sf-tick-track">
+                <div className="sf-tick-marquee">
+                  {tickText} · {tickText}
+                </div>
+              </div>
             </div>
 
             <form onSubmit={onPost} style={{ padding: 12, display: "flex", gap: 8, alignItems: "center", borderBottom: "1px solid #F1F5F9" }}>
               <img src={avatarUrl(me || "guest", face)} alt="" width={36} height={36} style={{ borderRadius: "50%" }} />
               <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What's happening?" style={{ flex: 1, border: "1px solid #E7ECF2", borderRadius: 999, padding: "10px 14px", fontSize: 14 }} />
-              <button type="submit" disabled={posting || !draft.trim()} style={{ background: "#1877F2", color: "#fff", border: 0, borderRadius: 999, padding: "8px 14px", fontWeight: 700, fontSize: 13 }}>Post</button>
+              <button type="submit" disabled={posting || !draft.trim()} style={{ background: "#1877F2", color: "#fff", border: 0, borderRadius: 999, padding: "8px 14px", fontWeight: 700, fontSize: 13 }}>
+                Post
+              </button>
             </form>
 
             <PushStrip />
@@ -312,13 +349,31 @@ export function SocialFirst({
                   <p style={{ margin: "10px 0 8px", fontSize: 15, lineHeight: 1.45, color: "#0f172a" }}>{t.body}</p>
                   {img ? <img src={img} alt="" style={{ width: "100%", borderRadius: 12, maxHeight: 280, objectFit: "cover" }} /> : null}
                   <div style={{ display: "flex", gap: 12, marginTop: 10, alignItems: "center", fontSize: 12, color: "#64748B" }}>
-                    <button type="button" onClick={() => doLike(t.id)} style={{ background: "none", border: 0, display: "flex", gap: 4, alignItems: "center", color: "inherit" }}><ThumbsUp size={14} /> {t.likes || 0}</button>
-                    <span style={{ display: "flex", gap: 4, alignItems: "center" }}><MessageCircle size={14} /> {t.comments || 0}</span>
-                    <span style={{ display: "flex", gap: 4, alignItems: "center" }}><Eye size={14} /> {t.views || 0}</span>
+                    <button type="button" onClick={() => doLike(t.id)} style={{ background: "none", border: 0, display: "flex", gap: 4, alignItems: "center", color: "inherit" }}>
+                      <ThumbsUp size={14} /> {t.likes || 0}
+                    </button>
+                    <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                      <MessageCircle size={14} /> {t.comments || 0}
+                    </span>
+                    <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
+                      <Eye size={14} /> {t.views || 0}
+                    </span>
                     <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                      <button type="button" onClick={() => doVote(t.id, "fact")} style={{ background: voted[t.id] === "fact" ? "#E0F2FE" : "#F1F5F9", border: 0, borderRadius: 999, padding: "4px 10px", fontSize: 11 }}>Fact {t.fact || 0}</button>
-                      <button type="button" onClick={() => doVote(t.id, "cap")} style={{ background: voted[t.id] === "cap" ? "#FEE2E2" : "#F1F5F9", border: 0, borderRadius: 999, padding: "4px 10px", fontSize: 11 }}>Cap {t.cap || 0}</button>
-                      <button type="button" onClick={() => navigator.share?.({ url: takeUrl(t.id), text: t.body }).catch(() => navigator.clipboard?.writeText(takeUrl(t.id)))} style={{ background: "#F1F5F9", border: 0, borderRadius: "50%", width: 28, height: 28, display: "grid", placeItems: "center" }}><Share2 size={12} /></button>
+                      <button type="button" onClick={() => doVote(t.id, "fact")} style={{ background: voted[t.id] === "fact" ? "#E0F2FE" : "#F1F5F9", border: 0, borderRadius: 999, padding: "4px 10px", fontSize: 11 }}>
+                        Fact {t.fact || 0}
+                      </button>
+                      <button type="button" onClick={() => doVote(t.id, "cap")} style={{ background: voted[t.id] === "cap" ? "#FEE2E2" : "#F1F5F9", border: 0, borderRadius: 999, padding: "4px 10px", fontSize: 11 }}>
+                        Cap {t.cap || 0}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigator.share?.({ url: takeUrl(t.id), text: t.body }).catch(() => navigator.clipboard?.writeText(takeUrl(t.id)))
+                        }
+                        style={{ background: "#F1F5F9", border: 0, borderRadius: "50%", width: 28, height: 28, display: "grid", placeItems: "center" }}
+                      >
+                        <Share2 size={12} />
+                      </button>
                     </div>
                   </div>
                 </article>
@@ -330,12 +385,35 @@ export function SocialFirst({
         ) : (
           <>
             <div className="sf-media-tick" aria-label="Media ticker" style={{ overflow: "hidden", padding: "8px 12px", borderBottom: "1px solid #E7ECF2" }}>
-              <div className="sf-tick-marquee" style={{ whiteSpace: "nowrap", animation: "sfTick 24s linear infinite", fontSize: 12, color: "#334155" }}>{tickText} · {tickText}</div>
+              <div className="sf-tick-marquee" style={{ whiteSpace: "nowrap", animation: "sfTick 24s linear infinite", fontSize: 12, color: "#334155" }}>
+                {tickText} · {tickText}
+              </div>
             </div>
 
             <div className="sf-segs" role="tablist" aria-label="Media segments" style={{ display: "flex", gap: 8, padding: "8px 12px", overflowX: "auto" }}>
               {["trending", "news", "cinema", "music", "jobs", "market"].map((s) => (
-                <button key={s} type="button" className={cut === s ? "on" : ""} onClick={() => { setCut(s); if (s === "cinema" || s === "jobs" || s === "market" || s === "music") open(s); }} style={{ flex: "0 0 auto", border: cut === s ? "1px solid #1877F2" : "1px solid #E7ECF2", background: cut === s ? "#1877F2" : "#fff", color: cut === s ? "#fff" : "#334155", borderRadius: 999, padding: "6px 12px", fontSize: 12, fontWeight: 600, textTransform: "capitalize" }}>{s}</button>
+                <button
+                  key={s}
+                  type="button"
+                  className={cut === s ? "on" : ""}
+                  onClick={() => {
+                    setCut(s);
+                    if (s === "cinema" || s === "jobs" || s === "market" || s === "music") open(s);
+                  }}
+                  style={{
+                    flex: "0 0 auto",
+                    border: cut === s ? "1px solid #1877F2" : "1px solid #E7ECF2",
+                    background: cut === s ? "#1877F2" : "#fff",
+                    color: cut === s ? "#fff" : "#334155",
+                    borderRadius: 999,
+                    padding: "6px 12px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {s}
+                </button>
               ))}
             </div>
 
@@ -343,8 +421,22 @@ export function SocialFirst({
               {HUBS.map((h) => {
                 const Icon = h.icon;
                 return (
-                  <button key={h.key} type="button" onClick={() => open(h.key)} style={{ textAlign: "left", border: "1px solid #E7ECF2", borderRadius: 14, padding: 12, background: "#fff", boxShadow: "0 1px 0 rgba(24,119,242,0.06)" }}>
-                    <span style={{ width: 32, height: 32, borderRadius: 10, background: `${h.color}18`, color: h.color, display: "grid", placeItems: "center" }}><Icon size={16} /></span>
+                  <button
+                    key={h.key}
+                    type="button"
+                    onClick={() => open(h.key)}
+                    style={{
+                      textAlign: "left",
+                      border: "1px solid #E7ECF2",
+                      borderRadius: 14,
+                      padding: 12,
+                      background: "#fff",
+                      boxShadow: "0 1px 0 rgba(24,119,242,0.06)",
+                    }}
+                  >
+                    <span style={{ width: 32, height: 32, borderRadius: 10, background: `${h.color}18`, color: h.color, display: "grid", placeItems: "center" }}>
+                      <Icon size={16} />
+                    </span>
                     <div style={{ fontWeight: 700, fontSize: 13, marginTop: 8, color: "#172033" }}>{h.label}</div>
                     <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{h.sub}</div>
                   </button>
@@ -352,7 +444,20 @@ export function SocialFirst({
               })}
             </div>
 
-            <button type="button" onClick={() => open("ads")} style={{ display: "block", width: "calc(100% - 24px)", margin: "4px 12px 12px", padding: "14px 16px", borderRadius: 14, border: "1px dashed rgba(24,119,242,0.35)", background: "linear-gradient(135deg,#EFF6FF,#F8FAFC)", textAlign: "left" }}>
+            <button
+              type="button"
+              onClick={() => open("ads")}
+              style={{
+                display: "block",
+                width: "calc(100% - 24px)",
+                margin: "4px 12px 12px",
+                padding: "14px 16px",
+                borderRadius: 14,
+                border: "1px dashed rgba(24,119,242,0.35)",
+                background: "linear-gradient(135deg,#EFF6FF,#F8FAFC)",
+                textAlign: "left",
+              }}
+            >
               <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: "#1877F2", textTransform: "uppercase" }}>Sponsored</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#172033", marginTop: 4 }}>Reach Naija audiences on Kilode</div>
               <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Place an ad · Feeds · Chat · Cinema</div>
@@ -360,37 +465,53 @@ export function SocialFirst({
 
             <div className="sf-carousel" aria-label="Featured stories" style={{ display: "flex", gap: 10, overflowX: "auto", padding: "0 12px 12px", scrollSnapType: "x mandatory" }}>
               {(news || []).slice(0, 8).map((n) => (
-                <div key={n.id} className="sf-card" onClick={() => onOpenNews(n.id)} role="button" tabIndex={0} style={{ flex: "0 0 78%", scrollSnapAlign: "start", borderRadius: 14, overflow: "hidden", background: "#0f172a", color: "#fff", position: "relative", minHeight: 160 }}>
+                <div
+                  key={n.id}
+                  className="sf-card"
+                  onClick={() => onOpenNews(n.id)}
+                  role="button"
+                  tabIndex={0}
+                  style={{
+                    flex: "0 0 78%",
+                    scrollSnapAlign: "start",
+                    borderRadius: 14,
+                    overflow: "hidden",
+                    background: "#0f172a",
+                    color: "#fff",
+                    position: "relative",
+                    minHeight: 160,
+                  }}
+                >
                   {n.image ? <img src={n.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} /> : <div style={{ height: 160, background: "#1e293b" }} />}
                   <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, padding: 12, background: "linear-gradient(transparent, rgba(0,0,0,0.75))", fontSize: 13, fontWeight: 700 }}>{n.title}</div>
                 </div>
               ))}
-              {!(news || []).length ? <div className="sf-card" style={{ flex: "0 0 78%", minHeight: 120, borderRadius: 14, background: "#F1F5F9", display: "grid", placeItems: "center", color: "#64748B", fontSize: 13 }}>Featured stories loading…</div> : null}
+              {!(news || []).length ? (
+                <div style={{ flex: "0 0 78%", borderRadius: 14, background: "#F1F5F9", minHeight: 160, display: "grid", placeItems: "center", color: "#94A3B8", fontSize: 13 }}>No stories yet</div>
+              ) : null}
             </div>
 
-            <button type="button" onClick={() => open("ads")} style={{ display: "block", width: "calc(100% - 24px)", margin: "0 12px 12px", padding: "12px 14px", borderRadius: 12, border: "1px solid #E7ECF2", background: "#fff", textAlign: "left" }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8" }}>AD · Kilode</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#172033", marginTop: 2 }}>Promote your brand between the stories people actually read.</div>
-            </button>
-
-            <div className="sf-news-list" style={{ padding: "0 12px 12px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#172033", marginBottom: 8 }}>Latest news</div>
+            <div className="sf-news-list">
               {(news || []).slice(0, 12).map((n) => (
-                <div key={n.id} className="sf-news-row" onClick={() => onOpenNews(n.id)} role="button" tabIndex={0} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: "1px solid #F1F5F9", alignItems: "center" }}>
-                  <img src={n.image || avatarUrl(n.id)} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                <div key={`row-${n.id}`} className="sf-news-row" onClick={() => onOpenNews(n.id)} role="button" tabIndex={0} style={{ display: "flex", gap: 10, padding: "10px 12px", borderBottom: "1px solid #F1F5F9", alignItems: "center" }}>
+                  <img src={n.image || avatarUrl(n.id)} alt="" width={56} height={56} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, fontSize: 13, lineHeight: 1.35 }}>{n.title}</div>
-                    <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>{n.category || "News"} · {timeAgo(n.ts)}</div>
+                    <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>
+                      {n.category || "News"} · {timeAgo(n.ts)}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
 
             <button type="button" onClick={() => open("ads")} style={{ display: "block", width: "calc(100% - 24px)", margin: "0 12px 16px", padding: "16px", borderRadius: 14, border: 0, background: "#1877F2", color: "#fff", textAlign: "center", fontWeight: 700, fontSize: 14 }}>
-              Place an ad on Kilode →
+              Advertise on Kilode
             </button>
 
-            <div style={{ padding: 12 }}><SitePulsePanel /></div>
+            <div style={{ padding: "0 12px 24px" }}>
+              <SitePulsePanel />
+            </div>
           </>
         )}
       </div>
@@ -422,9 +543,11 @@ export function SocialFirst({
         </button>
       ) : null}
 
+      {/* Bottom dock: Home · Media · Me only — Search lives in header */}
       <nav
         className="sf-dock"
         aria-label="Primary"
+        data-dock="v31"
         style={{
           display: "flex",
           background: "#1877F2",
@@ -442,11 +565,31 @@ export function SocialFirst({
           zIndex: 30,
         }}
       >
-        <button type="button" className={lane === "feed" ? "on" : ""} aria-label="Home" onClick={() => { setLane("feed"); setChromeHidden(false); }} style={dockBtn}>
-          <Home size={20} /><span className="sf-dock-lab">Home</span>
+        <button
+          type="button"
+          className={lane === "feed" ? "on" : ""}
+          aria-label="Home"
+          onClick={() => {
+            setLane("feed");
+            setChromeHidden(false);
+          }}
+          style={dockBtn}
+        >
+          <Home size={20} />
+          <span className="sf-dock-lab">Home</span>
         </button>
-        <button type="button" className={lane === "media" ? "on" : ""} aria-label="Media" onClick={() => { setLane("media"); setChromeHidden(false); }} style={dockBtn}>
-          <Orbit /><span className="sf-dock-lab">Media</span>
+        <button
+          type="button"
+          className={lane === "media" ? "on" : ""}
+          aria-label="Media"
+          onClick={() => {
+            setLane("media");
+            setChromeHidden(false);
+          }}
+          style={dockBtn}
+        >
+          <Orbit />
+          <span className="sf-dock-lab">Media</span>
         </button>
         <button type="button" className="sf-me" aria-label="Me" onClick={onMe} style={dockBtn}>
           <img src={avatarUrl(me || "me", face)} alt="" width={22} height={22} style={{ borderRadius: "50%" }} />
