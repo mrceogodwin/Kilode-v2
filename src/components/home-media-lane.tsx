@@ -17,25 +17,68 @@ const HUBS = [
 
 const SEGMENTS = ["For you", "News", "Jobs", "Market", "Music", "Cinema"] as const;
 
+const DEMO: News[] = [
+  { id: "demo-1", title: "Naija tech founders raise seed for local apps", category: "Tech", ts: Date.now() - 3600000, views: 1240 },
+  { id: "demo-2", title: "Lagos traffic: alternative routes this week", category: "City", ts: Date.now() - 7200000, views: 890 },
+  { id: "demo-3", title: "AFCON buzz: fans gear up across the country", category: "Sports", ts: Date.now() - 10800000, views: 2100 },
+  { id: "demo-4", title: "Naira market check — what traders are saying", category: "Business", ts: Date.now() - 14400000, views: 1560 },
+  { id: "demo-5", title: "New music drops from emerging artists", category: "Culture", ts: Date.now() - 18000000, views: 640 },
+  { id: "demo-6", title: "Job openings: remote roles hiring this week", category: "Jobs", ts: Date.now() - 21600000, views: 980 },
+];
+
+function normalizeNews(raw: unknown): News[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item: any, i: number) => {
+      const title = String(item?.title || item?.body || item?.text || "").trim();
+      if (!title) return null;
+      return {
+        id: String(item?.id || `n-${i}`),
+        title: title.slice(0, 120),
+        image: typeof item?.image === "string" ? item.image : typeof item?.meta?.image === "string" ? item.meta.image : undefined,
+        category: String(item?.category || item?.kind || item?.tag || "News").slice(0, 24),
+        ts: Number(item?.ts || item?.createdAt || Date.now()),
+        views: typeof item?.views === "number" ? item.views : undefined,
+        status: item?.status,
+      } as News;
+    })
+    .filter(Boolean) as News[];
+}
+
+function hardOpen(key: string, onOpen?: (k: string) => void) {
+  try {
+    onOpen?.(key);
+  } catch { /* ignore */ }
+  try {
+    window.dispatchEvent(new CustomEvent("kilode:goto", { detail: { screen: key } }));
+  } catch { /* ignore */ }
+  try {
+    const u = new URL(window.location.href);
+    u.searchParams.set("open", key);
+    window.history.pushState({}, "", u.toString());
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  } catch { /* ignore */ }
+}
+
 export function HomeMediaLane({
   news = [],
   tickText = "Talk Nigeria. Live.",
   onOpen,
   onOpenNews,
 }: {
-  news?: News[];
+  news?: News[] | unknown;
   tickText?: string;
   onOpen?: (key: string) => void;
   onOpenNews?: (id?: string) => void;
 }) {
-  const open = (k: string) => onOpen?.(k);
-  const list = Array.isArray(news) ? news.filter((n) => n && n.title).slice(0, 12) : [];
+  const open = (k: string) => hardOpen(k, onOpen);
+  const fromStore = normalizeNews(news);
+  const list = (fromStore.length > 0 ? fromStore : DEMO).slice(0, 12);
   const featured = list.slice(0, 5);
   const rest = list.slice(5);
 
   return (
-    <div style={{ paddingBottom: 24 }}>
-      {/* Ticker */}
+    <div style={{ paddingBottom: 24 }} data-home-lane="v2">
       <div className="sf-tick" aria-label="Trending" style={{ marginBottom: 0 }}>
         <span className="sf-tick-label">LIVE</span>
         <div className="sf-tick-track">
@@ -43,14 +86,13 @@ export function HomeMediaLane({
         </div>
       </div>
 
-      {/* Segments */}
       <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "10px 14px 6px", WebkitOverflowScrolling: "touch" }}>
         {SEGMENTS.map((s, i) => (
           <button
             key={s}
             type="button"
             onClick={() => {
-              if (s === "News") onOpenNews?.();
+              if (s === "News") onOpenNews?.() ?? open("news");
               else if (s === "Jobs") open("jobs");
               else if (s === "Market") open("market");
               else if (s === "Music") open("music");
@@ -72,48 +114,44 @@ export function HomeMediaLane({
         ))}
       </div>
 
-      {/* Carousel / featured news */}
-      {featured.length > 0 ? (
-        <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "10px 14px 4px", WebkitOverflowScrolling: "touch" }}>
-          {featured.map((n) => (
-            <button
-              key={n.id}
-              type="button"
-              onClick={() => onOpenNews?.(n.id)}
-              style={{
-                flex: "0 0 78%",
-                maxWidth: 320,
-                textAlign: "left",
-                border: 0,
-                padding: 0,
-                background: "#0B0D12",
-                borderRadius: 16,
-                overflow: "hidden",
-                color: "#fff",
-              }}
-            >
-              {n.image ? (
-                <img src={n.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
-              ) : (
-                <div style={{ height: 120, background: "linear-gradient(135deg,#1877F2,#0B0D12)" }} />
-              )}
-              <div style={{ padding: "10px 12px 14px" }}>
-                <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.7, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  {n.category || "News"}
-                </div>
-                <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.3, marginTop: 4 }}>{n.title}</div>
-                {n.views != null ? (
-                  <div style={{ fontSize: 11, opacity: 0.65, marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
-                    <Eye size={12} /> {n.views}
-                  </div>
-                ) : null}
+      <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "10px 14px 4px", WebkitOverflowScrolling: "touch" }}>
+        {featured.map((n) => (
+          <button
+            key={n.id}
+            type="button"
+            onClick={() => (n.id.startsWith("demo-") ? open("news") : onOpenNews?.(n.id))}
+            style={{
+              flex: "0 0 78%",
+              maxWidth: 320,
+              textAlign: "left",
+              border: 0,
+              padding: 0,
+              background: "#0B0D12",
+              borderRadius: 16,
+              overflow: "hidden",
+              color: "#fff",
+            }}
+          >
+            {n.image ? (
+              <img src={n.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
+            ) : (
+              <div style={{ height: 120, background: "linear-gradient(135deg,#1877F2,#0B0D12)" }} />
+            )}
+            <div style={{ padding: "10px 12px 14px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.7, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                {n.category || "News"}
               </div>
-            </button>
-          ))}
-        </div>
-      ) : null}
+              <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.3, marginTop: 4 }}>{n.title}</div>
+              {n.views != null ? (
+                <div style={{ fontSize: 11, opacity: 0.65, marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
+                  <Eye size={12} /> {n.views}
+                </div>
+              ) : null}
+            </div>
+          </button>
+        ))}
+      </div>
 
-      {/* 4 role / hub widgets */}
       <div style={{ padding: "12px 14px 4px" }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: "#64748B", letterSpacing: "0.06em", marginBottom: 10 }}>EXPLORE</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -153,7 +191,6 @@ export function HomeMediaLane({
         </div>
       </div>
 
-      {/* Ads box */}
       <div style={{ margin: "14px 14px 6px" }}>
         <button
           type="button"
@@ -174,65 +211,60 @@ export function HomeMediaLane({
         </button>
       </div>
 
-      {/* News list round thumbs */}
-      {rest.length > 0 || list.length > 0 ? (
-        <div style={{ padding: "10px 14px 4px" }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "#64748B", letterSpacing: "0.06em", marginBottom: 10 }}>LATEST</div>
-          {(rest.length ? rest : list).map((n) => (
-            <button
-              key={n.id}
-              type="button"
-              onClick={() => onOpenNews?.(n.id)}
-              style={{
-                display: "flex",
-                gap: 12,
-                alignItems: "center",
-                width: "100%",
-                border: 0,
-                background: "none",
-                padding: "10px 0",
-                borderBottom: "1px solid #F1F5F9",
-                textAlign: "left",
-              }}
-            >
-              {n.image ? (
-                <img src={n.image} alt="" width={52} height={52} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-              ) : (
-                <span
-                  style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: "50%",
-                    background: "#EFF6FF",
-                    color: "#1877F2",
-                    display: "grid",
-                    placeItems: "center",
-                    fontWeight: 800,
-                    fontSize: 14,
-                    flexShrink: 0,
-                  }}
-                >
-                  {(n.category || "N")[0]}
-                </span>
-              )}
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.35 }}>{n.title}</div>
-                <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>
-                  {n.category || "News"}
-                  {n.views != null ? ` · ${n.views} views` : ""}
-                </div>
+      <div style={{ padding: "10px 14px 4px" }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: "#64748B", letterSpacing: "0.06em", marginBottom: 10 }}>LATEST</div>
+        {(rest.length ? rest : list).map((n) => (
+          <button
+            key={n.id}
+            type="button"
+            onClick={() => (n.id.startsWith("demo-") ? open("news") : onOpenNews?.(n.id))}
+            style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "center",
+              width: "100%",
+              border: 0,
+              background: "none",
+              padding: "10px 0",
+              borderBottom: "1px solid #F1F5F9",
+              textAlign: "left",
+            }}
+          >
+            {n.image ? (
+              <img src={n.image} alt="" width={52} height={52} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+            ) : (
+              <span
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: "50%",
+                  background: "#EFF6FF",
+                  color: "#1877F2",
+                  display: "grid",
+                  placeItems: "center",
+                  fontWeight: 800,
+                  fontSize: 14,
+                  flexShrink: 0,
+                }}
+              >
+                {(n.category || "N")[0]}
+              </span>
+            )}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.35 }}>{n.title}</div>
+              <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>
+                {n.category || "News"}
+                {n.views != null ? ` · ${n.views} views` : ""}
               </div>
-            </button>
-          ))}
-        </div>
-      ) : null}
+            </div>
+          </button>
+        ))}
+      </div>
 
-      {/* Artist push */}
       <div style={{ padding: "8px 14px" }}>
         <PushStrip />
       </div>
 
-      {/* Second ads strip */}
       <div style={{ margin: "8px 14px" }}>
         <button
           type="button"
@@ -251,7 +283,6 @@ export function HomeMediaLane({
         </button>
       </div>
 
-      {/* Kilode Pulse */}
       <div style={{ padding: "4px 12px 8px" }}>
         <SitePulsePanel />
       </div>
