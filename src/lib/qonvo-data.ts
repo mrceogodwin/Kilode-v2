@@ -413,3 +413,16 @@ export type Campaign = {
 };
 
 export type Team = { id: string; name: string; members: string[] };
+
+/** Restored symbols that were truncated off main — keep one import path for the app. */
+export {
+  AD_VERTICALS,
+  adVertical,
+  PREFIX,
+  loadJson,
+  saveJson,
+  clearAll,
+  allRoomMessages,
+  TERMS,
+} from "./qonvo-data-rest";
+export type { Join, Note, MusicTrack } from "./qonvo-data-rest";
