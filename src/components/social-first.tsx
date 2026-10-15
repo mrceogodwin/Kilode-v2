@@ -4,7 +4,11 @@ import {
   Menu, MessageCircle, Music, Plus, Share2, Store, ThumbsUp, Users, Megaphone, Building2, Calendar, X, Zap, Image as ImageIcon,
 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
-import { likeTake, listTakes, listTakeReplies, replyTake, saveTake, voteTake, type FellowRow, type TakeRow } from "@/lib/takes-server";
+import {
+  likeTake, listTakes, listTakeReplies, replyTake, saveTake, voteTake,
+  toggleFollow, toggleMute, toggleBlock, toggleSaveTake, repostTake, listStories, listTakesByTag,
+  type FellowRow, type TakeRow,
+} from "@/lib/takes-server";
 import { SitePulsePanel } from "@/components/pulse-panel";
 import { PushStrip } from "@/components/artist-push";
 
@@ -68,6 +72,11 @@ export function SocialFirst({
   const [people, setPeople] = useState<FellowRow[]>([]);
   const [faces, setFaces] = useState<Record<string, string>>({});
   const [live, setLive] = useState<string[]>([]);
+  const [following, setFollowing] = useState<Record<string, boolean>>({});
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const [tag, setTag] = useState("");
+  const [stories, setStories] = useState<{ id: string; handle: string; image: string; ts: number }[]>([]);
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [cut, setCut] = useState("trending");
   const [voted, setVoted] = useState<Record<string, "" | "fact" | "cap">>({});
   const [draft, setDraft] = useState("");
@@ -109,6 +118,10 @@ export function SocialFirst({
           if (o.faces && typeof o.faces === "object") setFaces(o.faces as Record<string, string>);
           if (Array.isArray(o.live)) setLive(o.live.map((x: any) => String(x).toLowerCase()));
         }
+        try {
+          const st = await listStories({ data: {} } as any);
+          if (alive && st && Array.isArray((st as any).stories)) setStories((st as any).stories);
+        } catch { /* stories optional */ }
       } catch {
         if (alive) setNote("Could not load feed — pull to retry");
       }
@@ -209,6 +222,80 @@ export function SocialFirst({
     try { await likeTake({ data: { id } } as any); await refresh(); } catch { /* ignore */ }
   };
 
+  const doFollow = async (handle: string) => {
+    if (!authed) return onNeedAuth();
+    try {
+      const res = await toggleFollow({ data: { handle } } as any);
+      const on = !!(res as any)?.on;
+      setFollowing((f) => ({ ...f, [handle.toLowerCase()]: on }));
+    } catch { setNote("Follow failed"); }
+  };
+
+  const doMute = async (handle: string) => {
+    if (!authed) return onNeedAuth();
+    try {
+      await toggleMute({ data: { handle } } as any);
+      setTakes((rows) => rows.filter((r) => (r.handle || "").toLowerCase() !== handle.toLowerCase()));
+      setMenuId(null);
+      setNote(`Muted @${handle}`);
+    } catch { setNote("Mute failed"); }
+  };
+
+  const doBlock = async (handle: string) => {
+    if (!authed) return onNeedAuth();
+    try {
+      await toggleBlock({ data: { handle } } as any);
+      setTakes((rows) => rows.filter((r) => (r.handle || "").toLowerCase() !== handle.toLowerCase()));
+      setMenuId(null);
+      setNote(`Blocked @${handle}`);
+    } catch { setNote("Block failed"); }
+  };
+
+  const doSave = async (id: string) => {
+    if (!authed) return onNeedAuth();
+    try {
+      const res = await toggleSaveTake({ data: { id } } as any);
+      setSaved((s) => ({ ...s, [id]: !!(res as any)?.on }));
+      setMenuId(null);
+    } catch { setNote("Save failed"); }
+  };
+
+  const doRepost = async (id: string) => {
+    if (!authed) return onNeedAuth();
+    try {
+      await repostTake({ data: { id } } as any);
+      setMenuId(null);
+      setNote("Reposted");
+      await refresh();
+    } catch { setNote("Repost failed"); }
+  };
+
+  const openTag = async (word: string) => {
+    const clean = word.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24);
+    if (clean.length < 2) return;
+    setTag(clean);
+    try {
+      const res = await listTakesByTag({ data: { tag: clean } } as any);
+      setTakes(asTakes(res));
+    } catch { setNote("Tag load failed"); }
+  };
+
+  const clearTag = async () => {
+    setTag("");
+    await refresh();
+  };
+
+  const bodyWithTags = (body: string) => {
+    const parts = body.split(/(#[A-Za-z0-9_]{2,24})/g);
+    return parts.map((part, i) =>
+      part.startsWith("#") && part.length > 2 ? (
+        <button key={i} type="button" onClick={() => openTag(part.slice(1))} style={{ background: "none", border: 0, color: "#1877F2", fontWeight: 700, padding: 0, fontSize: "inherit" }}>{part}</button>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    );
+  };
+
   const filtered = Array.isArray(takes) ? takes : [];
   const trending = [...filtered].sort((a, b) => heatOf(b) - heatOf(a)).slice(0, 8);
   const tickText = trending.map((t) => (t.body || "").slice(0, 48)).filter(Boolean).join("  ·  ") || "Talk Nigeria. Live.";
@@ -242,12 +329,18 @@ export function SocialFirst({
               <div className="sf-tick-track"><div className="sf-tick-marquee">{tickText} · {tickText}</div></div>
             </div>
 
-            {(know.length > 0 || live.length > 0) ? (
+            {(know.length > 0 || live.length > 0 || stories.length > 0) ? (
               <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "12px 14px 8px", borderBottom: "1px solid #F1F5F9" }}>
                 <button type="button" onClick={create} style={{ flex: "0 0 auto", background: "none", border: 0, textAlign: "center", width: 64 }}>
                   <span style={{ width: 52, height: 52, borderRadius: "50%", border: "2px dashed #1877F2", display: "grid", placeItems: "center", margin: "0 auto", color: "#1877F2" }}><Plus size={20} /></span>
                   <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600 }}>Your story</div>
                 </button>
+                {stories.map((s) => (
+                  <div key={s.id} style={{ flex: "0 0 auto", textAlign: "center", width: 64 }}>
+                    <img src={s.image || faceOf(s.handle, faces)} alt="" width={52} height={52} style={{ borderRadius: "50%", objectFit: "cover", border: "2.5px solid #F0B429", display: "block", margin: "0 auto" }} />
+                    <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.handle.slice(0, 10)}</div>
+                  </div>
+                ))}
                 {(know.length ? know : people).slice(0, 12).map((p) => {
                   const on = live.includes((p.handle || "").toLowerCase());
                   return (
@@ -257,6 +350,13 @@ export function SocialFirst({
                     </a>
                   );
                 })}
+              </div>
+            ) : null}
+
+            {tag ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#EFF6FF", borderBottom: "1px solid #BFDBFE" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#1877F2" }}>#{tag}</span>
+                <button type="button" onClick={clearTag} style={{ marginLeft: "auto", background: "none", border: 0, color: "#334155", fontSize: 12, fontWeight: 600 }}>Clear</button>
               </div>
             ) : null}
 
@@ -281,11 +381,16 @@ export function SocialFirst({
                 <b style={{ fontSize: 13, color: "#172033" }}>People you may know</b>
                 <div style={{ display: "flex", gap: 10, overflowX: "auto", marginTop: 10 }}>
                   {know.map((p) => (
-                    <a key={p.id || p.handle} href={`/u/${encodeURIComponent(p.handle)}`} style={{ flex: "0 0 110px", textAlign: "center", textDecoration: "none", color: "inherit" }}>
-                      <img src={p.photo || faceOf(p.handle, faces)} alt="" width={56} height={56} style={{ borderRadius: "50%", objectFit: "cover" }} />
-                      <div style={{ fontSize: 12, fontWeight: 700, marginTop: 6 }}>{(p.name || p.handle).slice(0, 12)}</div>
-                      <div style={{ fontSize: 10, color: "#64748B" }}>{roleLabel(p.role)}</div>
-                    </a>
+                    <div key={p.id || p.handle} style={{ flex: "0 0 110px", textAlign: "center" }}>
+                      <a href={`/u/${encodeURIComponent(p.handle)}`} style={{ textDecoration: "none", color: "inherit" }}>
+                        <img src={p.photo || faceOf(p.handle, faces)} alt="" width={56} height={56} style={{ borderRadius: "50%", objectFit: "cover" }} />
+                        <div style={{ fontSize: 12, fontWeight: 700, marginTop: 6 }}>{(p.name || p.handle).slice(0, 12)}</div>
+                        <div style={{ fontSize: 10, color: "#64748B" }}>{roleLabel(p.role)}</div>
+                      </a>
+                      <button type="button" onClick={() => doFollow(p.handle)} style={{ marginTop: 6, background: following[p.handle.toLowerCase()] ? "#E7ECF2" : "#1877F2", color: following[p.handle.toLowerCase()] ? "#172033" : "#fff", border: 0, borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
+                        {following[p.handle.toLowerCase()] ? "Following" : "Follow"}
+                      </button>
+                    </div>
                   ))}
                 </div>
               </section>
@@ -301,8 +406,18 @@ export function SocialFirst({
                       <div style={{ fontSize: 12, color: "#64748B" }}>{roleLabel(t.role || "member")}</div>
                     </div>
                     <span style={{ fontSize: 11, color: "#94A3B8" }}>{timeAgo(t.ts)}</span>
+                    <button type="button" aria-label="More" onClick={() => setMenuId(menuId === t.id ? null : t.id)} style={{ background: "none", border: 0, color: "#94A3B8", padding: "2px 6px", fontSize: 18, lineHeight: 1 }}>···</button>
                   </div>
-                  <p style={{ margin: "10px 0 8px", fontSize: 15, lineHeight: 1.45, color: "#0f172a" }}>{t.body}</p>
+                  {menuId === t.id ? (
+                    <div style={{ margin: "8px 0", background: "#fff", border: "1px solid #E7ECF2", borderRadius: 12, padding: 6, boxShadow: "0 8px 24px rgba(0,0,0,0.08)" }}>
+                      <button type="button" onClick={() => doFollow(t.handle || "")} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: 0, padding: "10px 12px", fontSize: 13, fontWeight: 600 }}>{following[(t.handle || "").toLowerCase()] ? "Unfollow" : "Follow"} @{t.handle}</button>
+                      <button type="button" onClick={() => doSave(t.id)} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: 0, padding: "10px 12px", fontSize: 13, fontWeight: 600 }}>{saved[t.id] ? "Unsave" : "Save"} post</button>
+                      <button type="button" onClick={() => doRepost(t.id)} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: 0, padding: "10px 12px", fontSize: 13, fontWeight: 600 }}>Repost</button>
+                      <button type="button" onClick={() => doMute(t.handle || "")} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: 0, padding: "10px 12px", fontSize: 13, fontWeight: 600 }}>Mute @{t.handle}</button>
+                      <button type="button" onClick={() => doBlock(t.handle || "")} style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: 0, padding: "10px 12px", fontSize: 13, fontWeight: 600, color: "#DC2626" }}>Block @{t.handle}</button>
+                    </div>
+                  ) : null}
+                  <p style={{ margin: "10px 0 8px", fontSize: 15, lineHeight: 1.45, color: "#0f172a" }}>{bodyWithTags(t.body || "")}</p>
                   {img ? <img src={img} alt="" style={{ width: "100%", borderRadius: 12, maxHeight: 280, objectFit: "cover" }} /> : null}
                   <div style={{ display: "flex", gap: 12, marginTop: 10, alignItems: "center", fontSize: 12, color: "#64748B" }}>
                     <button type="button" onClick={() => doLike(t.id)} style={{ background: "none", border: 0, display: "flex", gap: 4, alignItems: "center", color: "inherit" }}><ThumbsUp size={14} /> {t.likes || 0}</button>
