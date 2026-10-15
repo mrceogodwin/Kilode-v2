@@ -4,6 +4,8 @@ import {
   Briefcase, Megaphone, Radio, Film, Building2, LogOut,
 } from "lucide-react";
 import { SafetyBlock } from "@/components/me-safety";
+import { ListingsDesk } from "@/components/me-listings";
+import { ArtistDesk } from "@/components/me-artist";
 import { STAFF_PATH } from "@/lib/staff-path";
 import { AvatarImg } from "@/components/account-kind";
 import {
@@ -183,7 +185,7 @@ export function SavedTakesBlock({ onBack }: { onBack: () => void }) {
 }
 
 export function MeDashboard({ store, onForum, onLogout }: { store: any; onForum?: () => void; onLogout?: () => void | Promise<void> }) {
-  const [mePane, setMePane] = useState<null | "friends" | "follows" | "saved" | "blocked" | "muted">(null);
+  const [mePane, setMePane] = useState<null | "friends" | "follows" | "saved" | "blocked" | "muted" | "listings" | "artist">(null);
   const [connects, setConnects] = useState<ConnectRow[]>([]);
   const user = store?.session?.user;
   const profile = store?.profile;
@@ -229,6 +231,20 @@ export function MeDashboard({ store, onForum, onLogout }: { store: any; onForum?
     return (
       <div className="space-page p-4 pb-24">
         <SavedTakesBlock onBack={() => setMePane(null)} />
+      </div>
+    );
+  }
+  if (mePane === "listings") {
+    return (
+      <div className="space-page p-4 pb-24">
+        <ListingsDesk onBack={() => setMePane(null)} />
+      </div>
+    );
+  }
+  if (mePane === "artist") {
+    return (
+      <div className="space-page p-4 pb-24">
+        <ArtistDesk onBack={() => setMePane(null)} />
       </div>
     );
   }
@@ -286,6 +302,8 @@ export function MeDashboard({ store, onForum, onLogout }: { store: any; onForum?
             ["Groups", UsersRound, () => goto({ screen: "teams" })],
             ["Marketplace", Store, () => goto({ screen: "market" })],
             ["Messages", MessageSquare, () => goto({ screen: "inbox" })],
+            ["Listings", Briefcase, () => setMePane("listings")],
+            ["Artist", Radio, () => setMePane("artist")],
           ] as const
         ).map(([label, Icon, go]) => (
           <button key={label} type="button" onClick={go} className="me-chip">
@@ -298,9 +316,9 @@ export function MeDashboard({ store, onForum, onLogout }: { store: any; onForum?
       <div className="mb-4 grid grid-cols-2 gap-2">
         {(
           [
-            ["Jobs", Briefcase, () => goto({ screen: "jobs" })],
+            ["Jobs desk", Briefcase, () => setMePane("listings")],
             ["Ads", Megaphone, () => goto({ screen: "ads" })],
-            ["Music", Radio, () => goto({ tab: "music" })],
+            ["Music", Radio, () => setMePane("artist")],
             ["Cinema", Film, () => goto({ tab: "watch" })],
             ["Rent", Building2, () => goto({ screen: "rent" })],
             ["Market", Store, () => goto({ screen: "market" })],
