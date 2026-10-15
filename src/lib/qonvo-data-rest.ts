@@ -163,15 +163,16 @@ export type ChatMsgLite = {
   parentT?: string;
 };
 
+/** Room ids mirrored here to avoid circular import with qonvo-data. */
+const ROOM_IDS = [
+  "lounge", "hot", "ng", "music", "cinema", "jobs", "sport", "tech",
+  "st-lagos", "st-fct", "st-rivers", "north",
+] as const;
+
 export function allRoomMessages(): ChatMsgLite[] {
   const out: ChatMsgLite[] = [];
-  try {
-    const { ROOMS } = require("./qonvo-data") as { ROOMS: { id: string }[] };
-    for (const room of ROOMS) {
-      out.push(...loadJson<ChatMsgLite[]>(`msgs.${room.id}`, []));
-    }
-  } catch {
-    /* ignore */
+  for (const id of ROOM_IDS) {
+    out.push(...loadJson<ChatMsgLite[]>(`msgs.${id}`, []));
   }
   return out;
 }
