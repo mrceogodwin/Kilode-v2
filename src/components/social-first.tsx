@@ -372,7 +372,128 @@ export function SocialFirst({
               <span className="sf-tick-label">TRENDING</span>
               <div className="sf-tick-track"><div className="sf-tick-marquee">{tickText} · {tickText}</div></div>
             </div>
-            <p style={{ padding: 16, color: "#64748B", fontSize: 13 }}>Loading social feed…</p>
+
+            {(know.length > 0 || live.length > 0 || stories.length > 0) ? (
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "12px 14px 8px", borderBottom: "1px solid #F1F5F9" }}>
+                <input ref={storyFileRef} type="file" accept="image/*" hidden onChange={(e) => void onStoryFile(e.target.files?.[0])} />
+                <button type="button" disabled={storyBusy} onClick={() => { if (!authed) return onNeedAuth(); storyFileRef.current?.click(); }} style={{ flex: "0 0 auto", background: "none", border: 0, textAlign: "center", width: 64, opacity: storyBusy ? 0.6 : 1 }}>
+                  <span style={{ width: 52, height: 52, borderRadius: "50%", border: "2px dashed #1877F2", display: "grid", placeItems: "center", margin: "0 auto", color: "#1877F2" }}><Plus size={20} /></span>
+                  <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600 }}>{storyBusy ? "Posting…" : "Your story"}</div>
+                </button>
+                {stories.map((s) => (
+                  <button key={s.id} type="button" onClick={() => setStoryView(s)} style={{ flex: "0 0 auto", textAlign: "center", width: 64, background: "none", border: 0, padding: 0, color: "inherit" }}>
+                    <img src={s.image || faceOf(s.handle, faces)} alt="" width={52} height={52} style={{ borderRadius: "50%", objectFit: "cover", border: "2.5px solid #F0B429", display: "block", margin: "0 auto" }} />
+                    <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>@{s.handle}</div>
+                  </button>
+                ))}
+                {know.slice(0, 6).map((p) => (
+                  <button key={p.handle} type="button" onClick={() => doFollow(p.handle)} style={{ flex: "0 0 auto", textAlign: "center", width: 64, background: "none", border: 0, padding: 0 }}>
+                    <img src={faceOf(p.handle, faces)} alt="" width={52} height={52} style={{ borderRadius: "50%", objectFit: "cover", border: live.includes((p.handle || "").toLowerCase()) ? "2.5px solid #22c55e" : "2px solid #E7ECF2", display: "block", margin: "0 auto" }} />
+                    <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>@{p.handle}</div>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <form onSubmit={onPost} style={{ padding: "12px 14px", borderBottom: "1px solid #F1F5F9" }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <img src={avatarUrl(me || "guest", face)} alt="" width={40} height={40} style={{ borderRadius: "50%" }} />
+                <div style={{ flex: 1 }}>
+                  <textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What is happening?" rows={2} style={{ width: "100%", border: "1px solid #E7ECF2", borderRadius: 12, padding: 10, fontSize: 14, resize: "vertical", outline: "none" }} />
+                  {media ? <img src={media} alt="" style={{ marginTop: 8, maxHeight: 160, borderRadius: 12 }} /> : null}
+                  <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
+                    <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => pickMedia(e.target.files?.[0])} />
+                    <button type="button" onClick={() => fileRef.current?.click()} style={{ background: "none", border: 0, color: "#1877F2" }}><ImageIcon size={18} /></button>
+                    {media ? <button type="button" onClick={() => setMedia("")} style={{ background: "none", border: 0, color: "#ef4444", fontSize: 12 }}>Remove</button> : null}
+                    <button type="submit" disabled={posting || (!draft.trim() && !media)} style={{ marginLeft: "auto", background: "#1877F2", color: "#fff", border: 0, borderRadius: 999, padding: "8px 16px", fontWeight: 700, opacity: posting || (!draft.trim() && !media) ? 0.5 : 1 }}>{posting ? "Posting…" : "Post"}</button>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            {tag ? (
+              <div style={{ padding: "8px 14px", display: "flex", gap: 8, alignItems: "center", background: "#EFF6FF" }}>
+                <span style={{ fontWeight: 700, color: "#1877F2" }}>#{tag}</span>
+                <button type="button" onClick={() => void clearTag()} style={{ marginLeft: "auto", border: 0, background: "none", fontSize: 12, color: "#64748B" }}>Clear</button>
+              </div>
+            ) : null}
+
+            <div style={{ padding: "0 0 24px" }}>
+              {filtered.length === 0 ? (
+                <p style={{ padding: 24, textAlign: "center", color: "#64748B", fontSize: 13 }}>No takes yet. Be the first.</p>
+              ) : null}
+              {filtered.map((t) => {
+                const shot = shotOf(t.meta);
+                const isLive = live.includes((t.handle || "").toLowerCase());
+                return (
+                  <article key={t.id} style={{ padding: "14px 14px 10px", borderBottom: "1px solid #F1F5F9" }}>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <img src={faceOf(t.handle, faces, t.face)} alt="" width={40} height={40} style={{ borderRadius: "50%", border: isLive ? "2px solid #22c55e" : "2px solid transparent" }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                          <strong style={{ fontSize: 14 }}>@{t.handle}</strong>
+                          <span style={{ fontSize: 11, color: "#64748B" }}>{roleLabel(t.role || "")}</span>
+                          <span style={{ fontSize: 11, color: "#94A3B8" }}>· {timeAgo(t.ts)}</span>
+                          <button type="button" onClick={() => setMenuId(menuId === t.id ? null : t.id)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#94A3B8", fontSize: 18, lineHeight: 1 }}>···</button>
+                        </div>
+                        {menuId === t.id ? (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+                            <button type="button" onClick={() => void doFollow(t.handle)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#fff" }}>{following[t.handle.toLowerCase()] ? "Following" : "Follow"}</button>
+                            <button type="button" onClick={() => void doSave(t.id)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#fff" }}>{saved[t.id] ? "Saved" : "Save"}</button>
+                            <button type="button" onClick={() => void doRepost(t.id)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#fff" }}>Repost</button>
+                            <button type="button" onClick={() => void doMute(t.handle)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#fff" }}>Mute</button>
+                            <button type="button" onClick={() => void doBlock(t.handle)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#fff", color: "#ef4444" }}>Block</button>
+                          </div>
+                        ) : null}
+                        <p style={{ margin: "6px 0 0", fontSize: 14, lineHeight: 1.45, whiteSpace: "pre-wrap" }}>{bodyWithTags(t.body || "")}</p>
+                        {shot ? <img src={shot} alt="" style={{ marginTop: 8, width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 12 }} /> : null}
+                        <div style={{ display: "flex", gap: 14, marginTop: 10, alignItems: "center" }}>
+                          <button type="button" onClick={() => void doLike(t.id)} style={{ background: "none", border: 0, display: "flex", alignItems: "center", gap: 4, color: "#64748B", fontSize: 13 }}><ThumbsUp size={16} /> {t.likes || 0}</button>
+                          <button type="button" onClick={() => void openThread(t.id)} style={{ background: "none", border: 0, display: "flex", alignItems: "center", gap: 4, color: "#64748B", fontSize: 13 }}><MessageCircle size={16} /> {t.comments || 0}</button>
+                          <button type="button" onClick={() => { void navigator.clipboard?.writeText(takeUrl(t.id)); setNote("Link copied"); }} style={{ background: "none", border: 0, display: "flex", alignItems: "center", gap: 4, color: "#64748B", fontSize: 13 }}><Share2 size={16} /></button>
+                          <button type="button" onClick={() => void doVote(t.id, "fact")} style={{ background: "none", border: 0, fontSize: 12, color: voted[t.id] === "fact" ? "#1877F2" : "#94A3B8", fontWeight: 700 }}>Fact {t.fact || 0}</button>
+                          <button type="button" onClick={() => void doVote(t.id, "cap")} style={{ background: "none", border: 0, fontSize: 12, color: voted[t.id] === "cap" ? "#ef4444" : "#94A3B8", fontWeight: 700 }}>Cap {t.cap || 0}</button>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {threadId ? (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 70, display: "flex", alignItems: "flex-end" }} onClick={() => setThreadId(null)}>
+                <div style={{ background: "#fff", width: "100%", maxHeight: "70vh", borderRadius: "16px 16px 0 0", padding: 16, overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+                    <strong>Replies</strong>
+                    <button type="button" onClick={() => setThreadId(null)} style={{ background: "none", border: 0 }}><X size={18} /></button>
+                  </div>
+                  {replies.map((r) => (
+                    <div key={r.id} style={{ padding: "8px 0", borderBottom: "1px solid #F1F5F9" }}>
+                      <strong style={{ fontSize: 13 }}>@{r.handle}</strong>
+                      <p style={{ margin: "4px 0 0", fontSize: 13 }}>{r.body}</p>
+                    </div>
+                  ))}
+                  <form onSubmit={onReply} style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                    <input value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)} placeholder="Write a reply…" style={{ flex: 1, border: "1px solid #E7ECF2", borderRadius: 999, padding: "10px 14px", fontSize: 14 }} />
+                    <button type="submit" disabled={replying || !replyDraft.trim()} style={{ background: "#1877F2", color: "#fff", border: 0, borderRadius: 999, padding: "10px 16px", fontWeight: 700 }}>Reply</button>
+                  </form>
+                </div>
+              </div>
+            ) : null}
+
+            {storyView ? (
+              <div style={{ position: "fixed", inset: 0, background: "#0B0D12", zIndex: 80, display: "flex", flexDirection: "column" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px", color: "#fff" }}>
+                  <img src={faceOf(storyView.handle, faces)} alt="" width={32} height={32} style={{ borderRadius: "50%" }} />
+                  <strong>@{storyView.handle}</strong>
+                  <button type="button" onClick={() => setStoryView(null)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#fff" }}><X size={20} /></button>
+                </div>
+                <img src={storyView.image} alt="" style={{ flex: 1, objectFit: "contain", width: "100%" }} />
+              </div>
+            ) : null}
+
+            {note ? <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "#111", color: "#fff", padding: "8px 14px", borderRadius: 999, fontSize: 12, zIndex: 60 }}>{note}</div> : null}
           </>
         ) : (
           <>
