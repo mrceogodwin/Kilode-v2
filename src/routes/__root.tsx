@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
@@ -9,7 +10,7 @@ import { OfflineToast } from "@/components/offline-toast";
 
 const base = seoHead({ path: "/" });
 
-function Boot({ title, body, action }: { title: string; body: string; action?: React.ReactNode }) {
+function Boot({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
   return (
     <div className="grid min-h-svh place-items-center bg-white p-6 text-[#172033]">
       <div className="max-w-sm text-center">
