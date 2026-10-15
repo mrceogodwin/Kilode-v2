@@ -6,6 +6,7 @@ import { seoHead } from "@/lib/seo";
 import appCss from "../styles.css?url";
 import whiteBlueCss from "../styles-white-blue.css?url";
 import tickFixCss from "../styles-tick-fix.css?url";
+import myspaceFixCss from "../styles-myspace-fix.css?url";
 import { OfflineToast } from "@/components/offline-toast";
 
 const base = seoHead({ path: "/" });
@@ -48,6 +49,7 @@ export const Route = createRootRoute({
       { rel: "stylesheet", href: appCss },
       { rel: "stylesheet", href: whiteBlueCss },
       { rel: "stylesheet", href: tickFixCss },
+      { rel: "stylesheet", href: myspaceFixCss },
       ...base.links,
     ],
     scripts: base.scripts,
