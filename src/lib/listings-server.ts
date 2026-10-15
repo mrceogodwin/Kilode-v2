@@ -7,6 +7,7 @@ import { gateText } from "@/lib/mod-cache";
 import { DEMO_LISTINGS } from "@/lib/qonvo-seed";
 import { applyProblems } from "@/lib/board-rules";
 import { deskCharge } from "@/lib/site-server";
+import { pushNote } from "@/lib/social-server";
 
 export type ListingKind = "job" | "market" | "rent";
 export type Listing = {
@@ -158,22 +159,24 @@ export const listListings = createServerFn({ method: "GET" })
     const rows = await sql<ListingRow>`select id, kind, title, body, city, contact, link, company, status, submitter, ts, views, days, expires_at, image, meta from nf_listings where kind = ${kind} and status = 'approved' and (expires_at is null or expires_at > ${now}) order by ts desc limit 80`;
     const live = rows.map(map);
     if (kind === "job") return live;
-    return live.length ? live : DEMO_LISTINGS.filter((l) => l.kind === kind).map((l) => ({
-      id: l.id,
-      kind,
-      title: l.title,
-      body: l.body,
-      city: l.city,
-      contact: l.contact,
-      link: l.link,
-      company: l.company,
-      status: "approved" as const,
-      submitter: l.submitter,
-      ts: l.ts,
-      views: l.views,
-      days: l.days,
-      image: l.image,
-    }));
+    return live.length
+      ? live
+      : DEMO_LISTINGS.filter((l) => l.kind === kind).map((l) => ({
+          id: l.id,
+          kind,
+          title: l.title,
+          body: l.body,
+          city: l.city,
+          contact: l.contact,
+          link: l.link,
+          company: l.company,
+          status: "approved" as const,
+          submitter: l.submitter,
+          ts: l.ts,
+          views: l.views,
+          days: l.days,
+          image: l.image,
+        }));
   });
 
 export type ExploreTile = {
@@ -270,7 +273,24 @@ export const listExploreGrid = createServerFn({ method: "GET" }).handler(async (
 
 export const saveListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { kind: string; title: string; body?: string; city?: string; contact?: string; link?: string; company?: string; days?: number; image?: string; jobType?: string; category?: string; salary?: string; condition?: string; price?: string; experience?: string; deadline?: string }) => d)
+  .validator((d: {
+    kind: string;
+    title: string;
+    body?: string;
+    city?: string;
+    contact?: string;
+    link?: string;
+    company?: string;
+    days?: number;
+    image?: string;
+    jobType?: string;
+    category?: string;
+    salary?: string;
+    condition?: string;
+    price?: string;
+    experience?: string;
+    deadline?: string;
+  }) => d)
   .handler(async ({ context, data }) => {
     const kind = asKind(data.kind);
     const ak = await kindOf(context.userId);
@@ -339,6 +359,51 @@ export const applyListing = createServerFn({ method: "POST" })
       return { ok: false as const, reason: "This job listing has expired." };
     }
     await sql`insert into nf_apps (id, listing_id, user_id, handle, note, ts, phone, cv, skills) values (${id}, ${data.id}, ${context.userId}, ${handle}, ${note}, ${Date.now()}, ${phone}, ${cv}, ${skills})`;
+
+    // Notify poster in-app + best-effort email (contact field or Resend)
+    try {
+      const poster = await sql<{ user_id: string | null; title: string | null; contact: string | null; submitter: string | null }>`
+        select user_id, title, contact, submitter from nf_listings where id = ${data.id} limit 1`;
+      const row = poster[0];
+      const jobTitle = (row?.title || "your job").slice(0, 80);
+      if (row?.user_id) {
+        await pushNote(row.user_id, `@${handle} applied to “${jobTitle}”`, "/?open=me");
+      }
+      const contact = String(row?.contact || "").trim();
+      const emailTo = /@/.test(contact) && !contact.includes(" ") ? contact : "";
+      const resendKey = (process.env.RESEND_API_KEY || "").trim();
+      if (emailTo && resendKey) {
+        const bodyLines = [
+          `New application on Kilode`,
+          ``,
+          `Role: ${jobTitle}`,
+          `Applicant: @${handle}`,
+          phone ? `Phone: ${phone}` : "",
+          skills ? `Skills: ${skills}` : "",
+          cv ? `CV: ${cv}` : "",
+          note ? `Note: ${note}` : "",
+          ``,
+          `Open My Space → Listings desk → Applicants on Kilode.`,
+        ].filter(Boolean);
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: process.env.RESEND_FROM || "Kilode Jobs <jobs@kilode.ng>",
+            to: [emailTo],
+            subject: `Application · ${jobTitle} · @${handle}`,
+            text: bodyLines.join("\n"),
+          }),
+          signal: AbortSignal.timeout(8000),
+        }).catch(() => undefined);
+      }
+    } catch {
+      /* never fail the apply because notify failed */
+    }
+
     return { ok: true as const };
   });
 
@@ -467,28 +532,26 @@ export const listMyApps = createServerFn({ method: "GET" })
       left join nf_listings l on l.id = a.listing_id
       where a.user_id = ${context.userId}
       order by a.ts desc limit 40`;
-    return rows.map(
-      (r): MyApp => ({
-        id: r.id,
-        listingId: r.listing_id,
-        title: r.title ?? "Job",
-        company: r.company ?? "",
-        city: r.city ?? "",
-        note: r.note ?? "",
-        phone: r.phone ?? "",
-        cv: r.cv ?? "",
-        skills: r.skills ?? "",
-        ts: Number(r.ts),
-        status: r.status ?? "unknown",
-      }),
-    );
+    return rows.map((r) => ({
+      id: r.id,
+      listingId: r.listing_id,
+      title: r.title || "",
+      company: r.company || "",
+      city: r.city || "",
+      note: r.note || "",
+      phone: r.phone || "",
+      cv: r.cv || "",
+      skills: r.skills || "",
+      ts: Number(r.ts),
+      status: r.status || "",
+    }));
   });
 
 export type MyApplicant = {
   id: string;
   listingId: string;
-  jobTitle: string;
   handle: string;
+  title: string;
   note: string;
   phone: string;
   cv: string;
@@ -496,7 +559,6 @@ export type MyApplicant = {
   ts: number;
 };
 
-/** Applications to jobs owned by the signed-in Job Poster. */
 export const listMyApplicants = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }) => {
@@ -518,107 +580,44 @@ export const listMyApplicants = createServerFn({ method: "GET" })
       title: string | null;
     }>`select a.id, a.listing_id, a.handle, a.note, a.phone, a.cv, a.skills, a.ts, l.title
       from nf_apps a
-      inner join nf_listings l on l.id = a.listing_id
-      where l.user_id = ${context.userId} and l.kind = 'job'
-      order by a.ts desc
-      limit 60`;
-    return rows.map(
-      (r): MyApplicant => ({
-        id: r.id,
-        listingId: r.listing_id,
-        jobTitle: r.title ?? "Job",
-        handle: r.handle,
-        note: r.note ?? "",
-        phone: r.phone ?? "",
-        cv: r.cv ?? "",
-        skills: r.skills ?? "",
-        ts: Number(r.ts),
-      }),
-    );
+      join nf_listings l on l.id = a.listing_id
+      where l.user_id = ${context.userId}
+      order by a.ts desc limit 80`;
+    return rows.map((r) => ({
+      id: r.id,
+      listingId: r.listing_id,
+      handle: r.handle,
+      title: r.title || "",
+      note: r.note || "",
+      phone: r.phone || "",
+      cv: r.cv || "",
+      skills: r.skills || "",
+      ts: Number(r.ts),
+    }));
   });
 
-
-/** Owner edit for job/market/rent. Approved → pending for staff re-check. */
 export const updateListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator(
-    (d: {
-      id: string;
-      title: string;
-      body?: string;
-      city?: string;
-      contact?: string;
-      link?: string;
-      company?: string;
-      days?: number;
-      image?: string;
-    }) => d,
-  )
+  .validator((d: { id: string; title?: string; body?: string; city?: string; contact?: string }) => d)
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    try {
-      await ensure();
-    } catch {
-      /* exists */
-    }
-    const rows = await sql<{
-      id: string;
-      kind: string;
-      user_id: string | null;
-      status: string;
-      image: string | null;
-    }>`select id, kind, user_id, status, image from nf_listings where id = ${data.id} limit 1`;
-    const row = rows[0];
-    if (!row) return { ok: false as const, reason: "Listing not found." };
-    if (row.user_id !== context.userId) return { ok: false as const, reason: "You can only edit your own listings." };
-    const kind = asKind(row.kind);
-    const ak = await kindOf(context.userId);
-    if (!canKind(ak, ACTION[kind])) return { ok: false as const, reason: kindActionHint(ACTION[kind]) };
-    const title = data.title.trim().slice(0, 120);
-    if (title.length < 3) return { ok: false as const, reason: "Add a title." };
-    if (kind === "job" && !(data.company ?? "").trim()) {
-      return { ok: false as const, reason: "Company / hiring org is required for jobs." };
-    }
-    const submitter = await handleOf(context.userId);
-    const gate = await gateText("feeds", `${title} ${data.body ?? ""}`, { userId: context.userId, author: submitter });
-    if (!gate.ok) return { ok: false as const, reason: gate.reason };
-    const link = safeHttpUrl(data.link ?? "") ?? "";
-    const days = [7, 14, 30].includes(Number(data.days)) ? Number(data.days) : 30;
-    let image = row.image ?? "";
-    if (data.image !== undefined) {
-      const next = (data.image ?? "").trim();
-      if (!next) image = "";
-      else {
-        const norm = normalizeListingImage(next);
-        if (!norm) return { ok: false as const, reason: "Photo must be https://… or a compressed image under ~900KB." };
-        image = norm;
-      }
-    }
-    // Material edit of a live listing returns to staff queue
-    const status = row.status === "approved" ? "pending" : row.status === "rejected" ? "pending" : row.status;
-    await sql`update nf_listings set title = ${title}, body = ${(data.body ?? "").slice(0, 2000)}, city = ${(data.city ?? "").slice(0, 80)}, contact = ${(data.contact ?? "").slice(0, 120)}, link = ${link}, company = ${(data.company ?? "").slice(0, 80)}, days = ${days}, image = ${image}, status = ${status}, expires_at = null where id = ${data.id} and user_id = ${context.userId}`;
-    return { ok: true as const, status: status as "pending" | "approved" | "rejected" };
+    const title = (data.title ?? "").trim().slice(0, 120);
+    const body = (data.body ?? "").slice(0, 2000);
+    const city = (data.city ?? "").slice(0, 80);
+    const contact = (data.contact ?? "").slice(0, 120);
+    const rows = await sql<{ id: string }>`update nf_listings set title = coalesce(nullif(${title}, ''), title), body = ${body}, city = ${city}, contact = ${contact}
+      where id = ${data.id} and user_id = ${context.userId} returning id`;
+    if (!rows[0]) return { ok: false as const, reason: "Listing not found." };
+    return { ok: true as const };
   });
 
-/** Owner hard-delete for own job/market/rent listings. Jobs also clear applications. */
 export const deleteListing = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((d: { id: string }) => d)
   .handler(async ({ context, data }) => {
     const sql = await getSql();
-    try {
-      await ensure();
-    } catch {
-      /* exists */
-    }
-    const rows = await sql<{ id: string; kind: string; user_id: string | null }>`select id, kind, user_id from nf_listings where id = ${data.id} limit 1`;
-    const row = rows[0];
-    if (!row) return { ok: false as const, reason: "Listing not found." };
-    if (row.user_id !== context.userId) return { ok: false as const, reason: "You can only delete your own listings." };
-    const kind = asKind(row.kind);
-    if (kind === "job") {
-      await sql`delete from nf_apps where listing_id = ${data.id}`;
-    }
-    await sql`delete from nf_listings where id = ${data.id} and user_id = ${context.userId}`;
+    const rows = await sql<{ id: string }>`delete from nf_listings where id = ${data.id} and user_id = ${context.userId} returning id`;
+    if (!rows[0]) return { ok: false as const, reason: "Listing not found." };
+    await sql`delete from nf_apps where listing_id = ${data.id}`;
     return { ok: true as const };
   });
