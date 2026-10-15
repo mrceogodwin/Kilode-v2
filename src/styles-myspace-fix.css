@@ -1,0 +1,196 @@
+/* My Space profile card must stay DARK (design reference). Do not force white. */
+html .kilode-shell[data-sf="1"] .space-page .me-hero,
+html .space-page .me-hero,
+.me-hero {
+  background: #0B0D12 !important;
+  color: #F8FAFC !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18) !important;
+}
+
+html .kilode-shell[data-sf="1"] .space-page .me-hero .hero-copy,
+.me-hero .hero-copy,
+.me-hero p,
+.me-hero span:not(.staff-pill):not(.kind-pill) {
+  color: #E2E8F0 !important;
+}
+
+html .kilode-shell[data-sf="1"] .space-page .me-hero .text-muted,
+.me-hero .text-muted {
+  color: #94A3B8 !important;
+}
+
+.me-hero .staff-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  background: #111827 !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 999px !important;
+  padding: 2px 10px !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+}
+
+.me-hero .kind-pill {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #CBD5E1 !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.me-hero .btn-join {
+  background: #1877F2 !important;
+  color: #fff !important;
+  border: 0 !important;
+}
+
+.me-hero button:not(.btn-join) {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #E2E8F0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+/* YOUR POWER + Staff desk — green pill like reference */
+html .kilode-shell[data-sf="1"] .space-page .staff-power,
+.staff-power {
+  background: #fff !important;
+  border: 1px solid #E7ECF2 !important;
+  border-radius: 16px !important;
+  color: #172033 !important;
+}
+
+html .kilode-shell[data-sf="1"] .space-page .staff-go,
+.staff-go {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-top: 10px !important;
+  padding: 10px 18px !important;
+  border-radius: 999px !important;
+  background: #166534 !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  border: 1px solid #14532d !important;
+  box-shadow: 0 2px 0 #14532d !important;
+}
+
+html .kilode-shell[data-sf="1"] .space-page .staff-go:hover,
+.staff-go:hover {
+  background: #15803d !important;
+  color: #fff !important;
+}
+
+/* Quick tiles under My Space */
+html .kilode-shell[data-sf="1"] .space-page .me-quick,
+.me-quick {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 10px !important;
+}
+
+html .kilode-shell[data-sf="1"] .space-page .me-quick button,
+.me-quick button {
+  background: #fff !important;
+  border: 1px solid #E7ECF2 !important;
+  border-radius: 999px !important;
+  padding: 14px 6px !important;
+  color: #172033 !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04) !important;
+}
+
+/* 5-tab dock with raised center + */
+html .kilode-shell[data-sf="1"] .sf-dock-v2 {
+  position: relative !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-around !important;
+  background: #1877F2 !important;
+  color: #fff !important;
+  padding: 6px 4px max(8px, env(safe-area-inset-bottom)) !important;
+  box-shadow: 0 -4px 18px rgba(20, 93, 191, 0.28) !important;
+  z-index: 40 !important;
+}
+
+html .kilode-shell[data-sf="1"] .sf-dock-v2 > button {
+  flex: 1 !important;
+  background: none !important;
+  border: 0 !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 2px !important;
+  font-size: 9px !important;
+  font-weight: 650 !important;
+  padding: 6px 0 4px !important;
+  position: relative !important;
+}
+
+html .kilode-shell[data-sf="1"] .sf-dock-v2 > button.on {
+  color: #fff !important;
+}
+
+html .kilode-shell[data-sf="1"] .sf-dock-v2 > button.on::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 22% !important;
+  right: 22% !important;
+  bottom: 0 !important;
+  height: 3px !important;
+  border-radius: 3px !important;
+  background: #F0B429 !important;
+}
+
+html .kilode-shell[data-sf="1"] .sf-dock-v2 .sf-dock-plus {
+  flex: 0 0 56px !important;
+  width: 56px !important;
+  height: 56px !important;
+  margin-top: -22px !important;
+  border-radius: 18px !important;
+  background: #fff !important;
+  color: #1877F2 !important;
+  border: 0 !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22) !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+}
+
+html .kilode-shell[data-sf="1"] .sf-dock-v2 .sf-dock-plus::after {
+  display: none !important;
+}
+
+/* Header tool pills like reference */
+html .kilode-shell[data-sf="1"] .sf-hdr-pill {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #fff !important;
+  border: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  position: relative !important;
+}
+
+html .kilode-shell[data-sf="1"] .sf-hdr-pill .sf-badge {
+  position: absolute !important;
+  top: -4px !important;
+  right: -4px !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  border-radius: 999px !important;
+  background: #EF4444 !important;
+  color: #fff !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 0 4px !important;
+  border: 2px solid #1877F2 !important;
+}
