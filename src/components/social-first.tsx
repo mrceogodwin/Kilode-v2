@@ -47,6 +47,14 @@ function asTakes(v: unknown): TakeRow[] {
   return [];
 }
 
+function readFab() {
+  try {
+    return localStorage.getItem("kilode-fab") !== "0";
+  } catch {
+    return true;
+  }
+}
+
 const HUBS = [
   { key: "cinema", label: "Cinema", sub: "Watch & vote", icon: Clapperboard, color: "#7a4db8" },
   { key: "jobs", label: "Jobs", sub: "Hire · Apply", icon: Briefcase, color: "#1f8f4e" },
@@ -95,9 +103,30 @@ export function SocialFirst({
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
   const [note, setNote] = useState("");
-  const [dockHidden, setDockHidden] = useState(false);
+  const [chromeHidden, setChromeHidden] = useState(false);
+  const [fabOn, setFabOn] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const lastY = useRef(0);
+
+  useEffect(() => {
+    setFabOn(readFab());
+    const onFab = (ev: Event) => {
+      const d = (ev as CustomEvent).detail;
+      if (d && typeof d.on === "boolean") setFabOn(d.on);
+      else setFabOn(readFab());
+    };
+    const onLane = (ev: Event) => {
+      const d = (ev as CustomEvent).detail;
+      if (d?.lane === "media") setLane("media");
+      if (d?.lane === "feed") setLane("feed");
+    };
+    window.addEventListener("kilode:fab", onFab as EventListener);
+    window.addEventListener("kilode:lane", onLane as EventListener);
+    return () => {
+      window.removeEventListener("kilode:fab", onFab as EventListener);
+      window.removeEventListener("kilode:lane", onLane as EventListener);
+    };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -122,9 +151,9 @@ export function SocialFirst({
     const onScroll = () => {
       const y = el.scrollTop;
       const dy = y - lastY.current;
-      if (y < 24) setDockHidden(false);
-      else if (dy > 8) setDockHidden(true);
-      else if (dy < -8) setDockHidden(false);
+      if (y < 28) setChromeHidden(false);
+      else if (dy > 6) setChromeHidden(true);
+      else if (dy < -6) setChromeHidden(false);
       lastY.current = y;
     };
     el.addEventListener("scroll", onScroll, { passive: true });
@@ -192,11 +221,30 @@ export function SocialFirst({
     fontSize: 10,
     flex: 1,
     padding: "4px 0",
+    fontWeight: 600,
   };
 
   return (
     <div className="sf-root" data-sf="1" style={{ height: "100%", display: "flex", flexDirection: "column", background: "#fff", minHeight: 0, position: "relative" }}>
-      <header className="sf-top" style={{ background: "#1877F2", color: "#fff", padding: "10px 12px", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+      <header
+        className="sf-top"
+        style={{
+          background: "#1877F2",
+          color: "#fff",
+          padding: "10px 12px",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          flexShrink: 0,
+          transform: chromeHidden ? "translateY(-110%)" : "translateY(0)",
+          transition: "transform 0.22s ease",
+          position: chromeHidden ? "absolute" : "relative",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 35,
+        }}
+      >
         <button type="button" onClick={onMenu} aria-label="Menu" style={{ background: "none", border: 0, color: "#fff", padding: 4 }}>
           <Menu size={20} />
         </button>
@@ -212,13 +260,13 @@ export function SocialFirst({
         </button>
       </header>
 
-      {find ? (
-        <div className="sf-find" style={{ padding: "8px 12px", borderBottom: "1px solid #E7ECF2" }}>
+      {find && !chromeHidden ? (
+        <div className="sf-find" style={{ padding: "8px 12px", borderBottom: "1px solid #E7ECF2", flexShrink: 0 }}>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search takes…" autoFocus style={{ width: "100%", border: "1px solid #E7ECF2", borderRadius: 999, padding: "10px 14px", fontSize: 14 }} />
         </div>
       ) : null}
 
-      <div ref={scrollRef} style={{ flex: 1, overflow: "auto", minHeight: 0, paddingBottom: dockHidden ? 24 : 8 }}>
+      <div ref={scrollRef} style={{ flex: 1, overflow: "auto", minHeight: 0, paddingTop: chromeHidden ? 8 : 0, paddingBottom: chromeHidden ? 24 : 8 }}>
         {lane === "feed" ? (
           <>
             <div className="sf-tick" aria-label="Trending">
@@ -347,30 +395,32 @@ export function SocialFirst({
         )}
       </div>
 
-      <button
-        type="button"
-        aria-label="Create"
-        onClick={create}
-        style={{
-          position: "absolute",
-          right: 16,
-          bottom: dockHidden ? "max(20px, env(safe-area-inset-bottom))" : 72,
-          zIndex: 40,
-          width: 56,
-          height: 56,
-          borderRadius: "50%",
-          border: 0,
-          background: "#1877F2",
-          color: "#fff",
-          boxShadow: "0 6px 20px rgba(24,119,242,0.45)",
-          display: "grid",
-          placeItems: "center",
-          transition: "bottom 0.22s ease, transform 0.22s ease",
-          transform: dockHidden ? "scale(1)" : "scale(0.92)",
-        }}
-      >
-        <Plus size={26} strokeWidth={2.5} />
-      </button>
+      {fabOn ? (
+        <button
+          type="button"
+          aria-label="Create"
+          onClick={create}
+          style={{
+            position: "absolute",
+            right: 16,
+            bottom: chromeHidden ? "max(20px, env(safe-area-inset-bottom))" : 72,
+            zIndex: 40,
+            width: 56,
+            height: 56,
+            borderRadius: "50%",
+            border: 0,
+            background: "#1877F2",
+            color: "#fff",
+            boxShadow: "0 6px 20px rgba(24,119,242,0.45)",
+            display: "grid",
+            placeItems: "center",
+            transition: "bottom 0.22s ease, transform 0.22s ease",
+            transform: chromeHidden ? "scale(1)" : "scale(0.92)",
+          }}
+        >
+          <Plus size={26} strokeWidth={2.5} />
+        </button>
+      ) : null}
 
       <nav
         className="sf-dock"
@@ -383,16 +433,19 @@ export function SocialFirst({
           justifyContent: "space-around",
           alignItems: "center",
           flexShrink: 0,
-          transform: dockHidden ? "translateY(110%)" : "translateY(0)",
+          transform: chromeHidden ? "translateY(110%)" : "translateY(0)",
           transition: "transform 0.22s ease",
-          position: "relative",
+          position: chromeHidden ? "absolute" : "relative",
+          bottom: 0,
+          left: 0,
+          right: 0,
           zIndex: 30,
         }}
       >
-        <button type="button" className={lane === "feed" ? "on" : ""} aria-label="Home" onClick={() => setLane("feed")} style={dockBtn}>
+        <button type="button" className={lane === "feed" ? "on" : ""} aria-label="Home" onClick={() => { setLane("feed"); setChromeHidden(false); }} style={dockBtn}>
           <Home size={20} /><span className="sf-dock-lab">Home</span>
         </button>
-        <button type="button" className={lane === "media" ? "on" : ""} aria-label="Media" onClick={() => setLane("media")} style={dockBtn}>
+        <button type="button" className={lane === "media" ? "on" : ""} aria-label="Media" onClick={() => { setLane("media"); setChromeHidden(false); }} style={dockBtn}>
           <Orbit /><span className="sf-dock-lab">Media</span>
         </button>
         <button type="button" className="sf-me" aria-label="Me" onClick={onMe} style={dockBtn}>
