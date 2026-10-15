@@ -1,4 +1,4 @@
-/* ========== TRENDING TICKER — horizontal marquee (was wall of text) ========== */
+/* ========== TRENDING TICKER — horizontal marquee ========== */
 html .sf-tick,
 html .kilode-shell .sf-tick,
 html .kilode-shell[data-sf="1"] .sf-tick {
@@ -7,6 +7,7 @@ html .kilode-shell[data-sf="1"] .sf-tick {
   gap: 10px !important;
   padding: 6px 12px !important;
   min-height: 32px !important;
+  max-height: 36px !important;
   overflow: hidden !important;
   background: #fff !important;
   border-bottom: 1px solid #E7ECF2 !important;
@@ -18,9 +19,13 @@ html .sf-tick-label {
   letter-spacing: 0.06em !important;
   color: #1877F2 !important;
   text-transform: uppercase !important;
+  z-index: 1 !important;
+  background: #fff !important;
+  padding-right: 6px !important;
 }
 html .sf-tick-track {
   flex: 1 1 auto !important;
+  min-width: 0 !important;
   overflow: hidden !important;
   mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent) !important;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent) !important;
@@ -37,7 +42,7 @@ html .sf-tick-marquee {
   100% { transform: translateX(-50%); }
 }
 
-/* ========== BLUE CHROME FALLBACK ========== */
+/* ========== BLUE CHROME — Home / Media / Me only (no Search in dock) ========== */
 html .kilode-shell[data-sf="1"] .sf-top,
 html .kilode-shell[data-sf="1"] header.sf-top {
   background: #1877F2 !important;
@@ -47,6 +52,8 @@ html .kilode-shell[data-sf="1"] .sf-dock {
   background: #1877F2 !important;
   color: #fff !important;
   border-top: none !important;
+  display: flex !important;
+  justify-content: space-around !important;
 }
 html .kilode-shell[data-sf="1"] .sf-dock button {
   color: rgba(255,255,255,0.85) !important;
@@ -61,6 +68,13 @@ html .kilode-shell[data-sf="1"] .sf-dock .sf-dock-lab {
   font-size: 10px !important;
   font-weight: 600 !important;
 }
+/* Hide any leftover 5-tab dock if an old chunk flashes */
+html .app-tab,
+html .app-tabbar,
+html [data-old-dock="1"] {
+  display: none !important;
+}
+
 html .kilode-shell[data-sf="1"] .sf-plus {
   background: #fff !important;
   color: #1877F2 !important;
@@ -88,16 +102,13 @@ html .kilode-shell[data-sf="1"] .sf-plus {
 .sf-news-row img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; }
 .sf-ads-box { margin: 12px; padding: 12px; border: 1px dashed #CBD5E1; border-radius: 12px; background: #F8FAFC; text-align: center; font-size: 12px; color: #64748B; }
 
-/* PushStrip */
 .push-strip { padding: 8px 12px; }
 .push-card { border: 1px solid #E7ECF2; border-radius: 12px; padding: 12px; background: #fff; margin-bottom: 8px; }
 
-/* Find / acts */
 .sf-find { padding: 8px 12px; }
 .sf-find input { width: 100%; border: 1px solid #E7ECF2; border-radius: 999px; padding: 10px 14px; font-size: 14px; }
 .sf-acts { display: flex; gap: 8px; }
 .sf-acts button { background: #F1F5F9; border: 0; border-radius: 999px; padding: 6px 10px; font-size: 12px; color: #334155; }
 
-/* Dock safe area */
 .sf-dock { padding-bottom: max(8px, env(safe-area-inset-bottom)) !important; }
 .sf-empty { text-align: center !important; color: #94A3B8 !important; font-size: 13px !important; padding: 24px 16px !important; }
