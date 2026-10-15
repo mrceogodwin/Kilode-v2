@@ -1,14 +1,14 @@
-export const CARD_PROVIDERS = ["paystack", "flutterwave"] as const;
+export const CARD_PROVIDERS = ["paystack", "flutterwave", "bachs"] as const;
 export type CardProvider = (typeof CARD_PROVIDERS)[number];
-export const PAY_PROVIDERS = ["paystack", "flutterwave", "nowpayments"] as const;
+export const PAY_PROVIDERS = ["paystack", "flutterwave", "nowpayments", "bachs"] as const;
 export type PayProvider = (typeof PAY_PROVIDERS)[number];
 
 export function isCardProvider(v: string): v is CardProvider {
-  return v === "paystack" || v === "flutterwave";
+  return v === "paystack" || v === "flutterwave" || v === "bachs";
 }
 
 export function isPayProvider(v: string): v is PayProvider {
-  return v === "paystack" || v === "flutterwave" || v === "nowpayments";
+  return v === "paystack" || v === "flutterwave" || v === "nowpayments" || v === "bachs";
 }
 
 /** Whole naira from a whole-dollar price. Rate is naira per 1 USD. */
@@ -67,4 +67,11 @@ export function cleanReceiptEmail(raw: string) {
   const email = raw.trim().toLowerCase().slice(0, 80);
   if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(email)) return "";
   return email;
+}
+
+/** Bachs accepts decimal string amounts. */
+export function bachsAmount(usd: number) {
+  const n = Math.round(Number(usd));
+  if (!Number.isFinite(n) || n < 1) return "0.00";
+  return `${n}.00`;
 }
