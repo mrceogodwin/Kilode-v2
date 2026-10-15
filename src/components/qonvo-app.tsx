@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import {
   X, Volume2, VolumeX, ChevronLeft, Home, Briefcase, Store, Clapperboard, Users, User,
   Plus, Megaphone, Search, Bell, Inbox, Settings, HelpCircle, Hash, Tv, Building2,
@@ -266,7 +266,7 @@ function Shell() {
   const immersive = openKey === "cinema" || openKey === "watch";
   const showShellDock = Boolean(screen) && !immersive;
 
-  const dockBtn: React.CSSProperties = {
+  const dockBtn: CSSProperties = {
     background: "none",
     border: 0,
     color: "#fff",
