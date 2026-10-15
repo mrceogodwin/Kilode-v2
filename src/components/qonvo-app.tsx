@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
   X, Volume2, VolumeX, ChevronLeft, Home, Briefcase, Store, Clapperboard, Users, User,
   Plus, Megaphone, Search, Bell, Inbox, Settings, HelpCircle, Hash, Tv, Building2,
-  Bookmark, Music, Calendar, Shield, Info, CircleDollarSign,
+  Bookmark, Music, Calendar, Shield, Info, CircleDollarSign, CirclePlus,
 } from "lucide-react";
 import { PublicSiteProvider } from "@/components/site-chrome";
 import type { PublicSite } from "@/lib/site-server";
@@ -79,6 +79,22 @@ function readOpen(): MenuId | null {
   return raw ? OPEN_MAP[raw] || null : null;
 }
 
+function fabEnabled(): boolean {
+  try {
+    const v = localStorage.getItem("kilode-fab");
+    if (v === "0") return false;
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+function setFabEnabled(on: boolean) {
+  try {
+    localStorage.setItem("kilode-fab", on ? "1" : "0");
+  } catch { /* ignore */ }
+}
+
 function screenTitle(id: MenuId, openKey: string) {
   if (openKey === "cinema" || openKey === "watch") return "Cinema";
   if (openKey === "music") return "Music";
@@ -127,6 +143,7 @@ function Shell() {
   const signedIn = Boolean(session.user);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sfxOn, setSfxOn] = useState(true);
+  const [fabOn, setFabOn] = useState(true);
   const [screen, setScreen] = useState<MenuId | null>(null);
   const [openKey, setOpenKey] = useState("");
 
@@ -161,6 +178,7 @@ function Shell() {
 
   useEffect(() => {
     setSfxOn(soundsEnabled());
+    setFabOn(fabEnabled());
     setScreen(readOpen());
     setOpenKey(readOpenKey());
     const onPop = () => {
@@ -171,7 +189,6 @@ function Shell() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  // My Space / old shell bridge
   useEffect(() => {
     const onGoto = (ev: Event) => {
       const d = (ev as CustomEvent).detail || {};
@@ -202,6 +219,13 @@ function Shell() {
     setSounds(next);
     setSfxOn(next);
     if (next) kilodeSound("tick");
+  }, []);
+
+  const toggleFab = useCallback(() => {
+    const next = !fabEnabled();
+    setFabEnabled(next);
+    setFabOn(next);
+    window.dispatchEvent(new CustomEvent("kilode:fab", { detail: { on: next } }));
   }, []);
 
   const close = () => setMenuOpen(false);
@@ -240,6 +264,21 @@ function Shell() {
   );
 
   const immersive = openKey === "cinema" || openKey === "watch";
+  const showShellDock = Boolean(screen) && !immersive;
+
+  const dockBtn: React.CSSProperties = {
+    background: "none",
+    border: 0,
+    color: "#fff",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 2,
+    fontSize: 10,
+    flex: 1,
+    padding: "6px 0",
+    fontWeight: 600,
+  };
 
   return (
     <div
@@ -271,13 +310,75 @@ function Shell() {
               Menu
             </button>
           </header>
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto" style={{ paddingBottom: showShellDock ? 64 : 0 }}>
             {immersive ? (
               <CinemaPane />
             ) : (
               <QonvoScreen id={screen} store={store} onHome={() => go(null)} onForum={() => go("forum", "forum")} />
             )}
           </div>
+
+          {showShellDock ? (
+            <nav
+              aria-label="Primary"
+              style={{
+                display: "flex",
+                background: "#1877F2",
+                color: "#fff",
+                padding: "8px 0 max(8px, env(safe-area-inset-bottom))",
+                justifyContent: "space-around",
+                alignItems: "center",
+                flexShrink: 0,
+                zIndex: 30,
+              }}
+            >
+              <button type="button" aria-label="Home" onClick={() => go(null)} style={dockBtn}>
+                <Home size={20} />
+                <span>Home</span>
+              </button>
+              <button
+                type="button"
+                aria-label="Media"
+                onClick={() => {
+                  go(null);
+                  window.setTimeout(() => window.dispatchEvent(new CustomEvent("kilode:lane", { detail: { lane: "media" } })), 40);
+                }}
+                style={dockBtn}
+              >
+                <Hash size={20} />
+                <span>Media</span>
+              </button>
+              <button type="button" aria-label="Me" onClick={() => openPane("me")} style={{ ...dockBtn, opacity: screen === "dashboard" ? 1 : 0.85 }}>
+                <User size={20} />
+                <span>Me</span>
+              </button>
+            </nav>
+          ) : null}
+
+          {fabOn && showShellDock ? (
+            <button
+              type="button"
+              aria-label="Create"
+              onClick={() => openPane("create")}
+              style={{
+                position: "absolute",
+                right: 16,
+                bottom: "calc(72px + env(safe-area-inset-bottom))",
+                zIndex: 40,
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                border: 0,
+                background: "#1877F2",
+                color: "#fff",
+                boxShadow: "0 6px 20px rgba(24,119,242,0.45)",
+                display: "grid",
+                placeItems: "center",
+              }}
+            >
+              <Plus size={24} strokeWidth={2.5} />
+            </button>
+          ) : null}
         </div>
       ) : (
         <SocialFirst
@@ -368,6 +469,34 @@ function Shell() {
                 </span>
                 <span style={{ borderRadius: 999, padding: "4px 12px", fontSize: 11, fontWeight: 700, background: sfxOn ? "#1877F2" : "#E7ECF2", color: sfxOn ? "#fff" : "#64748B" }}>
                   {sfxOn ? "On" : "Off"}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={toggleFab}
+                style={{
+                  display: "flex",
+                  width: "100%",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  padding: "12px 14px",
+                  margin: "4px 0",
+                  border: "1px solid #E7ECF2",
+                  borderRadius: 12,
+                  background: "#F7F9FC",
+                  color: "#172033",
+                  fontWeight: 600,
+                  fontSize: 13,
+                }}
+              >
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <CirclePlus size={16} />
+                  Floating +
+                </span>
+                <span style={{ borderRadius: 999, padding: "4px 12px", fontSize: 11, fontWeight: 700, background: fabOn ? "#1877F2" : "#E7ECF2", color: fabOn ? "#fff" : "#64748B" }}>
+                  {fabOn ? "On" : "Off"}
                 </span>
               </button>
 
