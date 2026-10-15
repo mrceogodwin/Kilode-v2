@@ -21,19 +21,15 @@ export const DEFAULT_DESKS: Record<DeskPay, DeskMoney> = {
 
 export type PublicSite = {
   installToast: boolean;
-  /** When false, hamburger omits Videos (Clips on Kilode). Default true. */
   videosMenuVisible: boolean;
-  /** When false, pasted profile photo links are not shown. Default true. */
   photosOn: boolean;
-  /** Account desks that skip crypto for now. Comma list: ads,events */
   payOff: string;
-  /** When false, NOWPayments is hidden everywhere. */
   cryptoEnabled: boolean;
-  /** Free = staff review. Paid = checkout, then the listing goes live. */
+  paystackEnabled: boolean;
+  flutterwaveEnabled: boolean;
+  bachsEnabled: boolean;
   desks: Record<DeskPay, DeskMoney>;
-  /** Take videos longer than this are trimmed. Default 15. */
   takeVideoSeconds: number;
-  /** Kilode click, send, comment, and request sounds. Super admin can turn them off. */
   soundsOn: boolean;
   visitorsToday: number;
   visitorsAll: number;
@@ -57,7 +53,13 @@ function usdOf(v: unknown, fallback: number) {
 }
 
 function desksFrom(row: Record<string, unknown> | undefined): Record<DeskPay, DeskMoney> {
-  const desks = { ...DEFAULT_DESKS, jobs: { ...DEFAULT_DESKS.jobs }, market: { ...DEFAULT_DESKS.market }, rent: { ...DEFAULT_DESKS.rent }, events: { ...DEFAULT_DESKS.events }, cinema: { ...DEFAULT_DESKS.cinema } };
+  const desks = {
+    jobs: { ...DEFAULT_DESKS.jobs },
+    market: { ...DEFAULT_DESKS.market },
+    rent: { ...DEFAULT_DESKS.rent },
+    events: { ...DEFAULT_DESKS.events },
+    cinema: { ...DEFAULT_DESKS.cinema },
+  };
   if (!row) return desks;
   for (const k of DESK_PAY) {
     desks[k] = {
@@ -80,6 +82,9 @@ async function ensure() {
     await sql`alter table nf_site add column if not exists photos_on integer not null default 1`;
     await sql`alter table nf_site add column if not exists pay_off text not null default ''`;
     await sql`alter table nf_site add column if not exists crypto_enabled integer not null default 1`;
+    await sql`alter table nf_site add column if not exists paystack_enabled integer not null default 1`;
+    await sql`alter table nf_site add column if not exists flutterwave_enabled integer not null default 1`;
+    await sql`alter table nf_site add column if not exists bachs_enabled integer not null default 1`;
     await sql`alter table nf_site add column if not exists jobs_is_paid integer not null default 0`;
     await sql`alter table nf_site add column if not exists jobs_price integer not null default 5`;
     await sql`alter table nf_site add column if not exists market_is_paid integer not null default 0`;
@@ -109,6 +114,9 @@ async function loadPublic(): Promise<PublicSite> {
     photosOn: true,
     payOff: "",
     cryptoEnabled: true,
+    paystackEnabled: true,
+    flutterwaveEnabled: true,
+    bachsEnabled: true,
     desks: {
       jobs: { ...DEFAULT_DESKS.jobs },
       market: { ...DEFAULT_DESKS.market },
@@ -129,40 +137,14 @@ async function loadPublic(): Promise<PublicSite> {
     const sql = await ensure();
     const today = utcDay();
     const [flag, dayRows, allRows, members, digestRows, shareRows] = await Promise.all([
-      sql<{
-        install_toast: number | string | boolean | null;
-        videos_menu_visible: number | string | boolean | null;
-        photos_on: number | string | boolean | null;
-        pay_off: string | null;
-        crypto_enabled: number | string | boolean | null;
-        jobs_is_paid: number | string | boolean | null;
-        jobs_price: number | string | null;
-        market_is_paid: number | string | boolean | null;
-        market_price: number | string | null;
-        rent_is_paid: number | string | boolean | null;
-        rent_price: number | string | null;
-        events_is_paid: number | string | boolean | null;
-        events_price: number | string | null;
-        cinema_is_paid: number | string | boolean | null;
-        cinema_price: number | string | null;
-        take_video_seconds: number | string | null;
-        sounds_on: number | string | boolean | null;
-      }>`select install_toast, videos_menu_visible, photos_on, pay_off, crypto_enabled, jobs_is_paid, jobs_price, market_is_paid, market_price, rent_is_paid, rent_price, events_is_paid, events_price, cinema_is_paid, cinema_price, take_video_seconds, sounds_on from nf_site where id = 1 limit 1`.catch(() => []),
+      sql<Record<string, unknown>>`select install_toast, videos_menu_visible, photos_on, pay_off, crypto_enabled, paystack_enabled, flutterwave_enabled, bachs_enabled, jobs_is_paid, jobs_price, market_is_paid, market_price, rent_is_paid, rent_price, events_is_paid, events_price, cinema_is_paid, cinema_price, take_video_seconds, sounds_on from nf_site where id = 1 limit 1`.catch(() => []),
       sql<{ n: string | number }>`select n from nf_visits where day = ${today} limit 1`.catch(() => []),
       sql<{ n: string | number }>`select coalesce(sum(n), 0) as n from nf_visits`.catch(() => []),
       sql<{ n: string | number }>`select count(*) as n from "user"`.catch(() => []),
       sql<{ n: string | number }>`select count(*) as n from nf_digest`.catch(() => []),
       sql<{ k: string; n: string | number }>`select k, n from nf_shares`.catch(() => []),
     ]);
-    const installToast =
-      !flag[0] || (flag[0].install_toast !== 0 && flag[0].install_toast !== false && flag[0].install_toast !== "0");
-    const videosMenuVisible =
-      !flag[0] ||
-      (flag[0].videos_menu_visible !== 0 &&
-        flag[0].videos_menu_visible !== false &&
-        flag[0].videos_menu_visible !== "0");
-    const photosOn =
-      !flag[0] || (flag[0].photos_on !== 0 && flag[0].photos_on !== false && flag[0].photos_on !== "0");
+    const row = flag[0] as Record<string, unknown> | undefined;
     const shares = { ...ZERO_SHARES };
     for (const r of shareRows) {
       if (r.k in shares) shares[r.k as ShareKey] = Number(r.n ?? 0);
@@ -170,20 +152,23 @@ async function loadPublic(): Promise<PublicSite> {
     const membersN = Number(members[0]?.n ?? 0);
     const digestN = Number(digestRows[0]?.n ?? 0);
     return {
-      installToast,
-      videosMenuVisible,
-      photosOn,
-      payOff: String(flag[0]?.pay_off || ""),
-      cryptoEnabled: onFlag(flag[0]?.crypto_enabled, true),
-      desks: desksFrom(flag[0] as Record<string, unknown> | undefined),
+      installToast: onFlag(row?.install_toast, true),
+      videosMenuVisible: onFlag(row?.videos_menu_visible, true),
+      photosOn: onFlag(row?.photos_on, true),
+      payOff: String(row?.pay_off || ""),
+      cryptoEnabled: onFlag(row?.crypto_enabled, true),
+      paystackEnabled: onFlag(row?.paystack_enabled, true),
+      flutterwaveEnabled: onFlag(row?.flutterwave_enabled, true),
+      bachsEnabled: onFlag(row?.bachs_enabled, true),
+      desks: desksFrom(row),
       visitorsToday: Number(dayRows[0]?.n ?? 0),
       visitorsAll: Number(allRows[0]?.n ?? 0),
       members: membersN,
       digest: digestN,
       subscribers: membersN + digestN,
       shares,
-      takeVideoSeconds: Math.min(60, Math.max(5, Math.round(Number(flag[0]?.take_video_seconds || 15)) || 15)),
-      soundsOn: onFlag(flag[0]?.sounds_on, true),
+      takeVideoSeconds: Math.min(60, Math.max(5, Math.round(Number(row?.take_video_seconds || 15)) || 15)),
+      soundsOn: onFlag(row?.sounds_on, true),
     };
   } catch {
     return empty;
@@ -216,34 +201,44 @@ export const pingVisit = createServerFn({ method: "POST" })
 
 export async function deskCharge(desk: DeskPay) {
   const site = await loadPublic();
-  return { ...site.desks[desk], cryptoEnabled: site.cryptoEnabled };
+  return {
+    ...site.desks[desk],
+    cryptoEnabled: site.cryptoEnabled,
+    paystackEnabled: site.paystackEnabled,
+    flutterwaveEnabled: site.flutterwaveEnabled,
+    bachsEnabled: site.bachsEnabled,
+  };
 }
 
 export const saveSiteFlags = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((d: { installToast?: boolean; videosMenuVisible?: boolean; photosOn?: boolean; payOff?: string; cryptoEnabled?: boolean; takeVideoSeconds?: number; soundsOn?: boolean; desks?: Partial<Record<DeskPay, Partial<DeskMoney>>> }) => d)
+  .validator(
+    (d: {
+      installToast?: boolean;
+      videosMenuVisible?: boolean;
+      photosOn?: boolean;
+      payOff?: string;
+      cryptoEnabled?: boolean;
+      paystackEnabled?: boolean;
+      flutterwaveEnabled?: boolean;
+      bachsEnabled?: boolean;
+      takeVideoSeconds?: number;
+      soundsOn?: boolean;
+      desks?: Partial<Record<DeskPay, Partial<DeskMoney>>>;
+    }) => d,
+  )
   .handler(async ({ context, data }) => {
     await assertStaff(context.userId, "super");
     const sql = await ensure();
-    const existing = await sql<{
-      id: number;
-      install_toast: number | string | boolean | null;
-      videos_menu_visible: number | string | boolean | null;
-      photos_on: number | string | boolean | null;
-      pay_off: string | null;
-    }>`select id, install_toast, videos_menu_visible, photos_on, pay_off from nf_site where id = 1 limit 1`.catch(() => []);
-    const curToast =
-      !existing[0] ||
-      (existing[0].install_toast !== 0 && existing[0].install_toast !== false && existing[0].install_toast !== "0");
-    const curVideos =
-      !existing[0] ||
-      (existing[0].videos_menu_visible !== 0 &&
-        existing[0].videos_menu_visible !== false &&
-        existing[0].videos_menu_visible !== "0");
-    const toast = data.installToast === undefined ? (curToast ? 1 : 0) : data.installToast === false ? 0 : 1;
-    const videos = data.videosMenuVisible === undefined ? (curVideos ? 1 : 0) : data.videosMenuVisible === false ? 0 : 1;
-    const photos = data.photosOn === undefined ? (!existing[0] || (existing[0].photos_on !== 0 && existing[0].photos_on !== false && existing[0].photos_on !== "0") ? 1 : 0) : data.photosOn === false ? 0 : 1;
-    const payOff = (data.payOff === undefined ? String(existing[0]?.pay_off || "") : data.payOff).split(",").map((s) => s.trim()).filter((s) => s === "ads" || s === "events").join(",");
+    const existing = await sql<{ id: number; install_toast: unknown; videos_menu_visible: unknown; photos_on: unknown; pay_off: string | null }>`select id, install_toast, videos_menu_visible, photos_on, pay_off from nf_site where id = 1 limit 1`.catch(() => []);
+    const toast = data.installToast === undefined ? (onFlag(existing[0]?.install_toast, true) ? 1 : 0) : data.installToast ? 1 : 0;
+    const videos = data.videosMenuVisible === undefined ? (onFlag(existing[0]?.videos_menu_visible, true) ? 1 : 0) : data.videosMenuVisible ? 1 : 0;
+    const photos = data.photosOn === undefined ? (onFlag(existing[0]?.photos_on, true) ? 1 : 0) : data.photosOn ? 1 : 0;
+    const payOff = (data.payOff === undefined ? String(existing[0]?.pay_off || "") : data.payOff)
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s === "ads" || s === "events")
+      .join(",");
     if (existing[0]) {
       await sql`update nf_site set install_toast = ${toast}, videos_menu_visible = ${videos}, photos_on = ${photos}, pay_off = ${payOff}, ts = ${Date.now()} where id = 1`;
     } else {
@@ -251,6 +246,9 @@ export const saveSiteFlags = createServerFn({ method: "POST" })
     }
     const current = await loadPublic();
     const crypto = data.cryptoEnabled === undefined ? (current.cryptoEnabled ? 1 : 0) : data.cryptoEnabled ? 1 : 0;
+    const paystack = data.paystackEnabled === undefined ? (current.paystackEnabled ? 1 : 0) : data.paystackEnabled ? 1 : 0;
+    const flutterwave = data.flutterwaveEnabled === undefined ? (current.flutterwaveEnabled ? 1 : 0) : data.flutterwaveEnabled ? 1 : 0;
+    const bachs = data.bachsEnabled === undefined ? (current.bachsEnabled ? 1 : 0) : data.bachsEnabled ? 1 : 0;
     const desks = {
       jobs: { ...current.desks.jobs },
       market: { ...current.desks.market },
@@ -266,7 +264,7 @@ export const saveSiteFlags = createServerFn({ method: "POST" })
         if (patch.usd !== undefined) desks[k].usd = usdOf(patch.usd, desks[k].usd);
       }
     }
-    await sql`update nf_site set crypto_enabled = ${crypto}, jobs_is_paid = ${desks.jobs.paid ? 1 : 0}, jobs_price = ${desks.jobs.usd}, market_is_paid = ${desks.market.paid ? 1 : 0}, market_price = ${desks.market.usd}, rent_is_paid = ${desks.rent.paid ? 1 : 0}, rent_price = ${desks.rent.usd}, events_is_paid = ${desks.events.paid ? 1 : 0}, events_price = ${desks.events.usd}, cinema_is_paid = ${desks.cinema.paid ? 1 : 0}, cinema_price = ${desks.cinema.usd} where id = 1`;
+    await sql`update nf_site set crypto_enabled = ${crypto}, paystack_enabled = ${paystack}, flutterwave_enabled = ${flutterwave}, bachs_enabled = ${bachs}, jobs_is_paid = ${desks.jobs.paid ? 1 : 0}, jobs_price = ${desks.jobs.usd}, market_is_paid = ${desks.market.paid ? 1 : 0}, market_price = ${desks.market.usd}, rent_is_paid = ${desks.rent.paid ? 1 : 0}, rent_price = ${desks.rent.usd}, events_is_paid = ${desks.events.paid ? 1 : 0}, events_price = ${desks.events.usd}, cinema_is_paid = ${desks.cinema.paid ? 1 : 0}, cinema_price = ${desks.cinema.usd} where id = 1`;
     if (typeof data.takeVideoSeconds === "number" && Number.isFinite(data.takeVideoSeconds)) {
       const secs = Math.min(60, Math.max(5, Math.round(data.takeVideoSeconds)));
       await sql`update nf_site set take_video_seconds = ${secs} where id = 1`;
@@ -274,7 +272,18 @@ export const saveSiteFlags = createServerFn({ method: "POST" })
     if (typeof data.soundsOn === "boolean") {
       await sql`update nf_site set sounds_on = ${data.soundsOn ? 1 : 0} where id = 1`;
     }
-    return { ok: true as const, installToast: toast === 1, videosMenuVisible: videos === 1, photosOn: photos === 1, payOff, cryptoEnabled: crypto === 1, desks };
+    return {
+      ok: true as const,
+      installToast: toast === 1,
+      videosMenuVisible: videos === 1,
+      photosOn: photos === 1,
+      payOff,
+      cryptoEnabled: crypto === 1,
+      paystackEnabled: paystack === 1,
+      flutterwaveEnabled: flutterwave === 1,
+      bachsEnabled: bachs === 1,
+      desks,
+    };
   });
 
 export const pingShare = createServerFn({ method: "POST" })
