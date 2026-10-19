@@ -35,6 +35,13 @@ async function postTake(request: Request) {
       image?: string;
       video?: string;
       place?: string;
+      line?: string;
+      quoteName?: string;
+      quoteHandle?: string;
+      quoteBody?: string;
+      quoteHref?: string;
+      alt?: string;
+      circle?: string;
     };
     const text = (body.body ?? body.text ?? "").trim();
     if (!text) {
