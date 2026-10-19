@@ -123,7 +123,90 @@ async function circleRows(sql: Awaited<ReturnType<typeof getSql>>, rows: Record<
 export const listTakes = createServerFn({ method: "GET" })
   .middleware([optionalAuthMiddleware])
   .validator((d: { before?: number } | undefined) => d ?? {})
-  .handler(async ({ data, context }) => saveTakeForUser(context.userId, data));
+  .handler(async ({ data, context }) => {
+    await ensureSeed();
+    const sql = await getSql();
+    const before = Number(data?.before || 0);
+    const rows = before
+      ? await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
+          from nf_takes t where t.ts < ${before} and t.user_id <> ${"seed"} and t.id not like ${"seed-%"} order by t.ts desc limit 20`
+      : await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
+          from nf_takes t where t.user_id <> ${"seed"} and t.id not like ${"seed-%"} order by t.ts desc limit 20`;
+    const visible = await circleRows(sql, rows as Record<string, unknown>[], context.userId);
+    const takes = visible.map(mapTake);
+    const next = takes.length === 20 ? takes[takes.length - 1].ts : 0;
+    let fellows: FellowRow[] = [];
+    try {
+      const people = await sql<{ id: string; handle: string; role: string | null; line: string | null; verified: number | boolean | null; photo: string | null }>`
+        select user_id as id, handle, kind as role, left(coalesce(bio, ''), 80) as line, verified,
+          case
+            when photo like 'https://%' then left(photo, 400)
+            when left(coalesce(photo, ''), 23) = 'data:image/jpeg;base64,' and length(photo) < 70000 then photo
+            else ''
+          end as photo
+        from nf_profiles
+        where handle is not null and length(trim(handle)) > 1
+        order by ts desc nulls last
+        limit 24`;
+      fellows = people
+        .filter((p) => p.handle && p.handle !== "member")
+        .map((p) => ({
+          id: p.id,
+          handle: p.handle,
+          name: p.handle,
+          role: p.role || "member",
+          line: (p.line || "").trim(),
+          verified: p.verified === true || Number(p.verified) === 1 ? 1 : 0,
+          photo: p.photo || "",
+        }));
+    } catch {
+      try {
+        const people = await sql<{ id: string; handle: string; role: string | null; line: string | null; verified: number | boolean | null }>`
+          select user_id as id, handle, kind as role, left(coalesce(bio, ''), 80) as line, verified
+          from nf_profiles
+          where handle is not null and length(trim(handle)) > 1
+          order by ts desc nulls last
+          limit 24`;
+        fellows = people
+          .filter((p) => p.handle && p.handle !== "member")
+          .map((p) => ({
+            id: p.id,
+            handle: p.handle,
+            name: p.handle,
+            role: p.role || "member",
+            line: (p.line || "").trim(),
+            verified: p.verified === true || Number(p.verified) === 1 ? 1 : 0,
+            photo: "",
+          }));
+      } catch {
+        fellows = [];
+      }
+    }
+    let faces: Record<string, string> = {};
+    try {
+      const pics = await sql<{ h: string; photo: string }>`
+        select lower(handle) as h,
+          case
+            when photo like 'https://%' then left(photo, 400)
+            when left(coalesce(photo, ''), 23) = 'data:image/jpeg;base64,' and length(photo) < 70000 then photo
+            else ''
+          end as photo
+        from nf_profiles
+        where photo is not null and length(photo) > 12
+        limit 60`;
+      for (const p of pics) if (p.h && p.photo) faces[p.h] = p.photo;
+    } catch {
+      faces = {};
+    }
+    let live: string[] = [];
+    try {
+      const rows = await sql<{ h: string }>`select lower(handle) as h from nf_presence where seen > ${Date.now() - 180000} limit 80`;
+      live = rows.map((r) => r.h).filter(Boolean);
+    } catch {
+      live = [];
+    }
+    return { takes, fellows, next, live, faces };
+  });
 
 export const listLive = createServerFn({ method: "GET" }).handler(async () => {
   try {
@@ -411,107 +494,6 @@ function takeShot(raw?: string) {
   if (/^https:\/\//i.test(v) && v.length < 800) return v;
   if (v.startsWith("data:image/jpeg;base64,") && v.length < 140000) return v;
   return null;
-}
-
-export type SaveTakeInput = {
-  body: string;
-  kind: string;
-  line?: string;
-  quoteName?: string;
-  quoteHandle?: string;
-  quoteBody?: string;
-  quoteHref?: string;
-  image?: string;
-  video?: string;
-  place?: string;
-  alt?: string;
-  circle?: string;
-};
-
-export async function saveTakeForUser(userId: string, data: SaveTakeInput) {
-    await ensureSeed();
-    const sql = await getSql();
-    const before = Number(data?.before || 0);
-    const rows = before
-      ? await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
-          from nf_takes t where t.ts < ${before} and t.user_id <> ${"seed"} and t.id not like ${"seed-%"} order by t.ts desc limit 20`
-      : await sql`select t.*, (select body from nf_take_replies r where r.take_id = t.id order by r.ts desc limit 1) as last_reply
-          from nf_takes t where t.user_id <> ${"seed"} and t.id not like ${"seed-%"} order by t.ts desc limit 20`;
-    const visible = await circleRows(sql, rows as Record<string, unknown>[], context.userId);
-    const takes = visible.map(mapTake);
-    const next = takes.length === 20 ? takes[takes.length - 1].ts : 0;
-    let fellows: FellowRow[] = [];
-    try {
-      const people = await sql<{ id: string; handle: string; role: string | null; line: string | null; verified: number | boolean | null; photo: string | null }>`
-        select user_id as id, handle, kind as role, left(coalesce(bio, ''), 80) as line, verified,
-          case
-            when photo like 'https://%' then left(photo, 400)
-            when left(coalesce(photo, ''), 23) = 'data:image/jpeg;base64,' and length(photo) < 70000 then photo
-            else ''
-          end as photo
-        from nf_profiles
-        where handle is not null and length(trim(handle)) > 1
-        order by ts desc nulls last
-        limit 24`;
-      fellows = people
-        .filter((p) => p.handle && p.handle !== "member")
-        .map((p) => ({
-          id: p.id,
-          handle: p.handle,
-          name: p.handle,
-          role: p.role || "member",
-          line: (p.line || "").trim(),
-          verified: p.verified === true || Number(p.verified) === 1 ? 1 : 0,
-          photo: p.photo || "",
-        }));
-    } catch {
-      try {
-        const people = await sql<{ id: string; handle: string; role: string | null; line: string | null; verified: number | boolean | null }>`
-          select user_id as id, handle, kind as role, left(coalesce(bio, ''), 80) as line, verified
-          from nf_profiles
-          where handle is not null and length(trim(handle)) > 1
-          order by ts desc nulls last
-          limit 24`;
-        fellows = people
-          .filter((p) => p.handle && p.handle !== "member")
-          .map((p) => ({
-            id: p.id,
-            handle: p.handle,
-            name: p.handle,
-            role: p.role || "member",
-            line: (p.line || "").trim(),
-            verified: p.verified === true || Number(p.verified) === 1 ? 1 : 0,
-            photo: "",
-          }));
-      } catch {
-        fellows = [];
-      }
-    }
-    let faces: Record<string, string> = {};
-    try {
-      const pics = await sql<{ h: string; photo: string }>`
-        select lower(handle) as h,
-          case
-            when photo like 'https://%' then left(photo, 400)
-            when left(coalesce(photo, ''), 23) = 'data:image/jpeg;base64,' and length(photo) < 70000 then photo
-            else ''
-          end as photo
-        from nf_profiles
-        where photo is not null and length(photo) > 12
-        limit 60`;
-      for (const p of pics) if (p.h && p.photo) faces[p.h] = p.photo;
-    } catch {
-      faces = {};
-    }
-    let live: string[] = [];
-    try {
-      const rows = await sql<{ h: string }>`select lower(handle) as h from nf_presence where seen > ${Date.now() - 180000} limit 80`;
-      live = rows.map((r) => r.h).filter(Boolean);
-    } catch {
-      live = [];
-    }
-    return { takes, fellows, next, live, faces };
-  
 }
 
 export const saveTake = createServerFn({ method: "POST" })
