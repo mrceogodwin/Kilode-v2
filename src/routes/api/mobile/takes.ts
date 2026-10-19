@@ -48,7 +48,7 @@ async function postTake(request: Request) {
       return Response.json({ ok: false, error: "Write something first." }, { status: 400 });
     }
     const authorization = request.headers.get("authorization") || "";
-    const bearer = authorization.match(/^Bearer\\s+(.+)$/i)?.[1]?.trim();
+    const bearer = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
     let user;
     try {
       user = await getSessionUser(bearer);
