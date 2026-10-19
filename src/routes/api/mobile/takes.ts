@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { listTakes, saveTake } from "@/lib/takes-server";
+import { listTakes, saveTakeForUser } from "@/lib/takes-server";
+import { getSessionUser } from "@/lib/auth/verify.server";
 
 /**
  * Mobile bridge for Socials takes.
@@ -39,14 +40,30 @@ async function postTake(request: Request) {
     if (!text) {
       return Response.json({ ok: false, error: "Write something first." }, { status: 400 });
     }
-    const result = await saveTake({
-      data: {
-        body: text,
-        kind: body.kind || "take",
-        image: body.image,
-        video: body.video,
-        place: body.place,
-      },
+    const authorization = request.headers.get("authorization") || "";
+    const bearer = authorization.match(/^Bearer\\s+(.+)$/i)?.[1]?.trim();
+    let user;
+    try {
+      user = await getSessionUser(bearer);
+    } catch {
+      user = null;
+    }
+    if (!user) {
+      return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    }
+    const result = await saveTakeForUser(user.id, {
+      body: text,
+      kind: body.kind || "take",
+      image: body.image,
+      video: body.video,
+      place: body.place,
+      line: body.line,
+      quoteName: body.quoteName,
+      quoteHandle: body.quoteHandle,
+      quoteBody: body.quoteBody,
+      quoteHref: body.quoteHref,
+      alt: body.alt,
+      circle: body.circle,
     });
     const status = (result as { ok?: boolean })?.ok === false ? 400 : 200;
     return Response.json(result, { status });
