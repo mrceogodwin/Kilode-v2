@@ -312,13 +312,13 @@ export function parseMusicUrl(raw: string) {
   if (!u) return null;
   try {
     const host = new URL(u).hostname.replace(/^www\./, "");
-    if (/spotify\.com/.test(host)) return { network: "Spotify", url: u };
-    if (/music\.apple\.com|itunes\.apple\.com/.test(host)) return { network: "Apple Music", url: u };
-    if (/youtu\.be|youtube\.com/.test(host)) return { network: "YouTube", url: u };
-    if (/audiomack\.com/.test(host)) return { network: "Audiomack", url: u };
-    if (/soundcloud\.com/.test(host)) return { network: "SoundCloud", url: u };
-    if (/deezer\.com/.test(host)) return { network: "Deezer", url: u };
-    if (/boomplay\.com/.test(host)) return { network: "Boomplay", url: u };
+    if (/spotify\.com/.test(host)) return { network: "Spotify", platform: "Spotify", url: u, embed: true };
+    if (/music\.apple\.com|itunes\.apple\.com/.test(host)) return { network: "Apple Music", platform: "Apple Music", url: u, embed: true };
+    if (/youtu\.be|youtube\.com/.test(host)) return { network: "YouTube", platform: "YouTube", url: u, embed: true };
+    if (/audiomack\.com/.test(host)) return { network: "Audiomack", platform: "Audiomack", url: u, embed: true };
+    if (/soundcloud\.com/.test(host)) return { network: "SoundCloud", platform: "SoundCloud", url: u, embed: true };
+    if (/deezer\.com/.test(host)) return { network: "Deezer", platform: "Deezer", url: u, embed: true };
+    if (/boomplay\.com/.test(host)) return { network: "Boomplay", platform: "Boomplay", url: u, embed: false };
   } catch { /* ignore */ }
   return null;
 }
