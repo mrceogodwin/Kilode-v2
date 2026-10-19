@@ -29,6 +29,7 @@ After adding variables, redeploy Kilode-v2 so its migration step can run. Verify
 | `GET /api/mobile/rooms` | Built-in rooms plus saved overrides | Public read; default rooms can render without the database |
 | `GET /api/mobile/takes` | Socials feed | Requires the database |
 | `POST /api/mobile/takes` | Create a take | Requires a verified Better Auth session; unauthenticated requests must return 401 |
+| `POST /api/mobile/takes/:takeId/replies` | Reply to a take | Requires a verified bearer session; reuses the existing moderation, rate-limit and ownership rules |
 | `GET /api/mobile/tracks` | Music catalogue links | Requires the database |
 | `GET /api/mobile/news` | Published news/media posts | Requires the database |
 | `GET /api/mobile/carousel` | Featured published posts with images | Requires the database |
