@@ -764,16 +764,15 @@ export const listTakeReplies = createServerFn({ method: "GET" })
     }
   });
 
-export const replyTake = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((d: { id: string; body: string; image?: string }) => d)
-  .handler(async ({ data, context }) => {
+export type ReplyTakeInput = { id: string; body: string; image?: string };
+
+export async function replyTakeForUser(userId: string, data: ReplyTakeInput) {
     const body = data.body.trim().slice(0, 180);
     const image = /^https:\/\//i.test(data.image || "") ? String(data.image).slice(0, 500) : "";
     if (!data.id || (body.length < 1 && !image)) return { ok: false as const, reason: "Write a reply." };
-    if (!(await allowWrite(`reply:${context.userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
-    const handle = await handleOf(context.userId);
-    const checked = await gateText("comments", body, { userId: context.userId, author: handle });
+    if (!(await allowWrite(`reply:${userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
+    const handle = await handleOf(userId);
+    const checked = await gateText("comments", body, { userId: userId, author: handle });
     if (!checked.ok) return { ok: false as const, reason: checked.reason };
     const clean = checked.text;
     const sql = await getSql();
@@ -782,24 +781,30 @@ export const replyTake = createServerFn({ method: "POST" })
     if (!ownerId) return { ok: false as const, reason: "That take is gone." };
     let meta: Record<string, string> = {};
     try { meta = JSON.parse(row[0]?.meta || "{}") as Record<string, string>; } catch { meta = {}; }
-    if (meta.replies === "off" && ownerId !== context.userId) return { ok: false as const, reason: "Replies are off on this take." };
-    if (await pairBlocked(sql, context.userId, ownerId)) return { ok: false as const, reason: "You can't reply to this person." };
+    if (meta.replies === "off" && ownerId !== userId) return { ok: false as const, reason: "Replies are off on this take." };
+    if (await pairBlocked(sql, userId, ownerId)) return { ok: false as const, reason: "You can't reply to this person." };
     const id = nid();
     const ts = Date.now();
     await ensureReplyExtras(sql);
-    await sql`insert into nf_take_replies (id, take_id, user_id, handle, body, ts, image) values (${id}, ${data.id}, ${context.userId}, ${handle}, ${clean}, ${ts}, ${image})`;
+    await sql`insert into nf_take_replies (id, take_id, user_id, handle, body, ts, image) values (${id}, ${data.id}, ${userId}, ${handle}, ${clean}, ${ts}, ${image})`;
     await sql`update nf_takes set comments = comments + 1 where id = ${data.id}`;
-    if (ownerId !== context.userId && handle && handle !== "member") {
+    if (ownerId !== userId && handle && handle !== "member") {
       await pushNote(ownerId, `@${handle} replied to your take.`, `/?tab=socials&take=${encodeURIComponent(data.id)}`);
     }
     for (const mentioned of mentionsOf(clean)) {
       if (mentioned === handle.toLowerCase()) continue;
       const who = await sql<{ user_id: string }>`select user_id from nf_profiles where lower(handle) = ${mentioned} limit 1`;
       const to = who[0]?.user_id || "";
-      if (to && to !== context.userId && to !== ownerId) await pushNote(to, `@${handle} mentioned you in a reply.`, `/?tab=socials&take=${encodeURIComponent(data.id)}`);
+      if (to && to !== userId && to !== ownerId) await pushNote(to, `@${handle} mentioned you in a reply.`, `/?tab=socials&take=${encodeURIComponent(data.id)}`);
     }
     return { ok: true as const, reply: { id, handle, body: clean, ts, image, likes: 0, liked: false } satisfies TakeReply };
-  });
+  
+}
+
+export const replyTake = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { id: string; body: string; image?: string }) => d)
+  .handler(async ({ data, context }) => replyTakeForUser(context.userId, data));
 
 export const likeReply = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
