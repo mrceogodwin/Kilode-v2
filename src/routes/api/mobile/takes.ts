@@ -9,7 +9,19 @@ import { getSessionUser } from "@/lib/auth/verify.server";
  * GET  /api/mobile/takes?before=<ts>
  * POST /api/mobile/takes  JSON { body, kind? }  (requires session via better-auth cookie/bearer)
  */
+function databaseConfigured() {
+  return Boolean(
+    process.env.DATABASE_URL?.trim() ||
+    process.env.POSTGRES_URL?.trim() ||
+    process.env.POSTGRES_PRISMA_URL?.trim() ||
+    process.env.NEON_DATABASE_URL?.trim(),
+  );
+}
+
 async function getTakes(request: Request) {
+  if (!databaseConfigured()) {
+    return Response.json({ ok: false, error: "Database is not configured.", code: "DATABASE_NOT_CONFIGURED" }, { status: 503 });
+  }
   try {
     const url = new URL(request.url);
     const beforeRaw = url.searchParams.get("before");
