@@ -11,6 +11,7 @@ export type TakeRow = {
   id: string;
   handle: string;
   name: string;
+  face?: string;
   role: string;
   verified: number;
   kind: TakeKind;
