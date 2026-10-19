@@ -714,7 +714,7 @@ export const saveAdRow = createServerFn({ method: "POST" })
     if (!skipPay) {
       const taken = await takePaidCheckout({ reference: txHash, userId: context.userId, kind: "ad", purpose: placement, refId: id });
       if (!taken.ok) return taken;
-      cardNote = taken.note;
+      cardNote = "Payment confirmed";
       live = isPayProvider(coin) || txHash.startsWith("kld_");
     }
     const status = live ? "approved" : "pending";
