@@ -6,6 +6,15 @@ export const Route = createFileRoute("/api/mobile/tracks")({
   server: {
     handlers: {
       GET: async () => {
+        const databaseConfigured = Boolean(
+          process.env.DATABASE_URL?.trim() ||
+          process.env.POSTGRES_URL?.trim() ||
+          process.env.POSTGRES_PRISMA_URL?.trim() ||
+          process.env.NEON_DATABASE_URL?.trim(),
+        );
+        if (!databaseConfigured) {
+          return Response.json({ ok: false, error: "Database is not configured.", code: "DATABASE_NOT_CONFIGURED" }, { status: 503 });
+        }
         try {
           const data = await listTracks();
           return Response.json({ ok: true, tracks: data }, { status: 200 });
