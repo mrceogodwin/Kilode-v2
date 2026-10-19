@@ -496,13 +496,26 @@ function takeShot(raw?: string) {
   return null;
 }
 
-export const saveTake = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string; quoteHref?: string; image?: string; video?: string; place?: string; alt?: string; circle?: string }) => d)
-  .handler(async ({ data, context }) => {
+export type SaveTakeInput = {
+  body: string;
+  kind: string;
+  line?: string;
+  quoteName?: string;
+  quoteHandle?: string;
+  quoteBody?: string;
+  quoteHref?: string;
+  image?: string;
+  video?: string;
+  place?: string;
+  alt?: string;
+  circle?: string;
+};
+
+export async function saveTakeForUser(userId: string, data: SaveTakeInput) {
     try {
-      const userId = context.userId;
-      if (!(await allowWrite(`take:${userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
+
+  // userId is verified by the native HTTP route or auth middleware.
+if (!(await allowWrite(`take:${userId}`, 20))) return { ok: false as const, reason: RATE_BLOCKED };
       const kind = (KINDS.has(data.kind as TakeKind) ? data.kind : "take") as TakeKind;
       if (kind === "ghost") return { ok: false as const, reason: "That format is not open yet." };
       const body = (data.body || "").trim().slice(0, 280);
@@ -626,7 +639,13 @@ export const saveTake = createServerFn({ method: "POST" })
       if (/unauthor|forbidden/i.test(msg)) throw err;
       return { ok: false as const, reason: "Post did not save. Try again." };
     }
-  });
+  
+}
+
+export const saveTake = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((d: { body: string; kind: string; line?: string; quoteName?: string; quoteHandle?: string; quoteBody?: string; quoteHref?: string; image?: string; video?: string; place?: string; alt?: string; circle?: string }) => d)
+  .handler(async ({ data, context }) => saveTakeForUser(context.userId, data));
 
 export const voteTake = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
