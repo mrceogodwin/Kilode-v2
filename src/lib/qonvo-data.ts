@@ -307,22 +307,57 @@ export function timeLabel(ts: number) {
   return timeAgo(ts);
 }
 
+function musicEmbedUrl(platform: string, url: string): string | undefined {
+  try {
+    const parsed = new URL(url);
+    if (platform === "Spotify") {
+      const match = parsed.pathname.match(/^\/(track|album|playlist|episode|show)\/([A-Za-z0-9]+)/);
+      return match ? `https://open.spotify.com/embed/${match[1]}/${match[2]}` : undefined;
+    }
+    if (platform === "Apple Music") {
+      return parsed.hostname === "music.apple.com"
+        ? `https://embed.music.apple.com${parsed.pathname}${parsed.search}`
+        : undefined;
+    }
+    if (platform === "YouTube") {
+      const id = parsed.hostname === "youtu.be"
+        ? parsed.pathname.slice(1).split("/")[0]
+        : parsed.searchParams.get("v") || parsed.pathname.match(/^\/(?:embed|shorts)\/([^/]+)/)?.[1];
+      return id ? `https://www.youtube-nocookie.com/embed/${id}` : undefined;
+    }
+    if (platform === "SoundCloud") {
+      return `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=false`;
+    }
+    if (platform === "Deezer") {
+      const match = parsed.pathname.match(/\/(track|album|playlist)\/(\d+)/);
+      return match ? `https://widget.deezer.com/widget/dark/${match[1]}/${match[2]}` : undefined;
+    }
+    if (platform === "Audiomack") {
+      const path = parsed.pathname.split("/").filter(Boolean);
+      if (path.length >= 2) return `https://audiomack.com/embed/song/${path.slice(-1)[0]}`;
+    }
+  } catch { /* malformed URL — keep link-only playback */ }
+  return undefined;
+}
+
 export function parseMusicUrl(raw: string) {
   const u = safeHttpUrl(raw);
   if (!u) return null;
   try {
     const host = new URL(u).hostname.replace(/^www\./, "");
-    if (/spotify\.com/.test(host)) return { network: "Spotify", platform: "Spotify", url: u, embed: true };
-    if (/music\.apple\.com|itunes\.apple\.com/.test(host)) return { network: "Apple Music", platform: "Apple Music", url: u, embed: true };
-    if (/youtu\.be|youtube\.com/.test(host)) return { network: "YouTube", platform: "YouTube", url: u, embed: true };
-    if (/audiomack\.com/.test(host)) return { network: "Audiomack", platform: "Audiomack", url: u, embed: true };
-    if (/soundcloud\.com/.test(host)) return { network: "SoundCloud", platform: "SoundCloud", url: u, embed: true };
-    if (/deezer\.com/.test(host)) return { network: "Deezer", platform: "Deezer", url: u, embed: true };
-    if (/boomplay\.com/.test(host)) return { network: "Boomplay", platform: "Boomplay", url: u, embed: false };
+    let network: string | undefined;
+    if (/spotify\.com/.test(host)) network = "Spotify";
+    else if (/music\.apple\.com|itunes\.apple\.com/.test(host)) network = "Apple Music";
+    else if (/youtu\.be|youtube\.com/.test(host)) network = "YouTube";
+    else if (/audiomack\.com/.test(host)) network = "Audiomack";
+    else if (/soundcloud\.com/.test(host)) network = "SoundCloud";
+    else if (/deezer\.com/.test(host)) network = "Deezer";
+    else if (/boomplay\.com/.test(host)) network = "Boomplay";
+    if (!network) return null;
+    return { network, platform: network, url: u, embed: musicEmbedUrl(network, u) };
   } catch { /* ignore */ }
   return null;
 }
-
 export function safeHttpUrl(raw: string): string | undefined {
   const v = raw.trim();
   if (!v) return undefined;
