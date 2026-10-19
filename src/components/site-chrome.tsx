@@ -13,6 +13,9 @@ export const EMPTY_PUBLIC_SITE: PublicSite = {
   photosOn: true,
   payOff: "",
   cryptoEnabled: true,
+  paystackEnabled: true,
+  flutterwaveEnabled: true,
+  bachsEnabled: true,
   desks: {
     jobs: { ...DEFAULT_DESKS.jobs },
     market: { ...DEFAULT_DESKS.market },
