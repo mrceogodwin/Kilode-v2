@@ -74,8 +74,8 @@ export function HomeMediaLane({
   const open = (k: string) => hardOpen(k, onOpen);
   const fromStore = normalizeNews(news);
   const list = (fromStore.length > 0 ? fromStore : DEMO).slice(0, 12);
-  const featured = list.slice(0, 5);
-  const rest = list.slice(5);
+  const featured = list.slice(0, 2);
+  const rest = list.slice(2);
 
   return (
     <div style={{ paddingBottom: 24 }} data-home-lane="v2">
@@ -138,7 +138,7 @@ export function HomeMediaLane({
               <div style={{ height: 120, background: "linear-gradient(135deg,#1877F2,#0B0D12)" }} />
             )}
             <div style={{ padding: "10px 12px 14px" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.7, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: "#35c46a", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 {n.category || "News"}
               </div>
               <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.3, marginTop: 4 }}>{n.title}</div>
@@ -252,7 +252,7 @@ export function HomeMediaLane({
             )}
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.35 }}>{n.title}</div>
-              <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: "#a1a1aa", marginTop: 4 }}>
                 {n.category || "News"}
                 {n.views != null ? ` · ${n.views} views` : ""}
               </div>
