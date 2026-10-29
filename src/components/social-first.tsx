@@ -422,6 +422,7 @@ export function SocialFirst({
             const shot = shotOf(t.meta);
             const isLive = live.includes((t.handle || "").toLowerCase());
             return (
+              <>
               <article key={t.id} className="kq-post">
                 <div className="kq-post-meta">
                   <img className="kq-post-avatar" src={faceOf(t.handle, faces, t.face)} alt="" />
@@ -452,6 +453,7 @@ export function SocialFirst({
                   <div className="kq-news-body"><div className="kq-news-copy"><h2>{item.title}</h2><button type="button" className="kq-read" onClick={() => onOpenNews(item.id)}>Read story ↗</button></div>{item.image ? <button type="button" className="kq-news-image" onClick={() => onOpenNews(item.id)} aria-label={`Read ${item.title}`}><img src={item.image} alt="" /></button> : null}</div>
                 </article>;
               })() : null}
+              </>
             );
           })}
 
