@@ -105,8 +105,8 @@ export function HomeMediaLane({
               padding: "7px 14px",
               fontSize: 12,
               fontWeight: 700,
-              background: i === 0 ? "#1877F2" : "#F1F5F9",
-              color: i === 0 ? "#fff" : "#334155",
+              background: i === 0 ? "#f5f5f5" : "#111111",
+              color: i === 0 ? "#090909" : "#d4d4d8",
             }}
           >
             {s}
@@ -126,8 +126,8 @@ export function HomeMediaLane({
               textAlign: "left",
               border: 0,
               padding: 0,
-              background: "#0B0D12",
-              borderRadius: 16,
+              background: "#111111",
+              borderRadius: 9,
               overflow: "hidden",
               color: "#fff",
             }}
@@ -135,13 +135,14 @@ export function HomeMediaLane({
             {n.image ? (
               <img src={n.image} alt="" style={{ width: "100%", height: 160, objectFit: "cover", display: "block" }} />
             ) : (
-              <div style={{ height: 120, background: "linear-gradient(135deg,#1877F2,#0B0D12)" }} />
+              <div style={{ height: 120, background: "linear-gradient(135deg,#252525,#0b0b0b)" }} />
             )}
             <div style={{ padding: "10px 12px 14px" }}>
               <div style={{ fontSize: 10, fontWeight: 800, color: "#35c46a", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 {n.category || "News"}
               </div>
               <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.3, marginTop: 4 }}>{n.title}</div>
+              <div data-read-action style={{ marginTop: 9, color: "#35c46a", fontSize: 12, fontWeight: 800 }}>Read <span aria-hidden="true">↗</span></div>
               {n.views != null ? (
                 <div style={{ fontSize: 11, opacity: 0.65, marginTop: 6, display: "flex", alignItems: "center", gap: 4 }}>
                   <Eye size={12} /> {n.views}
@@ -252,6 +253,7 @@ export function HomeMediaLane({
             )}
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.35 }}>{n.title}</div>
+              <div data-read-action style={{ marginTop: 5, color: "#35c46a", fontSize: 12, fontWeight: 800 }}>Read <span aria-hidden="true">↗</span></div>
               <div style={{ fontSize: 11, color: "#a1a1aa", marginTop: 4 }}>
                 {n.category || "News"}
                 {n.views != null ? ` · ${n.views} views` : ""}
@@ -274,12 +276,12 @@ export function HomeMediaLane({
             border: "1px solid #E7ECF2",
             borderRadius: 14,
             padding: "12px 14px",
-            background: "#FFFBEB",
+            background: "#101010",
             textAlign: "left",
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 800, color: "#B45309" }}>MARKET</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", marginTop: 2 }}>Sell on Kilode Market</div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#35c46a" }}>MARKET</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#f5f5f5", marginTop: 2 }}>Sell on Kilode Market</div>
         </button>
       </div>
 
