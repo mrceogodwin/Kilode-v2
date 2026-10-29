@@ -92,6 +92,8 @@ export function SocialFirst({
 }) {
   const [lane, setLane] = useState<"feed" | "media">("feed");
   const [takes, setTakes] = useState<TakeRow[]>([]);
+  const [nextCursor, setNextCursor] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [people, setPeople] = useState<FellowRow[]>([]);
   const [faces, setFaces] = useState<Record<string, string>>({});
   const [live, setLive] = useState<string[]>([]);
@@ -146,6 +148,7 @@ export function SocialFirst({
         }
         if (!alive) return;
         setTakes(asTakes(raw));
+        setNextCursor(raw && typeof raw === "object" ? Number((raw as any).next || 0) : 0);
         if (raw && typeof raw === "object") {
           const o = raw as any;
           if (Array.isArray(o.fellows)) setPeople(o.fellows);
@@ -189,6 +192,7 @@ export function SocialFirst({
       let raw: unknown = null;
       try { raw = await listTakes({ data: {} } as any); } catch { raw = await listTakes(); }
       setTakes(asTakes(raw));
+      setNextCursor(raw && typeof raw === "object" ? Number((raw as any).next || 0) : 0);
       if (raw && typeof raw === "object") {
         const o = raw as any;
         if (Array.isArray(o.fellows)) setPeople(o.fellows);
@@ -196,6 +200,24 @@ export function SocialFirst({
         if (Array.isArray(o.live)) setLive(o.live.map((x: any) => String(x).toLowerCase()));
       }
     } catch { /* ignore */ }
+  };
+
+  const loadMore = async () => {
+    if (!nextCursor || loadingMore || tag) return;
+    setLoadingMore(true);
+    try {
+      const raw = await listTakes({ data: { before: nextCursor } } as any);
+      const incoming = asTakes(raw);
+      setTakes((current) => {
+        const known = new Set(current.map((item) => item.id));
+        return [...current, ...incoming.filter((item) => !known.has(item.id))];
+      });
+      setNextCursor(raw && typeof raw === "object" ? Number((raw as any).next || 0) : 0);
+    } catch {
+      setNote("Couldn't load more posts — try again");
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   const pickMedia = (file?: File | null) => {
@@ -526,6 +548,8 @@ export function SocialFirst({
               </div>
             );
           })}
+
+          {!tag && nextCursor > 0 ? <div className="kq-load-more"><button type="button" onClick={() => void loadMore()} disabled={loadingMore}>{loadingMore ? "Loading…" : "Load more posts"}</button></div> : null}
 
           {threadId ? <div className="kq-modal-backdrop" onClick={() => setThreadId(null)}>
             <section className="kq-replies" onClick={(e) => e.stopPropagation()}>
