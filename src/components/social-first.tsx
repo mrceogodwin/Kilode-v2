@@ -379,27 +379,9 @@ export function SocialFirst({
 
         <main className="kq-feed">
           <div className="kq-feed-heading">
-            <div><div className="kq-eyebrow">KILODE COMMUNITY</div><h1>{tag ? `#${tag}` : "For You"}</h1></div>
+            <div><div className="kq-eyebrow">YOUR DAILY FEED</div><h1>{tag ? `#${tag}` : "For You"}</h1></div>
             {tag ? <button type="button" className="kq-text-button" onClick={() => void clearTag()}>Clear topic</button> : null}
           </div>
-
-          <section className="kq-stories" aria-label="Stories">
-            <div className="kq-stories-head"><strong>Stories</strong><span>Photos · 24 hours</span></div>
-            <div className="kq-stories-rail">
-              <button type="button" className="kq-story-add" onClick={() => !authed ? onNeedAuth() : storyFileRef.current?.click()}>
-                <span className="kq-story-add-avatar"><img src={avatarUrl(me || "guest", face)} alt="" /><i>+</i></span>
-                <strong>{storyBusy ? "Uploading…" : "Your story"}</strong>
-              </button>
-              <input ref={storyFileRef} type="file" accept="image/*" hidden onChange={(e) => void onStoryFile(e.target.files?.[0])} />
-              {stories.map((story) => (
-                <button key={story.id} type="button" className="kq-story-person" onClick={() => setStoryView(story)}>
-                  <span className="kq-story-ring"><img src={faceOf(story.handle, faces)} alt="" /></span>
-                  <strong>@{story.handle}</strong>
-                </button>
-              ))}
-              {!stories.length ? <p className="kq-stories-hint">Share a moment with the community.</p> : null}
-            </div>
-          </section>
 
           <nav className="kq-mobile-topics" aria-label="Explore topics">
             {[
@@ -413,7 +395,7 @@ export function SocialFirst({
           <form className="kq-composer" onSubmit={onPost}>
             <img src={avatarUrl(me || "guest", face)} alt="" />
             <div className="kq-composer-main">
-              <textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What would you like to share?" rows={2} />
+              <textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What do you want to ask or share?" rows={2} />
               {media ? <div className="kq-attachment"><img src={media} alt="Post attachment preview" /><button type="button" onClick={() => setMedia("")}>Remove image</button></div> : null}
               <div className="kq-composer-actions">
                 <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => pickMedia(e.target.files?.[0])} />
@@ -478,8 +460,8 @@ export function SocialFirst({
         </main>
 
         <aside className="kq-right">
-          <section className="kq-right-panel"><h2>Trending conversations</h2>{trending.length ? trending.slice(0, 5).map((t) => <button key={t.id} type="button" onClick={() => openTag((t.body || "").split(/\s+/).find((w) => w.startsWith("#"))?.slice(1) || "trending")}><span>Trending</span><strong>{(t.body || "Join the conversation").slice(0, 76)}</strong><small>{t.comments || 0} replies</small></button>) : <p>Conversations from across Kilode will appear here.</p>}</section>
-          <section className="kq-right-panel"><h2>Explore Kilode</h2><p>News, entertainment, gossip, politics, business and culture in one feed.</p><button type="button" className="kq-read" onClick={() => open("trending")}>Explore topics ↗</button></section>
+          <section className="kq-right-panel"><h2>Trending</h2>{trending.length ? trending.slice(0, 5).map((t) => <button key={t.id} type="button" onClick={() => openTag((t.body || "").split(/\s+/).find((w) => w.startsWith("#"))?.slice(1) || "trending")}><span>Trending</span><strong>{(t.body || "Join the conversation").slice(0, 76)}</strong><small>{t.comments || 0} replies</small></button>) : <p>Conversations from across Kilode will appear here.</p>}</section>
+          <section className="kq-right-panel"><h2>Explore topics</h2><p>News, entertainment, gossip, politics, business and culture in one feed.</p><button type="button" className="kq-read" onClick={() => open("trending")}>Explore topics ↗</button></section>
         </aside>
       </div>
     </div>
