@@ -121,3 +121,31 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{
 .kq-left .kq-nav-active{font-weight:700}
 .kq-right-panel>button:last-child{border-bottom:0}
 @media(max-width:650px){.kq-post-body{font-size:14px;line-height:1.58}.kq-post-actions{justify-content:space-between;gap:6px}.kq-post-actions button{min-height:34px}.kq-news-card .kq-news-copy h2{font-size:15px}.kq-feed-entry{display:block}}
+
+
+/* Kilode dark Quora-inspired design system — charcoal surfaces, restrained red accent */
+:root{color-scheme:dark;--kilode-bg:#202124;--kilode-panel:#292a2d;--kilode-panel-hover:#343539;--kilode-line:#414247;--kilode-text:#f0f0f1;--kilode-muted:#b8b8ba;--kilode-accent:#c9403a}
+html,body,#root{background:#202124!important;color:#f0f0f1!important}
+body{background-image:none!important;color:#f0f0f1!important}
+.kilode-quora{background:#202124!important;color:#f0f0f1!important}
+.kq-header{background:rgba(32,33,36,.97)!important;border-bottom-color:#414247!important;backdrop-filter:blur(12px)}
+.kq-wordmark{color:#f0f0f1!important}.kq-wordmark span{color:#c9403a!important}
+.kq-top-nav button{color:#b8b8ba!important}.kq-top-nav button:hover{background:#292a2d!important;color:#f0f0f1!important}.kq-top-nav button.active{color:#e65a54!important;border-bottom-color:#c9403a!important}
+.kq-search{background:#292a2d!important;border-color:#414247!important;color:#b8b8ba!important}.kq-search:focus-within{background:#303134!important;border-color:#77797f!important}.kq-search input{color:#f0f0f1!important}.kq-search input::placeholder{color:#9b9ca1!important}
+.kq-header-actions button{color:#b8b8ba!important}.kq-header-actions button:hover{background:#343539!important;color:#f0f0f1!important}
+.kq-left button{color:#b8b8ba!important}.kq-left button:hover,.kq-left .kq-nav-active{background:#343539!important;color:#f0f0f1!important}.kq-left .kq-create{background:#292a2d!important;border-color:#55565c!important;color:#e65a54!important}.kq-left .kq-create:hover{background:#352927!important;border-color:#a94a46!important}.kq-side-label,.kq-side-footer{color:#999a9f!important}
+.kq-feed-heading{border-bottom-color:#414247!important}.kq-eyebrow{color:#b8b8ba!important}.kq-feed-heading h1{color:#f0f0f1!important}.kq-text-button,.kq-read{color:#ed6b65!important}
+.kq-composer,.kq-news-card,.kq-post,.kq-right-panel,.kq-empty{background:#292a2d!important;border-color:#414247!important;color:#f0f0f1!important;box-shadow:none!important}
+.kq-composer textarea{background:#202124!important;border-color:#414247!important;color:#f0f0f1!important}.kq-composer textarea::placeholder{color:#9b9ca1!important}.kq-composer textarea:focus,.kq-reply-form input:focus{background:#252629!important;border-color:#77797f!important}
+.kq-composer-actions button{color:#b8b8ba!important}.kq-composer-actions button:hover{color:#ed6b65!important}.kq-composer-actions .kq-submit,.kq-reply-form button{background:#c9403a!important;color:#fff!important}.kq-composer-actions .kq-submit:disabled,.kq-reply-form button:disabled{opacity:.45}
+.kq-attachment button{color:#ed6b65!important}
+.kq-post-meta{color:#b8b8ba!important}.kq-source-mark{background:#343539!important;border-color:#4b4c52!important;color:#ed6b65!important}.kq-post-author strong,.kq-post-body,.kq-news-copy h2{color:#f0f0f1!important}.kq-post-author span{color:#a5a6ab!important}
+.kq-more{color:#b8b8ba!important}.kq-more:hover{color:#fff!important}.kq-post-menu button{background:#303134!important;border-color:#4b4c52!important;color:#e3e3e5!important}.kq-post-menu button:hover{background:#3a3b40!important}
+.kq-post-media,.kq-news-image{background:#202124!important}.kq-post-actions{border-top-color:#414247!important}.kq-post-actions button{color:#b8b8ba!important}.kq-post-actions button:hover,.kq-post-actions .kq-voted{color:#ed6b65!important}
+.kq-right-panel h2,.kq-right-panel>button strong{color:#f0f0f1!important}.kq-right-panel>button{border-bottom-color:#414247!important}.kq-right-panel>button span,.kq-right-panel>button small,.kq-right-panel p{color:#b8b8ba!important}
+.kq-empty p{color:#b8b8ba!important}
+.kq-mobile-topics{border-bottom-color:#414247!important}.kq-mobile-topics button{background:#292a2d!important;border-color:#414247!important;color:#b8b8ba!important}.kq-mobile-topics button.on,.kq-mobile-topics button:hover{background:#352927!important;border-color:#a94a46!important;color:#ed6b65!important}
+.kq-modal-backdrop{background:rgba(0,0,0,.68)!important}.kq-replies{background:#292a2d!important;border-color:#414247!important;color:#f0f0f1!important}.kq-replies-heading h2,.kq-replies-heading button,.kq-reply strong,.kq-reply p{color:#f0f0f1!important}.kq-reply{border-bottom-color:#414247!important}.kq-reply-form input{background:#202124!important;border-color:#414247!important;color:#f0f0f1!important}
+.kq-toast{background:#292a2d!important;border-color:#414247!important;color:#f0f0f1!important}
+.kq-mobile-bottom{background:rgba(32,33,36,.98)!important;border-top-color:#414247!important;backdrop-filter:blur(12px)}.kq-mobile-bottom button{color:#b8b8ba!important}.kq-mobile-bottom button:hover{color:#ed6b65!important}
+@media(max-width:650px){.kq-header{background:rgba(32,33,36,.98)!important}.kq-news-image{border:0!important}}
