@@ -137,3 +137,34 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{
 .kilode-shell header{background:#202124!important;color:#f0f0f1!important}
 .kilode-shell header button{color:#f0f0f1!important}
 @media(max-width:650px){.kq-mobile-bottom{background:rgba(32,33,36,.98)!important}}
+
+/* Accessibility and viewport resilience */
+:where(.kilode-quora,.kilode-shell) :where(button,a,input,textarea,select,[tabindex]):focus-visible{
+  outline:2px solid #ed6b65!important;
+  outline-offset:3px!important;
+}
+.kq-composer textarea,.kq-search input,.kq-reply-form input{color-scheme:dark}
+.kq-composer textarea::placeholder,.kq-search input::placeholder,.kq-reply-form input::placeholder{color:#929398;opacity:1}
+.kq-composer textarea:focus,.kq-search:focus-within,.kq-reply-form input:focus{
+  border-color:#c9403a!important;
+  box-shadow:0 0 0 2px rgba(201,64,58,.16);
+}
+.kq-modal-backdrop{padding-top:env(safe-area-inset-top)}
+.kq-replies{padding-bottom:max(20px,env(safe-area-inset-bottom))}
+.kq-toast{bottom:max(22px,env(safe-area-inset-bottom))}
+.kilode-shell aside button span:last-child{min-width:0;overflow-wrap:anywhere}
+.kilode-shell button:disabled{opacity:.58;cursor:not-allowed}
+.kilode-shell button[style*="#1877F2"]{background:#c9403a!important;color:#fff!important}
+.kilode-shell button[style*="#F7F9FC"]{background:#343539!important;color:#f0f0f1!important;border-color:#414247!important}
+.kilode-shell button[style*="#E7ECF2"]{border-color:#414247!important}
+.kilode-shell button span[style*="#1877F2"]{background:#c9403a!important;color:#fff!important}
+@media(max-width:650px){
+  .kq-mobile-bottom{padding-bottom:max(6px,env(safe-area-inset-bottom))}
+  .kq-modal-backdrop{align-items:flex-end}
+  .kq-replies{max-height:calc(82dvh - env(safe-area-inset-top));overflow-y:auto;overscroll-behavior:contain}
+  .kq-composer textarea{font-size:16px}
+  .kq-reply-form input{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .kilode-quora *, .kilode-shell *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
