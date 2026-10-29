@@ -464,6 +464,13 @@ export function SocialFirst({
           <section className="kq-right-panel"><h2>Explore topics</h2><p>News, entertainment, gossip, politics, business and culture in one feed.</p><button type="button" className="kq-read" onClick={() => open("trending")}>Explore topics ↗</button></section>
         </aside>
       </div>
+      <nav className="kq-mobile-bottom" aria-label="Main navigation">
+        <button type="button" onClick={() => { setTag(""); setLane("feed"); void refresh(); }}><Activity size={19} /><span>Home</span></button>
+        <button type="button" onClick={() => open("following")}><Users size={19} /><span>Following</span></button>
+        <button type="button" className="kq-mobile-create" onClick={create}><Plus size={21} /><span>Create</span></button>
+        <button type="button" onClick={onLikes}><Bell size={19} /><span>Alerts</span></button>
+        <button type="button" onClick={onMe}><img src={avatarUrl(me || "guest", face)} alt="" /><span>Profile</span></button>
+      </nav>
     </div>
   );
 }
