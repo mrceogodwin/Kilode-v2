@@ -1,12 +1,12 @@
 /* Kilode home — one coherent, Quora-inspired dark feed system */
-:root{color-scheme:dark;--kilode-bg:#080808;--kilode-panel:#111;--kilode-panel-hover:#181818;--kilode-line:#2a2a2a;--kilode-text:#f2f2f2;--kilode-muted:#929292;--kilode-green:#35c46a}
+:root{color-scheme:dark;--kilode-bg:#181818;--kilode-panel:#222;--kilode-panel-hover:#2b2b2b;--kilode-line:#383838;--kilode-text:#f2f2f2;--kilode-muted:#929292;--kilode-green:#35c46a}
 html,body,body.bg-bg,#root{margin:0!important;background:var(--kilode-bg)!important;color:var(--kilode-text)!important}
 body{background-image:none!important;font-family:Arial,Helvetica,sans-serif!important}
 button,input,textarea{font:inherit}button{-webkit-tap-highlight-color:transparent}
 button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--kilode-green)!important;outline-offset:3px}
 .kilode-quora{min-height:100dvh;background:var(--kilode-bg);color:var(--kilode-text);font-family:Arial,Helvetica,sans-serif}
 .kilode-quora *{box-sizing:border-box}
-.kq-header{height:58px;position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:30px;padding:0 max(22px,calc((100vw - 1200px)/2));background:rgba(8,8,8,.97);border-bottom:1px solid var(--kilode-line);backdrop-filter:blur(16px)}
+.kq-header{height:58px;position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:30px;padding:0 max(22px,calc((100vw - 1200px)/2));background:rgba(24,24,24,.97);border-bottom:1px solid var(--kilode-line);backdrop-filter:blur(16px)}
 .kq-wordmark{flex:0 0 auto;padding:0;border:0;background:none;color:#f5f5f5;font-size:26px;letter-spacing:-1.2px;font-weight:800;cursor:pointer}
 .kq-wordmark span{color:var(--kilode-green)}
 .kq-search{height:36px;width:min(420px,38vw);display:flex;align-items:center;gap:10px;padding:0 12px;border:1px solid #383838;border-radius:4px;color:#929292}
@@ -33,7 +33,7 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{
 .kq-composer{display:flex;gap:11px;padding:16px 0;border-bottom:1px solid var(--kilode-line)}
 .kq-composer>img{flex:0 0 auto;width:36px;height:36px;border-radius:50%;object-fit:cover}
 .kq-composer-main{flex:1;min-width:0}
-.kq-composer textarea{display:block;width:100%;resize:vertical;min-height:61px;padding:11px 12px;border:1px solid #333;border-radius:4px;background:#101010;color:#f5f5f5;font:14px/1.5 Arial,sans-serif;outline:none}
+.kq-composer textarea{display:block;width:100%;resize:vertical;min-height:61px;padding:11px 12px;border:1px solid #3b3b3b;border-radius:5px;background:#222;color:#f5f5f5;font:14px/1.5 Arial,sans-serif;outline:none}
 .kq-composer textarea:focus,.kq-reply-form input:focus{border-color:#777}
 .kq-composer-actions{display:flex;align-items:center;gap:15px;margin-top:9px}
 .kq-composer-actions button{display:flex;align-items:center;gap:6px;border:0;background:none;color:#a7a7a7;font-size:12px;cursor:pointer}
@@ -43,8 +43,8 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{
 .kq-attachment{display:flex;align-items:center;gap:10px;margin-top:10px}
 .kq-attachment img{max-width:180px;max-height:120px;border-radius:4px}
 .kq-attachment button{border:0;background:none;color:#e88;font-size:12px;cursor:pointer}
-.kq-news-card,.kq-post{padding:17px 0;border-bottom:1px solid var(--kilode-line)}
-.kq-post-meta{display:flex;align-items:center;gap:9px;color:#999;font-size:12px}
+.kq-news-card,.kq-post{margin:0 0 12px;padding:17px 17px 14px;border:1px solid var(--kilode-line);border-radius:6px;background:var(--kilode-panel)}
+.kq-post-meta{display:flex;align-items:center;gap:9px;color:#a9a9a9;font-size:12px}
 .kq-source-mark{display:grid;place-items:center;flex:0 0 auto;width:27px;height:27px;border:1px solid #383838;border-radius:50%;color:var(--kilode-green);font-size:11px;font-weight:800}
 .kq-post-meta strong{color:#e8e8e8;font-size:12px}
 .kq-news-body{display:flex;align-items:center;gap:14px;padding:10px 0 0 36px}
@@ -66,7 +66,7 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{
 .kq-post-actions button{display:flex;align-items:center;gap:5px;padding:0;border:0;background:none;color:#969696;font-size:11px;cursor:pointer}
 .kq-post-actions button:hover,.kq-post-actions .kq-voted{color:var(--kilode-green)}
 .kq-right{position:sticky;top:82px;display:flex;flex-direction:column;gap:22px}
-.kq-right-panel{padding:0 0 12px;border-bottom:1px solid var(--kilode-line)}
+.kq-right-panel{padding:14px;border:1px solid var(--kilode-line);border-radius:6px;background:var(--kilode-panel)}
 .kq-right-panel h2{margin:0 0 8px;font-size:13px;color:#e8e8e8}
 .kq-right-panel>button:not(.kq-read){display:flex;flex-direction:column;gap:5px;width:100%;padding:11px 0;border:0;border-bottom:1px solid #202020;text-align:left;background:none;cursor:pointer}
 .kq-right-panel>button span,.kq-right-panel>button small{color:#777;font-size:10px}
@@ -76,7 +76,7 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{
 .kq-empty h2{font-size:16px}
 .kq-empty p{color:#999;font-size:13px;line-height:1.6}
 .kq-modal-backdrop{position:fixed;inset:0;z-index:80;display:flex;align-items:flex-end;justify-content:center;background:#000a}
-.kq-replies{width:min(100%,660px);max-height:72vh;overflow:auto;padding:20px;background:#101010;border:1px solid #333;border-bottom:0;border-radius:8px 8px 0 0}
+.kq-replies{width:min(100%,660px);max-height:72vh;overflow:auto;padding:20px;background:#222;border:1px solid #333;border-bottom:0;border-radius:8px 8px 0 0}
 .kq-replies-heading{display:flex;align-items:center;justify-content:space-between}
 .kq-replies-heading h2{font-size:17px}
 .kq-replies-heading button,.kq-story-view button{border:0;background:none;color:#ddd;cursor:pointer}
@@ -84,7 +84,7 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{
 .kq-reply strong{font-size:12px}
 .kq-reply p{font-size:13px;line-height:1.5;color:#ddd}
 .kq-reply-form{display:flex;gap:8px;margin-top:15px}
-.kq-reply-form input{flex:1;min-width:0;padding:10px 12px;border:1px solid #333;border-radius:4px;background:#080808;color:#fff;outline:none}
+.kq-reply-form input{flex:1;min-width:0;padding:10px 12px;border:1px solid #333;border-radius:4px;background:#181818;color:#fff;outline:none}
 .kq-reply-form button{flex:0 0 auto}
 .kq-story-view{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;background:#050505}
 .kq-story-view>div{display:flex;align-items:center;gap:10px;padding:14px}
