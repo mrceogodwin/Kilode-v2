@@ -57,7 +57,7 @@ export const Route = createRootRoute({
     scripts: base.scripts,
     styles: [
       {
-        children: "html,body{background:#F7F7F5;color:#171717;margin:0;min-height:100%;min-height:-webkit-fill-available}",
+        children: "html,body{background:#080808;color:#f5f5f5;margin:0;min-height:100%;min-height:-webkit-fill-available}",
       },
     ],
   }),
@@ -79,16 +79,16 @@ export const Route = createRootRoute({
     />
   ),
   component: () => (
-    <html lang="en" data-skin="ivory" suppressHydrationWarning>
+    <html lang="en" data-skin="night" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var s=localStorage.getItem("kilode-skin-v2");document.documentElement.setAttribute("data-skin",s==="night"?"night":"ivory")}catch(e){document.documentElement.setAttribute("data-skin","ivory")}`,
+            __html: `try{var s=localStorage.getItem("kilode-skin-v2");document.documentElement.setAttribute("data-skin","night")}catch(e){document.documentElement.setAttribute("data-skin","night")}`,
           }}
         />
       </head>
-      <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh", background: "#F7F7F5", color: "#171717" }}>
+      <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh", background: "#080808", color: "#f5f5f5" }}>
         <PreviewHostBridge />
         <OfflineToast />
         <AuthProvider>
