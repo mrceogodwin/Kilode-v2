@@ -366,6 +366,14 @@ export function SocialFirst({
         </button>
       </header>
 
+      <nav aria-label="Explore topics" className="kilode-quora-topics">
+        <button type="button" onClick={() => { setLane("feed"); setTag(""); void refresh(); }}>For you</button>
+        <button type="button" onClick={() => open("news")}>News</button>
+        <button type="button" onClick={() => open("entertainment")}>Entertainment</button>
+        <button type="button" onClick={() => open("politics")}>Politics</button>
+        <button type="button" onClick={() => open("business")}>Business</button>
+        <button type="button" onClick={() => open("trending")}>Trending</button>
+      </nav>
       <div ref={scrollRef} className="kilode-quora-scroll" style={{ flex: 1, overflow: "auto", minHeight: 0, WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", paddingTop: chromeHidden ? 8 : 0, paddingBottom: 32 }}>
         {lane === "feed" ? (
           <>
