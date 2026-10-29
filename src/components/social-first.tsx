@@ -111,6 +111,8 @@ export function SocialFirst({
   const [media, setMedia] = useState("");
   const [threadId, setThreadId] = useState<string | null>(null);
   const [replies, setReplies] = useState<{ id: string; handle: string; body: string; ts: number }[]>([]);
+  const [repliesLoading, setRepliesLoading] = useState(false);
+  const replyRequest = useRef(0);
   const [replyDraft, setReplyDraft] = useState("");
   const [replying, setReplying] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -230,14 +232,22 @@ export function SocialFirst({
   };
 
   const openThread = async (id: string) => {
+    const request = ++replyRequest.current;
     setThreadId(id);
     setReplyDraft("");
+    setReplies([]);
+    setRepliesLoading(true);
     try {
       const rows = await listTakeReplies({ data: { id } } as any);
+      if (request !== replyRequest.current) return;
       setReplies(Array.isArray(rows) ? rows.map((r: any) => ({
         id: String(r.id), handle: String(r.handle || "user"), body: String(r.body || ""), ts: Number(r.ts || 0),
       })) : []);
-    } catch { setReplies([]); }
+    } catch {
+      if (request === replyRequest.current) setNote("Could not load replies — try again");
+    } finally {
+      if (request === replyRequest.current) setRepliesLoading(false);
+    }
   };
 
   const onReply = async (e: FormEvent) => {
@@ -519,8 +529,8 @@ export function SocialFirst({
 
           {threadId ? <div className="kq-modal-backdrop" onClick={() => setThreadId(null)}>
             <section className="kq-replies" onClick={(e) => e.stopPropagation()}>
-              <div className="kq-replies-heading"><h2>Replies</h2><button type="button" onClick={() => setThreadId(null)} aria-label="Close replies"><X size={19} /></button></div>
-              {replies.map((r) => <div key={r.id} className="kq-reply"><strong>@{r.handle}</strong><p>{r.body}</p></div>)}
+              <div className="kq-replies-heading"><h2>Replies</h2><button type="button" onClick={() => { replyRequest.current++; setThreadId(null); setRepliesLoading(false); }} aria-label="Close replies"><X size={19} /></button></div>
+              {repliesLoading ? <p className="kq-replies-empty" role="status">Loading replies…</p> : replies.length ? replies.map((r) => <div key={r.id} className="kq-reply"><strong>@{r.handle}</strong><p>{r.body}</p></div>) : <p className="kq-replies-empty">No replies yet. Start the conversation.</p>}
               <form onSubmit={onReply} className="kq-reply-form"><input value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)} placeholder="Write a reply…" /><button type="submit" disabled={replying || !replyDraft.trim()}>{replying ? "Sending…" : "Reply"}</button></form>
             </section>
           </div> : null}
