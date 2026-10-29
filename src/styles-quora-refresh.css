@@ -133,3 +133,27 @@ button:focus-visible, a:focus-visible, textarea:focus-visible, input:focus-visib
   .kq-composer { gap: 9px; }
   .kq-composer > img { width: 32px; height: 32px; }
 }
+
+
+/* Stories and quick topic navigation */
+.kq-stories { padding: 15px 0 14px; border-bottom: 1px solid var(--kilode-line); }
+.kq-stories-head { display: flex; align-items: baseline; gap: 9px; margin-bottom: 11px; }
+.kq-stories-head strong { color: #eee; font-size: 13px; }
+.kq-stories-head span { color: #777; font-size: 11px; }
+.kq-stories-rail { display: flex; align-items: flex-start; gap: 15px; overflow-x: auto; padding: 2px 1px 5px; scrollbar-width: none; }
+.kq-stories-rail::-webkit-scrollbar { display: none; }
+.kq-story-add, .kq-story-person { display: flex; flex: 0 0 62px; flex-direction: column; align-items: center; gap: 7px; padding: 0; border: 0; background: none; color: #bbb; cursor: pointer; }
+.kq-story-add strong, .kq-story-person strong { display: block; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; font-weight: 600; }
+.kq-story-add-avatar, .kq-story-ring { position: relative; display: grid; place-items: center; width: 52px; height: 52px; padding: 3px; border: 1px solid #3b3b3b; border-radius: 50%; }
+.kq-story-ring { border: 2px solid var(--kilode-green); }
+.kq-story-add-avatar img, .kq-story-ring img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.kq-story-add-avatar i { position: absolute; right: -2px; bottom: -2px; display: grid; place-items: center; width: 20px; height: 20px; border: 2px solid var(--kilode-bg); border-radius: 50%; background: var(--kilode-green); color: #06110a; font-size: 16px; font-style: normal; font-weight: 800; }
+.kq-stories-hint { align-self: center; margin: 0; color: #777; font-size: 11px; }
+.kq-mobile-topics { display: none; }
+@media (max-width: 650px) {
+  .kq-mobile-topics { display: flex; gap: 8px; margin: 0 -14px; padding: 11px 14px; overflow-x: auto; border-bottom: 1px solid var(--kilode-line); scrollbar-width: none; }
+  .kq-mobile-topics::-webkit-scrollbar { display: none; }
+  .kq-mobile-topics button { flex: 0 0 auto; padding: 7px 11px; border: 1px solid #303030; border-radius: 4px; background: #101010; color: #aaa; font-size: 11px; white-space: nowrap; cursor: pointer; }
+  .kq-mobile-topics button.on, .kq-mobile-topics button:hover { border-color: #36784a; color: var(--kilode-green); background: #111a13; }
+  .kq-stories { padding-top: 13px; }
+}
