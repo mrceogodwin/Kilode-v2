@@ -421,7 +421,7 @@ export function SocialFirst({
                     <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => pickMedia(e.target.files?.[0])} />
                     <button type="button" onClick={() => fileRef.current?.click()} style={{ background: "none", border: 0, color: "#35c46a" }}><ImageIcon size={18} /></button>
                     {media ? <button type="button" onClick={() => setMedia("")} style={{ background: "none", border: 0, color: "#ef4444", fontSize: 12 }}>Remove</button> : null}
-                    <button type="submit" disabled={posting || (!draft.trim() && !media)} style={{ marginLeft: "auto", background: "#35c46a", color: "#111111", border: 0, borderRadius: 999, padding: "8px 16px", fontWeight: 700, opacity: posting || (!draft.trim() && !media) ? 0.5 : 1 }}>{posting ? "Posting…" : "Post"}</button>
+                    <button type="submit" disabled={posting || (!draft.trim() && !media)} style={{ marginLeft: "auto", background: "#35c46a", color: "#f5f5f5", border: 0, borderRadius: 999, padding: "8px 16px", fontWeight: 700, opacity: posting || (!draft.trim() && !media) ? 0.5 : 1 }}>{posting ? "Posting…" : "Post"}</button>
                   </div>
                 </div>
               </div>
@@ -492,7 +492,7 @@ export function SocialFirst({
                   ))}
                   <form onSubmit={onReply} style={{ display: "flex", gap: 8, marginTop: 12 }}>
                     <input value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)} placeholder="Write a reply…" style={{ flex: 1, border: "1px solid #E7ECF2", borderRadius: 999, padding: "10px 14px", fontSize: 14 }} />
-                    <button type="submit" disabled={replying || !replyDraft.trim()} style={{ background: "#35c46a", color: "#111111", border: 0, borderRadius: 999, padding: "10px 16px", fontWeight: 700 }}>Reply</button>
+                    <button type="submit" disabled={replying || !replyDraft.trim()} style={{ background: "#35c46a", color: "#f5f5f5", border: 0, borderRadius: 999, padding: "10px 16px", fontWeight: 700 }}>Reply</button>
                   </form>
                 </div>
               </div>
@@ -500,16 +500,16 @@ export function SocialFirst({
 
             {storyView ? (
               <div style={{ position: "fixed", inset: 0, background: "#0B0D12", zIndex: 80, display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px", color: "#111111" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px", color: "#f5f5f5" }}>
                   <img src={faceOf(storyView.handle, faces)} alt="" width={32} height={32} style={{ borderRadius: "50%" }} />
                   <strong>@{storyView.handle}</strong>
-                  <button type="button" onClick={() => setStoryView(null)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#111111" }}><X size={20} /></button>
+                  <button type="button" onClick={() => setStoryView(null)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#f5f5f5" }}><X size={20} /></button>
                 </div>
                 <img src={storyView.image} alt="" style={{ flex: 1, objectFit: "contain", width: "100%" }} />
               </div>
             ) : null}
 
-            {note ? <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "#111", color: "#111111", padding: "8px 14px", borderRadius: 999, fontSize: 12, zIndex: 60 }}>{note}</div> : null}
+            {note ? <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "#111", color: "#f5f5f5", padding: "8px 14px", borderRadius: 999, fontSize: 12, zIndex: 60 }}>{note}</div> : null}
           </>
         ) : (
           <HomeMediaLane
