@@ -65,7 +65,7 @@ export const Route = createRootRoute({
           <button type="button" className="rounded-lg border border-[#414247] px-3 py-2 text-sm text-[#F0F0F1]" onClick={() => reset()}>
             Try again
           </button>
-          <a href="/" className="rounded-lg border border-[#E7ECF2] px-3 py-2 text-sm text-[#172033]">
+          <a href="/" className="rounded-lg border border-[#414247] px-3 py-2 text-sm text-[#F0F0F1]">
             Home
           </a>
         </div>
