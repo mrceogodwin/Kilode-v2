@@ -7,6 +7,7 @@ import appCss from "../styles.css?url";
 import whiteBlueCss from "../styles-white-blue.css?url";
 import tickFixCss from "../styles-tick-fix.css?url";
 import myspaceFixCss from "../styles-myspace-fix.css?url";
+import quoraRefreshCss from "../styles-quora-refresh.css?url";
 import { OfflineToast } from "@/components/offline-toast";
 
 const base = seoHead({ path: "/" });
@@ -32,7 +33,7 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Kilode" },
-      { name: "theme-color", content: "#1877F2" },
+      { name: "theme-color", content: "#111111" },
       ...base.meta,
     ],
     links: [
@@ -50,12 +51,13 @@ export const Route = createRootRoute({
       { rel: "stylesheet", href: whiteBlueCss },
       { rel: "stylesheet", href: tickFixCss },
       { rel: "stylesheet", href: myspaceFixCss },
+      { rel: "stylesheet", href: quoraRefreshCss },
       ...base.links,
     ],
     scripts: base.scripts,
     styles: [
       {
-        children: "html,body{background:#FFFFFF;color:#172033;margin:0;min-height:100%;min-height:-webkit-fill-available}",
+        children: "html,body{background:#F7F7F5;color:#171717;margin:0;min-height:100%;min-height:-webkit-fill-available}",
       },
     ],
   }),
@@ -86,7 +88,7 @@ export const Route = createRootRoute({
           }}
         />
       </head>
-      <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh", background: "#FFFFFF", color: "#172033" }}>
+      <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh", background: "#F7F7F5", color: "#171717" }}>
         <PreviewHostBridge />
         <OfflineToast />
         <AuthProvider>
