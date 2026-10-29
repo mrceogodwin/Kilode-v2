@@ -11,10 +11,10 @@ const base = seoHead({ path: "/" });
 
 function Boot({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
   return (
-    <div className="grid min-h-svh place-items-center bg-white p-6 text-[#172033]">
+    <div className="grid min-h-svh place-items-center bg-[#202124] p-6 text-[#F0F0F1]">
       <div className="max-w-sm text-center">
         <p className="mt-1 text-sm font-semibold">{title}</p>
-        <p className="mt-2 text-sm text-[#64748B]">{body}</p>
+        <p className="mt-2 text-sm text-[#B8B8BA]">{body}</p>
         {action}
       </div>
     </div>
@@ -30,7 +30,7 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Kilode" },
-      { name: "theme-color", content: "#f7f7f8" },
+      { name: "theme-color", content: "#202124" },
       ...base.meta,
     ],
     links: [
@@ -51,7 +51,7 @@ export const Route = createRootRoute({
     scripts: base.scripts,
     styles: [
       {
-        children: "html,body{background:#f7f7f8;color:#282829;margin:0;min-height:100%;min-height:-webkit-fill-available}",
+        children: "html,body{background:#202124;color:#f0f0f1;margin:0;min-height:100%;min-height:-webkit-fill-available}",
       },
     ],
   }),
@@ -62,7 +62,7 @@ export const Route = createRootRoute({
       body={(error as { message?: string })?.message || "Reload and try again."}
       action={
         <div className="mt-4 flex justify-center gap-2">
-          <button type="button" className="rounded-lg border border-[#E7ECF2] px-3 py-2 text-sm text-[#172033]" onClick={() => reset()}>
+          <button type="button" className="rounded-lg border border-[#414247] px-3 py-2 text-sm text-[#F0F0F1]" onClick={() => reset()}>
             Try again
           </button>
           <a href="/" className="rounded-lg border border-[#E7ECF2] px-3 py-2 text-sm text-[#172033]">
@@ -73,16 +73,16 @@ export const Route = createRootRoute({
     />
   ),
   component: () => (
-    <html lang="en" data-skin="light" suppressHydrationWarning>
+    <html lang="en" data-skin="night" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var s=localStorage.getItem("kilode-skin-v2");document.documentElement.setAttribute("data-skin","light")}catch(e){document.documentElement.setAttribute("data-skin","night")}`,
+            __html: `try{var s=localStorage.getItem("kilode-skin-v2");document.documentElement.setAttribute("data-skin","night")}catch(e){document.documentElement.setAttribute("data-skin","night")}`,
           }}
         />
       </head>
-      <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh", background: "#f7f7f8", color: "#282829" }}>
+      <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh", background: "#202124", color: "#f0f0f1" }}>
         <PreviewHostBridge />
         <OfflineToast />
         <AuthProvider>
