@@ -78,7 +78,7 @@ const HUBS = [
   { key: "market", label: "Market", sub: "Shop local", icon: Store, color: "#e25b4a" },
   { key: "music", label: "Music", sub: "Artists live", icon: Music, color: "#f0b429" },
   { key: "communities", label: "Rooms", sub: "Chat live", icon: Users, color: "#3a6ea5" },
-  { key: "ads", label: "Ads", sub: "Promote", icon: Megaphone, color: "#1877F2" },
+  { key: "ads", label: "Ads", sub: "Promote", icon: Megaphone, color: "#35c46a" },
   { key: "rent", label: "Rent", sub: "Spaces", icon: Building2, color: "#0ea5e9" },
   { key: "spaces", label: "Events", sub: "Happenings", icon: Calendar, color: "#db2777" },
 ] as const;
@@ -90,7 +90,7 @@ export function SocialFirst({
   onLikes: () => void; onSend: () => void; onCreate: () => void; onMe: () => void; onMenu: () => void;
   onOpenNews: (id?: string) => void; onOpen?: (key: string) => void; onNeedAuth: () => void;
 }) {
-  const [lane, setLane] = useState<"feed" | "media">("media");
+  const [lane, setLane] = useState<"feed" | "media">("feed");
   const [takes, setTakes] = useState<TakeRow[]>([]);
   const [people, setPeople] = useState<FellowRow[]>([]);
   const [faces, setFaces] = useState<Record<string, string>>({});
@@ -333,7 +333,7 @@ export function SocialFirst({
     const parts = body.split(/(#[A-Za-z0-9_]{2,24})/g);
     return parts.map((part, i) =>
       part.startsWith("#") && part.length > 2 ? (
-        <button key={i} type="button" onClick={() => openTag(part.slice(1))} style={{ background: "none", border: 0, color: "#1877F2", fontWeight: 700, padding: 0, fontSize: "inherit" }}>{part}</button>
+        <button key={i} type="button" onClick={() => openTag(part.slice(1))} style={{ background: "none", border: 0, color: "#35c46a", fontWeight: 700, padding: 0, fontSize: "inherit" }}>{part}</button>
       ) : <span key={i}>{part}</span>
     );
   };
@@ -346,17 +346,17 @@ export function SocialFirst({
   const create = () => { if (!authed) return onNeedAuth(); onCreate(); };
 
   return (
-    <div className="sf-root" data-sf="1" data-dock="v32" style={{ height: "100%", display: "flex", flexDirection: "column", background: "#fff", minHeight: 0, position: "relative" }}>
+    <div className="sf-root" data-sf="1" data-dock="v32" style={{ height: "100%", display: "flex", flexDirection: "column", background: "#080808", color: "#f5f5f5", minHeight: 0, position: "relative" }}>
       <header className="sf-top" style={{
-        background: "#1877F2", color: "#fff",
-        padding: "max(6px, env(safe-area-inset-top, 0px)) 10px 8px",
-        display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
+        background: "#080808", color: "#f5f5f5", borderBottom: "1px solid #262626",
+        padding: "max(8px, env(safe-area-inset-top, 0px)) max(16px, calc((100vw - 1040px) / 2)) 10px",
+        display: "flex", alignItems: "center", gap: 14, flexShrink: 0,
         transform: chromeHidden ? "translateY(-110%)" : "translateY(0)",
         transition: "transform 0.22s ease",
-        position: "relative", zIndex: 35, minHeight: 48,
+        position: "relative", zIndex: 35, minHeight: 58,
       }}>
         <button type="button" onClick={onMenu} aria-label="Menu" className="sf-hdr-pill"><Menu size={18} /></button>
-        <strong style={{ flex: 1, fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em", fontFamily: "Nunito, Plus Jakarta Sans, sans-serif" }}>Kilode!</strong>
+        <strong style={{ flex: 1, fontSize: 24, fontWeight: 800, letterSpacing: "-0.04em", fontFamily: "Plus Jakarta Sans, sans-serif" }}>Kilode!</strong>
         <button type="button" aria-label="People" className="sf-hdr-pill" onClick={() => open("communities")}><Users size={16} /></button>
         <button type="button" aria-label="Notifications" className="sf-hdr-pill" onClick={onLikes}><Bell size={16} /></button>
         <button type="button" aria-label="Activity" className="sf-hdr-pill" onClick={() => open("trending")}><Zap size={16} /></button>
@@ -366,9 +366,24 @@ export function SocialFirst({
         </button>
       </header>
 
-      <div ref={scrollRef} style={{ flex: 1, overflow: "auto", minHeight: 0, WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", paddingTop: chromeHidden ? 8 : 0, paddingBottom: 72 }}>
+      <div ref={scrollRef} className="kilode-quora-scroll" style={{ flex: 1, overflow: "auto", minHeight: 0, WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", paddingTop: chromeHidden ? 8 : 0, paddingBottom: 32 }}>
         {lane === "feed" ? (
           <>
+            {Array.isArray(news) && news.length > 0 ? (
+              <section className="kilode-editorial-feed" aria-label="Latest stories">
+                {news.slice(0, 6).map((item) => (
+                  <article key={item.id} className="kilode-editorial-item">
+                    <div className="kilode-editorial-copy">
+                      <div className="kilode-editorial-category">{item.category || "News"}</div>
+                      <h2>{item.title}</h2>
+                      <button type="button" onClick={() => onOpenNews(item.id)} className="kilode-read-link">Read <span aria-hidden="true">↗</span></button>
+                    </div>
+                    {item.image ? <img src={item.image} alt="" /> : null}
+                  </article>
+                ))}
+              </section>
+            ) : null}
+
             <div className="sf-tick" aria-label="Trending">
               <span className="sf-tick-label">TRENDING</span>
               <div className="sf-tick-track"><div className="sf-tick-marquee">{tickText} · {tickText}</div></div>
@@ -378,7 +393,7 @@ export function SocialFirst({
               <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "12px 14px 8px", borderBottom: "1px solid #F1F5F9" }}>
                 <input ref={storyFileRef} type="file" accept="image/*" hidden onChange={(e) => void onStoryFile(e.target.files?.[0])} />
                 <button type="button" disabled={storyBusy} onClick={() => { if (!authed) return onNeedAuth(); storyFileRef.current?.click(); }} style={{ flex: "0 0 auto", background: "none", border: 0, textAlign: "center", width: 64, opacity: storyBusy ? 0.6 : 1 }}>
-                  <span style={{ width: 52, height: 52, borderRadius: "50%", border: "2px dashed #1877F2", display: "grid", placeItems: "center", margin: "0 auto", color: "#1877F2" }}><Plus size={20} /></span>
+                  <span style={{ width: 52, height: 52, borderRadius: "50%", border: "2px dashed #1877F2", display: "grid", placeItems: "center", margin: "0 auto", color: "#35c46a" }}><Plus size={20} /></span>
                   <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600 }}>{storyBusy ? "Posting…" : "Your story"}</div>
                 </button>
                 {stories.map((s) => (
@@ -404,24 +419,24 @@ export function SocialFirst({
                   {media ? <img src={media} alt="" style={{ marginTop: 8, maxHeight: 160, borderRadius: 12 }} /> : null}
                   <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
                     <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => pickMedia(e.target.files?.[0])} />
-                    <button type="button" onClick={() => fileRef.current?.click()} style={{ background: "none", border: 0, color: "#1877F2" }}><ImageIcon size={18} /></button>
+                    <button type="button" onClick={() => fileRef.current?.click()} style={{ background: "none", border: 0, color: "#35c46a" }}><ImageIcon size={18} /></button>
                     {media ? <button type="button" onClick={() => setMedia("")} style={{ background: "none", border: 0, color: "#ef4444", fontSize: 12 }}>Remove</button> : null}
-                    <button type="submit" disabled={posting || (!draft.trim() && !media)} style={{ marginLeft: "auto", background: "#1877F2", color: "#fff", border: 0, borderRadius: 999, padding: "8px 16px", fontWeight: 700, opacity: posting || (!draft.trim() && !media) ? 0.5 : 1 }}>{posting ? "Posting…" : "Post"}</button>
+                    <button type="submit" disabled={posting || (!draft.trim() && !media)} style={{ marginLeft: "auto", background: "#35c46a", color: "#111111", border: 0, borderRadius: 999, padding: "8px 16px", fontWeight: 700, opacity: posting || (!draft.trim() && !media) ? 0.5 : 1 }}>{posting ? "Posting…" : "Post"}</button>
                   </div>
                 </div>
               </div>
             </form>
 
             {tag ? (
-              <div style={{ padding: "8px 14px", display: "flex", gap: 8, alignItems: "center", background: "#EFF6FF" }}>
-                <span style={{ fontWeight: 700, color: "#1877F2" }}>#{tag}</span>
-                <button type="button" onClick={() => void clearTag()} style={{ marginLeft: "auto", border: 0, background: "none", fontSize: 12, color: "#64748B" }}>Clear</button>
+              <div style={{ padding: "8px 14px", display: "flex", gap: 8, alignItems: "center", background: "#151515" }}>
+                <span style={{ fontWeight: 700, color: "#35c46a" }}>#{tag}</span>
+                <button type="button" onClick={() => void clearTag()} style={{ marginLeft: "auto", border: 0, background: "none", fontSize: 12, color: "#a3a3a3" }}>Clear</button>
               </div>
             ) : null}
 
             <div style={{ padding: "0 0 24px" }}>
               {filtered.length === 0 ? (
-                <p style={{ padding: 24, textAlign: "center", color: "#64748B", fontSize: 13 }}>No takes yet. Be the first.</p>
+                <p style={{ padding: 24, textAlign: "center", color: "#a3a3a3", fontSize: 13 }}>No takes yet. Be the first.</p>
               ) : null}
               {filtered.map((t) => {
                 const shot = shotOf(t.meta);
@@ -433,27 +448,27 @@ export function SocialFirst({
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                           <strong style={{ fontSize: 14 }}>@{t.handle}</strong>
-                          <span style={{ fontSize: 11, color: "#64748B" }}>{roleLabel(t.role || "")}</span>
-                          <span style={{ fontSize: 11, color: "#94A3B8" }}>· {timeAgo(t.ts)}</span>
-                          <button type="button" onClick={() => setMenuId(menuId === t.id ? null : t.id)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#94A3B8", fontSize: 18, lineHeight: 1 }}>···</button>
+                          <span style={{ fontSize: 11, color: "#a3a3a3" }}>{roleLabel(t.role || "")}</span>
+                          <span style={{ fontSize: 11, color: "#737373" }}>· {timeAgo(t.ts)}</span>
+                          <button type="button" onClick={() => setMenuId(menuId === t.id ? null : t.id)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#737373", fontSize: 18, lineHeight: 1 }}>···</button>
                         </div>
                         {menuId === t.id ? (
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-                            <button type="button" onClick={() => void doFollow(t.handle)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#fff" }}>{following[t.handle.toLowerCase()] ? "Following" : "Follow"}</button>
-                            <button type="button" onClick={() => void doSave(t.id)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#fff" }}>{saved[t.id] ? "Saved" : "Save"}</button>
-                            <button type="button" onClick={() => void doRepost(t.id)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#fff" }}>Repost</button>
-                            <button type="button" onClick={() => void doMute(t.handle)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#fff" }}>Mute</button>
-                            <button type="button" onClick={() => void doBlock(t.handle)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#fff", color: "#ef4444" }}>Block</button>
+                            <button type="button" onClick={() => void doFollow(t.handle)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#111111" }}>{following[t.handle.toLowerCase()] ? "Following" : "Follow"}</button>
+                            <button type="button" onClick={() => void doSave(t.id)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#111111" }}>{saved[t.id] ? "Saved" : "Save"}</button>
+                            <button type="button" onClick={() => void doRepost(t.id)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#111111" }}>Repost</button>
+                            <button type="button" onClick={() => void doMute(t.handle)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#111111" }}>Mute</button>
+                            <button type="button" onClick={() => void doBlock(t.handle)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#111111", color: "#ef4444" }}>Block</button>
                           </div>
                         ) : null}
                         <p style={{ margin: "6px 0 0", fontSize: 14, lineHeight: 1.45, whiteSpace: "pre-wrap" }}>{bodyWithTags(t.body || "")}</p>
                         {shot ? <img src={shot} alt="" style={{ marginTop: 8, width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 12 }} /> : null}
                         <div style={{ display: "flex", gap: 14, marginTop: 10, alignItems: "center" }}>
-                          <button type="button" onClick={() => void doLike(t.id)} style={{ background: "none", border: 0, display: "flex", alignItems: "center", gap: 4, color: "#64748B", fontSize: 13 }}><ThumbsUp size={16} /> {t.likes || 0}</button>
-                          <button type="button" onClick={() => void openThread(t.id)} style={{ background: "none", border: 0, display: "flex", alignItems: "center", gap: 4, color: "#64748B", fontSize: 13 }}><MessageCircle size={16} /> {t.comments || 0}</button>
-                          <button type="button" onClick={() => { void navigator.clipboard?.writeText(takeUrl(t.id)); setNote("Link copied"); }} style={{ background: "none", border: 0, display: "flex", alignItems: "center", gap: 4, color: "#64748B", fontSize: 13 }}><Share2 size={16} /></button>
-                          <button type="button" onClick={() => void doVote(t.id, "fact")} style={{ background: "none", border: 0, fontSize: 12, color: voted[t.id] === "fact" ? "#1877F2" : "#94A3B8", fontWeight: 700 }}>Fact {t.fact || 0}</button>
-                          <button type="button" onClick={() => void doVote(t.id, "cap")} style={{ background: "none", border: 0, fontSize: 12, color: voted[t.id] === "cap" ? "#ef4444" : "#94A3B8", fontWeight: 700 }}>Cap {t.cap || 0}</button>
+                          <button type="button" onClick={() => void doLike(t.id)} style={{ background: "none", border: 0, display: "flex", alignItems: "center", gap: 4, color: "#a3a3a3", fontSize: 13 }}><ThumbsUp size={16} /> {t.likes || 0}</button>
+                          <button type="button" onClick={() => void openThread(t.id)} style={{ background: "none", border: 0, display: "flex", alignItems: "center", gap: 4, color: "#a3a3a3", fontSize: 13 }}><MessageCircle size={16} /> {t.comments || 0}</button>
+                          <button type="button" onClick={() => { void navigator.clipboard?.writeText(takeUrl(t.id)); setNote("Link copied"); }} style={{ background: "none", border: 0, display: "flex", alignItems: "center", gap: 4, color: "#a3a3a3", fontSize: 13 }}><Share2 size={16} /></button>
+                          <button type="button" onClick={() => void doVote(t.id, "fact")} style={{ background: "none", border: 0, fontSize: 12, color: voted[t.id] === "fact" ? "#35c46a" : "#737373", fontWeight: 700 }}>Fact {t.fact || 0}</button>
+                          <button type="button" onClick={() => void doVote(t.id, "cap")} style={{ background: "none", border: 0, fontSize: 12, color: voted[t.id] === "cap" ? "#ef4444" : "#737373", fontWeight: 700 }}>Cap {t.cap || 0}</button>
                         </div>
                       </div>
                     </div>
@@ -464,7 +479,7 @@ export function SocialFirst({
 
             {threadId ? (
               <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 70, display: "flex", alignItems: "flex-end" }} onClick={() => setThreadId(null)}>
-                <div style={{ background: "#fff", width: "100%", maxHeight: "70vh", borderRadius: "16px 16px 0 0", padding: 16, overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
+                <div style={{ background: "#111111", width: "100%", maxHeight: "70vh", borderRadius: "16px 16px 0 0", padding: 16, overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
                     <strong>Replies</strong>
                     <button type="button" onClick={() => setThreadId(null)} style={{ background: "none", border: 0 }}><X size={18} /></button>
@@ -477,7 +492,7 @@ export function SocialFirst({
                   ))}
                   <form onSubmit={onReply} style={{ display: "flex", gap: 8, marginTop: 12 }}>
                     <input value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)} placeholder="Write a reply…" style={{ flex: 1, border: "1px solid #E7ECF2", borderRadius: 999, padding: "10px 14px", fontSize: 14 }} />
-                    <button type="submit" disabled={replying || !replyDraft.trim()} style={{ background: "#1877F2", color: "#fff", border: 0, borderRadius: 999, padding: "10px 16px", fontWeight: 700 }}>Reply</button>
+                    <button type="submit" disabled={replying || !replyDraft.trim()} style={{ background: "#35c46a", color: "#111111", border: 0, borderRadius: 999, padding: "10px 16px", fontWeight: 700 }}>Reply</button>
                   </form>
                 </div>
               </div>
@@ -485,16 +500,16 @@ export function SocialFirst({
 
             {storyView ? (
               <div style={{ position: "fixed", inset: 0, background: "#0B0D12", zIndex: 80, display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px", color: "#fff" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px", color: "#111111" }}>
                   <img src={faceOf(storyView.handle, faces)} alt="" width={32} height={32} style={{ borderRadius: "50%" }} />
                   <strong>@{storyView.handle}</strong>
-                  <button type="button" onClick={() => setStoryView(null)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#fff" }}><X size={20} /></button>
+                  <button type="button" onClick={() => setStoryView(null)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#111111" }}><X size={20} /></button>
                 </div>
                 <img src={storyView.image} alt="" style={{ flex: 1, objectFit: "contain", width: "100%" }} />
               </div>
             ) : null}
 
-            {note ? <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "#111", color: "#fff", padding: "8px 14px", borderRadius: 999, fontSize: 12, zIndex: 60 }}>{note}</div> : null}
+            {note ? <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "#111", color: "#111111", padding: "8px 14px", borderRadius: 999, fontSize: 12, zIndex: 60 }}>{note}</div> : null}
           </>
         ) : (
           <HomeMediaLane
@@ -506,13 +521,14 @@ export function SocialFirst({
         )}
       </div>
 
-      <nav aria-label="Primary" className="sf-dock-v2" style={{ display: chromeHidden ? "none" : "flex" }}>
-        <button type="button" aria-label="Home" className={lane === "media" ? "on" : ""} onClick={() => setLane("media")}><FileText size={20} /><span>Home</span></button>
-        <button type="button" aria-label="Socials" className={lane === "feed" ? "on" : ""} onClick={() => setLane("feed")}><Users size={20} /><span>Socials</span></button>
-        <button type="button" aria-label="Create" className="sf-dock-plus" onClick={create}><Plus size={26} strokeWidth={2.5} /></button>
-        <button type="button" aria-label="Activity" onClick={() => open("trending")}><Activity size={20} /><span>Activity</span></button>
-        <button type="button" aria-label="My Space" onClick={onMe}><Layers size={20} /><span>My Space</span></button>
-      </nav>
+      <nav aria-label="Explore topics" className="kilode-quora-topics">
+        <button type="button" onClick={() => { setLane("feed"); setTag(""); void refresh(); }}>For you</button>
+        <button type="button" onClick={() => open("news")}>News</button>
+        <button type="button" onClick={() => open("entertainment")}>Entertainment</button>
+        <button type="button" onClick={() => open("politics")}>Politics</button>
+        <button type="button" onClick={() => open("business")}>Business</button>
+        <button type="button" onClick={() => open("trending")}>Trending</button>
+      </nav></nav>
     </div>
   );
 }
