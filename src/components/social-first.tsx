@@ -290,7 +290,27 @@ export function SocialFirst({
 
   const doLike = async (id: string) => {
     if (!authed) return onNeedAuth();
-    try { await likeTake({ data: { id } } as any); await refresh(); } catch { /* ignore */ }
+    try {
+      const res = await likeTake({ data: { id } } as any);
+      if (res && typeof res === "object" && (res as any).ok === false) {
+        setNote((res as any).reason || "Like failed — please try again");
+        return;
+      }
+      await refresh();
+    } catch { setNote("Like failed — please try again"); }
+  };
+
+  const shareTake = async (id: string) => {
+    try {
+      if (!navigator.clipboard?.writeText) {
+        setNote("Link copying isn't available in this browser");
+        return;
+      }
+      await navigator.clipboard.writeText(takeUrl(id));
+      setNote("Link copied");
+    } catch {
+      setNote("Couldn't copy link — check browser permissions");
+    }
   };
 
   const doFollow = async (handle: string) => {
@@ -481,7 +501,7 @@ export function SocialFirst({
                 <div className="kq-post-actions">
                   <button type="button" onClick={() => void doLike(t.id)}><ThumbsUp size={17} /> {t.likes || 0}</button>
                   <button type="button" onClick={() => void openThread(t.id)}><MessageCircle size={17} /> {t.comments || 0}</button>
-                  <button type="button" onClick={() => { void navigator.clipboard?.writeText(takeUrl(t.id)); setNote("Link copied"); }}><Share2 size={17} /> Share</button>
+                  <button type="button" onClick={() => void shareTake(t.id)}><Share2 size={17} /> Share</button>
                   <button type="button" className={voted[t.id] === "fact" ? "kq-voted" : ""} onClick={() => void doVote(t.id, "fact")}>Fact {t.fact || 0}</button>
                   <button type="button" className={voted[t.id] === "cap" ? "kq-voted" : ""} onClick={() => void doVote(t.id, "cap")}>Cap {t.cap || 0}</button>
                 </div>
