@@ -410,19 +410,15 @@ export function SocialFirst({
             </div>
           </form>
 
-          {Array.isArray(news) ? news.slice(0, 8).map((item) => (
+          {filtered.length === 0 && (!news || news.length === 0) ? <div className="kq-empty"><h2>Start the conversation</h2><p>There are no posts to show yet. Share something with the Kilode community.</p></div> : null}
+          {filtered.length === 0 && Array.isArray(news) ? news.slice(0, 8).map((item) => (
             <article key={`news-${item.id}`} className="kq-news-card">
-              <div className="kq-post-meta"><span className="kq-source-mark">K!</span><strong>Kilode News</strong><span>· {item.category || "Latest"}</span></div>
-              <div className="kq-news-body">
-                <div className="kq-news-copy"><h2>{item.title}</h2><button type="button" className="kq-read" onClick={() => onOpenNews(item.id)}>Read <span aria-hidden="true">↗</span></button></div>
-                {item.image ? <button type="button" className="kq-news-image" onClick={() => onOpenNews(item.id)} aria-label={`Read ${item.title}`}><img src={item.image} alt="" /></button> : null}
-              </div>
+              <div className="kq-post-meta"><span className="kq-source-mark">K!</span><div className="kq-post-author"><strong>Kilode News</strong><span>{item.category || "Latest"}</span></div></div>
+              <div className="kq-news-body"><div className="kq-news-copy"><h2>{item.title}</h2><button type="button" className="kq-read" onClick={() => onOpenNews(item.id)}>Read story ↗</button></div>{item.image ? <button type="button" className="kq-news-image" onClick={() => onOpenNews(item.id)} aria-label={`Read ${item.title}`}><img src={item.image} alt="" /></button> : null}</div>
             </article>
           )) : null}
 
-          {filtered.length === 0 && (!news || news.length === 0) ? <div className="kq-empty"><h2>Start the conversation</h2><p>There are no posts to show yet. Share something with the Kilode community.</p></div> : null}
-
-          {filtered.map((t) => {
+          {filtered.map((t, index) => {
             const shot = shotOf(t.meta);
             const isLive = live.includes((t.handle || "").toLowerCase());
             return (
@@ -449,6 +445,13 @@ export function SocialFirst({
                   <button type="button" className={voted[t.id] === "cap" ? "kq-voted" : ""} onClick={() => void doVote(t.id, "cap")}>Cap {t.cap || 0}</button>
                 </div>
               </article>
+              {(index === 0 || (index + 1) % 3 === 0) && Array.isArray(news) && news[Math.floor(index / 3)] ? (() => {
+                const item = news[Math.floor(index / 3)];
+                return <article key={`news-inline-${item.id}`} className="kq-news-card">
+                  <div className="kq-post-meta"><span className="kq-source-mark">K!</span><div className="kq-post-author"><strong>Kilode News</strong><span>{item.category || "Latest"}</span></div></div>
+                  <div className="kq-news-body"><div className="kq-news-copy"><h2>{item.title}</h2><button type="button" className="kq-read" onClick={() => onOpenNews(item.id)}>Read story ↗</button></div>{item.image ? <button type="button" className="kq-news-image" onClick={() => onOpenNews(item.id)} aria-label={`Read ${item.title}`}><img src={item.image} alt="" /></button> : null}</div>
+                </article>;
+              })() : null}
             );
           })}
 
