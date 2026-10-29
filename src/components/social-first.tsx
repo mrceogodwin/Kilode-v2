@@ -346,197 +346,115 @@ export function SocialFirst({
   const create = () => { if (!authed) return onNeedAuth(); onCreate(); };
 
   return (
-    <div className="sf-root" data-sf="1" data-dock="v32" style={{ height: "100%", display: "flex", flexDirection: "column", background: "#080808", color: "#f5f5f5", minHeight: 0, position: "relative" }}>
-      <header className="sf-top" style={{
-        background: "#080808", color: "#f5f5f5", borderBottom: "1px solid #262626",
-        padding: "max(8px, env(safe-area-inset-top, 0px)) max(16px, calc((100vw - 1040px) / 2)) 10px",
-        display: "flex", alignItems: "center", gap: 14, flexShrink: 0,
-        transform: chromeHidden ? "translateY(-110%)" : "translateY(0)",
-        transition: "transform 0.22s ease",
-        position: "relative", zIndex: 35, minHeight: 58,
-      }}>
-        <button type="button" onClick={onMenu} aria-label="Menu" className="sf-hdr-pill"><Menu size={18} /></button>
-        <strong style={{ flex: 1, fontSize: 24, fontWeight: 800, letterSpacing: "-0.04em", fontFamily: "Plus Jakarta Sans, sans-serif" }}>Kilode!</strong>
-        <button type="button" aria-label="People" className="sf-hdr-pill" onClick={() => open("communities")}><Users size={16} /></button>
-        <button type="button" aria-label="Notifications" className="sf-hdr-pill" onClick={onLikes}><Bell size={16} /></button>
-        <button type="button" aria-label="Activity" className="sf-hdr-pill" onClick={() => open("trending")}><Zap size={16} /></button>
-        <button type="button" aria-label="Messages" className="sf-hdr-pill" onClick={onSend}><MessageCircle size={16} /></button>
-        <button type="button" aria-label="Me" onClick={onMe} style={{ background: "none", border: 0, padding: 0, marginLeft: 2 }}>
-          <img src={avatarUrl(me || "guest", face)} alt="" width={30} height={30} style={{ borderRadius: "50%", border: "2px solid rgba(255,255,255,0.55)", display: "block" }} />
-        </button>
+    <div className="kilode-quora" data-kilode-home="quora">
+      <header className="kq-header">
+        <button className="kq-wordmark" type="button" onClick={() => { setTag(""); setLane("feed"); void refresh(); }}>Kilode<span>!</span></button>
+        <label className="kq-search">
+          <Eye size={17} aria-hidden="true" />
+          <input aria-label="Search Kilode" placeholder="Search Kilode" onKeyDown={(e) => { if (e.key === "Enter") { const q = (e.currentTarget.value || "").trim(); if (q) open(q); } }} />
+        </label>
+        <div className="kq-header-actions">
+          <button type="button" aria-label="Home" onClick={() => { setTag(""); setLane("feed"); void refresh(); }}><Activity size={20} /></button>
+          <button type="button" aria-label="Notifications" onClick={onLikes}><Bell size={20} /></button>
+          <button type="button" aria-label="Messages" onClick={onSend}><MessageCircle size={20} /></button>
+          <button type="button" aria-label="Menu" onClick={onMenu}><Menu size={20} /></button>
+          <button type="button" aria-label="Profile" onClick={onMe} className="kq-avatar-button"><img src={avatarUrl(me || "guest", face)} alt="" /></button>
+        </div>
       </header>
 
-      <nav aria-label="Explore topics" className="kilode-quora-topics">
-        <button type="button" onClick={() => { setLane("feed"); setTag(""); void refresh(); }}>For you</button>
-        <button type="button" onClick={() => open("news")}>News</button>
-        <button type="button" onClick={() => open("entertainment")}>Entertainment</button>
-        <button type="button" onClick={() => open("politics")}>Politics</button>
-        <button type="button" onClick={() => open("business")}>Business</button>
-        <button type="button" onClick={() => open("trending")}>Trending</button>
-      </nav>
-      <div ref={scrollRef} className="kilode-quora-scroll" style={{ flex: 1, overflow: "auto", minHeight: 0, WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", paddingTop: chromeHidden ? 8 : 0, paddingBottom: 32 }}>
-        {lane === "feed" ? (
-          <>
-            {Array.isArray(news) && news.length > 0 ? (
-              <section className="kilode-editorial-feed" aria-label="Latest stories">
-                {news.slice(0, 6).map((item) => (
-                  <article key={item.id} className="kilode-editorial-item">
-                    <div className="kilode-editorial-copy">
-                      <div className="kilode-editorial-category">{item.category || "News"}</div>
-                      <h2>{item.title}</h2>
-                      <button type="button" onClick={() => onOpenNews(item.id)} className="kilode-read-link">Read <span aria-hidden="true">↗</span></button>
-                    </div>
-                    {item.image ? <img src={item.image} alt="" /> : null}
-                  </article>
-                ))}
-              </section>
-            ) : null}
+      <div className="kq-layout">
+        <aside className="kq-left">
+          <button className="kq-create" type="button" onClick={create}><Plus size={18} /> Create post</button>
+          <button className="kq-nav-active" type="button" onClick={() => { setTag(""); setLane("feed"); void refresh(); }}>For You</button>
+          <button type="button" onClick={() => open("following")}>Following</button>
+          <button type="button" onClick={() => open("answer")}>Answer</button>
+          <div className="kq-side-label">TOPICS</div>
+          {[
+            ["News", "news"], ["Entertainment", "entertainment"], ["Gossip", "gossip"],
+            ["Politics", "politics"], ["Business", "business"], ["Technology", "technology"],
+            ["Trending", "trending"]
+          ].map(([label, key]) => <button key={key} type="button" onClick={() => open(key)}>{label}</button>)}
+          <div className="kq-side-footer">About · Terms · Privacy</div>
+        </aside>
 
-            <div className="sf-tick" aria-label="Trending">
-              <span className="sf-tick-label">TRENDING</span>
-              <div className="sf-tick-track"><div className="sf-tick-marquee">{tickText} · {tickText}</div></div>
+        <main className="kq-feed">
+          <div className="kq-feed-heading">
+            <div><div className="kq-eyebrow">KILODE COMMUNITY</div><h1>{tag ? `#${tag}` : "For You"}</h1></div>
+            {tag ? <button type="button" className="kq-text-button" onClick={() => void clearTag()}>Clear topic</button> : null}
+          </div>
+
+          <form className="kq-composer" onSubmit={onPost}>
+            <img src={avatarUrl(me || "guest", face)} alt="" />
+            <div className="kq-composer-main">
+              <textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What would you like to share?" rows={2} />
+              {media ? <div className="kq-attachment"><img src={media} alt="Post attachment preview" /><button type="button" onClick={() => setMedia("")}>Remove image</button></div> : null}
+              <div className="kq-composer-actions">
+                <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => pickMedia(e.target.files?.[0])} />
+                <button type="button" onClick={() => fileRef.current?.click()}><ImageIcon size={17} /> Photo</button>
+                <button type="submit" className="kq-submit" disabled={posting || (!draft.trim() && !media)}>{posting ? "Posting…" : "Post"}</button>
+              </div>
             </div>
+          </form>
 
-            {(know.length > 0 || live.length > 0 || stories.length > 0) ? (
-              <div style={{ display: "flex", gap: 12, overflowX: "auto", padding: "12px 14px 8px", borderBottom: "1px solid #F1F5F9" }}>
-                <input ref={storyFileRef} type="file" accept="image/*" hidden onChange={(e) => void onStoryFile(e.target.files?.[0])} />
-                <button type="button" disabled={storyBusy} onClick={() => { if (!authed) return onNeedAuth(); storyFileRef.current?.click(); }} style={{ flex: "0 0 auto", background: "none", border: 0, textAlign: "center", width: 64, opacity: storyBusy ? 0.6 : 1 }}>
-                  <span style={{ width: 52, height: 52, borderRadius: "50%", border: "2px dashed #1877F2", display: "grid", placeItems: "center", margin: "0 auto", color: "#35c46a" }}><Plus size={20} /></span>
-                  <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600 }}>{storyBusy ? "Posting…" : "Your story"}</div>
-                </button>
-                {stories.map((s) => (
-                  <button key={s.id} type="button" onClick={() => setStoryView(s)} style={{ flex: "0 0 auto", textAlign: "center", width: 64, background: "none", border: 0, padding: 0, color: "inherit" }}>
-                    <img src={s.image || faceOf(s.handle, faces)} alt="" width={52} height={52} style={{ borderRadius: "50%", objectFit: "cover", border: "2.5px solid #F0B429", display: "block", margin: "0 auto" }} />
-                    <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>@{s.handle}</div>
-                  </button>
-                ))}
-                {know.slice(0, 6).map((p) => (
-                  <button key={p.handle} type="button" onClick={() => doFollow(p.handle)} style={{ flex: "0 0 auto", textAlign: "center", width: 64, background: "none", border: 0, padding: 0 }}>
-                    <img src={faceOf(p.handle, faces)} alt="" width={52} height={52} style={{ borderRadius: "50%", objectFit: "cover", border: live.includes((p.handle || "").toLowerCase()) ? "2.5px solid #22c55e" : "2px solid #E7ECF2", display: "block", margin: "0 auto" }} />
-                    <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>@{p.handle}</div>
-                  </button>
-                ))}
+          {Array.isArray(news) ? news.slice(0, 8).map((item) => (
+            <article key={`news-${item.id}`} className="kq-news-card">
+              <div className="kq-post-meta"><span className="kq-source-mark">K!</span><strong>Kilode News</strong><span>· {item.category || "Latest"}</span></div>
+              <div className="kq-news-body">
+                <div className="kq-news-copy"><h2>{item.title}</h2><button type="button" className="kq-read" onClick={() => onOpenNews(item.id)}>Read <span aria-hidden="true">↗</span></button></div>
+                {item.image ? <button type="button" className="kq-news-image" onClick={() => onOpenNews(item.id)} aria-label={`Read ${item.title}`}><img src={item.image} alt="" /></button> : null}
               </div>
-            ) : null}
+            </article>
+          )) : null}
 
-            <form onSubmit={onPost} style={{ padding: "12px 14px", borderBottom: "1px solid #F1F5F9" }}>
-              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <img src={avatarUrl(me || "guest", face)} alt="" width={40} height={40} style={{ borderRadius: "50%" }} />
-                <div style={{ flex: 1 }}>
-                  <textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="What is happening?" rows={2} style={{ width: "100%", border: "1px solid #E7ECF2", borderRadius: 12, padding: 10, fontSize: 14, resize: "vertical", outline: "none" }} />
-                  {media ? <img src={media} alt="" style={{ marginTop: 8, maxHeight: 160, borderRadius: 12 }} /> : null}
-                  <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
-                    <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => pickMedia(e.target.files?.[0])} />
-                    <button type="button" onClick={() => fileRef.current?.click()} style={{ background: "none", border: 0, color: "#35c46a" }}><ImageIcon size={18} /></button>
-                    {media ? <button type="button" onClick={() => setMedia("")} style={{ background: "none", border: 0, color: "#ef4444", fontSize: 12 }}>Remove</button> : null}
-                    <button type="submit" disabled={posting || (!draft.trim() && !media)} style={{ marginLeft: "auto", background: "#35c46a", color: "#f5f5f5", border: 0, borderRadius: 999, padding: "8px 16px", fontWeight: 700, opacity: posting || (!draft.trim() && !media) ? 0.5 : 1 }}>{posting ? "Posting…" : "Post"}</button>
-                  </div>
+          {filtered.length === 0 && (!news || news.length === 0) ? <div className="kq-empty"><h2>Start the conversation</h2><p>There are no posts to show yet. Share something with the Kilode community.</p></div> : null}
+
+          {filtered.map((t) => {
+            const shot = shotOf(t.meta);
+            const isLive = live.includes((t.handle || "").toLowerCase());
+            return (
+              <article key={t.id} className="kq-post">
+                <div className="kq-post-meta">
+                  <img className="kq-post-avatar" src={faceOf(t.handle, faces, t.face)} alt="" />
+                  <div className="kq-post-author"><strong>@{t.handle}</strong><span>{roleLabel(t.role || "")} · {timeAgo(t.ts)}</span></div>
+                  <button type="button" className="kq-more" aria-label="Post options" onClick={() => setMenuId(menuId === t.id ? null : t.id)}>···</button>
                 </div>
-              </div>
-            </form>
-
-            {tag ? (
-              <div style={{ padding: "8px 14px", display: "flex", gap: 8, alignItems: "center", background: "#151515" }}>
-                <span style={{ fontWeight: 700, color: "#35c46a" }}>#{tag}</span>
-                <button type="button" onClick={() => void clearTag()} style={{ marginLeft: "auto", border: 0, background: "none", fontSize: 12, color: "#a3a3a3" }}>Clear</button>
-              </div>
-            ) : null}
-
-            <div style={{ padding: "0 0 24px" }}>
-              {filtered.length === 0 ? (
-                <p style={{ padding: 24, textAlign: "center", color: "#a3a3a3", fontSize: 13 }}>No takes yet. Be the first.</p>
-              ) : null}
-              {filtered.map((t) => {
-                const shot = shotOf(t.meta);
-                const isLive = live.includes((t.handle || "").toLowerCase());
-                return (
-                  <article key={t.id} style={{ padding: "14px 14px 10px", borderBottom: "1px solid #F1F5F9" }}>
-                    <div style={{ display: "flex", gap: 10 }}>
-                      <img src={faceOf(t.handle, faces, t.face)} alt="" width={40} height={40} style={{ borderRadius: "50%", border: isLive ? "2px solid #22c55e" : "2px solid transparent" }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                          <strong style={{ fontSize: 14 }}>@{t.handle}</strong>
-                          <span style={{ fontSize: 11, color: "#a3a3a3" }}>{roleLabel(t.role || "")}</span>
-                          <span style={{ fontSize: 11, color: "#737373" }}>· {timeAgo(t.ts)}</span>
-                          <button type="button" onClick={() => setMenuId(menuId === t.id ? null : t.id)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#737373", fontSize: 18, lineHeight: 1 }}>···</button>
-                        </div>
-                        {menuId === t.id ? (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-                            <button type="button" onClick={() => void doFollow(t.handle)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#111111" }}>{following[t.handle.toLowerCase()] ? "Following" : "Follow"}</button>
-                            <button type="button" onClick={() => void doSave(t.id)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#111111" }}>{saved[t.id] ? "Saved" : "Save"}</button>
-                            <button type="button" onClick={() => void doRepost(t.id)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#111111" }}>Repost</button>
-                            <button type="button" onClick={() => void doMute(t.handle)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#111111" }}>Mute</button>
-                            <button type="button" onClick={() => void doBlock(t.handle)} style={{ fontSize: 12, border: "1px solid #E7ECF2", borderRadius: 999, padding: "4px 10px", background: "#111111", color: "#ef4444" }}>Block</button>
-                          </div>
-                        ) : null}
-                        <p style={{ margin: "6px 0 0", fontSize: 14, lineHeight: 1.45, whiteSpace: "pre-wrap" }}>{bodyWithTags(t.body || "")}</p>
-                        {shot ? <img src={shot} alt="" style={{ marginTop: 8, width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 12 }} /> : null}
-                        <div style={{ display: "flex", gap: 14, marginTop: 10, alignItems: "center" }}>
-                          <button type="button" onClick={() => void doLike(t.id)} style={{ background: "none", border: 0, display: "flex", alignItems: "center", gap: 4, color: "#a3a3a3", fontSize: 13 }}><ThumbsUp size={16} /> {t.likes || 0}</button>
-                          <button type="button" onClick={() => void openThread(t.id)} style={{ background: "none", border: 0, display: "flex", alignItems: "center", gap: 4, color: "#a3a3a3", fontSize: 13 }}><MessageCircle size={16} /> {t.comments || 0}</button>
-                          <button type="button" onClick={() => { void navigator.clipboard?.writeText(takeUrl(t.id)); setNote("Link copied"); }} style={{ background: "none", border: 0, display: "flex", alignItems: "center", gap: 4, color: "#a3a3a3", fontSize: 13 }}><Share2 size={16} /></button>
-                          <button type="button" onClick={() => void doVote(t.id, "fact")} style={{ background: "none", border: 0, fontSize: 12, color: voted[t.id] === "fact" ? "#35c46a" : "#737373", fontWeight: 700 }}>Fact {t.fact || 0}</button>
-                          <button type="button" onClick={() => void doVote(t.id, "cap")} style={{ background: "none", border: 0, fontSize: 12, color: voted[t.id] === "cap" ? "#ef4444" : "#737373", fontWeight: 700 }}>Cap {t.cap || 0}</button>
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
-            {threadId ? (
-              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 70, display: "flex", alignItems: "flex-end" }} onClick={() => setThreadId(null)}>
-                <div style={{ background: "#111111", width: "100%", maxHeight: "70vh", borderRadius: "16px 16px 0 0", padding: 16, overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                    <strong>Replies</strong>
-                    <button type="button" onClick={() => setThreadId(null)} style={{ background: "none", border: 0 }}><X size={18} /></button>
-                  </div>
-                  {replies.map((r) => (
-                    <div key={r.id} style={{ padding: "8px 0", borderBottom: "1px solid #F1F5F9" }}>
-                      <strong style={{ fontSize: 13 }}>@{r.handle}</strong>
-                      <p style={{ margin: "4px 0 0", fontSize: 13 }}>{r.body}</p>
-                    </div>
-                  ))}
-                  <form onSubmit={onReply} style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                    <input value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)} placeholder="Write a reply…" style={{ flex: 1, border: "1px solid #E7ECF2", borderRadius: 999, padding: "10px 14px", fontSize: 14 }} />
-                    <button type="submit" disabled={replying || !replyDraft.trim()} style={{ background: "#35c46a", color: "#f5f5f5", border: 0, borderRadius: 999, padding: "10px 16px", fontWeight: 700 }}>Reply</button>
-                  </form>
+                {menuId === t.id ? <div className="kq-post-menu">
+                  <button type="button" onClick={() => void doFollow(t.handle)}>{following[t.handle.toLowerCase()] ? "Following" : "Follow"}</button>
+                  <button type="button" onClick={() => void doSave(t.id)}>{saved[t.id] ? "Saved" : "Save"}</button>
+                  <button type="button" onClick={() => void doRepost(t.id)}>Repost</button>
+                  <button type="button" onClick={() => void doMute(t.handle)}>Mute</button>
+                  <button type="button" onClick={() => void doBlock(t.handle)}>Block</button>
+                </div> : null}
+                <p className="kq-post-body">{bodyWithTags(t.body || "")}</p>
+                {shot ? <img className="kq-post-media" src={shot} alt="" /> : null}
+                <div className="kq-post-actions">
+                  <button type="button" onClick={() => void doLike(t.id)}><ThumbsUp size={17} /> {t.likes || 0}</button>
+                  <button type="button" onClick={() => void openThread(t.id)}><MessageCircle size={17} /> {t.comments || 0}</button>
+                  <button type="button" onClick={() => { void navigator.clipboard?.writeText(takeUrl(t.id)); setNote("Link copied"); }}><Share2 size={17} /> Share</button>
+                  <button type="button" className={voted[t.id] === "fact" ? "kq-voted" : ""} onClick={() => void doVote(t.id, "fact")}>Fact {t.fact || 0}</button>
+                  <button type="button" className={voted[t.id] === "cap" ? "kq-voted" : ""} onClick={() => void doVote(t.id, "cap")}>Cap {t.cap || 0}</button>
                 </div>
-              </div>
-            ) : null}
+              </article>
+            );
+          })}
 
-            {storyView ? (
-              <div style={{ position: "fixed", inset: 0, background: "#0B0D12", zIndex: 80, display: "flex", flexDirection: "column" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px", color: "#f5f5f5" }}>
-                  <img src={faceOf(storyView.handle, faces)} alt="" width={32} height={32} style={{ borderRadius: "50%" }} />
-                  <strong>@{storyView.handle}</strong>
-                  <button type="button" onClick={() => setStoryView(null)} style={{ marginLeft: "auto", background: "none", border: 0, color: "#f5f5f5" }}><X size={20} /></button>
-                </div>
-                <img src={storyView.image} alt="" style={{ flex: 1, objectFit: "contain", width: "100%" }} />
-              </div>
-            ) : null}
+          {threadId ? <div className="kq-modal-backdrop" onClick={() => setThreadId(null)}>
+            <section className="kq-replies" onClick={(e) => e.stopPropagation()}>
+              <div className="kq-replies-heading"><h2>Replies</h2><button type="button" onClick={() => setThreadId(null)} aria-label="Close replies"><X size={19} /></button></div>
+              {replies.map((r) => <div key={r.id} className="kq-reply"><strong>@{r.handle}</strong><p>{r.body}</p></div>)}
+              <form onSubmit={onReply} className="kq-reply-form"><input value={replyDraft} onChange={(e) => setReplyDraft(e.target.value)} placeholder="Write a reply…" /><button type="submit" disabled={replying || !replyDraft.trim()}>{replying ? "Sending…" : "Reply"}</button></form>
+            </section>
+          </div> : null}
 
-            {note ? <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", background: "#111", color: "#f5f5f5", padding: "8px 14px", borderRadius: 999, fontSize: 12, zIndex: 60 }}>{note}</div> : null}
-          </>
-        ) : (
-          <HomeMediaLane
-            news={news}
-            tickText={tickText}
-            onOpen={onOpen}
-            onOpenNews={onOpenNews}
-          />
-        )}
+          {storyView ? <div className="kq-story-view"><div><img src={faceOf(storyView.handle, faces)} alt="" /><strong>@{storyView.handle}</strong><button type="button" onClick={() => setStoryView(null)} aria-label="Close story"><X size={20} /></button></div><img src={storyView.image} alt="" /></div> : null}
+          {note ? <div className="kq-toast" role="status">{note}</div> : null}
+        </main>
+
+        <aside className="kq-right">
+          <section className="kq-right-panel"><h2>Trending conversations</h2>{trending.length ? trending.slice(0, 5).map((t) => <button key={t.id} type="button" onClick={() => openTag((t.body || "").split(/\s+/).find((w) => w.startsWith("#"))?.slice(1) || "trending")}><span>Trending</span><strong>{(t.body || "Join the conversation").slice(0, 76)}</strong><small>{t.comments || 0} replies</small></button>) : <p>Conversations from across Kilode will appear here.</p>}</section>
+          <section className="kq-right-panel"><h2>Explore Kilode</h2><p>News, entertainment, gossip, politics, business and culture in one feed.</p><button type="button" className="kq-read" onClick={() => open("trending")}>Explore topics ↗</button></section>
+        </aside>
       </div>
-
-      <nav aria-label="Explore topics" className="kilode-quora-topics">
-        <button type="button" onClick={() => { setLane("feed"); setTag(""); void refresh(); }}>For you</button>
-        <button type="button" onClick={() => open("news")}>News</button>
-        <button type="button" onClick={() => open("entertainment")}>Entertainment</button>
-        <button type="button" onClick={() => open("politics")}>Politics</button>
-        <button type="button" onClick={() => open("business")}>Business</button>
-        <button type="button" onClick={() => open("trending")}>Trending</button>
-      </nav></nav>
     </div>
   );
 }
