@@ -271,8 +271,21 @@ export function SocialFirst({
 
   const doVote = async (id: string, kind: "fact" | "cap") => {
     if (!authed) return onNeedAuth();
+    const previous = voted[id] || "";
+    if (previous === kind) return;
     setVoted((v) => ({ ...v, [id]: kind }));
-    try { await voteTake({ data: { id, kind } } as any); } catch { /* ignore */ }
+    try {
+      const result = await voteTake({ data: { id, side: kind } } as any);
+      if (result && typeof result === "object" && (result as any).ok === false) {
+        setVoted((v) => ({ ...v, [id]: previous }));
+        setNote((result as any).reason || "Vote failed — please try again");
+        return;
+      }
+      await refresh();
+    } catch {
+      setVoted((v) => ({ ...v, [id]: previous }));
+      setNote("Vote failed — please try again");
+    }
   };
 
   const doLike = async (id: string) => {
