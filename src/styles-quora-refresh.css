@@ -183,3 +183,10 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{
 .kq-story-ring img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}
 .kq-stories-row button:disabled{opacity:.6;cursor:wait}
 @media(max-width:640px){.kq-stories{padding:12px;border-radius:10px}.kq-stories-heading span{font-size:10px}.kq-stories-row{gap:10px}}
+
+
+/* Feed pagination */
+.kilode-quora .kq-load-more{display:flex;justify-content:center;padding:18px 12px 28px}
+.kilode-quora .kq-load-more button{min-height:42px;padding:0 22px;border:1px solid #414247;border-radius:999px;background:#292a2d;color:#f0f0f1;font:600 13px inherit;cursor:pointer;transition:background .18s,border-color .18s}
+.kilode-quora .kq-load-more button:hover:not(:disabled){background:#343539;border-color:#66676d}
+.kilode-quora .kq-load-more button:disabled{opacity:.6;cursor:wait}
