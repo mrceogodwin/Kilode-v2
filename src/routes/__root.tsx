@@ -30,7 +30,7 @@ export const Route = createRootRoute({
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
       { name: "apple-mobile-web-app-title", content: "Kilode" },
-      { name: "theme-color", content: "#111111" },
+      { name: "theme-color", content: "#f7f7f8" },
       ...base.meta,
     ],
     links: [
@@ -51,7 +51,7 @@ export const Route = createRootRoute({
     scripts: base.scripts,
     styles: [
       {
-        children: "html,body{background:#080808;color:#f5f5f5;margin:0;min-height:100%;min-height:-webkit-fill-available}",
+        children: "html,body{background:#f7f7f8;color:#282829;margin:0;min-height:100%;min-height:-webkit-fill-available}",
       },
     ],
   }),
@@ -73,16 +73,16 @@ export const Route = createRootRoute({
     />
   ),
   component: () => (
-    <html lang="en" data-skin="night" suppressHydrationWarning>
+    <html lang="en" data-skin="light" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var s=localStorage.getItem("kilode-skin-v2");document.documentElement.setAttribute("data-skin","night")}catch(e){document.documentElement.setAttribute("data-skin","night")}`,
+            __html: `try{var s=localStorage.getItem("kilode-skin-v2");document.documentElement.setAttribute("data-skin","light")}catch(e){document.documentElement.setAttribute("data-skin","night")}`,
           }}
         />
       </head>
-      <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh", background: "#080808", color: "#f5f5f5" }}>
+      <body className="bg-bg font-sans text-fg antialiased" style={{ minHeight: "100dvh", background: "#f7f7f8", color: "#282829" }}>
         <PreviewHostBridge />
         <OfflineToast />
         <AuthProvider>
