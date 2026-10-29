@@ -119,6 +119,12 @@ export function SocialFirst({
   const lastY = useRef(0);
 
   useEffect(() => {
+    if (!note) return;
+    const timer = window.setTimeout(() => setNote(""), 3200);
+    return () => window.clearTimeout(timer);
+  }, [note]);
+
+  useEffect(() => {
     const onLane = (ev: Event) => {
       const d = (ev as CustomEvent).detail;
       if (d?.lane === "media") setLane("media");
@@ -253,9 +259,13 @@ export function SocialFirst({
     if ((!draft.trim() && !media) || posting) return;
     setPosting(true);
     try {
-      await saveTake({ data: { body: draft.trim() || (media ? " " : ""), kind: "take", image: media || undefined } } as any);
-      setDraft(""); setMedia(""); await refresh();
-    } catch { setNote("Post failed"); }
+      const result = await saveTake({ data: { body: draft.trim() || (media ? " " : ""), kind: "take", image: media || undefined } } as any);
+      if (result && typeof result === "object" && (result as any).ok === false) {
+        setNote((result as any).reason || "Post failed — please try again");
+        return;
+      }
+      setDraft(""); setMedia(""); setNote("Post published"); await refresh();
+    } catch { setNote("Post failed — please try again"); }
     finally { setPosting(false); }
   };
 
