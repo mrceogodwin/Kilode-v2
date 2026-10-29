@@ -168,3 +168,18 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{
 @media(prefers-reduced-motion:reduce){
   .kilode-quora *, .kilode-shell *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* Stories rail: visible, keyboard-friendly, and consistent with Kilode's dark feed. */
+.kq-stories{margin:0 0 14px;padding:14px 16px;background:#292a2d;border:1px solid #414247;border-radius:12px;min-width:0}
+.kq-stories-heading{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px}
+.kq-stories-heading strong{font-size:14px;font-weight:750;color:#f0f0f1}
+.kq-stories-heading span{font-size:11px;color:#b8b8ba}
+.kq-stories-row{display:flex;align-items:flex-start;gap:14px;overflow-x:auto;padding:2px 1px 5px;scrollbar-width:thin}
+.kq-stories-row button{display:flex;flex:0 0 62px;flex-direction:column;align-items:center;gap:6px;min-width:0;padding:0;border:0;background:transparent;color:#b8b8ba;font-size:11px;cursor:pointer}
+.kq-stories-row button>span:last-child{display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.kq-story-add-icon{display:grid;place-items:center;width:48px;height:48px;border:1px dashed #777980;border-radius:50%;color:#f0f0f1;font-size:25px;background:#343539}
+.kq-story-ring{display:block;width:52px;height:52px;padding:3px;border-radius:50%;border:2px solid #c9403a}
+.kq-story-ring img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover}
+.kq-stories-row button:disabled{opacity:.6;cursor:wait}
+@media(max-width:640px){.kq-stories{padding:12px;border-radius:10px}.kq-stories-heading span{font-size:10px}.kq-stories-row{gap:10px}}
