@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Activity, Bell, Briefcase, Clapperboard, Eye, FileText, Layers,
-  Menu, MessageCircle, Music, Plus, Share2, Store, ThumbsUp, Users, Megaphone, Building2, Calendar, X, Zap, Image as ImageIcon,
+  Menu, MessageCircle, Music, Plus, Search, Share2, Store, ThumbsUp, Users, Megaphone, Building2, Calendar, X, Zap, Image as ImageIcon,
 } from "lucide-react";
 import { avatarUrl, timeAgo } from "@/lib/qonvo-data";
 import {
@@ -350,7 +350,7 @@ export function SocialFirst({
       <header className="kq-header">
         <button className="kq-wordmark" type="button" onClick={() => { setTag(""); setLane("feed"); void refresh(); }}>Kilode<span>!</span></button>
         <label className="kq-search">
-          <Eye size={17} aria-hidden="true" />
+          <Search size={17} aria-hidden="true" />
           <input aria-label="Search Kilode" placeholder="Search Kilode" onKeyDown={(e) => { if (e.key === "Enter") { const q = (e.currentTarget.value || "").trim(); if (q) open(q); } }} />
         </label>
         <div className="kq-header-actions">
@@ -382,6 +382,33 @@ export function SocialFirst({
             <div><div className="kq-eyebrow">KILODE COMMUNITY</div><h1>{tag ? `#${tag}` : "For You"}</h1></div>
             {tag ? <button type="button" className="kq-text-button" onClick={() => void clearTag()}>Clear topic</button> : null}
           </div>
+
+          <section className="kq-stories" aria-label="Stories">
+            <div className="kq-stories-head"><strong>Stories</strong><span>Photos · 24 hours</span></div>
+            <div className="kq-stories-rail">
+              <button type="button" className="kq-story-add" onClick={() => !authed ? onNeedAuth() : storyFileRef.current?.click()}>
+                <span className="kq-story-add-avatar"><img src={avatarUrl(me || "guest", face)} alt="" /><i>+</i></span>
+                <strong>{storyBusy ? "Uploading…" : "Your story"}</strong>
+              </button>
+              <input ref={storyFileRef} type="file" accept="image/*" hidden onChange={(e) => void onStoryFile(e.target.files?.[0])} />
+              {stories.map((story) => (
+                <button key={story.id} type="button" className="kq-story-person" onClick={() => setStoryView(story)}>
+                  <span className="kq-story-ring"><img src={faceOf(story.handle, faces)} alt="" /></span>
+                  <strong>@{story.handle}</strong>
+                </button>
+              ))}
+              {!stories.length ? <p className="kq-stories-hint">Share a moment with the community.</p> : null}
+            </div>
+          </section>
+
+          <nav className="kq-mobile-topics" aria-label="Explore topics">
+            {[
+              ["For You", ""], ["News", "news"], ["Entertainment", "entertainment"], ["Gossip", "gossip"],
+              ["Politics", "politics"], ["Business", "business"], ["Technology", "technology"], ["Trending", "trending"]
+            ].map(([label, key]) => (
+              <button key={label} type="button" className={(tag || "") === key ? "on" : ""} onClick={() => key ? open(key) : (setTag(""), setLane("feed"), void refresh())}>{label}</button>
+            ))}
+          </nav>
 
           <form className="kq-composer" onSubmit={onPost}>
             <img src={avatarUrl(me || "guest", face)} alt="" />
