@@ -140,3 +140,40 @@ body { background-image: none !important; }
   .sf-root [data-home-lane="v2"] .km-explore > div:last-child { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
   .sf-root [data-home-lane="v2"] .km-featured > button { flex-basis: 82% !important; }
 }
+
+/* Apply the editorial layout to the current home component structure. */
+.sf-root [data-home-lane="v2"] > div:nth-of-type(2) { padding: 12px 14px 8px !important; scrollbar-width: none; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(2) button { background: #fff !important; color: #57534e !important; border: 1px solid #e7e5e4 !important; border-radius: 8px !important; padding: 8px 14px !important; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(2) button:first-child { background: #171717 !important; color: #fff !important; border-color: #171717 !important; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(3) { padding: 10px 14px 14px !important; scrollbar-width: none; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(3) > button { border-radius: 12px !important; border: 1px solid #e7e5e4 !important; box-shadow: 0 3px 12px rgba(28,25,23,.06); }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(3) > button > div:first-child { background: linear-gradient(135deg,#f05a28,#211b19) !important; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(4),
+.sf-root [data-home-lane="v2"] > div:nth-of-type(6) { margin: 12px 14px 0 !important; padding: 18px !important; border: 1px solid #e7e5e4 !important; border-radius: 12px !important; background: #fff !important; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(4) > div:first-child,
+.sf-root [data-home-lane="v2"] > div:nth-of-type(6) > div:first-child { color: #f05a28 !important; font-size: 10px !important; letter-spacing: .12em !important; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(4) > div:last-child { grid-template-columns: repeat(4,minmax(0,1fr)) !important; gap: 8px !important; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(4) > div:last-child > button { border-color: #eeecea !important; border-radius: 10px !important; padding: 12px !important; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(4) > div:last-child > button span { background: #fff1eb !important; color: #f05a28 !important; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(5) button { background: #171717 !important; border-radius: 12px !important; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(6) > button { border-bottom-color: #eeecea !important; padding: 13px 0 !important; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(6) > button > img { border-radius: 8px !important; }
+.sf-root [data-home-lane="v2"] > div:nth-of-type(6) > button > span { border-radius: 8px !important; background: #fff1eb !important; color: #f05a28 !important; }
+@media (min-width: 980px) {
+ .sf-root [data-home-lane="v2"] { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(280px,.8fr); column-gap: 20px; align-items: start; padding: 0 22px 28px; }
+ .sf-root [data-home-lane="v2"] > .sf-tick,
+ .sf-root [data-home-lane="v2"] > div:nth-of-type(2) { grid-column: 1 / -1; }
+ .sf-root [data-home-lane="v2"] > div:nth-of-type(3) { grid-column: 1 / 2; grid-row: 3 / span 2; display: grid !important; grid-template-columns: repeat(2,minmax(0,1fr)); overflow: visible !important; align-content: start; }
+ .sf-root [data-home-lane="v2"] > div:nth-of-type(3) > button { width: 100%; max-width: none !important; min-width: 0 !important; }
+ .sf-root [data-home-lane="v2"] > div:nth-of-type(3) > button:first-child { grid-column: 1 / -1; }
+ .sf-root [data-home-lane="v2"] > div:nth-of-type(4) { grid-column: 2 / 3; margin-top: 10px !important; }
+ .sf-root [data-home-lane="v2"] > div:nth-of-type(4) > div:last-child { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+ .sf-root [data-home-lane="v2"] > div:nth-of-type(5) { grid-column: 2 / 3; }
+ .sf-root [data-home-lane="v2"] > div:nth-of-type(6) { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+ .sf-root [data-home-lane="v2"] > div:nth-of-type(4),
+ .sf-root [data-home-lane="v2"] > div:nth-of-type(6) { margin-left: 10px !important; margin-right: 10px !important; padding: 14px !important; }
+ .sf-root [data-home-lane="v2"] > div:nth-of-type(4) > div:last-child { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+ .sf-root [data-home-lane="v2"] > div:nth-of-type(3) > button { flex-basis: 82% !important; }
+}
