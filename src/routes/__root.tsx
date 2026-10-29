@@ -4,9 +4,6 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { seoHead } from "@/lib/seo";
 import appCss from "../styles.css?url";
-import whiteBlueCss from "../styles-white-blue.css?url";
-import tickFixCss from "../styles-tick-fix.css?url";
-import myspaceFixCss from "../styles-myspace-fix.css?url";
 import quoraRefreshCss from "../styles-quora-refresh.css?url";
 import { OfflineToast } from "@/components/offline-toast";
 
@@ -48,9 +45,6 @@ export const Route = createRootRoute({
         href: "https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Syne:wght@700;800&display=swap",
       },
       { rel: "stylesheet", href: appCss },
-      { rel: "stylesheet", href: whiteBlueCss },
-      { rel: "stylesheet", href: tickFixCss },
-      { rel: "stylesheet", href: myspaceFixCss },
       { rel: "stylesheet", href: quoraRefreshCss },
       ...base.links,
     ],
