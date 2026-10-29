@@ -349,12 +349,17 @@ export function SocialFirst({
     <div className="kilode-quora" data-kilode-home="quora">
       <header className="kq-header">
         <button className="kq-wordmark" type="button" onClick={() => { setTag(""); setLane("feed"); void refresh(); }}>Kilode<span>!</span></button>
+        <nav className="kq-top-nav" aria-label="Primary navigation">
+          <button type="button" className="active" onClick={() => { setTag(""); setLane("feed"); void refresh(); }}><Activity size={19} /><span>Home</span></button>
+          <button type="button" onClick={() => open("following")}><Users size={19} /><span>Following</span></button>
+          <button type="button" onClick={() => open("answer")}><MessageCircle size={19} /><span>Answer</span></button>
+          <button type="button" onClick={() => open("spaces")}><Layers size={19} /><span>Spaces</span></button>
+        </nav>
         <label className="kq-search">
           <Search size={17} aria-hidden="true" />
           <input aria-label="Search Kilode" placeholder="Search Kilode" onKeyDown={(e) => { if (e.key === "Enter") { const q = (e.currentTarget.value || "").trim(); if (q) open(q); } }} />
         </label>
         <div className="kq-header-actions">
-          <button type="button" aria-label="Home" onClick={() => { setTag(""); setLane("feed"); void refresh(); }}><Activity size={20} /></button>
           <button type="button" aria-label="Notifications" onClick={onLikes}><Bell size={20} /></button>
           <button type="button" aria-label="Messages" onClick={onSend}><MessageCircle size={20} /></button>
           <button type="button" aria-label="Menu" onClick={onMenu}><Menu size={20} /></button>
