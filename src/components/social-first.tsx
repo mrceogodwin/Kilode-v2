@@ -407,6 +407,23 @@ export function SocialFirst({
             ))}
           </nav>
 
+          <section className="kq-stories" aria-label="Stories">
+            <div className="kq-stories-heading"><strong>Stories</strong><span>Photos disappear after 24 hours</span></div>
+            <div className="kq-stories-row">
+              <button className="kq-story-add" type="button" onClick={() => authed ? storyFileRef.current?.click() : onNeedAuth()} disabled={storyBusy}>
+                <span className="kq-story-add-icon">{storyBusy ? "…" : "+"}</span>
+                <span>{storyBusy ? "Uploading" : "Your story"}</span>
+              </button>
+              <input ref={storyFileRef} type="file" accept="image/*" hidden onChange={(e) => void onStoryFile(e.target.files?.[0])} />
+              {stories.filter((story) => story.image && story.handle).map((story) => (
+                <button key={story.id} className="kq-story-person" type="button" onClick={() => setStoryView(story)} aria-label={`View story by @${story.handle}`}>
+                  <span className="kq-story-ring"><img src={story.image} alt="" /></span>
+                  <span>@{story.handle}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
           <form className="kq-composer" onSubmit={onPost}>
             <img src={avatarUrl(me || "guest", face)} alt="" />
             <div className="kq-composer-main">
